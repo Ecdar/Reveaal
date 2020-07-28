@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Alarm, Env;\n\nIO Alarm {close?, lock?, open?, unlock?, armedOff!, armedOn!, flashOff!, flashOn!, soundOff!, soundOn!}\nIO Env {open!, close!, lock!, unlock!}"
+}

@@ -1,0 +1,4 @@
+{
+  "name": "Global Declarations",
+  "declarations": "broadcast chan button1, button2, good, bad, meh;"
+}

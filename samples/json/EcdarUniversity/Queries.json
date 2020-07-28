@@ -1,0 +1,42 @@
+[
+  {
+    "query": "specification: (Administration || Machine || Researcher)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "specification: Spec",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: (Administration || Machine || Researcher)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: (Administration || Machine || Researcher : A[] not Researcher.Universal)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: (Administration || Machine || Researcher) \u003c\u003d Spec",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Machine3 \u003c\u003d Machine3",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: (HalfAdm1 \u0026\u0026 HalfAdm2) \u003c\u003d Adm2",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Adm2 \u003c\u003d (HalfAdm1 \u0026\u0026 HalfAdm2)",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

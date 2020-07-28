@@ -1,0 +1,47 @@
+[
+  {
+    "query": "refinement: (A || G) \u003c\u003d (A || Imp)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: (A || Imp) \u003c\u003d (A || G)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: G \u003c\u003d Imp",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Imp \u003c\u003d G",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: G \u003c\u003d Q",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Q \u003c\u003d G",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Q \u003c\u003d Imp",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: Imp \u003c\u003d Q",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: A \u003c\u003d AA",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

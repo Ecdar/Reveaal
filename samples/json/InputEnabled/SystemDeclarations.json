@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Automaton;\n\nIO Automaton {i1?, i2?, o!}"
+}

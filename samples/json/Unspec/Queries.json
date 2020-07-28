@@ -1,0 +1,7 @@
+[
+  {
+    "query": "refinement: (A || AA) \u003c\u003d B",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

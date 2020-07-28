@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Sender, Receiver;\n\nIO Sender {c!}\nIO Receiver {c?}"
+}

@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system A, B, AA;\n\nIO A { a! }\nIO B { b? }\nIO AA { a? }"
+}

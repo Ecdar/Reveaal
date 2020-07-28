@@ -1,0 +1,4 @@
+{
+  "name": "Global Declarations",
+  "declarations": "broadcast chan coin, tuna, garnish;\n\ntypedef int[0,1] bool_t;"
+}

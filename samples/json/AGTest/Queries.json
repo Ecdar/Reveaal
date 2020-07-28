@@ -1,0 +1,17 @@
+[
+  {
+    "query": "refinement: G1 \u003c\u003d ((A1 || G2) \\ A2)",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: ((A1 || G2) \\ A2) \u003c\u003d G1",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement:  ((A1 || G1) \\ A2) \u003c\u003d Imp",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

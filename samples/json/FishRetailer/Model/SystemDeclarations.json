@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Retailer;\n\nIO Retailer {coin?, tuna!, garnish!}"
+}

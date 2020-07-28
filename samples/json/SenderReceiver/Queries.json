@@ -1,0 +1,27 @@
+[
+  {
+    "query": "E\u003c\u003e Receiver.L4",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "specification: Sender",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "implementation: Sender",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "specification: Receiver",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "implementation: Receiver",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

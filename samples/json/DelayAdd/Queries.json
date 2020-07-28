@@ -1,0 +1,47 @@
+[
+  {
+    "query": "refinement: (A1 || A2) \u003c\u003d B",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: C1 \u003c\u003d C2",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: D1",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: C2",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: D1 \u003c\u003d D2",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: E1 \u003c\u003d E2",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: T1",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "refinement: (T1 || T2) \u003c\u003d T3",
+    "comment": "",
+    "isPeriodic": false
+  },
+  {
+    "query": "consistency: T2",
+    "comment": "",
+    "isPeriodic": false
+  }
+]
