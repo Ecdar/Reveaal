@@ -1,0 +1,50 @@
+edgeAttribute = {SOI ~ guard ~ EOI | SOI ~ update ~ EOI}
+
+guard = {expression? ~ ";"?}
+update = {assignments?}
+
+assignments = {assignment ~ assignments | finalAssignment}
+
+assignment = {variable ~ "=" ~ expression ~ ";"+}
+finalAssignment = {variable ~ "=" ~ expression ~ ";"*}
+
+expression = { and }
+
+and = { or ~ "&&" ~ and | or }
+
+or = { compareExpr ~ "||" ~ or | compareExpr }
+
+compareExpr = { terms ~ lowOperator ~ compareExpr | terms }
+
+sub_add = {mult_div_mod ~ operator ~ sub_add   | mult_div_mod}
+
+mult_div_mod = {terms  ~ highOperator ~  mult_div_mod | terms}
+
+terms = { parenthesizedExp  | term }
+
+negation = {"!" ~ compareExpr}
+
+numNegation = {"-" ~ parenthesizedExp | "-" ~ term}
+
+parenthesizedExp = { "(" ~ expression ~ ")"}
+
+
+variable = { (variable_name ~ ("." | "þ" | "€")?)+ ~ (int | variable_name)?}
+variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "þ" | "ð" | "đ" | "œ")*}
+
+term = {atom | variable}
+atom = {int | "true" | "false" }
+
+number = @{ int ~ ("." ~ ASCII_DIGIT+)? }
+int    = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {!("\"") ~ ANY}
+
+operator = { "+" | "-" }
+highOperator = { "/" | "*" | "%" }
+lowOperator = { ">=" | "<=" | "<" | ">" }
+
+
+WHITESPACE = _{ " " }
