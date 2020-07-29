@@ -10,12 +10,11 @@ pub struct Component {
     #[serde(deserialize_with = "decode_declarations")]
     pub declarations: Declarations,
     pub locations: Vec<Location>,
-    pub initial_location: Location,
     pub edges: Vec<Edge>,
 }
 
 impl Component {
-    pub fn get_name(&self) -> &string {
+    pub fn get_name(&self) -> &String {
         &self.name
     }
     pub fn get_declarations(&self) -> &Declarations {
@@ -23,9 +22,6 @@ impl Component {
     }
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
-    }
-    pub fn get_initial_location(&self) -> &Location {
-        &self.initial_location
     }
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
@@ -43,6 +39,7 @@ pub enum LocationType {
 pub struct Location {
     pub id: String,
     pub invariant: String,
+    #[serde(deserialize_with = "decode_location_type", alias = "type")]
     pub location_type: LocationType,
     pub urgency: String,
 }
@@ -71,15 +68,17 @@ pub enum SyncType {
 #[derive(Debug, Deserialize, Clone)]
 
 pub struct Edge {
+    #[serde(alias = "sourceLocation")]
     pub source_location: String,
+    #[serde(alias = "targetLocation")]
     pub target_location: String,
-    #[serde(deserialize_with = "decode_sync_type")]
+    #[serde(deserialize_with = "decode_sync_type", alias = "status")]
     pub sync_type: SyncType,
 
     #[serde(deserialize_with = "decode_guard")]
-    pub guard: expression_representation::BoolExpression,
+    pub guard: Option<expression_representation::BoolExpression>,
     #[serde(deserialize_with = "decode_update")]
-    pub update: Vec<parse_edge::Update>,
+    pub update: Option<Vec<parse_edge::Update>>,
     pub sync: String,
     
 }
@@ -94,10 +93,10 @@ impl Edge {
     pub fn get_sync_type(&self) -> &SyncType {
         &self.sync_type
     }
-    pub fn get_guard(&self) -> &expression_representation::BoolExpression {
+    pub fn get_guard(&self) -> &Option<expression_representation::BoolExpression> {
         &self.guard
     }
-    pub fn get_update(&self) -> &Vec<parse_edge::Update> {
+    pub fn get_update(&self) -> &Option<Vec<parse_edge::Update>> {
         &self.update
     }
     pub fn get_sync(&self) -> &String {
@@ -145,31 +144,35 @@ where
             continue;
         }
         let sub_decls: Vec<String> = string.split(";").map(|s| s.into()).collect();
-
+        
         for sub_decl in sub_decls {
-            let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
-            let variable_type = split_string[0].as_str();
+            if sub_decl.len() != 0 {
+                
+                
+                let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
+                let variable_type = split_string[0].as_str();
 
-            if variable_type == "clock" {
-                for i in 1..split_string.len(){
-                    let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
-                    for var in comma_split {
-                        clocks.insert(var, -1);
+                if variable_type == "clock" {
+                    for i in 1..split_string.len(){
+                        let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
+                        for var in comma_split {
+                            clocks.insert(var, -1);
+                        }
                     }
-                }
-            } else if variable_type == "int" {
-                for i in 1..split_string.len(){
-                    let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
-                    for var in comma_split {
-                        ints.insert(var, 0);
+                } else if variable_type == "int" {
+                    for i in 1..split_string.len(){
+                        let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
+                        for var in comma_split {
+                            ints.insert(var, 0);
+                        }
                     }
+                } else {
+                    let mut error_string = "not implemented read for type: ".to_string();
+                    error_string.push_str(&variable_type.to_string());
+                    println!("Variable type: {:?}", variable_type);
+                    panic!(error_string);
                 }
-            } else {
-                let mut error_string = "not implemented read for type: ".to_string();
-                error_string.push_str(&variable_type.to_string());
-                panic!(error_string);
             }
-
         }
         
     }
@@ -181,16 +184,19 @@ where
 
 
 //Function used for deserializing guards
-fn decode_guard<'de, D>(deserializer: D) -> Result<expression_representation::BoolExpression, D::Error>
+fn decode_guard<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
+    if s.len() == 0 {
+        return Ok(None)
+    }
     match parse_edge::parse(&s) {
         Ok(edgeAttribute) => {
             match edgeAttribute{
-                parse_edge::EdgeAttribute::Guard(guard_res) => return Ok(guard_res),
-                parse_edge::EdgeAttribute::Updates(_) => panic!("We expected a guard but got an update? {}\n", s)
+                parse_edge::EdgeAttribute::Guard(guard_res) => return Ok(Some(guard_res)),
+                parse_edge::EdgeAttribute::Updates(_) => panic!("We expected a guard but got an update? {:?}\n", s)
             }
         },
         Err(e) => panic!("Could not parse {} got error: {:?}",s, e )
@@ -198,23 +204,26 @@ where
 }
 
 //Function used for deserializing updates
-fn decode_update<'de, D>(deserializer: D) -> Result<Vec<parse_edge::Update>, D::Error>
+fn decode_update<'de, D>(deserializer: D) -> Result<Option<Vec<parse_edge::Update>>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
+    if s.len() == 0 {
+        return Ok(None)
+    }
     match parse_edge::parse(&s) {
         Ok(edgeAttribute) => {
             match edgeAttribute{
-                parse_edge::EdgeAttribute::Guard(_) => panic!("We expected an update but got a guard? {}",s),
-                parse_edge::EdgeAttribute::Updates(update_vec) => return Ok(update_vec)
+                parse_edge::EdgeAttribute::Guard(_) => panic!("We expected an update but got a guard? {:?}",s),
+                parse_edge::EdgeAttribute::Updates(update_vec) => return Ok(Some(update_vec))
             }
         },
         Err(e) => panic!("Could not parse {} got error: {:?}",s, e )
     }
 }
 
-//Function used for deserializing updates
+//Function used for deserializing sync types
 fn decode_sync_type<'de, D>(deserializer: D) -> Result<SyncType, D::Error>
 where
     D: Deserializer<'de>,
@@ -223,6 +232,20 @@ where
     match s.as_str() {
         "INPUT" => Ok(SyncType::Input),
         "OUTPUT" => Ok(SyncType::Output),
+        _ => panic!("Unknown sync type in status {:?}", s)
+    }
+}
+
+//Function used for deserializing location types
+fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    match s.as_str() {
+        "NORMAL" => Ok(LocationType::Normal),
+        "INITIAL" => Ok(LocationType::Initial),
+        "UNIVERSAL" => Ok(LocationType::Universal),
         _ => panic!("Unknown sync type in status {:?}", s)
     }
 }
