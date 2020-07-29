@@ -14,14 +14,14 @@ pub struct Component {
     pub edges: Vec<Edge>,
 }
 
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum LocationType {
     Normal,
     Initial,
     Universal
 }
 
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Location {
     pub id: String,
     pub invariant: String,
@@ -29,7 +29,7 @@ pub struct Location {
     pub urgency: String,
 }
 
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum SyncType {
     Input,
     Output,
