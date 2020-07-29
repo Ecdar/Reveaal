@@ -28,7 +28,7 @@ impl Component {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
 pub enum LocationType {
     Normal,
     Initial,

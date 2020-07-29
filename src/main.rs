@@ -5,6 +5,7 @@ mod ModelObjects;
 use std::{fs, io};
 use clap::{load_yaml, App};
 use ModelObjects::component;
+use ModelObjects::system_declarations;
 use DataReader::json_reader;
 
 #[macro_use]
@@ -12,12 +13,13 @@ extern crate pest_derive;
 
 pub fn main() {
     println!("Hello World!");
-    let components = parse_args().unwrap();
+    let (components, system_declarations) = parse_args().unwrap();
 
-    println!("{:?}", components);
+    println!("{:?}\n", components);
+    println!("{:?}\n", system_declarations);
 }
 
-fn parse_args() -> io::Result<(Vec<component::Component>)>{
+fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations)>{
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     let mut folder_path: String = "".to_string();
@@ -51,8 +53,15 @@ fn parse_args() -> io::Result<(Vec<component::Component>)>{
  
 }
 
-fn read_input(paths: Vec<std::path::PathBuf>, components: Vec<std::path::PathBuf>) -> Result<(Vec<component::Component>), String> {
+fn read_input(paths: Vec<std::path::PathBuf>, components: Vec<std::path::PathBuf>) -> 
+Result<(
+        Vec<component::Component>, 
+        system_declarations::SystemDeclarations
+    ), 
+    String
+> {
     let mut json_components: Vec<component::Component> = vec![];
+    let mut system_decls: Option<system_declarations::SystemDeclarations> = None;
 
     for component in components {
         match component.to_str(){
@@ -69,5 +78,25 @@ fn read_input(paths: Vec<std::path::PathBuf>, components: Vec<std::path::PathBuf
         
     }
 
-    Ok(json_components)
+    for path in paths {
+        match path.to_str(){
+            Some(path_string) =>{              
+                if path_string.ends_with("SystemDeclarations.json") {
+                    system_decls = match json_reader::read_json::<system_declarations::SystemDeclarations>(path_string.to_string()) {
+                        Ok(json) => Some(json),
+                        Err(error) => panic!("We got error {}, and could not parse json file {} to component", error, path_string),
+                    };
+                }
+            }
+            //What actually happens?
+            None => panic!("Path could not be converted to string! Path: {:?}", path)
+        }
+    }
+
+    if let Some(system_decl) = system_decls {
+        Ok((json_components, system_decl))
+    } else {
+        panic!("Could not retrieve system declarations")
+    }
+    
 }
