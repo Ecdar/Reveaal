@@ -1,4 +1,0 @@
-dbm/inline_fed.h:1523:19: warning: cast to 'dbm::idbm_t *' from smaller integer type 'unsigned int' [-Wint-to-pointer-cast], err: false
-dbm/wrapper.h:50:16: warning: 'dbm_subtract1_exposed' has C-linkage specified, but returns user-defined type 'dbm::fed_t' which is incompatible with C [-Wreturn-type-c-linkage], err: false
-dbm/wrapper.h:51:16: warning: 'dbm_subtract2_exposed' has C-linkage specified, but returns user-defined type 'dbm::fed_t' which is incompatible with C [-Wreturn-type-c-linkage], err: false
-dbm/wrapper.h:52:16: warning: 'dbm_subtract3_exposed' has C-linkage specified, but returns user-defined type 'dbm::fed_t' which is incompatible with C [-Wreturn-type-c-linkage], err: false
