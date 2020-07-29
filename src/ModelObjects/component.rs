@@ -14,6 +14,24 @@ pub struct Component {
     pub edges: Vec<Edge>,
 }
 
+impl Component {
+    pub fn get_name(&self) -> &string {
+        &self.name
+    }
+    pub fn get_declarations(&self) -> &Declarations {
+        &self.declarations
+    }
+    pub fn get_locations(&self) -> &Vec<Location> {
+        &self.locations
+    }
+    pub fn get_initial_location(&self) -> &Location {
+        &self.initial_location
+    }
+    pub fn get_edges(&self) -> &Vec<Edge> {
+        &self.edges
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub enum LocationType {
     Normal,
@@ -27,6 +45,21 @@ pub struct Location {
     pub invariant: String,
     pub location_type: LocationType,
     pub urgency: String,
+}
+
+impl Location {
+    pub fn get_id(&self) -> &String {
+        &self.id
+    }
+    pub fn get_invariant(&self) -> &String {
+        &self.invariant
+    }
+    pub fn get_location_type(&self) -> &LocationType {
+        &self.location_type
+    }
+    pub fn get_urgency(&self) -> &String {
+        &self.urgency
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -51,11 +84,48 @@ pub struct Edge {
     
 }
 
+impl Edge {
+    pub fn get_source_location(&self) -> &String {
+        &self.source_location
+    }
+    pub fn get_target_location(&self) -> &String {
+        &self.target_location
+    }
+    pub fn get_sync_type(&self) -> &SyncType {
+        &self.sync_type
+    }
+    pub fn get_guard(&self) -> &expression_representation::BoolExpression {
+        &self.guard
+    }
+    pub fn get_update(&self) -> &Vec<parse_edge::Update> {
+        &self.update
+    }
+    pub fn get_sync(&self) -> &String {
+        &self.sync
+    }
+}
+
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq,Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String,  i32>,
     pub clocks : HashMap<String, i32>,
+}
+
+impl Declarations {
+    pub fn get_ints(&self) -> &HashMap<String, i32> {
+        &self.ints
+    }
+    pub fn get_mut_ints(&mut self) -> &mut HashMap<String, i32> {
+        &mut self.ints
+    }
+
+    pub fn get_clocks(&self) -> &HashMap<String, i32> {
+        &self.clocks
+    }
+    pub fn get_mut_clocks(&mut self) -> &mut HashMap<String, i32> {
+        &mut self.clocks
+    }
 }
 
 //Function used for deserializing declarations
