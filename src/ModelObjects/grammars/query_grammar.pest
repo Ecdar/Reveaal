@@ -1,0 +1,59 @@
+query = {SOI ~ (refinement | consistency | implementation | determinism | specification | logicFormulas) ~ EOI}
+
+
+refinement = {"refinement:" ~ expr ~ "<=" ~ expr}
+
+consistency = {"consistency:" ~ expr}
+
+implementation = {"implementation:" ~ expr}
+
+determinism = {"determinism:" ~ expr}
+
+specification = {"specification:" ~ expr}
+
+expr = {parenthesizedExp | specificationFeature}
+
+specificationFeature = { term ~ featureOperator ~ expr | term}
+
+logicFormulas = {possibly | invariantly | potentiallyAlways | eventually}
+
+possibly = {"E<>" ~ boolExpr}
+
+invariantly = {"A[]" ~ boolExpr}
+
+potentiallyAlways = {"E[]" ~ boolExpr}
+
+eventually = {"A<>" ~ boolExpr}
+
+boolExpr = {andExpr}
+
+andExpr = { orExpr ~ "&&" ~ andExpr | orExpr }
+
+orExpr = { compExpr ~ "||" ~ orExpr | compExpr }
+
+compExpr = {subExpr ~ operator ~ compExpr | subExpr}
+
+subExpr = {parenthesizedSubExp |notExpr | term}
+
+notExpr = {"not" ~ boolExpr}
+
+parenthesizedSubExp = { "(" ~ boolExpr ~ ")"}
+
+terms = { parenthesizedExp  | term }
+
+parenthesizedExp = { "(" ~ expr ~ ")"}
+
+term = {atom | var}
+atom = {int | "true" | "false" }
+
+var = {variable ~ ":" ~ expr | variable}
+variable = { (variable_name ~ "."?)+ ~ (int | variable_name)?}
+variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
+
+int = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+
+operator = {">=" | "<=" | "<" | ">" | "==" | "!="}
+
+featureOperator = {"//" | "&&" | "||"}
+
+WHITESPACE = _{ " " }
