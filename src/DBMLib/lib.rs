@@ -402,6 +402,20 @@ pub fn rs_dbm_constrain_var_to_val(dbm : &mut[i32], dimension : u32, var_index: 
     }
 }
 
+/** Test only if dbm1 <= dbm2.
+ * @param dbm1,dbm2: DBMs to be tested.
+ * @param dim: dimension of the DBMs.
+ * @pre
+ * - dbm1 and dbm2 have the same dimension
+ * - dbm_isValid for both DBMs
+ * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
+ */
+pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) -> bool {
+    unsafe {
+        return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension)
+    }
+}
+
 pub fn libtest() {
     let mut intArr = [0,0,0,0,0,0,0,0,0];
     let mut intArr2 = [0,0,0,0,0,0,0,0,0];

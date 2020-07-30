@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer,Serialize};
 use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
+use crate::DBMLib::lib;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -11,6 +12,8 @@ pub struct Component {
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
+    pub input_edges : Option<Vec<Edge>>,
+    pub output_edges : Option<Vec<Edge>>,
 }
 
 impl Component {
@@ -25,6 +28,59 @@ impl Component {
     }
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
+    }
+
+    pub fn get_input_edges(&self) -> &Vec<Edge> {
+        return if let Some(input_edges) = &self.input_edges {
+            input_edges
+        } else {
+            panic!("attempted to get input edges before they were created")
+        }
+    }
+    pub fn get_output_edges(&self) -> &Vec<Edge> {
+        return if let Some(input_edges) = &self.output_edges {
+            input_edges
+        } else {
+            panic!("attempted to get output edges before they were created")
+        }
+    }
+
+    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> {
+        let edges = self.get_edges();
+
+        return match synch_type {
+            SyncType::Input => {
+                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                result
+            },
+            SyncType::Output => {
+                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                result
+            },
+        }
+
+    }
+
+    pub fn create_edge_io_split(mut self) -> Component {
+        let mut o_edges = vec![];
+        let mut i_edges = vec![];
+
+        for edge in self.edges {
+            match edge.sync_type {
+                SyncType::Input => {
+                    i_edges.push(edge)
+                },
+                SyncType::Output => {
+                    o_edges.push(edge)
+                },
+            }
+        }
+
+        self.output_edges = Some(o_edges);
+        self.input_edges  = Some(i_edges);
+        self.edges = vec![];
+
+        return self
     }
 }
 
@@ -104,15 +160,50 @@ impl Edge {
         &self.sync
     }
 }
-let mut max_size_dbm : [i32; 1000] = [0; 1000];
 
+pub struct State<'a> {
+    pub declarations : &'a Declarations,
+    pub location : &'a Location,
+    pub zone : [i32; 500],
+}
+
+impl State<'_> {
+    pub fn get_declarations(&self) -> & Declarations {
+        &self.declarations
+    }
+    pub fn get_mut_declarations(&mut self) -> & Declarations {
+        &mut self.declarations
+    }
+    pub fn get_location(&self) -> & Location {
+        &self.location
+    }
+
+    pub fn get_zone(&mut self) -> &mut [i32] {
+        let dim = self.get_declarations().get_dimension();
+        let len = dim * dim;
+        &mut self.zone[0..len as usize]
+    }
+
+    pub fn get_dbm_clone(&self) -> [i32; 500] {
+        return self.zone.clone()
+    }
+
+    pub fn set_dbm(&mut self, dbm : [i32;500]) {
+        self.zone = dbm;
+    }
+
+    pub fn init_dbm(&mut self) {
+        let dimension = (self.get_declarations().get_dimension()).clone();
+        lib::rs_dbm_init(self.get_zone(), dimension);
+    }
+
+}
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq,Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String,  i32>,
-    pub clocks : HashMap<String, i32>,
-    pub zone : [i32; 500],
-    pub dimension : i32,
+    pub clocks : HashMap<String, u32>,
+    pub dimension : u32,
 }
 
 impl Declarations {
@@ -123,29 +214,13 @@ impl Declarations {
         &mut self.ints
     }
 
-    pub fn get_clocks(&self) -> &HashMap<String, i32> {
+    pub fn get_clocks(&self) -> &HashMap<String, u32> {
         &self.clocks
     }
-    pub fn get_mut_clocks(&mut self) -> &mut HashMap<String, i32> {
-        &mut self.clocks
+    pub fn get_dimension(&self) -> &u32 {
+        &self.dimension
     }
 
-    pub fn init_dbm(&mut self) {
-        let dimension = clocks.keys().len();
-        lib::rs_dbm_init(&mut self.zone, dimension);
-
-        let counter = 1;
-        for (_ , val) = self.get_mut_clocks().iter_mut() {
-            val = counter;
-            counter += 1;
-        }
-        self.dimension = dimension;
-    }
-
-    pub fn get_zone(&mut self) -> &mut [i32] {
-        let len = &self.dimension * &self.dimension;
-        &mut self.zone[0..len as usize]
-    }
 }
 
 //Function used for deserializing declarations
@@ -157,15 +232,15 @@ where
     //Split string into vector of strings
     let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
     let mut ints: HashMap<String,  i32> = HashMap::new();
-    let mut clocks : HashMap<String, i32> = HashMap::new();
-
+    let mut clocks : HashMap<String, u32> = HashMap::new();
+    let mut counter: u32 = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string == "" {
             continue;
         }
         let sub_decls: Vec<String> = string.split(";").map(|s| s.into()).collect();
-        
+
         for sub_decl in sub_decls {
             if sub_decl.len() != 0 {
                 
@@ -177,7 +252,8 @@ where
                     for i in 1..split_string.len(){
                         let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
                         for var in comma_split {
-                            clocks.insert(var, -1);
+                            clocks.insert(var, counter);
+                            counter += 1;
                         }
                     }
                 } else if variable_type == "int" {
@@ -200,8 +276,7 @@ where
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
-        zone: [0;500],
-        dimension: 0,
+        dimension : counter,
     })
 }
 

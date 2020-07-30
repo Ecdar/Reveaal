@@ -2,6 +2,7 @@
 mod DataReader;
 mod Refiner;
 mod ModelObjects;
+mod DBMLib;
 use std::{fs, io};
 use clap::{load_yaml, App};
 use ModelObjects::component;
@@ -14,9 +15,12 @@ extern crate pest_derive;
 pub fn main() {
     println!("Hello World!");
     let (components, system_declarations) = parse_args().unwrap();
+    let mut optimized_components = vec![];
+    for comp in components {
+        optimized_components.push(comp.create_edge_io_split());
+    }
 
-    println!("{:?}\n", components);
-    println!("{:?}\n", system_declarations);
+
 }
 
 fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations)>{
