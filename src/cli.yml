@@ -1,0 +1,8 @@
+name: reveaal
+version: "1.0"
+about: Rust engine for ecdar
+args:
+    - folder:
+        help: input folder with components as json and a Queries.json file 
+        required: true
+        index: 1
