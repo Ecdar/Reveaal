@@ -1,6 +1,8 @@
 use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
 
+
+//Main Refinement algorithm
 pub fn refines(machine1 :component::Component, machine2 : component::Component, sys_decls : system_declarations::SystemDeclarations) -> bool {
     let refines = true;
     let passed_list : Vec<(component::Location, component::Location)> = vec![];
