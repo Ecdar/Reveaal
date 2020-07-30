@@ -35,6 +35,7 @@ pub enum LocationType {
     Universal
 }
 
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Location {
     pub id: String,
@@ -103,12 +104,15 @@ impl Edge {
         &self.sync
     }
 }
+let mut max_size_dbm : [i32; 1000] = [0; 1000];
 
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq,Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String,  i32>,
     pub clocks : HashMap<String, i32>,
+    pub zone : [i32; 500],
+    pub dimension : i32,
 }
 
 impl Declarations {
@@ -124,6 +128,23 @@ impl Declarations {
     }
     pub fn get_mut_clocks(&mut self) -> &mut HashMap<String, i32> {
         &mut self.clocks
+    }
+
+    pub fn init_dbm(&mut self) {
+        let dimension = clocks.keys().len();
+        lib::rs_dbm_init(&mut self.zone, dimension);
+
+        let counter = 1;
+        for (_ , val) = self.get_mut_clocks().iter_mut() {
+            val = counter;
+            counter += 1;
+        }
+        self.dimension = dimension;
+    }
+
+    pub fn get_zone(&mut self) -> &mut [i32] {
+        let len = &self.dimension * &self.dimension;
+        &mut self.zone[0..len as usize]
     }
 }
 
@@ -179,6 +200,8 @@ where
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
+        zone: [0;500],
+        dimension: 0,
     })
 }
 

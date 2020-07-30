@@ -26,6 +26,15 @@ pub fn refines(machine1 :component::Component, machine2 : component::Component, 
                 panic!("Found more than one initial location for: {:?}", machine2)
             };
 
+            waiting_list.push((initial_loc_1, initial_loc_2));
+
+            while waiting_list.len() > 0 && refines {
+                let curr_state = waiting_list.pop();  
+                
+                //Check if we have seen state before
+
+                
+            }
 
 
 
