@@ -244,7 +244,7 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpress
                 "<=" => {BoolExpression::LessEQ(Box::new(lside), Box::new(rside))},
                 "<" => {BoolExpression::LessT(Box::new(lside), Box::new(rside))},
                 ">" => {BoolExpression::GreatT(Box::new(lside), Box::new(rside))},
-                unknown_operator => panic!("Got unknown boolean operator: {}. Only able to match >=,<=,<,>,==,!=", unknown_operator),
+                unknown_operator => panic!("Got unknown boolean operator: {}. Only able to match >=,<=,<,>", unknown_operator),
             }
         }
     }    
