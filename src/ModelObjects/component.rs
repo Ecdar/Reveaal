@@ -226,7 +226,7 @@ where
 }
 
 
-//Function used for deserializing guards
+//Function used for deserializing invariants
 fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,

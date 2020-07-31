@@ -15,15 +15,15 @@ expr = {parenthesizedExp | specificationFeature}
 
 specificationFeature = { term ~ featureOperator ~ expr | term}
 
-logicFormulas = {possibly | invariantly | potentiallyAlways | eventually}
+logicFormulas = {possibly | invariantly | eventuallyAlways | potentially}
 
 possibly = {"E<>" ~ boolExpr}
 
 invariantly = {"A[]" ~ boolExpr}
 
-potentiallyAlways = {"E[]" ~ boolExpr}
+eventuallyAlways = {"E[]" ~ boolExpr}
 
-eventually = {"A<>" ~ boolExpr}
+potentially = {"A<>" ~ boolExpr}
 
 boolExpr = {andExpr}
 
@@ -46,13 +46,13 @@ parenthesizedExp = { "(" ~ expr ~ ")"}
 term = {atom | var}
 atom = {int | "true" | "false" }
 
-var = {variable ~ ":" ~ expr | variable}
+var = {variable ~ ":" ~ logicFormulas | variable}
 variable = { (variable_name ~ "."?)+ ~ (int | variable_name)?}
 variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
 
 int = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
 
-operator = {">=" | "<=" | "<" | ">" | "==" | "!="}
+operator = {">=" | "<=" | "<" | ">" }
 
 featureOperator = {"//" | "&&" | "||"}
 
