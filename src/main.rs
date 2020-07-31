@@ -4,6 +4,7 @@ mod Refiner;
 mod ModelObjects;
 use std::{fs, io};
 use clap::{load_yaml, App};
+use ModelObjects::queries;
 use ModelObjects::component;
 use ModelObjects::system_declarations;
 use DataReader::json_reader;
@@ -13,13 +14,14 @@ extern crate pest_derive;
 
 pub fn main() {
     println!("Hello World!");
-    let (components, system_declarations) = parse_args().unwrap();
+    let (components, system_declarations, queries) = parse_args().unwrap();
 
     println!("{:?}\n", components);
     println!("{:?}\n", system_declarations);
+    println!("{:?}\n", queries);
 }
 
-fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations)>{
+fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>)>{
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     let mut folder_path: String = "".to_string();
@@ -56,12 +58,14 @@ fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::S
 fn read_input(paths: Vec<std::path::PathBuf>, components: Vec<std::path::PathBuf>) -> 
 Result<(
         Vec<component::Component>, 
-        system_declarations::SystemDeclarations
+        system_declarations::SystemDeclarations,
+        Vec<queries::Query>,
     ), 
     String
 > {
     let mut json_components: Vec<component::Component> = vec![];
     let mut system_decls: Option<system_declarations::SystemDeclarations> = None;
+    let mut queries: Vec<queries::Query> = vec![];
 
     for component in components {
         match component.to_str(){
@@ -86,6 +90,11 @@ Result<(
                         Ok(json) => Some(json),
                         Err(error) => panic!("We got error {}, and could not parse json file {} to component", error, path_string),
                     };
+                } else if path_string.ends_with("Queries.json") {
+                    match json_reader::json_to_query(path_string.to_string()){
+                        Ok(queries_result) => queries = queries_result,
+                        Err(e) => panic!("We failed to read {}. We got error {}", path_string, e)
+                    }
                 }
             }
             //What actually happens?
@@ -94,7 +103,7 @@ Result<(
     }
 
     if let Some(system_decl) = system_decls {
-        Ok((json_components, system_decl))
+        Ok((json_components, system_decl, queries))
     } else {
         panic!("Could not retrieve system declarations")
     }

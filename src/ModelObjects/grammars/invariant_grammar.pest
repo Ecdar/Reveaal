@@ -1,0 +1,28 @@
+invariant = {SOI ~ andExpr ~ EOI}
+
+
+andExpr = { orExpr ~ "&&" ~ andExpr | orExpr }
+
+orExpr = { compareExpr ~ "||" ~ orExpr | compareExpr }
+
+compareExpr = { terms ~ operator ~ compareExpr | terms }
+
+terms = { parenthesizedExp  | term }
+
+parenthesizedExp = { "(" ~ andExpr ~ ")"}
+
+term = {atom | variable}
+atom = {int | "true" | "false" }
+
+variable = { (variable_name ~ "."?)+ ~ (int | variable_name)?}
+variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
+
+int    = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {!("\"") ~ ANY}
+
+operator = { ">=" | "<=" | "<" | ">" }
+
+WHITESPACE = _{ " " }
