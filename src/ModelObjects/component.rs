@@ -59,7 +59,6 @@ impl Component {
                 result
             },
         }
-
     }
 
     pub fn create_edge_io_split(mut self) -> Component {

@@ -79,6 +79,7 @@ fn refines<'a>(machine1 : &'a component::Component, machine2 : &'a component::Co
     waiting_list.push(initial_pair);
 
     'Outer: while !waiting_list.is_empty() && refines {
+        println!("starting while");
         let opt_next_pair = waiting_list.pop();
         if let Some(mut next_pair)  = opt_next_pair {
             if is_new_state( &mut next_pair, &mut passed_list) {
@@ -128,8 +129,10 @@ fn add_new_states<'a>(
     machine1 : &'a component::Component,
     machine2 : &'a component::Component
 ) {
+    //println!("enetered add_new_states");
     for edge1 in &next1 {
         for edge2 in &next2 {
+
             let opt_new_location1 = machine1.get_locations().into_iter().find(|l| l.get_id() == edge1.get_target_location());
             let opt_new_location2 = machine2.get_locations().into_iter().find(|l| l.get_id() == edge2.get_target_location());
             if let Some(new_location1) = opt_new_location1 {
@@ -142,54 +145,67 @@ fn add_new_states<'a>(
                     let mut new_state_pair : StatePair<'a> = create_state_pair(new_state1, new_state2);
                     new_state_pair.set_dbm(state_pair.get_dbm_clone());
 
-                    if let Some(guard1) = edge1.get_guard() {
-
+                    let g1_success =  if let Some(guard1) = edge1.get_guard() {
                         let success1 = apply_constraints_to_state_pair(guard1, &mut new_state_pair, true);
-
                         if let BoolExpression::Bool(val1) = success1 {
                             if val1 {
-                                if let Some(guard2) = edge2.get_guard() {
-
-                                    let success2 = apply_constraints_to_state_pair(guard2, &mut new_state_pair, false);
-                                    if let BoolExpression::Bool(val2) = success2 {
-                                        if val2 {
-
-                                            let invariant1 = new_state_pair.get_state1().get_location().get_invariant().clone();
-                                            let invariant2 = new_state_pair.get_state2().get_location().get_invariant().clone();
-
-                                            let inv1_success = if let Some(inv1) = invariant1 {
-                                                if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut new_state_pair, true) {
-                                                    val
-                                                } else {
-                                                    panic!("unexpected return type from applying constraints")
-                                                }
-                                            } else {
-                                                true
-                                            };
-
-                                            let inv2_success = if let Some(inv2) = invariant2 {
-                                                if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv2, &mut new_state_pair, false) {
-                                                    val
-                                                } else {
-                                                    panic!("unexpected return type from applying constraints")
-                                                }
-                                            } else {
-                                                true
-                                            };
-                                            if inv1_success && inv2_success {
-                                                waiting_list.push(new_state_pair);
-                                            }
-                                        } else {
-                                            continue;
-                                        }
-                                    }
-                                }
+                                true
                             } else {
-                                continue;
+                                false
                             }
                         } else {
-                            panic!("unexpected return from apply guards")
+                            panic!("unexpected return type from applying constraints")
                         }
+                    } else {
+                        true
+                    };
+
+                    let g2_success = if let Some(guard2) = edge2.get_guard() {
+                        let success2 = apply_constraints_to_state_pair(guard2, &mut new_state_pair, false);
+                        if let BoolExpression::Bool(val1) = success2 {
+                            if val1 {
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            panic!("unexpected return type from applying constraints")
+                        }
+                    } else {
+                        true
+                    };
+
+                    if !(g1_success && g2_success) {
+                        continue;
+                    }
+                    
+                    let invariant1 = new_state_pair.get_state1().get_location().get_invariant().clone();
+                    let invariant2 = new_state_pair.get_state2().get_location().get_invariant().clone();
+
+                    let inv1_success = if let Some(inv1) = invariant1 {
+                        println!("Applying invariant1");
+                        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut new_state_pair, true) {
+                            val
+                        } else {
+                            panic!("unexpected return type from applying constraints")
+                        }
+                    } else {
+                        true
+                    };
+
+                    let inv2_success = if let Some(inv2) = invariant2 {
+                        println!("Applying invariant2");
+                        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv2, &mut new_state_pair, false) {
+                            val
+                        } else {
+                            panic!("unexpected return type from applying constraints")
+                        }
+                    } else {
+                        true
+                    };
+                    if inv1_success && inv2_success {
+                        println!("pushing to WL");
+                        waiting_list.push(new_state_pair);
                     }
                 } else {
                     panic!("unable to find the target location for edge")
@@ -199,6 +215,7 @@ fn add_new_states<'a>(
             }
         }
     }
+
 }
 
 fn is_new_state(state_pair:  &mut component::StatePair, passed_list :  &mut Vec<StatePair> ) -> bool {

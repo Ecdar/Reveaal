@@ -20,8 +20,8 @@ pub fn main() {
     for comp in components {
         optimized_components.push(comp.create_edge_io_split());
     }
-    let mut comp1 = optimized_components[0].clone();
-    let mut comp2 = optimized_components[0].clone();
+    let mut comp1 = optimized_components[1].clone();
+    let mut comp2 = optimized_components[1].clone();
 
     let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
     println!("Refine result = {:?}", result);
