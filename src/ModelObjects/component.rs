@@ -544,3 +544,8 @@ where
     let s = String::deserialize(deserializer)?;
     Ok(Channel{name: s})
 }
+
+pub enum StateRepresentation<'a> {
+    StatePair(&'a mut StatePair<'a>),
+    DbmTuple((&'a State<'a>, &'a mut [i32], u32))
+}
