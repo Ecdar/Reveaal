@@ -3,16 +3,16 @@ use crate::ModelObjects::component;
 use crate::ModelObjects::expression_representation::BoolExpression::Bool;
 use super::super::DBMLib::lib;
 
-pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> BoolExpression{
+pub fn apply_guards(guard : &BoolExpression, state : &mut component::State, state_pair : &mut component::StatePair) -> BoolExpression{
     match guard {
         BoolExpression::AndOp(left, right) => {
-            let left = apply_guards(&**left, state);
+            let left = apply_guards(&**left, state, state_pair);
             if let BoolExpression::Bool(val) = left{
                 if !val {
                     return BoolExpression::Bool(false)
                 }
             }
-            let right = apply_guards(&**right, state);
+            let right = apply_guards(&**right, state, state_pair);
 
             match left {
                 BoolExpression::Bool(left_val) => {
@@ -31,8 +31,8 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::OrOp(left, right) => {
-            let left = apply_guards(&**left, state);
-            let right = apply_guards(&**right, state);
+            let left = apply_guards(&**left, state, state_pair);
+            let right = apply_guards(&**right, state, state_pair);
 
             match left {
                 BoolExpression::Bool(left_val) => {
@@ -51,20 +51,20 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::LessEQ(left, right) => {
-            let computed_left = apply_guards(&**left, state);
-            let computed_right = apply_guards(&**right, state);
+            let computed_left = apply_guards(&**left, state, state_pair);
+            let computed_right = apply_guards(&**right, state, state_pair);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, left_index, right_index, 0);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, left_index, right_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, left_index, 0, right_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, left_index, 0, right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -75,9 +75,9 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            // int <= clock
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, 0, right_index, -1 * left_val);
+
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, 0, right_index, -1 * left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -94,19 +94,19 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::GreatEQ(left, right) => {
-            let computed_left = apply_guards(&**left, state);
-            let computed_right = apply_guards(&**right, state);
+            let computed_left = apply_guards(&**left, state, state_pair);
+            let computed_right = apply_guards(&**right, state, state_pair);
             match computed_left {
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, right_index, left_index, 0);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, right_index, left_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, 0, left_index, -1 * right_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, 0, left_index, -1 * right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -117,8 +117,8 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(state.get_zone(), dim, right_index, 0, left_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LTE_constraint(state_pair.get_zone(), dim, right_index, 0, left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -135,20 +135,20 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::LessT(left, right) => {
-            let computed_left = apply_guards(&**left, state);
-            let computed_right = apply_guards(&**right, state);
+            let computed_left = apply_guards(&**left, state, state_pair);
+            let computed_right = apply_guards(&**right, state, state_pair);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, left_index, right_index, 0);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, left_index, right_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, left_index, 0, right_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, left_index, 0, right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -160,8 +160,8 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
                             // int <= clock
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, 0, right_index, -1 * left_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, 0, right_index, -1 * left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -178,19 +178,19 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::GreatT(left, right) => {
-            let computed_left = apply_guards(&**left, state);
-            let computed_right = apply_guards(&**right, state);
+            let computed_left = apply_guards(&**left, state, state_pair);
+            let computed_right = apply_guards(&**right, state, state_pair);
             match computed_left {
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, right_index, left_index, 0);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, right_index, left_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, 0, left_index, -1 * right_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, 0, left_index, -1 * right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -201,8 +201,8 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(state.get_zone(), dim, right_index, 0, left_val);
+                            let dim = state_pair.get_dimensions();
+                            let result = lib::rs_dbm_add_LT_constraint(state_pair.get_zone(), dim, right_index, 0, left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -219,7 +219,7 @@ pub fn apply_guards(guard : &BoolExpression, state : &mut component::State) -> B
             }
         },
         BoolExpression::Parentheses(expr) => {
-            return apply_guards(guard, state)
+            return apply_guards(guard, state, state_pair)
         },
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = state.get_declarations().get_clocks().get(name.as_str()) {

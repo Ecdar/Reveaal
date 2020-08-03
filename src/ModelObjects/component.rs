@@ -29,6 +29,7 @@ impl Component {
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
     }
+    pub fn get_mut_declaration(&mut self) -> &mut Declarations {&mut self.declarations}
 
     pub fn get_input_edges(&self) -> &Vec<Edge> {
         return if let Some(input_edges) = &self.input_edges {
@@ -161,10 +162,47 @@ impl Edge {
     }
 }
 
+pub struct StatePair<'a> {
+    pub state1 : State<'a>,
+    pub state2 : State<'a>,
+    pub zone : [i32; 1000],
+
+}
+
+impl StatePair<'_> {
+    pub fn get_state1(&self) -> &State{
+        &self.state1
+    }
+
+    pub fn get_state2(&self) -> &State{
+        &self.state2
+    }
+    pub fn get_dimensions(&self) -> u32{
+       self.state1.get_dimensions() + self.state2.get_dimensions()
+    }
+    pub fn get_zone(&mut self) -> &mut [i32] {
+        let dim = self.get_dimensions();
+        let len = dim * dim;
+        &mut self.zone[0..len as usize]
+    }
+
+    pub fn get_dbm_clone(&self) -> [i32; 1000] {
+        return self.zone.clone()
+    }
+
+    pub fn set_dbm(&mut self, dbm : [i32;1000]) {
+        self.zone = dbm;
+    }
+
+    pub fn init_dbm(&mut self) {
+        let dimension = self.get_dimensions();
+        lib::rs_dbm_init(self.get_zone(), dimension);
+    }
+}
+
 pub struct State<'a> {
     pub declarations : &'a Declarations,
     pub location : &'a Location,
-    pub zone : [i32; 500],
 }
 
 impl State<'_> {
@@ -180,24 +218,6 @@ impl State<'_> {
 
     pub fn get_dimensions(&self) -> &u32 {
         self.get_declarations().get_dimension()
-    }
-    pub fn get_zone(&mut self) -> &mut [i32] {
-        let dim = self.get_declarations().get_dimension();
-        let len = dim * dim;
-        &mut self.zone[0..len as usize]
-    }
-
-    pub fn get_dbm_clone(&self) -> [i32; 500] {
-        return self.zone.clone()
-    }
-
-    pub fn set_dbm(&mut self, dbm : [i32;500]) {
-        self.zone = dbm;
-    }
-
-    pub fn init_dbm(&mut self) {
-        let dimension = (self.get_declarations().get_dimension()).clone();
-        lib::rs_dbm_init(self.get_zone(), dimension);
     }
 
 }
@@ -222,6 +242,18 @@ impl Declarations {
     }
     pub fn get_dimension(&self) -> &u32 {
         &self.dimension
+    }
+    pub fn update_clock_indices(&mut self, start_index : u32) {
+        for (k, v ) in self.clocks.iter_mut() {
+            *v = *v + start_index
+        }
+    }
+    pub fn reset_clock_indicies(&mut self) {
+        let mut i = 1;
+        for (k, v) in self.clocks.iter_mut() {
+            *v = i;
+            i += 1;
+        }
     }
 
 }
