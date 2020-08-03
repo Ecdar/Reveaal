@@ -402,3 +402,8 @@ where
         _ => panic!("Unknown sync type in status {:?}", s)
     }
 }
+
+pub enum StateRepresentation<'a> {
+    StatePair(&'a mut StatePair<'a>),
+    DbmTuple((&'a State<'a>, &'a mut [i32], u32))
+}

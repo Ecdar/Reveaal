@@ -2,7 +2,7 @@ use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
 use crate::ModelObjects::component::{State, StatePair};
 use super::super::DBMLib::lib;
-use crate::Refiner::guard_applyer::apply_guards;
+use crate::Refiner::constraint_applyer::apply_constraints_to_state_pair;
 use crate::ModelObjects::expression_representation::BoolExpression;
 
 
@@ -115,31 +115,33 @@ fn add_new_states(
                     let mut new_state_pair = create_state_pair(new_state1, new_state2);
                     new_state_pair.set_dbm(state_pair.get_dbm_clone());
 
-                    // if let Some(guard1) = edge1.get_guard() { ;
-                    //     let success1 = apply_guards(guard1, new_state_pair.get_state1(), new_state_pair.get_zone(), new_state_pair.get_dimensions());
-                    //
-                    //     if let BoolExpression::Bool(val1) = success1 {
-                    //         if val1 {
-                    //             if let Some(guard2) = edge2.get_guard() {
-                    //                 let success2 = apply_guards(guard2, new_state_pair.get_state2(), new_state_pair.get_zone(), new_state_pair.get_dimensions());
-                    //                 if let BoolExpression::Bool(val2) = success2 {
-                    //                     if val2 {
-                    //                         //TODO: both guards success
-                    //                         let invariant1 = new_state_pair.get_state1().get_location().get_invariant();
-                    //                         let invariant2 = new_state_pair.get_state2().get_location().get_invariant();
-                    //
-                    //                     } else {
-                    //                         continue;
-                    //                     }
-                    //                 }
-                    //             }
-                    //         } else {
-                    //             continue;
-                    //         }
-                    //     } else {
-                    //         panic!("unexpected return from apply guards")
-                    //     }
-                    // }
+                    if let Some(guard1) = edge1.get_guard() {
+
+                        let success1 = apply_constraints_to_state_pair(guard1, &mut new_state_pair, true);
+
+                        if let BoolExpression::Bool(val1) = success1 {
+                            if val1 {
+                                if let Some(guard2) = edge2.get_guard() {
+
+                                    let success2 = apply_constraints_to_state_pair(guard2, &mut new_state_pair, false);
+                                    if let BoolExpression::Bool(val2) = success2 {
+                                        if val2 {
+                                            //TODO: both guards success
+                                            let invariant1 = new_state_pair.get_state1().get_location().get_invariant();
+                                            let invariant2 = new_state_pair.get_state2().get_location().get_invariant();
+
+                                        } else {
+                                            continue;
+                                        }
+                                    }
+                                }
+                            } else {
+                                continue;
+                            }
+                        } else {
+                            panic!("unexpected return from apply guards")
+                        }
+                    }
                 } else {
                     panic!("unable to find the target location for edge")
                 }
