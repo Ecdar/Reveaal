@@ -30,6 +30,37 @@ pub fn rs_dbm_init(dbm: &mut[i32], dimension : u32) {
     }
 }
 
+// extern "C" {
+//     #[doc = " Test if"]
+//     #[doc = " - dbm is closed"]
+//     #[doc = " - dbm is not empty"]
+//     #[doc = " - constraints in the 1st row are at most <=0"]
+//     pub fn dbm_isValid(dbm: *const raw_t, dim: cindex_t) -> BOOL;
+// }
+
+/// Test if dbm is closed, dbm is not empty and that constraints in the 1st row are at most <=0
+/// 
+/// # Arguments
+///
+/// * `dbm` - The DBM
+/// * `dimension` - The dimension of the dbm
+///
+/// # Return
+/// Bool indicating if the dbm is valid
+pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension: u32) -> bool{
+    unsafe{
+        let res = dbm_isValid(dbm.as_mut_ptr(), dimension);
+        return if BOOL_TRUE == res{
+            true
+        } else if BOOL_FALSE == res {
+            false
+        } else {
+            panic!("Could not convert bool value from libary, found {:?}", res)
+        }
+    }
+
+}
+
 /// Checks if `x_i - x_j < bound` is satisfied.
 /// It does not modify the DBM
 /// 
@@ -413,6 +444,33 @@ pub fn rs_dbm_constrain_var_to_val(dbm : &mut[i32], dimension : u32, var_index: 
 pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) -> bool {
     unsafe {
         return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension)
+    }
+}
+
+/// Intersection of 2 DBMs.
+/// The DBMs must have the same dimension
+/// Both DBMs must be closed and non empty
+/// 
+/// # Arguments
+///
+/// * `dbm1,dbm2` - The DBMs to intersect
+/// * `dimension` - The dimension of the dbm
+///
+/// # Return
+/// Bool indicating if the intersection is non empty.
+/// 
+/// The intersection is saved in the `dbm1` parameter
+/// 
+pub fn rs_dmb_intersection(dbm1: &mut[i32], dbm2: &mut[i32], dimension: u32) -> bool{
+    unsafe{
+        let res = dbm_intersection(dbm1.as_mut_ptr(),dbm1.as_mut_ptr(), dimension);
+        return if BOOL_TRUE == res{
+            true
+        } else if BOOL_FALSE == res {
+            false
+        } else {
+            panic!("Could not convert bool value from libary, found {:?}", res)
+        }
     }
 }
 

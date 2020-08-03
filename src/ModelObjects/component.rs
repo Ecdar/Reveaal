@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
 use super::parse_invariant;
-use super::super::Refiner::guard_applyer;
+use super::super::Refiner::constraint_applyer;
 use crate::DBMLib::lib;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -89,8 +89,8 @@ impl Component {
     }
 
     pub fn is_deterministic(&self) -> bool {
-        let mut passed_list : Vec<(State, [i32;500])> = vec![];
-        let mut waiting_list : Vec<(State, [i32;500])> = vec![];
+        let mut passed_list : Vec<FullState> = vec![];
+        let mut waiting_list : Vec<FullState> = vec![];
 
         let initial_loc :&Location = self.get_inital_location();
 
@@ -101,32 +101,34 @@ impl Component {
 
         let dimension = self.get_declarations().get_dimension();
 
-        let zone_array = [0;1000];
-
         let len = dimension * dimension;
 
-        let zone = zone_array[0..len as usize];
+        let mut zone_array = [0;1000];
 
-        lib::rs_dbm_init(&mut zone, *dimension);
+        let zone : &mut[i32] = &mut zone_array[0..len as usize];
 
-        waiting_list.push(initial_state);
+
+        lib::rs_dbm_init(zone, *dimension);
+
+        waiting_list.push(FullState{state: &initial_state, zone: zone});
         
         while !waiting_list.is_empty() {
             if let Some(state) = waiting_list.pop(){
+                let mut full_state = state;
                 let mut edges : Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
-                    edges.append(&mut self.get_next_edges(&state.location, input_action.get_name(), SyncType::Input));
+                    edges.append(&mut self.get_next_edges(&full_state.state.location, input_action.get_name(), SyncType::Input));
                 }
 
                 for output_action in self.get_output_actions() {
-                    edges.append(&mut self.get_next_edges(&state.location, output_action.get_name(), SyncType::Output));
+                    edges.append(&mut self.get_next_edges(&full_state.state.location, output_action.get_name(), SyncType::Output));
                 }
 
-                if self.check_moves_overlap(&edges, &state){
+                if self.check_moves_overlap(&edges, &mut full_state){
                     return false
                 }
 
-                passed_list.push(state);
+                passed_list.push(full_state);
 
             } else {
                 panic!("Unable to pop state from waiting list")
@@ -135,10 +137,11 @@ impl Component {
         return true
     }
 
-    fn check_moves_overlap(&self, edges : &Vec<&Edge>, state : &State) -> bool {
+    fn check_moves_overlap(&self, edges : &Vec<&Edge>, full_state : &mut FullState) -> bool {
         if (edges.len() < 2) {
             return false
         }
+        let dimension = self.get_declarations().get_dimension();
 
         for i in 0..edges.len() {
             for j in i+1..edges.len() {
@@ -150,19 +153,30 @@ impl Component {
                             }
                         }
                     }
-
                 }
 
                 let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
-
-
-                //guard_applyer::apply_guards(location_i.get_invariant(), state, );
-
-
-            
                 let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
-                let zone2 = location_j.get_invariant();
 
+                let zone_i : &mut[i32] = &mut [0; 1000]; 
+                zone_i.clone_from_slice(full_state.zone);
+                let mut state_i = FullState { state: full_state.state, zone: zone_i };
+                
+                let zone_j : &mut[i32]  = full_state.zone;
+                let mut state_j = FullState { state: full_state.state, zone: zone_j };                
+
+                if let Some(update_i) = location_i.get_invariant() {
+                    constraint_applyer::apply_constraints_to_state(update_i, &mut state_i, dimension);
+
+                    if let Some(update_j) = location_j.get_invariant() {
+                        constraint_applyer::apply_constraints_to_state(update_j, &mut state_j, dimension);
+                        if lib::rs_dbm_is_valid(state_i.zone, *dimension) && lib::rs_dbm_is_valid(state_j.zone, *dimension) {
+                            if lib::rs_dmb_intersection(state_i.zone, state_j.zone, *dimension) {
+                                return true
+                            }                                
+                        }
+                    }
+                }
             }
         }
 
@@ -206,6 +220,11 @@ impl Component {
         }
         actions
     }
+}
+
+pub struct FullState<'a> {
+    pub state : &'a State<'a>,
+    pub zone: & 'a mut[i32],
 }
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
