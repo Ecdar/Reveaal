@@ -89,8 +89,8 @@ impl Component {
     }
 
     pub fn is_deterministic(&self) -> bool {
-        let mut passed_list : Vec<State> = vec![];
-        let mut waiting_list : Vec<State> = vec![];
+        let mut passed_list : Vec<(State, [i32;500])> = vec![];
+        let mut waiting_list : Vec<(State, [i32;500])> = vec![];
 
         let initial_loc :&Location = self.get_inital_location();
 
@@ -98,6 +98,16 @@ impl Component {
             location : initial_loc,
             declarations : self.get_declarations()
         };
+
+        let dimension = self.get_declarations().get_dimension();
+
+        let zone_array = [0;1000];
+
+        let len = dimension * dimension;
+
+        let zone = zone_array[0..len as usize];
+
+        lib::rs_dbm_init(&mut zone, *dimension);
 
         waiting_list.push(initial_state);
         
