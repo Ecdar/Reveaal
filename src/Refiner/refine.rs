@@ -19,99 +19,102 @@ fn refines<'a>(machine1 : &'a component::Component, machine2 : &'a component::Co
     let mut passed_list : Vec<component::StatePair> = vec![];
     let mut waiting_list : Vec<component::StatePair> = vec![];
 
-    if let Some(inputs2) = sys_decls.get_declarations().get_input_actions().get(machine2.get_name()){
-        if let Some(outputs1) = sys_decls.get_declarations().get_output_actions().get(machine1.get_name()) {
+    let mut inputs2 : &Vec<String> = &vec![];
+    let mut outputs1 : &Vec<String> = &vec![];
 
-            let initial_locations_1 : Vec<&component::Location> = machine1.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
-            let initial_locations_2 : Vec<&component::Location> = machine2.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
-            
-            let initial_loc_1 = if initial_locations_1.len() == 1 {
-                initial_locations_1[0]
-            } else {
-                panic!("Found more than one initial location for: {:?}", machine1)
-            };
+    if let Some(inputs2_res) = sys_decls.get_declarations().get_input_actions().get(machine2.get_name()){
+        inputs2 = inputs2_res;
+    }
 
-            let initial_loc_2 = if initial_locations_2.len() == 1 {
-                initial_locations_2[0]
-            } else {
-                panic!("Found more than one initial location for: {:?}", machine2)
-            };
+    if let Some(outputs1_res) = sys_decls.get_declarations().get_output_actions().get(machine1.get_name()) {
+        outputs1 = outputs1_res;
+    }
 
-            let mut init_state_1 = create_state(initial_loc_1, machine1.get_declarations());
-            let mut init_state_2 = create_state(initial_loc_2, machine2.get_declarations());
+    let initial_locations_1 : Vec<&component::Location> = machine1.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
+    let initial_locations_2 : Vec<&component::Location> = machine2.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
 
-            let mut initial_pair = create_state_pair(init_state_1, init_state_2);
-            initial_pair.init_dbm();
+    let initial_loc_1 = if initial_locations_1.len() == 1 {
+        initial_locations_1[0]
+    } else {
+        panic!("Found more than one initial location for: {:?}", machine1)
+    };
 
-            let init_inv1 = initial_pair.get_state1().get_location().get_invariant().clone();
-            let init_inv2 = initial_pair.get_state2().get_location().get_invariant().clone();
+    let initial_loc_2 = if initial_locations_2.len() == 1 {
+        initial_locations_2[0]
+    } else {
+        panic!("Found more than one initial location for: {:?}", machine2)
+    };
 
-            let init_inv1_success = if let Some(inv1) = init_inv1{
-                if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut initial_pair, true) {
-                    val
-                } else {
-                    panic!("unexpected return type when attempting to apply constraints")
-                }
-            } else {
-                true
-            };
-            let init_inv2_success = if let Some(inv2) = init_inv2{
-                if let BoolExpression::Bool(val) =   apply_constraints_to_state_pair(&inv2, &mut initial_pair, false) {
-                    val
-                } else {
-                    panic!("unexpected return type when attempting to apply constraints")
-                }
-            } else {
-                true
-            };
+    let mut init_state_1 = create_state(initial_loc_1, machine1.get_declarations());
+    let mut init_state_2 = create_state(initial_loc_2, machine2.get_declarations());
 
-            if !(init_inv1_success && init_inv2_success) {
-                panic!("Was unable to apply invariants to initial state")
-            }
-            waiting_list.push(initial_pair);
+    let mut initial_pair = create_state_pair(init_state_1, init_state_2);
+    initial_pair.init_dbm();
 
-            'Outer: while !waiting_list.is_empty() && refines {
-                let opt_next_pair = waiting_list.pop();
-                if let Some(mut next_pair)  = opt_next_pair {
-                    if is_new_state( &mut next_pair, &mut passed_list) {
-                        for output in outputs1 {
-                            let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), output, component::SyncType::Output);
-                            if !next1.is_empty(){
-                                let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), output, component::SyncType::Output);
-                                if next2.is_empty() {
-                                    refines = false;
-                                    break 'Outer;
-                                } else {
-                                    add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
-                                }
-                            }
-                        }
+    let init_inv1 = initial_pair.get_state1().get_location().get_invariant().clone();
+    let init_inv2 = initial_pair.get_state2().get_location().get_invariant().clone();
 
-                        for input in inputs2 {
-                            let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), input, component::SyncType::Input);
-                            if !next2.is_empty() {
-                                let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), input, component::SyncType::Input);
-                                if next1.is_empty() {
-                                    refines = false;
-                                    break 'Outer;
-                                } else {
-                                    add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
-                                }
-                            }
-                        }
-                        passed_list.push(next_pair);
-                    } else {
-                        continue;
-                    }
-                } else {
-                    panic!("error acquiring next element from waiting list that should be there")
-                }
-            }
+    let init_inv1_success = if let Some(inv1) = init_inv1{
+        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut initial_pair, true) {
+            val
         } else {
-            panic!("Unable to retrieve output actions from: {:?} ", machine1)
+            panic!("unexpected return type when attempting to apply constraints")
         }
     } else {
-        panic!("Unable to retrieve input actions from: {:?} ", machine2)
+        true
+    };
+    let init_inv2_success = if let Some(inv2) = init_inv2{
+        if let BoolExpression::Bool(val) =   apply_constraints_to_state_pair(&inv2, &mut initial_pair, false) {
+            val
+        } else {
+            panic!("unexpected return type when attempting to apply constraints")
+        }
+    } else {
+        true
+    };
+
+    if !(init_inv1_success && init_inv2_success) {
+        panic!("Was unable to apply invariants to initial state")
+    }
+    waiting_list.push(initial_pair);
+
+    'Outer: while !waiting_list.is_empty() && refines {
+        let opt_next_pair = waiting_list.pop();
+        if let Some(mut next_pair)  = opt_next_pair {
+            if is_new_state( &mut next_pair, &mut passed_list) {
+                for output in outputs1 {
+
+                    let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), output, component::SyncType::Output);
+                    if !next1.is_empty(){
+                        let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), output, component::SyncType::Output);
+                        if next2.is_empty() {
+                            refines = false;
+                            break 'Outer;
+                        } else {
+                            add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
+                        }
+                    }
+                }
+
+                for input in inputs2 {
+                    let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), input, component::SyncType::Input);
+                    if !next2.is_empty() {
+                        let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), input, component::SyncType::Input);
+                        if next1.is_empty() {
+                            refines = false;
+                            break 'Outer;
+                        } else {
+                            add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
+                        }
+                    }
+                }
+                passed_list.push(next_pair);
+            } else {
+                continue;
+            }
+        } else {
+            panic!("error acquiring next element from waiting list that should be there")
+        }
     }
 
     return refines

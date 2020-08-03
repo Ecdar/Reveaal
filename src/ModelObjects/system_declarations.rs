@@ -89,8 +89,8 @@ where
                         if q.len() == 0 {
                             continue;
                         }
-                        if q.ends_with("!") {
-                            let r = q.replace("!", "");
+                        if q.ends_with("?") {
+                            let r = q.replace("?", "");
                             if let Some(Channel_vec) = input_actions.get_mut(&component_name){
                                 Channel_vec.push(r)
                             } else {
@@ -99,8 +99,8 @@ where
                                 input_actions.insert(component_name.clone(),Channel_vec);
                             }
                             
-                        } else if q.ends_with("?") {
-                            let r = q.replace("?", "");
+                        } else if q.ends_with("!") {
+                            let r = q.replace("!", "");
                             if let Some(Channel_vec) = output_actions.get_mut(&component_name){
                                 Channel_vec.push(r.clone())
                             } else {

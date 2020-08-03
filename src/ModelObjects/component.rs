@@ -47,8 +47,7 @@ impl Component {
         }
     }
 
-    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> {
-        let edges = self.get_edges();
+    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> { ;
 
         return match synch_type {
             SyncType::Input => {
