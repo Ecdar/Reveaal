@@ -16,7 +16,6 @@ extern crate pest_derive;
 pub fn main() {
     println!("Hello World!");
     let (components, system_declarations, queries) = parse_args().unwrap();
-
     let mut optimized_components = vec![];
     for comp in components {
         optimized_components.push(comp.create_edge_io_split());

@@ -112,11 +112,11 @@ impl Component {
                     edges.append(&mut self.get_next_edges(&state.location, output_action.get_name(), SyncType::Output));
                 }
 
-                passed_list.push(state);
-
-                if self.check_moves_overlap(&edges, initial_state){
+                if self.check_moves_overlap(&edges, &state){
                     return false
                 }
+
+                passed_list.push(state);
 
             } else {
                 panic!("Unable to pop state from waiting list")
@@ -125,7 +125,7 @@ impl Component {
         return true
     }
 
-    fn check_moves_overlap(&self, edges : &Vec<&Edge>, state : State) -> bool {
+    fn check_moves_overlap(&self, edges : &Vec<&Edge>, state : &State) -> bool {
         if (edges.len() < 2) {
             return false
         }
@@ -146,7 +146,7 @@ impl Component {
                 let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
 
 
-                guard_applyer::apply_guards(location_i.get_invariant(), state);
+                //guard_applyer::apply_guards(location_i.get_invariant(), state, );
 
 
             
