@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
 use crate::DBMLib::lib;
+use super::parse_invariant;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -96,7 +97,8 @@ pub enum LocationType {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Location {
     pub id: String,
-    pub invariant: String,
+    #[serde(deserialize_with = "decode_invariant")]
+    pub invariant: Option<expression_representation::BoolExpression>,
     #[serde(deserialize_with = "decode_location_type", alias = "type")]
     pub location_type: LocationType,
     pub urgency: String,
@@ -106,7 +108,7 @@ impl Location {
     pub fn get_id(&self) -> &String {
         &self.id
     }
-    pub fn get_invariant(&self) -> &String {
+    pub fn get_invariant(&self) -> &Option<expression_representation::BoolExpression> {
         &self.invariant
     }
     pub fn get_location_type(&self) -> &LocationType {
@@ -353,6 +355,24 @@ where
             }
         },
         Err(e) => panic!("Could not parse {} got error: {:?}",s, e )
+    }
+}
+
+
+//Function used for deserializing invariants
+fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.len() == 0 {
+        return Ok(None)
+    }
+    match parse_invariant::parse(&s) {
+        Ok(edgeAttribute) => {
+            return Ok(Some(edgeAttribute))
+        },
+        Err(e) => panic!("Could not parse invariant {} got error: {:?}",s, e )
     }
 }
 
