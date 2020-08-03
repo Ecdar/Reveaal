@@ -2,6 +2,8 @@ use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
 use crate::ModelObjects::component::State;
 use super::super::DBMLib::lib;
+use crate::Refiner::guard_applyer::apply_guards;
+use crate::ModelObjects::expression_representation::BoolExpression;
 
 
 //Main Refinement algorithm
@@ -105,10 +107,30 @@ fn add_new_states(
                     let mut new_state2 = create_state(new_location2, state2.get_declarations());
                     new_state2.set_dbm(state2.get_dbm_clone());
 
-                    //TODO: apply guards from edge1 to new_state1.zone
-                    //TODO: apply guards from edge2 to new_state2.zone
-                    //TODO: verify that it is possible i.e not conflicting with existing constraints
+                    if let Some(guard1) = edge1.get_guard() {
+                        let success1 = apply_guards(guard1, &mut new_state1);
 
+                        if let BoolExpression::Bool(val1) = success1 {
+                            if val1 {
+                                if let Some(guard2) = edge2.get_guard() {
+                                    let success2 = apply_guards(guard2, &mut new_state2);
+                                    if let BoolExpression::Bool(val2) = success2 {
+                                        if val2 {
+                                            //TODO: both guards success
+
+
+                                        } else {
+                                            continue;
+                                        }
+                                    }
+                                }
+                            } else {
+                                continue;
+                            }
+                        } else {
+                            panic!("unexpected return from apply guards")
+                        }
+                    }
                 } else {
                     panic!("unable to find the target location for edge")
                 }

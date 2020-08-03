@@ -9,6 +9,7 @@ pub enum BoolExpression {
     LessT(Box<BoolExpression>, Box<BoolExpression>),
     GreatT(Box<BoolExpression>, Box<BoolExpression>),
     Parentheses(Box<BoolExpression>),
+    Clock(u32),
     VarName(String),
     Bool(bool),
     Int(i32),

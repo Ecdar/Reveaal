@@ -178,6 +178,9 @@ impl State<'_> {
         &self.location
     }
 
+    pub fn get_dimensions(&self) -> &u32 {
+        self.get_declarations().get_dimension()
+    }
     pub fn get_zone(&mut self) -> &mut [i32] {
         let dim = self.get_declarations().get_dimension();
         let len = dim * dim;
