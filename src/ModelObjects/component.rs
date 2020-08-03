@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use serde::{Deserialize, Deserializer,Serialize};
 use std::collections::HashMap;
 use super::expression_representation;
@@ -63,7 +64,6 @@ impl Component {
                 result
             },
         }
-
     }
 
     pub fn create_edge_io_split(mut self) -> Component {
@@ -126,6 +126,18 @@ impl Component {
 
                 if self.check_moves_overlap(&edges, &mut full_state){
                     return false
+                } else {
+                    for edge in edges {
+                        //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
+
+                        let new_zone : &mut[i32] = &mut [0; 1000]; 
+                        new_zone.clone_from_slice(full_state.zone);
+                        let mut new_state = FullState { state: full_state.state, zone:new_zone };
+
+                        if let Some(guard) = edge.get_guard() {
+                            constraint_applyer::apply_constraints_to_state(guard, &mut new_state, dimension);
+                        }
+                    }
                 }
 
                 passed_list.push(full_state);
@@ -138,17 +150,17 @@ impl Component {
     }
 
     fn check_moves_overlap(&self, edges : &Vec<&Edge>, full_state : &mut FullState) -> bool {
-        if (edges.len() < 2) {
+        if edges.len() < 2 {
             return false
         }
         let dimension = self.get_declarations().get_dimension();
 
         for i in 0..edges.len() {
             for j in i+1..edges.len() {
-                if (edges[i].get_target_location() == edges[j].get_target_location()){
+                if edges[i].get_target_location() == edges[j].get_target_location(){
                     if let Some(update_i) = edges[i].get_update() {
                         if let Some(update_j) = edges[j].get_update() {
-                            if (update_i == update_j){
+                            if update_i == update_j{
                                 continue
                             }
                         }
@@ -162,7 +174,8 @@ impl Component {
                 zone_i.clone_from_slice(full_state.zone);
                 let mut state_i = FullState { state: full_state.state, zone: zone_i };
                 
-                let zone_j : &mut[i32]  = full_state.zone;
+                let zone_j : &mut[i32] = &mut [0; 1000]; 
+                zone_j.clone_from_slice(full_state.zone);
                 let mut state_j = FullState { state: full_state.state, zone: zone_j };                
 
                 if let Some(update_i) = location_i.get_invariant() {
@@ -398,13 +411,13 @@ impl Declarations {
         &self.dimension
     }
     pub fn update_clock_indices(&mut self, start_index : u32) {
-        for (k, v ) in self.clocks.iter_mut() {
+        for (_, v ) in self.clocks.iter_mut() {
             *v = *v + start_index
         }
     }
     pub fn reset_clock_indicies(&mut self) {
         let mut i = 1;
-        for (k, v) in self.clocks.iter_mut() {
+        for (_, v) in self.clocks.iter_mut() {
             *v = i;
             i += 1;
         }
