@@ -178,7 +178,9 @@ fn add_new_states<'a>(
                     if !(g1_success && g2_success) {
                         continue;
                     }
-                    
+
+                    //TODO: handle updates - make function to do it
+
                     let invariant1 = new_state_pair.get_state1().get_location().get_invariant().clone();
                     let invariant2 = new_state_pair.get_state2().get_location().get_invariant().clone();
 
@@ -204,7 +206,6 @@ fn add_new_states<'a>(
                         true
                     };
                     if inv1_success && inv2_success {
-                        println!("pushing to WL");
                         waiting_list.push(new_state_pair);
                     }
                 } else {
