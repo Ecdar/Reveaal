@@ -51,11 +51,13 @@ impl Component {
 
         return match synch_type {
             SyncType::Input => {
-                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                let result: Vec<&Edge> = self.get_input_edges().into_iter()
+                .filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync().get_name()  == channel_name)).collect();
                 result
             },
             SyncType::Output => {
-                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                let result: Vec<&Edge> = self.get_output_edges().into_iter()
+                .filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync().get_name() == channel_name)).collect();
                 result
             },
         }
@@ -82,6 +84,54 @@ impl Component {
         self.edges = vec![];
 
         return self
+    }
+
+    pub fn is_deterministic(&self) -> bool {
+        let mut passed_list : Vec<State> = vec![];
+        let mut waiting_list : Vec<State> = vec![];
+
+        let initial_loc :&Location = self.get_inital_location();
+
+        let initiat_state = State{
+            location : initial_loc,
+            declarations : self.get_declarations(),
+            zone : [0;500]
+        };
+
+        waiting_list.push(initiat_state);
+        
+        while !waiting_list.is_empty() {
+            if let Some(state) = waiting_list.pop(){
+                passed_list.push(state);
+
+            } else {
+                panic!("Unable to pop state from waiting list")
+            }
+
+            
+
+
+        }
+
+        return true
+    }
+
+    pub fn get_inital_location(&self) -> &Location {
+        let vec : Vec<&Location> = self.get_locations().into_iter().filter(|location| location.get_location_type() == &LocationType::Initial).collect();
+
+        match vec.first() {
+            Some(initial_loc) => initial_loc,
+            None => panic!("Could not find initial location on component: {:?}", self)
+        }
+    }
+
+    pub fn get_actions(&self) -> Vec<&Channel> {
+        let mut actions = vec![];
+        for edge in self.get_edges() {
+            actions.push(edge.get_sync());
+        }
+
+        actions
     }
 }
 
@@ -138,7 +188,8 @@ pub struct Edge {
     pub guard: Option<expression_representation::BoolExpression>,
     #[serde(deserialize_with = "decode_update")]
     pub update: Option<Vec<parse_edge::Update>>,
-    pub sync: String,
+    #[serde(deserialize_with = "decode_channel")]
+    pub sync: Channel,
     
 }
 
@@ -158,8 +209,19 @@ impl Edge {
     pub fn get_update(&self) -> &Option<Vec<parse_edge::Update>> {
         &self.update
     }
-    pub fn get_sync(&self) -> &String {
+    pub fn get_sync(&self) -> &Channel {
         &self.sync
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Channel {
+    pub name: String
+}
+
+impl Channel {
+    pub fn get_name(&self) -> &String {
+        &self.name
     }
 }
 
@@ -366,4 +428,13 @@ where
         "UNIVERSAL" => Ok(LocationType::Universal),
         _ => panic!("Unknown sync type in status {:?}", s)
     }
+}
+
+//Function used for deserializing sync to channel
+fn decode_channel<'de, D>(deserializer: D) -> Result<Channel, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(Channel{name: s})
 }
