@@ -5,8 +5,8 @@ use super::super::DBMLib::lib;
 use pest::state;
 use crate::DBMLib::lib::rs_dbm_satisfies_i_EQUAL_j_bounds;
 
-pub fn apply_constraints_to_state_pair(guard : &BoolExpression, state_pair : &mut component::StatePair, is_state1 : bool) -> BoolExpression{
-    match guard {
+pub fn apply_constraints_to_state_pair(constraint: &BoolExpression, state_pair : &mut component::StatePair, is_state1 : bool) -> BoolExpression{
+    match constraint {
         BoolExpression::AndOp(left, right) => {
             let left = apply_constraints_to_state_pair(&**left, state_pair, is_state1);
             if let BoolExpression::Bool(val) = left{
@@ -221,7 +221,7 @@ pub fn apply_constraints_to_state_pair(guard : &BoolExpression, state_pair : &mu
             }
         },
         BoolExpression::Parentheses(expr) => {
-            return apply_constraints_to_state_pair(guard, state_pair, is_state1)
+            return apply_constraints_to_state_pair(constraint, state_pair, is_state1)
         },
         BoolExpression::VarName(name) => {
            let state =  if is_state1 {
