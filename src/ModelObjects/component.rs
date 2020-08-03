@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
 use super::parse_invariant;
+use super::super::Refiner::guard_applyer;
 use crate::DBMLib::lib;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -93,30 +94,69 @@ impl Component {
 
         let initial_loc :&Location = self.get_inital_location();
 
-        let initiat_state = State{
+        let initial_state = State{
             location : initial_loc,
             declarations : self.get_declarations()
         };
 
-        waiting_list.push(initiat_state);
+        waiting_list.push(initial_state);
         
         while !waiting_list.is_empty() {
             if let Some(state) = waiting_list.pop(){
+                let mut edges : Vec<&Edge> = vec![];
+                for input_action in self.get_input_actions() {
+                    edges.append(&mut self.get_next_edges(&state.location, input_action.get_name(), SyncType::Input));
+                }
+
+                for output_action in self.get_output_actions() {
+                    edges.append(&mut self.get_next_edges(&state.location, output_action.get_name(), SyncType::Output));
+                }
+
                 passed_list.push(state);
-                for action in self.get_actions() {
-                    
+
+                if self.check_moves_overlap(&edges, initial_state){
+                    return false
                 }
 
             } else {
                 panic!("Unable to pop state from waiting list")
-            }
+            } 
+        }
+        return true
+    }
 
-            
-
-
+    fn check_moves_overlap(&self, edges : &Vec<&Edge>, state : State) -> bool {
+        if (edges.len() < 2) {
+            return false
         }
 
-        return true
+        for i in 0..edges.len() {
+            for j in i+1..edges.len() {
+                if (edges[i].get_target_location() == edges[j].get_target_location()){
+                    if let Some(update_i) = edges[i].get_update() {
+                        if let Some(update_j) = edges[j].get_update() {
+                            if (update_i == update_j){
+                                continue
+                            }
+                        }
+                    }
+
+                }
+
+                let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
+
+
+                guard_applyer::apply_guards(location_i.get_invariant(), state);
+
+
+            
+                let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
+                let zone2 = location_j.get_invariant();
+
+            }
+        }
+
+        return false
     }
 
     pub fn get_inital_location(&self) -> &Location {
@@ -134,6 +174,26 @@ impl Component {
             actions.push(edge.get_sync());
         }
 
+        actions
+    }
+
+    pub fn get_input_actions(&self) -> Vec<&Channel> {
+        let mut actions = vec![];
+        for edge in self.get_edges() {
+            if edge.get_sync_type() == &SyncType::Input {
+                actions.push(edge.get_sync());
+            }            
+        }
+        actions
+    }
+
+    pub fn get_output_actions(&self) -> Vec<&Channel> {
+        let mut actions = vec![];
+        for edge in self.get_edges() {
+            if edge.get_sync_type() == &SyncType::Output {
+                actions.push(edge.get_sync());
+            }            
+        }
         actions
     }
 }
@@ -171,7 +231,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
 pub enum SyncType {
     Input,
     Output,

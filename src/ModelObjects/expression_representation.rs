@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
 pub enum BoolExpression {
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),

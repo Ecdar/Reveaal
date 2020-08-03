@@ -15,7 +15,7 @@ pub enum EdgeAttribute{
     Guard(BoolExpression),
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
 pub struct Update {
     variable : String,
     expression : BoolExpression
