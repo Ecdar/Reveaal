@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 mod DataReader;
 mod Refiner;
+mod EdgeEval;
 mod ModelObjects;
 mod DBMLib;
 use std::{fs, io};
@@ -14,12 +15,17 @@ use DataReader::json_reader;
 extern crate pest_derive;
 
 pub fn main() {
-    println!("Hello World!");
     let (components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
     for comp in components {
+        println!("Comp: {:?}\n", comp);
         optimized_components.push(comp.create_edge_io_split());
     }
+    let mut comp1 = optimized_components[0].clone();
+    let mut comp2 = optimized_components[1].clone();
+
+    let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
+    println!("Refine result = {:?}", result);
 }
 
 fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>)>{

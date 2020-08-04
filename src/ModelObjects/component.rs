@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
 use super::parse_invariant;
-use super::super::Refiner::constraint_applyer;
+use super::super::EdgeEval::constraint_applyer;
+use super::super::EdgeEval::updater;
 use crate::DBMLib::lib;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -49,8 +50,7 @@ impl Component {
         }
     }
 
-    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> {
-        let edges = self.get_edges();
+    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> { ;
 
         return match synch_type {
             SyncType::Input => {
@@ -117,11 +117,11 @@ impl Component {
                 let mut full_state = state;
                 let mut edges : Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
-                    edges.append(&mut self.get_next_edges(&full_state.state.location, input_action.get_name(), SyncType::Input));
+                    edges.append(&mut self.get_next_edges(&full_state.get_state().location, input_action.get_name(), SyncType::Input));
                 }
 
                 for output_action in self.get_output_actions() {
-                    edges.append(&mut self.get_next_edges(&full_state.state.location, output_action.get_name(), SyncType::Output));
+                    edges.append(&mut self.get_next_edges(&full_state.get_state().location, output_action.get_name(), SyncType::Output));
                 }
 
                 if self.check_moves_overlap(&edges, &mut full_state){
@@ -131,15 +131,15 @@ impl Component {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
 
                         let new_zone : &mut[i32] = &mut [0; 1000]; 
-                        new_zone.clone_from_slice(full_state.zone);
-                        let mut new_state = FullState { state: full_state.state, zone:new_zone };
+                        new_zone.clone_from_slice(full_state.get_mut_zone());
+                        let mut new_state = FullState { state: full_state.get_state(), zone:new_zone };
 
                         if let Some(guard) = edge.get_guard() {
                             constraint_applyer::apply_constraints_to_state(guard, &mut new_state, dimension);
                         }
 
-                        if let Some(update) = edge.get_update() {
-                            
+                        if let Some(updates) = edge.get_update() {
+                            updater::fullState_updater(updates, &mut new_state, dimension);
                         }
                     }
                 }
@@ -175,20 +175,20 @@ impl Component {
                 let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
 
                 let zone_i : &mut[i32] = &mut [0; 1000]; 
-                zone_i.clone_from_slice(full_state.zone);
-                let mut state_i = FullState { state: full_state.state, zone: zone_i };
+                zone_i.clone_from_slice(full_state.get_mut_zone());
+                let mut state_i = FullState { state: full_state.get_state(), zone: zone_i };
                 
                 let zone_j : &mut[i32] = &mut [0; 1000]; 
-                zone_j.clone_from_slice(full_state.zone);
-                let mut state_j = FullState { state: full_state.state, zone: zone_j };                
+                zone_j.clone_from_slice(full_state.get_zone());
+                let mut state_j = FullState { state: full_state.get_state(), zone: zone_j };                
 
                 if let Some(update_i) = location_i.get_invariant() {
                     constraint_applyer::apply_constraints_to_state(update_i, &mut state_i, dimension);
 
                     if let Some(update_j) = location_j.get_invariant() {
                         constraint_applyer::apply_constraints_to_state(update_j, &mut state_j, dimension);
-                        if lib::rs_dbm_is_valid(state_i.zone, *dimension) && lib::rs_dbm_is_valid(state_j.zone, *dimension) {
-                            if lib::rs_dmb_intersection(state_i.zone, state_j.zone, *dimension) {
+                        if lib::rs_dbm_is_valid(state_i.get_mut_zone(), *dimension) && lib::rs_dbm_is_valid(state_j.get_mut_zone(), *dimension) {
+                            if lib::rs_dmb_intersection(state_i.get_mut_zone(), state_j.get_mut_zone(), *dimension) {
                                 return true
                             }                                
                         }
@@ -242,6 +242,18 @@ impl Component {
 pub struct FullState<'a> {
     pub state : &'a State<'a>,
     pub zone: & 'a mut[i32],
+}
+
+impl FullState<'_> {
+    pub fn get_state(&self) -> & State {
+        &self.state
+    }
+    pub fn get_mut_zone(&mut self) -> & mut[i32] {
+        &mut self.zone
+    }
+    pub fn get_zone(&self) -> &[i32]{
+        &self.zone
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
@@ -425,6 +437,9 @@ impl Declarations {
             *v = i;
             i += 1;
         }
+    }
+    pub fn get_clock_index_by_name(&self, name : &str) -> Option<&u32> {
+        self.get_clocks().get(name)
     }
 
 }
