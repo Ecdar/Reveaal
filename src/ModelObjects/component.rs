@@ -137,6 +137,10 @@ impl Component {
                         if let Some(guard) = edge.get_guard() {
                             constraint_applyer::apply_constraints_to_state(guard, &mut new_state, dimension);
                         }
+
+                        if let Some(update) = edge.get_update() {
+                            
+                        }
                     }
                 }
 
