@@ -14,7 +14,8 @@ pub fn check_refinement(machine1 : &component::Component, machine2 : &mut compon
     return result
 }
 
-//Main Refinement algorithm
+//Main Refinement algorithm. Checks if machine2 refines machine1. This is the case if for all output edges in machine2 there is a matching output in machine2
+//and for all input edges in machine1 there is a matching input edge in machine2
 fn refines<'a>(machine1 : &'a component::Component, machine2 : &'a component::Component, sys_decls : system_declarations::SystemDeclarations) -> bool {
     let mut refines = true;
     let mut passed_list : Vec<component::StatePair> = vec![];
@@ -122,6 +123,7 @@ fn refines<'a>(machine1 : &'a component::Component, machine2 : &'a component::Co
     return refines
 }
 
+//Adds new states to the waiting list according to the available edges
 fn add_new_states<'a>(
     next1 : Vec<&component::Edge>,
     next2 : Vec<& component::Edge>,
@@ -247,6 +249,7 @@ fn is_new_state(state_pair:  &mut component::StatePair, passed_list :  &mut Vec<
     return result
 }
 
+//Creates a new instance of a state
 fn create_state<'a>(location : &'a component::Location, declarations : &'a component::Declarations)  -> component::State<'a> {
     return component::State{
         location : location,
@@ -254,6 +257,7 @@ fn create_state<'a>(location : &'a component::Location, declarations : &'a compo
     }
 }
 
+//Creates a new instance of a state pair
 fn create_state_pair<'a>(state1 : State<'a>, state2 : State<'a>) -> StatePair<'a>{
     return  StatePair {
         state1 : state1,
