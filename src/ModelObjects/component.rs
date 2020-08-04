@@ -255,6 +255,9 @@ impl Declarations {
             i += 1;
         }
     }
+    pub fn get_clock_index_by_name(&self, name : &str) -> Option<&u32> {
+        self.get_clocks().get(name)
+    }
 
 }
 

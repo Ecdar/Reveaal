@@ -2,7 +2,8 @@ use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
 use crate::ModelObjects::component::{State, StatePair};
 use super::super::DBMLib::lib;
-use crate::Refiner::constraint_applyer::apply_constraints_to_state_pair;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state_pair;
+use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::expression_representation::BoolExpression;
 
 
@@ -178,8 +179,13 @@ fn add_new_states<'a>(
                     if !(g1_success && g2_success) {
                         continue;
                     }
-
-                    //TODO: handle updates - make function to do it
+                    
+                    if let Some(update) = edge1.get_update() {
+                        updater(update, &mut new_state_pair, true);
+                    }
+                    if let Some(update) = edge2.get_update() {
+                        updater(update, &mut new_state_pair, false);
+                    }
 
                     let invariant1 = new_state_pair.get_state1().get_location().get_invariant().clone();
                     let invariant2 = new_state_pair.get_state2().get_location().get_invariant().clone();

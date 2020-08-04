@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 mod DataReader;
 mod Refiner;
+mod EdgeEval;
 mod ModelObjects;
 mod DBMLib;
 use std::{fs, io};
