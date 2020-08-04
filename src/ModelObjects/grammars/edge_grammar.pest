@@ -5,8 +5,8 @@ update = {assignments?}
 
 assignments = {assignment ~ assignments | finalAssignment}
 
-assignment = {variable ~ "=" ~ expression ~ ";"+}
-finalAssignment = {variable ~ "=" ~ expression ~ ";"*}
+assignment = {variable ~ "=" ~ expression ~ ","}
+finalAssignment = {variable ~ "=" ~ expression ~ ","?}
 
 expression = { and }
 

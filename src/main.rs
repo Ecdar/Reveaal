@@ -18,10 +18,11 @@ pub fn main() {
     let (components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
     for comp in components {
+        println!("Comp: {:?}\n", comp);
         optimized_components.push(comp.create_edge_io_split());
     }
-    let mut comp1 = optimized_components[2].clone();
-    let mut comp2 = optimized_components[3].clone();
+    let mut comp1 = optimized_components[0].clone();
+    let mut comp2 = optimized_components[1].clone();
 
     let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
     println!("Refine result = {:?}", result);
