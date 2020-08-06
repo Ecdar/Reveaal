@@ -163,22 +163,29 @@ impl Edge {
 }
 
 pub struct StatePair<'a> {
-    pub state1 : State<'a>,
-    pub state2 : State<'a>,
+    pub states1 : Vec<State<'a>>,
+    pub states2 : Vec<State<'a>>,
     pub zone : [i32; 1000],
 
 }
 
 impl StatePair<'_> {
-    pub fn get_state1(&self) -> &State{
-        &self.state1
+    pub fn get_states1(&self) -> &Vec<State>{
+        &self.states1
     }
 
-    pub fn get_state2(&self) -> &State{
-        &self.state2
+    pub fn get_states2(&self) -> &Vec<State>{
+        &self.states2
     }
     pub fn get_dimensions(&self) -> u32{
-       self.state1.get_dimensions() + self.state2.get_dimensions()
+        let mut dimensions = 1;
+        for state in self.get_states1() {
+            dimensions += state.get_dimensions();
+        }
+        for state in self.get_states2() {
+            dimensions += state.get_dimensions();
+        }
+        return dimensions
     }
     pub fn get_zone(&mut self) -> &mut [i32] {
         let dim = self.get_dimensions();

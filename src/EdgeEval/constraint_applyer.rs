@@ -408,7 +408,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
                             // int <= clock
-                            let dim = *state.get_dimensions();;
+                            let dim = *state.get_dimensions();
                             let result = lib::rs_dbm_add_LT_constraint(zone, dim, 0, right_index, -1 * left_val);
                             return BoolExpression::Bool(result)
                         },
