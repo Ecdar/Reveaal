@@ -24,8 +24,8 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header("dbm/wrapper.h")
-        .trust_clang_mangling(false)
-        .clang_args(&["-x", "c++", "-std=c++98", "-fno-inline-functions"])
+        .trust_clang_mangling(true)
+        .clang_args(&["-x", "c++", "-std=c++14", "-fno-inline-functions"])
         .whitelist_recursively(true)
         .generate_inline_functions(true)
         // Tell cargo to invalidate the built crate whenever any of the
@@ -35,8 +35,6 @@ fn main() {
         //avoid generating bindings for unused code that produces errors
         .opaque_type("namespace")
         .opaque_type("std::.*")
-        //inline functions currently not being included
-        .trust_clang_mangling(false)
         
         //whitelist only relevant functions
         .whitelist_function("dbm_.*")

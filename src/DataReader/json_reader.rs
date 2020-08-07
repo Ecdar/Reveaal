@@ -1,6 +1,5 @@
 use super::super::ModelObjects::component;
 use super::super::ModelObjects::queries;
-use super::super::ModelObjects::system;
 use serde::de::DeserializeOwned;
 use serde_json::Result;
 use std::fs::File;
@@ -40,17 +39,6 @@ pub fn json_to_query(filename: String) -> Result<Vec<queries::Query>> {
     let json: Vec<queries::Query> = match read_json::<Vec<queries::Query>>(filename) {
         Ok(json) => json,
         Err(error) => panic!("We got error {}, and could not parse json file {} to query", error, filenamecopy),
-    };
-    Ok(json)
-}
-//Input:Filename
-//Description:Transforms JSON into system type
-//Output:Result
-pub fn json_to_system(filename: String) -> Result<Vec<system::System>> {
-    let filenamecopy = filename.clone();
-    let json: Vec<system::System> = match read_json::<Vec<system::System>>(filename) {
-        Ok(json) => json,
-        Err(error) => panic!("We got error {}, and could not parse json file {} to system", error, filenamecopy),
     };
     Ok(json)
 }

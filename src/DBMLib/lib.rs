@@ -8,6 +8,7 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
 const LT : i32 = 0;
 const LTE : i32 = 1;
+pub const DBM_INF : i32 = i32::MAX -1;
 
 /// Initializes a DBM with 
 /// * <= 0 on the diagonal and the first row
@@ -416,6 +417,62 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
     }
 }
 
+pub fn rs_dbm_fed_minus_fed(fed1 :&mut dbm_fed_t, fed2 :&mut dbm_fed_t) -> dbm_fed_t{
+    unsafe{
+        println!("we got feds {:?}, {:?}", fed1, fed2);
+
+        let mut res = dbm_fed_t::new(1);
+        dbm_fed_minus_fed( fed1, fed2, &mut res);
+
+        return res
+    }
+}
+
+pub fn rs_dbm_get_constraint(dbm : &mut[i32], dimension : u32, var_index_i: u32, var_index_j : u32) -> raw_t {
+    unsafe {
+        return dbm_get_value(dbm.as_mut_ptr(),dimension,var_index_i,var_index_j);
+    }
+}
+
+pub fn rs_dbm_get_constraint_from_dbm_ptr(dbm : *const i32, dimension : u32, var_index_i: u32, var_index_j : u32) -> raw_t {
+    unsafe {
+        return dbm_get_value(dbm,dimension,var_index_i,var_index_j);
+    }
+}
+
+pub fn rs_raw_is_strict(raw : raw_t) -> bool {
+    unsafe{
+        return BOOL_TRUE == dbm_rawIsStrict_exposed(raw)
+    }
+}
+
+pub fn rs_raw_to_bound(raw : raw_t) -> i32 {
+    unsafe {
+        dbm_raw2bound_exposed(raw)
+    }
+}
+
+pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>) ->  dbm_fed_t {
+    unsafe{
+        let mut res = dbm_fed_t::new((dbm_vec.len() ) as u32);
+    
+        dbm_vec_to_fed(dbm_vec.as_mut_ptr(), (dbm_vec.len() ) as u32, &mut res);
+
+        return res
+    }
+}
+
+pub fn rs_fed_to_vec(fed :&mut dbm_fed_t, vec : &mut Vec<*const raw_t>, dim : cindex_t) -> dbm_fdbm_t {
+    unsafe{
+        use std::ptr;
+
+        let mut p: *mut dbm_fdbm_t = ptr::null_mut();
+        let res = dbm_fdbm_t::create(vec[0], dim, p);      
+        dbm_fed_to_vec(fed, res);
+
+        return *res
+    }
+}
 
 
 pub fn libtest() {
@@ -464,7 +521,6 @@ pub fn libtest() {
         let res = rs_dbm_satisfies_i_LT_j(dbm, 3, 2 , 1, 0);
 
         println!("Result of satisfies check: {:?}", res);
-
     }
 
 }

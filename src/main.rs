@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 mod DataReader;
-mod Refiner;
+mod System;
 mod EdgeEval;
 mod ModelObjects;
 mod DBMLib;
@@ -10,21 +10,25 @@ use ModelObjects::queries;
 use ModelObjects::component;
 use ModelObjects::system_declarations;
 use DataReader::json_reader;
+use System::input_enabler;
 
 #[macro_use]
 extern crate pest_derive;
 
 pub fn main() {
-    let (components, system_declarations, queries) = parse_args().unwrap();
+    let (mut components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
     for comp in components {
-        println!("Comp: {:?}\n", comp);
-        optimized_components.push(comp.create_edge_io_split());
+        let mut optimized_comp = comp.create_edge_io_split();
+     
+        println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
+        input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
+        println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
+        optimized_components.push(optimized_comp);
     }
     let mut comp1 = optimized_components[0].clone();
     let mut comp2 = optimized_components[1].clone();
-
-    let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
+    let result = System::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
     println!("Refine result = {:?}", result);
 }
 

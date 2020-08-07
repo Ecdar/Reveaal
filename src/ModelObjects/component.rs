@@ -4,6 +4,7 @@ use super::expression_representation;
 use super::parse_edge;
 use crate::DBMLib::lib;
 use super::parse_invariant;
+use super::super::EdgeEval::constraint_applyer;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -27,8 +28,32 @@ impl Component {
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
     }
+    pub fn get_location_by_name(&self, name : &str) ->&Location{
+        let loc_vec = self.locations.iter().filter(|l| l.id == name).collect::<Vec<&Location>>();
+        
+        if loc_vec.len() == 1 {
+            return loc_vec[0]
+        } else 
+        {
+            panic!("Unable to retrive location based on id: {}", name)
+        }
+        
+    }
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
+    }
+    pub fn add_edge(&mut self, edge: Edge) {
+        self.edges.push(edge);
+    }
+    pub fn add_edges(&mut self, edges: &mut Vec<Edge>) {
+        self.edges.append(edges);
+    }
+    pub fn add_input_edges(&mut self, edges: &mut Vec<Edge>) {
+        if let Some(input_edges) = &mut self.input_edges {
+            input_edges.append(edges);
+        } else {
+            self.input_edges = Some(edges.to_vec());
+        }
     }
     pub fn get_mut_declaration(&mut self) -> &mut Declarations {&mut self.declarations}
 
@@ -47,15 +72,15 @@ impl Component {
         }
     }
 
-    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> { ;
+    pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> {
 
         return match synch_type {
             SyncType::Input => {
-                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string() + "?").as_str())).collect();
                 result
             },
             SyncType::Output => {
-                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == channel_name)).collect();
+                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string() + "!").as_str())).collect();
                 result
             },
         }
@@ -81,6 +106,27 @@ impl Component {
         self.edges = vec![];
 
         return self
+    }
+
+    pub fn make_input_enabled(mut self) {
+        let dimension = self.get_declarations().get_dimension();
+        let len = dimension * dimension;
+        for location in self.get_locations(){
+            let mut zone_arr = [0;1000];
+            let zone : &mut[i32] = &mut zone_arr[0..len as usize];
+            lib::rs_dbm_init(zone, *dimension);
+
+            if let Some(invariant) = location.get_invariant(){
+                let mut state = State{
+                    location: location,
+                    declarations: self.get_declarations(),
+                };
+    
+                constraint_applyer::apply_constraints_to_state(invariant,&mut state ,zone, dimension);
+            }
+
+
+        }
     }
 }
 
