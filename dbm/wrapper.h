@@ -68,4 +68,23 @@ extern "C" {
      */
     BOOL dbm_satisfies_exposed(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j, raw_t constraint);
 
+
+    dbm::fed_t dbm_create_fed( cindex_t dim);
+
+    void dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2, dbm::fed_t * fed_out);
+
+    dbm::fed_t dbm_copy_fed(dbm::fed_t fed);
+
+    raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
+
+    /** Create a federation from vector of dbms
+     * @param dbm: vector of DBMs
+     * @param dim: dimension
+     * @return Federation from DBMs
+     * @post Federation
+     */
+    void dbm_vec_to_fed( raw_t * dbm[], cindex_t dim, dbm::fed_t * fed_out);
+
+    void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t * vec[]);
+
 }

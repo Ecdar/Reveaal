@@ -2,14 +2,14 @@
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* A compiler identification string */
-#define COMPILER_STRING "Compiled with g++-4.2.1    -DBOOST_DISABLE_THREADS"
+#define COMPILER_STRING "Compiled with g++-9 -Wall -O2 -DNDEBUG   -DBOOST_DISABLE_THREADS"
 
 /* Define if the library implementation of streambuf have public interface to
    override */
 /* #undef CXX_OLD_STREAMBUF */
 
 /* Define to the namespace of slist (if not in std) */
-/* #undef CXX_SLIST_NAMESPACE */
+#define CXX_SLIST_NAMESPACE __gnu_cxx
 
 /* Version of the DBM library */
 #define DBM_VERSION "2.0.8"
@@ -27,7 +27,7 @@
 #define HAVE_ERRNO_H 1
 
 /* Define if slist is in ext */
-/* #undef HAVE_EXT_SLIST */
+#define HAVE_EXT_SLIST 1
 
 /* Define to 1 if you have the `index' function. */
 #define HAVE_INDEX 1
@@ -78,31 +78,34 @@
 #define PACKAGE_BUGREPORT "bug-uppaal@list.it.uu.se"
 
 /* The release month */
-#define PACKAGE_MONTH "April"
+#define PACKAGE_MONTH "July"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "UPPAAL"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "UPPAAL 4.1.4 ()"
+#define PACKAGE_STRING "UPPAAL 4.1.4 (4761)"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "uppaal"
 
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.1.4 ()"
+#define PACKAGE_VERSION "4.1.4 (4761)"
 
 /* The release year */
-#define PACKAGE_YEAR "2011"
+#define PACKAGE_YEAR "2020"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Tiga version */
-#define TIGA_VERSION "4.1.4-0.16 ()"
+#define TIGA_VERSION "4.1.4-0.16 (4761)"
 
 /* The UPPAAL version number */
-#define VERSION "4.1.4 ()"
+#define VERSION "4.1.4 (4761)"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

@@ -39,7 +39,7 @@
 
 #ifdef SHOW_STATS
 
-#include "hash/tables.h"
+#include "tables.h"
 
 namespace base
 {
