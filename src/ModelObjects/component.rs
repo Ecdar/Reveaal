@@ -206,7 +206,7 @@ impl StatePair<'_> {
         lib::rs_dbm_init(self.get_zone(), dimension);
     }
 }
-
+#[derive(Clone, Debug)]
 pub struct State<'a> {
     pub declarations : &'a Declarations,
     pub location : &'a Location,
