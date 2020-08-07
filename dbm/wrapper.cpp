@@ -58,53 +58,31 @@ extern "C" {
         return dbm_satisfies(dbm, dim, i, j, constraint);
     }
 
-    dbm::fed_t dbm_create_fed( cindex_t dim)
-    {
-        dbm::fed_t fed = (*new dbm::fed_t(dim));
-
-        return fed;
-    }
-
     void dbm_vec_to_fed( raw_t * dbm[], cindex_t dim, dbm::fed_t * fed_out)
     {
-        // Create and open a text file
-        std::ofstream MyFile("wrapper_out.txt");
-
-        // Write to the file
-        MyFile << "Dimension:";
-        MyFile << dim;
-        
-
         dbm::fed_t fed = (*new dbm::fed_t(dim));
 
         for (int i = 0; i < dim; i++) {
             fed.add(dbm[i], dim);
-        }       
-
-        MyFile << "\n";
-        MyFile << &fed;        
+        }              
         fed_out = &fed;
-        MyFile << "\n" << fed_out;
-        MyFile.close();
     }
 
-    void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t * vec[])
+    void dbm_fed_to_vec( dbm::fed_t &fed, dbm::fdbm_t *head)
     {
-        size_t fedSize = fed.size();
+        size_t dimension = fed.getDimension();
+
+        dbm::fdbm_t * prev = NULL;
 
         int y = 0;
         for (auto i = fed.begin(); i != fed.end(); ++i) {
-             const raw_t *x = i->const_dbm();
-             vec[y] = x;
+            const raw_t *x = i->const_dbm();
+            dbm::fdbm_t * next = dbm::fdbm_t::create(x, dimension, prev);
+            prev = next;
             y++;
         }
-    }
 
-    dbm::fed_t dbm_copy_fed(dbm::fed_t fed)
-    {
-        dbm::fed_t fed_copy = (*new dbm::fed_t(fed));
-
-        return fed_copy;
+        head = prev;
     }
 
     void dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2, dbm::fed_t * fed_out)
