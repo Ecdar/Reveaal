@@ -12,6 +12,9 @@ impl SystemDeclarations {
     pub fn get_declarations(&self) -> &SystemSpecification {
         &self.declarations
     }
+    pub fn get_mut_declarations(&mut self) -> &mut SystemSpecification {
+        &mut self.declarations
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -28,8 +31,14 @@ impl SystemSpecification {
     pub fn get_input_actions(&self) -> &HashMap<String, Vec<String>>{
         &self.input_actions
     }
+    pub fn get_mut_input_actions(&mut self) -> &mut HashMap<String, Vec<String>>{
+        &mut self.input_actions
+    }
     pub fn get_output_actions(&self) -> &HashMap<String, Vec<String>>{
         &self.output_actions
+    }
+    pub fn get_mut_output_actions(&mut self) -> &mut HashMap<String, Vec<String>>{
+        &mut self.output_actions
     }
 }
 

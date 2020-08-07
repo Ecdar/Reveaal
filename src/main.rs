@@ -23,8 +23,8 @@ pub fn main() {
     let mut comp1 = optimized_components[0].clone();
     let mut comp2 = optimized_components[1].clone();
 
-    let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
-    println!("Refine result = {:?}", result);
+    //let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
+    //println!("Refine result = {:?}", result);
 }
 
 fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>)>{

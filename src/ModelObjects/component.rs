@@ -161,7 +161,7 @@ impl Edge {
         &self.sync
     }
 }
-
+#[derive(Clone)]
 pub struct StatePair<'a> {
     pub states1 : Vec<State<'a>>,
     pub states2 : Vec<State<'a>>,
