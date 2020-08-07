@@ -122,67 +122,25 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
 
     waiting_list.push(initial_pair);
 
-
-    // m1 O, m2 O, m3 O >= m4 O, m5 O
-    //
-
-    // for output i venstre sides output
-    // m1.edges x m2.edges x m3.edges x m4 x m5 
-    // sp {
-    //      vec1 : 
-    //      vec2 :  
-    //}
     'Outer: while !waiting_list.is_empty() && refines {
         println!("starting while");
         let opt_next_pair = waiting_list.pop();
         if let Some(mut next_pair)  = opt_next_pair {
             if is_new_state( &mut next_pair, &mut passed_list) {
                 for output in outputs1 {
-                    
-                    let mut seen_before = false;
-                    let mut can_take_ouput = false;
-
                     let mut new_sp = create_state_pair(vec![], vec![]);
                     new_sp.set_dbm(next_pair.get_dbm_clone());
-
-                    for i in 0..next_pair.get_states1().len() {
-                        if !seen_before {
-                            let next1 = machines1[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Output);
-                            if !next1.is_empty(){
-                                //check alle edges om det er opfyldt 
-                                //hvis der er en så can_take_ouput = true 
-                                for edge in next1 {
-                                   let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), new_sp.get_dimensions(), machines1[i]);
-                                   if !new_state.is_none() {can_take_ouput = false}
-                                }   
-                            } else {
-                               //check if matching iinput med samme navn
-                            }
-                        } else {
-                            //check if matching iinput med samme navn
-                        }
-                    }
                
-                    if !can_take_ouput {
+                    if !add_output_states(next_pair.get_states1().len(), &mut new_sp, &machines1, &next_pair, &output, true) {
                         continue;
                     }
 
-                    seen_before = false;
-                    for j in 0..next_pair.get_states2().len() {
-                        if !seen_before {
-                            let next2 = machines2[j].get_next_edges(next_pair.get_states2()[j].get_location(), output, component::SyncType::Output);
-                            if next2.is_empty() {
-                                refines = false;
-                                break 'Outer;
-                            } else {                
-                                //add_new_states(next1, next2, &next_pair.get_states1()[i], &next_pair.get_states2()[j], &machines1[i], &machines2[j], &mut new_sp);
-                            }
-                        } else {
-                            //check if matching iinput med samme navn
-                        }
-                    }
+                    add_output_states(next_pair.get_states1().len(), &mut new_sp, &machines2, &next_pair, &output, false);
+
+                    waiting_list.push(new_sp);
                 }
             
+                //(a!, a?, a?) <= (a?, a?)
                 for input in inputs2 {
                     for i in 0..next_pair.get_states2().len() {
                         let next2 = machines2[i].get_next_edges(next_pair.get_states2()[i].get_location(), input, component::SyncType::Input);
@@ -210,6 +168,78 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
     }
 
     return refines
+}
+
+fn add_output_states<'a>(
+    loop_length : usize,
+    new_sp : & mut component::StatePair<'a>,
+    machines : &Vec<&'a component::Component>,
+    next_pair : &'a component::StatePair<'a>,
+    output : &String,
+    is_state1 : bool
+) -> bool {
+    let mut result = false;
+    let mut seen_before = false;
+    for i in 0..loop_length {
+        let mut has_been_pushed = false;
+        if !seen_before {
+            let next_O = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Output);
+            if !next_O.is_empty(){
+                //check alle edges om det er opfyldt 
+                //hvis der er en så can_take_ouput = true 
+                for edge in next_O {
+                    let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), new_sp.get_dimensions(), machines[i]);
+                    if let Some(state) = new_state {
+                        result = true;
+                        if is_state1 {
+                            new_sp.states1.push(state);
+                        } else {
+                            new_sp.states2.push(state);
+                        }
+                        has_been_pushed = true;
+                        break;
+                    }
+                }   
+            } else {
+                let next_I = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Input);
+                for edge in next_I {
+                    let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), new_sp.get_dimensions(), machines[i]);
+                    if let Some(state) = new_state {
+                        if is_state1 {
+                            new_sp.states1.push(state);
+                        } else {
+                            new_sp.states2.push(state);
+                        }
+                        has_been_pushed = true;
+                        break;
+                    }
+                }   
+            }
+        } else {
+            let next_I = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Input);
+            for edge in next_I {
+                let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), new_sp.get_dimensions(), machines[i]);
+                if let Some(state) = new_state {
+                    if is_state1 {
+                        new_sp.states1.push(state);
+                    } else {
+                        new_sp.states2.push(state);
+                    }
+                    has_been_pushed = true;
+                    break;
+                }
+            }   
+        }
+
+        if !has_been_pushed {
+            if is_state1 {
+                new_sp.states1.push(next_pair.get_states1()[i].clone());
+            } else {
+                new_sp.states2.push(next_pair.get_states1()[i].clone());
+            }
+        }
+    }
+    return result
 }
 
 fn get_state_if_reachable<'a>(
