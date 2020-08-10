@@ -1,0 +1,7 @@
+[
+  {
+    "query": "refinement: Component1 <= Component2",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

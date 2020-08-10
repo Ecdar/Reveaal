@@ -462,6 +462,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
             if let Some(val) = state.get_declarations().get_ints().get(name.as_str()) {
                 return BoolExpression::Int(*val)
             }
+            panic!("could not find variable in declarations");
         },
         BoolExpression::Bool(val) => {
             return BoolExpression::Bool(*val)
@@ -474,5 +475,4 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
         }
     }
 
-    panic!("not implemented")
 }

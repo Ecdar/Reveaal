@@ -137,6 +137,7 @@ pub struct Edge {
     pub guard: Option<expression_representation::BoolExpression>,
     #[serde(deserialize_with = "decode_update")]
     pub update: Option<Vec<parse_edge::Update>>,
+    #[serde(deserialize_with = "decode_sync")]
     pub sync: String,
     
 }
@@ -405,6 +406,23 @@ where
         _ => panic!("Unknown sync type in status {:?}", s)
     }
 }
+
+fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.contains("!") {
+        let res = s.replace("!", "");
+        return Ok(res)
+    } else if s.contains("?") {
+        let res = s.replace("?", "");
+        return Ok(res)
+    } else {
+        panic!("could not determine if channel name was input or output")
+    }
+}
+
 
 //Function used for deserializing location types
 fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>

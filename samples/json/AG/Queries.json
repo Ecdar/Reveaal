@@ -10,7 +10,7 @@
     "isPeriodic": false
   },
   {
-    "query": "refinement: G \u003c\u003d Imp",
+    "query": "refinement: G <= Imp",
     "comment": "",
     "isPeriodic": false
   },

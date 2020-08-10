@@ -212,7 +212,9 @@ fn add_output_states<'a>(
         let mut has_been_pushed = false;
         if !seen_before {
             let next_O: Vec<&Edge> = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Output);
+            // println!("starting with output: {:?}", output);
             if !next_O.is_empty(){
+                println!("level 0");
                 for edge in next_O {
                     let dim = new_sp.get_dimensions();
                     //let s = create_state(&machines[i].get_locations()[i], machines[i].get_declarations().clone());
@@ -304,8 +306,10 @@ fn get_state_if_reachable<'a>(
     };
 
     let mut new_state = create_state(new_location , machine.get_declarations().clone());
-
+    //println!("edge: {:?}", &edge );
     let g1_success =  if let Some(guard1) = edge.get_guard() {
+        // println!("guard: {:?}", guard1);
+        // println!("clocks in state: {:?}", curr_state.get_declarations().get_clocks());
         let success1 = apply_constraints_to_state(guard1, curr_state, dbm, &dimensions);
         if let BoolExpression::Bool(val1) = success1 {
             if val1 {
