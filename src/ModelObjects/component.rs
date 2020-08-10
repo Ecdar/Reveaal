@@ -208,7 +208,7 @@ impl StatePair<'_> {
 }
 #[derive(Clone, Debug)]
 pub struct State<'a> {
-    pub declarations : &'a Declarations,
+    pub declarations : Declarations,
     pub location : &'a Location,
 }
 
