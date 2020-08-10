@@ -150,7 +150,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
                 add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines1,&next_pair, &input, true);
                 waiting_list.push(new_sp);
             }
-            passed_list.push(next_pair.clone());
+            passed_list.push(next_pair);
         } else {
             continue;
         }
@@ -440,14 +440,26 @@ fn get_state_if_reachable<'a>(
 
 fn is_new_state<'a>(state_pair:  &mut component::StatePair<'a>, passed_list :  &mut Vec<StatePair<'a>> ) -> bool {
     let mut result = true;
-    for passed_state_pair in passed_list {
-        panic!("not implemented");
-        // if state_pair.get_state1().get_location().get_id() != passed_state_pair.get_state1().get_location().get_id() {
-        //     continue;
-        // }
-        // if state_pair.get_state2().get_location().get_id() != passed_state_pair.get_state2().get_location().get_id() {
-        //     continue;
-        // }
+    'OuterFor: for passed_state_pair in passed_list {
+
+        if passed_state_pair.get_states1().len() != state_pair.get_states1().len() {
+            panic!("states should always have same length")
+        }
+        if passed_state_pair.get_states2().len() != state_pair.get_states2().len() {
+            panic!("state vectors should always have same length")
+        }
+
+        for i in 0..passed_state_pair.get_states1().len() {
+            if passed_state_pair.get_states1()[i].get_location().get_id() != state_pair.get_states1()[i].get_location().get_id() {
+                continue 'OuterFor;
+            }
+        }
+
+        for i in 0..passed_state_pair.get_states1().len() {
+            if passed_state_pair.get_states2()[i].get_location().get_id() != state_pair.get_states2()[i].get_location().get_id() {
+                continue 'OuterFor;
+            }
+        }
         if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
         }
