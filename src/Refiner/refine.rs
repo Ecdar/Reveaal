@@ -8,24 +8,15 @@ use crate::ModelObjects::expression_representation::BoolExpression;
 
 
 pub fn check_refinement(mut machines1: Vec< component::Component>, mut machines2 : Vec< component::Component>, sys_decls : system_declarations::SystemDeclarations) -> bool {
-    println!("machines 1 @ start: {:?}", machines1);
-    let mut clock_counter: u32 = 0;
-    let mut i = 0;
+    let mut clock_counter: u32 = 1;
     let mut m1 : Vec<& component::Component> = vec![];
     let mut m2 : Vec<& component::Component> = vec![];
 
     for comp in &mut machines1 {
-        if i == 0 {
-            clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
-            m1.push(&*comp);
-            continue;
-        }
-        else {
-            comp.get_mut_declaration().update_clock_indices(clock_counter);
-            m1.push(&*comp);
-            clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
-        }
-        i+=1;
+
+        comp.get_mut_declaration().update_clock_indices(clock_counter);
+        m1.push(&*comp);
+        clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
     }
     for comp in &mut machines2 {
         comp.get_mut_declaration().update_clock_indices(clock_counter);
@@ -64,7 +55,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
 
     for m2 in &machines2 {
         if let Some(inputs2_res) = sys_decls.get_mut_declarations().get_mut_input_actions().get_mut(m2.get_name()){
-            inputs2.append( inputs2_res);
+            inputs2.append( &mut inputs2_res.clone());
         }   
         let init_loc =  m2.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
         if let Some(init_loc) = init_loc {
@@ -78,7 +69,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
 
     for m1 in &machines1 {
         if let Some(outputs1_res) = sys_decls.get_mut_declarations().get_mut_output_actions().get_mut(m1.get_name()) {
-            outputs1.append( outputs1_res);
+            outputs1.append( &mut outputs1_res.clone());
         }
         let init_loc =  m1.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
         if let Some(init_loc) = init_loc {
@@ -134,13 +125,13 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
     waiting_list.push(initial_pair);
 
     'Outer: while !waiting_list.is_empty() && refines {
-        println!("starting while");
         let mut next_pair = waiting_list.pop().unwrap();
 
         if is_new_state( &mut next_pair, &mut passed_list) {
             for output in &outputs1 {
                 let mut new_sp : StatePair = create_state_pair(vec![], vec![]);
                 new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
                 if !add_output_states(next_pair.get_states1().len(), &mut new_sp, &machines1, &next_pair, &output, true) {
                     continue;
                 }
@@ -154,6 +145,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
             for input in &inputs2 {
                 let mut new_sp = create_state_pair(vec![], vec![]);
                 new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
 
                 add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines2,&next_pair, &input, false);
                 add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines1,&next_pair, &input, true);
@@ -303,8 +295,7 @@ fn get_state_if_reachable<'a>(
     dimensions : u32,
     machine : & &'a component::Component
 ) -> Option<component::State<'a>> {
-    
-   
+
     let opt_new_location = machine.get_locations().into_iter().find(|l| l.get_id() == edge.get_target_location());
     let new_location = if let Some(new_loc) = opt_new_location {
         new_loc
@@ -341,7 +332,6 @@ fn get_state_if_reachable<'a>(
     let invariant = new_state.get_location().get_invariant();
 
     let inv_success = if let Some(inv1) = invariant {
-        println!("Applying invariant1");
         if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv1, &new_state, dbm, &dimensions) {
             val
         } else {
@@ -406,7 +396,8 @@ fn create_state_pair<'a>(state1 : Vec<State<'a>>, state2 : Vec<State<'a>>) -> St
     return  StatePair {
         states1 : state1,
         states2 : state2,
-        zone : [0;1000]
+        zone : [0;1000],
+        dimensions : 0,
     }
 }
 
@@ -414,23 +405,20 @@ fn check_preconditions(machines1 : &Vec<&component::Component>, machines2 : &Vec
     let mut outputs2 : Vec<String> = vec![];
     let mut inputs1 :Vec<String> = vec![];
 
-    println!("machines1 {:?}", machines1);
+    //println!("machines1 {:?}", machines1);
     for m1 in machines1 {
-        println!("m1 NAME: {:?}", m1.get_name());
         if let Some(inputs1_res) = sys_decls.get_mut_declarations().get_mut_input_actions().get_mut(m1.get_name()){
-            println!("appending {:?}", inputs1_res);
-            inputs1.append( inputs1_res);
+            inputs1.append( &mut inputs1_res.clone());
         }
     }
     // println!("inputs 1: {:?}", &inputs1);
-    println!("sys_decls: {:?}", sys_decls.get_declarations());
+    //println!("sys_decls: {:?}", sys_decls.get_declarations());
     for m2 in machines2 {
         if let Some(outputs2_res) = sys_decls.get_mut_declarations().get_mut_output_actions().get_mut(m2.get_name()) {
-            outputs2.append( outputs2_res);
+            outputs2.append( &mut outputs2_res.clone());
         }
     }
 
-    println!("o1 len {:?}", outputs1.len());
     if outputs1.len() > 0 {
         for j in 0..outputs1.len() - 1 {
             for q in (j + 1)..outputs1.len() {
@@ -442,18 +430,20 @@ fn check_preconditions(machines1 : &Vec<&component::Component>, machines2 : &Vec
         }
     }
 
-    for j in 0..outputs2.len() - 1 {
-        for q in (j+1)..outputs2.len() {
-            if outputs2[j] == outputs2[q] {
-                println!("output duplicate found on left side");
-                return false
+    if outputs2.len() > 0 {
+        for j in 0..outputs2.len() - 1 {
+            for q in (j + 1)..outputs2.len() {
+                if outputs2[j] == outputs2[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
             }
         }
     }
 
-    for o2 in &outputs2 {
+    for o1 in outputs1 {
         let mut found_match = false;
-        for o1 in outputs1 {
+        for o2 in &outputs2 {
             if o1 == o2 {
                 found_match = true;
                 break;

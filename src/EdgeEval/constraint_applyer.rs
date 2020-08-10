@@ -306,13 +306,11 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, left_index, right_index, 0);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, left_index, right_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, left_index, 0, right_val);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, left_index, 0, right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -323,9 +321,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, 0, right_index, -1 * left_val);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, 0, right_index, -1 * left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -348,13 +344,11 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, right_index, left_index, 0);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, right_index, left_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, 0, left_index, -1 * right_val);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, 0, left_index, -1 * right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -365,8 +359,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LTE_constraint(zone, dim, right_index, 0, left_val);
+                            let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, right_index, 0, left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -390,13 +383,11 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, left_index, right_index, 0);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, left_index, right_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, left_index, 0, right_val);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, left_index, 0, right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -407,9 +398,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            // int <= clock
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, 0, right_index, -1 * left_val);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, 0, right_index, -1 * left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
@@ -432,13 +421,11 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, right_index, left_index, 0);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, right_index, left_index, 0);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, 0, left_index, -1 * right_val);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, 0, left_index, -1 * right_val);
                             return BoolExpression::Bool(result)
                         },
                         _ => {
@@ -449,8 +436,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
                 BoolExpression::Int(left_val) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-                            let dim = *state.get_dimensions();
-                            let result = lib::rs_dbm_add_LT_constraint(zone, dim, right_index, 0, left_val);
+                            let result = lib::rs_dbm_add_LT_constraint(zone, *dimensions, right_index, 0, left_val);
                             return BoolExpression::Bool(result)
                         },
                         BoolExpression::Int(right_val) => {

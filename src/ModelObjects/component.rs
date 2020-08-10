@@ -166,6 +166,7 @@ pub struct StatePair<'a> {
     pub states1 : Vec<State<'a>>,
     pub states2 : Vec<State<'a>>,
     pub zone : [i32; 1000],
+    pub dimensions : u32,
 
 }
 
@@ -177,15 +178,11 @@ impl StatePair<'_> {
     pub fn get_states2(&self) -> &Vec<State>{
         &self.states2
     }
-    pub fn get_dimensions(&self) -> u32{
-        let mut dimensions = 1;
-        for state in self.get_states1() {
-            dimensions += state.get_dimensions();
-        }
-        for state in self.get_states2() {
-            dimensions += state.get_dimensions();
-        }
-        return dimensions
+    pub fn get_dimensions(&self) -> u32 {
+        self.dimensions.clone()
+    }
+    pub fn set_dimensions(&mut self, dim : u32) {
+        self.dimensions = dim;
     }
     pub fn get_zone(&mut self) -> &mut [i32] {
         let dim = self.get_dimensions();
@@ -202,8 +199,16 @@ impl StatePair<'_> {
     }
 
     pub fn init_dbm(&mut self) {
-        let dimension = self.get_dimensions();
-        lib::rs_dbm_init(self.get_zone(), dimension);
+        let mut dimensions = 1;
+        for state in self.get_states1() {
+            dimensions += state.get_dimensions();
+        }
+
+        for state in self.get_states2() {
+            dimensions += state.get_dimensions();
+        }
+        self.dimensions = dimensions;
+        lib::rs_dbm_init(self.get_zone(), dimensions);
     }
 }
 #[derive(Clone, Debug)]
@@ -278,7 +283,7 @@ where
     let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
     let mut ints: HashMap<String,  i32> = HashMap::new();
     let mut clocks : HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut counter: u32 = 0;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string == "" {
@@ -297,8 +302,10 @@ where
                     for i in 1..split_string.len(){
                         let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
                         for var in comma_split {
-                            clocks.insert(var, counter);
-                            counter += 1;
+                            if !(var == "") {
+                                clocks.insert(var, counter);
+                                counter += 1;
+                            }
                         }
                     }
                 } else if variable_type == "int" {
@@ -318,10 +325,12 @@ where
         }
         
     }
+
+    let dim  = clocks.keys().len() as u32;
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
-        dimension : counter,
+        dimension : dim,
     })
 }
 
