@@ -20,11 +20,20 @@ pub fn main() {
     for comp in components {
         optimized_components.push(comp.create_edge_io_split());
     }
+    let mut m1s = vec![ optimized_components[1].clone(),  optimized_components[4].clone(), optimized_components[7].clone()];
+    let mut m2s = vec![ optimized_components[8].clone()];
+    for m1 in &m1s {
+        println!("m1 name: {:?}", m1.get_name())
+    }
+
+    for m2 in &m2s {
+        println!("m2 name: {:?}", m2.get_name())
+    }
     let mut comp1 = optimized_components[0].clone();
     let mut comp2 = optimized_components[1].clone();
 
-    //let result = Refiner::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
-    //println!("Refine result = {:?}", result);
+    let result = Refiner::refine::check_refinement(m1s, m2s, system_declarations);
+    println!("Refine result = {:?}", result);
 }
 
 fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>)>{

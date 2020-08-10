@@ -7,7 +7,8 @@ use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::expression_representation::BoolExpression;
 
 
-pub fn check_refinement(mut machines1: Vec<&mut component::Component>, mut machines2 : Vec<&mut component::Component>, sys_decls : system_declarations::SystemDeclarations) -> bool {
+pub fn check_refinement(mut machines1: Vec< component::Component>, mut machines2 : Vec< component::Component>, sys_decls : system_declarations::SystemDeclarations) -> bool {
+    println!("machines 1 @ start: {:?}", machines1);
     let mut clock_counter: u32 = 0;
     let mut i = 0;
     let mut m1 : Vec<& component::Component> = vec![];
@@ -16,6 +17,7 @@ pub fn check_refinement(mut machines1: Vec<&mut component::Component>, mut machi
     for comp in &mut machines1 {
         if i == 0 {
             clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
+            m1.push(&*comp);
             continue;
         }
         else {
@@ -23,6 +25,7 @@ pub fn check_refinement(mut machines1: Vec<&mut component::Component>, mut machi
             m1.push(&*comp);
             clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
         }
+        i+=1;
     }
     for comp in &mut machines2 {
         comp.get_mut_declaration().update_clock_indices(clock_counter);
@@ -39,7 +42,7 @@ pub fn check_refinement(mut machines1: Vec<&mut component::Component>, mut machi
 
         comp.get_mut_declaration().reset_clock_indicies();
     }
-    for comp in machines2 {
+    for mut comp in machines2 {
         comp.get_mut_declaration().reset_clock_indicies();
     }
 
@@ -49,6 +52,7 @@ pub fn check_refinement(mut machines1: Vec<&mut component::Component>, mut machi
 //Main Refinement algorithm. Checks if machine2 refines machine1. This is the case if for all output edges in machine2 there is a matching output in machine2
 //and for all input edges in machine1 there is a matching input edge in machine2
 fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a component::Component>, mut sys_decls : system_declarations::SystemDeclarations) -> bool {
+
     let mut refines = true;
     let mut passed_list : Vec<component::StatePair> = vec![];
     let mut waiting_list : Vec<component::StatePair> = vec![];
@@ -83,6 +87,11 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
         } else {
             panic!("no initial location found in component")
         }
+    }
+
+    if !check_preconditions(&machines1, &machines2, &outputs1, &inputs2, &mut sys_decls) {
+        println!("preconditions failed - refinement false");
+        return false
     }
 
     let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
@@ -405,23 +414,30 @@ fn check_preconditions(machines1 : &Vec<&component::Component>, machines2 : &Vec
     let mut outputs2 : Vec<String> = vec![];
     let mut inputs1 :Vec<String> = vec![];
 
+    println!("machines1 {:?}", machines1);
     for m1 in machines1 {
+        println!("m1 NAME: {:?}", m1.get_name());
         if let Some(inputs1_res) = sys_decls.get_mut_declarations().get_mut_input_actions().get_mut(m1.get_name()){
+            println!("appending {:?}", inputs1_res);
             inputs1.append( inputs1_res);
         }
     }
-
+    // println!("inputs 1: {:?}", &inputs1);
+    println!("sys_decls: {:?}", sys_decls.get_declarations());
     for m2 in machines2 {
         if let Some(outputs2_res) = sys_decls.get_mut_declarations().get_mut_output_actions().get_mut(m2.get_name()) {
             outputs2.append( outputs2_res);
         }
     }
 
-    for j in 0..outputs1.len() - 1 {
-        for q in (j+1)..outputs1.len() {
-            if outputs1[j] == outputs1[q] {
-                println!("output duplicate found on left side");
-                return false
+    println!("o1 len {:?}", outputs1.len());
+    if outputs1.len() > 0 {
+        for j in 0..outputs1.len() - 1 {
+            for q in (j + 1)..outputs1.len() {
+                if outputs1[j] == outputs1[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
             }
         }
     }
@@ -435,32 +451,37 @@ fn check_preconditions(machines1 : &Vec<&component::Component>, machines2 : &Vec
         }
     }
 
-    for o1 in outputs1 {
+    for o2 in &outputs2 {
         let mut found_match = false;
-        for o2 in &outputs2 {
+        for o1 in outputs1 {
             if o1 == o2 {
                 found_match = true;
                 break;
             }
         }
         if !found_match {
-            println!("right side could not match a output from left side");
+            println!("right side could not match a output from left side o1: {:?}, o2 {:?}", outputs1, outputs2);
             return false
         }
     }
 
-    for i2 in inputs2 {
-        let mut found_match = false;
-        for i1 in &inputs1 {
-            if i1 == i2 {
-                found_match = true;
-                break;
+    if inputs1.len() == inputs2.len() {
+        for i2 in inputs2 {
+            let mut found_match = false;
+            for i1 in &inputs1 {
+                if i1 == i2 {
+                    found_match = true;
+                    break;
+                }
+            }
+            if !found_match {
+                println!("left side could not match a input from right side");
+                return false
             }
         }
-        if !found_match {
-            println!("left side could not match a input from right side");
-            return false
-        }
+    } else {
+        println!("not equal length i1 {:?}, i2 {:?}", inputs1, inputs2);
+        return false
     }
 
     return true
