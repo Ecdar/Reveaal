@@ -422,7 +422,7 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
 
 pub fn rs_dbm_fed_minus_fed(fed1 :&mut dbm_fed_t, fed2 :&mut dbm_fed_t) -> dbm_fed_t{
     unsafe{
-        println!("we got feds {:?}, {:?}", fed1, fed2);
+        println!("we got feds with length {:?}, {:?}", dbm_get_fed_size(fed1), dbm_get_fed_size(fed2));
 
         let mut res = dbm_fed_t::new(1);
         dbm_fed_minus_fed( fed1, fed2, &mut res);
@@ -458,29 +458,26 @@ pub fn rs_raw_to_bound(raw : raw_t) -> i32 {
 pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>, dim : u32) ->  dbm_fed_t {
     unsafe{
         let mut res = dbm_fed_t::new(dim);
-        for dbm in &*dbm_vec {
-            println!("Dbm? {:?}", dbm);
-        }
-        println!("længden er: {:?}", dbm_vec.len());
         dbm_vec_to_fed(dbm_vec.as_mut_ptr(), (dbm_vec.len() ) as u32, dim, &mut res);
-        println!("VI kommer her");
         return res
     }
 }
 
-pub fn rs_fed_to_vec(fed :&mut dbm_fed_t, vec: &mut Vec<*const raw_t>)  {
+pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
     unsafe{
-        use std::ptr;
-        println!("fed: {:?}", fed);
-        println!("lvl 4");
-        let res : *const raw_t = ptr::null_mut();
-        //let new_vec = Vec::from_raw_parts(fed,fed.size() as usize,fed.getDimension() as usize);
-        //println!("new_vec is: {:?}",new_vec);
-        println!("Hvad fuck er fed? {:?}", fed);
-        dbm_fed_to_vec(fed, res);
-        println!("kan vi det her? {:?}", res);
+        let mut result_vec : Vec<& [i32]>= vec![];
+        let test_vec : Vec<*const i32> = vec![];
+        let fed_size = dbm_get_fed_size(fed);
+        for i in 0..fed_size {
+            let raw_data = dbm_get_ith_element_in_fed(fed, i);
+            let mut dbm_slice = slice_from_raw_parts(raw_data,dbm_get_dbm_dimension(fed) as usize);
+            println!("HEEER: {:?}", &*dbm_slice);
+            result_vec.push(& *dbm_slice);
+        }
+        println!("Result vec is: {:?}",result_vec);
 
 
+        return test_vec;
 
         //TODO: Fill vec from res
     }

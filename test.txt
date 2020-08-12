@@ -1,6 +1,6 @@
 3
 3
 pointer dim: 3
-pointer len: 1
+pointer len: 0
 fed_out dim: 3
-fed_out len: 1
+fed_out len: 0

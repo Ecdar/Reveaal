@@ -85,5 +85,11 @@ extern "C" {
 
     void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t *head);
 
+    int dbm_get_fed_size(dbm::fed_t * fed);
+
+    int dbm_get_dbm_dimension(dbm::fed_t * fed);
+
+    const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num);
+
 
 }

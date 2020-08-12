@@ -70,10 +70,29 @@ extern "C" {
             fed.add(dbm[i], dim);
         }
         fed_out->add(fed) ;
-
+        myfile<<"Fed size:"<<fed_out->size();
         myfile.close();
     }
 
+    int dbm_get_fed_size(dbm::fed_t * fed){
+        return fed->size();
+    }
+
+    int dbm_get_dbm_dimension(dbm::fed_t * fed){
+        return (fed->getDimension() * fed->getDimension());
+    }
+
+
+
+    const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num){
+        int counter = 0;
+        for (auto i = fed->begin(); i != fed->end(); ++i) {
+            if (counter == element_num) {
+                const raw_t *x = i->const_dbm();
+                return x;
+            }
+        }
+    }
 
 
     void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t *head)
@@ -84,10 +103,11 @@ extern "C" {
         //std::vector<dbm_t> vec;
         dbm::fdbm_t * prev = NULL;
         int y = 0;
-        myfile<<fed.isEmpty();
+        myfile<<fed.isEmpty()<<"\n";
+        myfile<<"fed size: "<<fed.size();
 
-        const raw_t *x = fed.begin()->const_dbm();
-        head = x;
+        //const raw_t *x = fed.begin()->const_dbm();
+        //head = x;
         for (auto i = fed.begin(); i != fed.end(); ++i) {
             //myfile << prev <<"lvl2\n";
             const raw_t *x = i->const_dbm();

@@ -72,13 +72,13 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 } else {
                     //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
                     let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
-                    println!("lvl1");
+
                     let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
-                    println!("lvl2 subtracting");
+                    lib::rs_fed_to_vec(&mut federation);
                     let mut result_federation = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
-                    println!("result_fed is : {:?}", result_federation);
-                    let res_fed_linked_list = lib::rs_fed_to_vec(&mut result_federation, &mut result_federation_vec);
-                    let test = 0;
+
+                    let res_fed_vec = lib::rs_fed_to_vec(&mut result_federation);
+                    println!("res_fed_vec: {:?}", res_fed_vec);
                 }
                 println!("result_fed_vec is : {:?}", result_federation_vec);
                 for fed_zone in result_federation_vec {
