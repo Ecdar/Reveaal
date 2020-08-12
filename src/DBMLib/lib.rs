@@ -3,6 +3,9 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+use std::ptr::slice_from_raw_parts;
+use std::slice::from_raw_parts;
+use regex::internal::Input;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
@@ -452,25 +455,34 @@ pub fn rs_raw_to_bound(raw : raw_t) -> i32 {
     }
 }
 
-pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>) ->  dbm_fed_t {
+pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>, dim : u32) ->  dbm_fed_t {
     unsafe{
-        let mut res = dbm_fed_t::new((dbm_vec.len() ) as u32);
-    
-        dbm_vec_to_fed(dbm_vec.as_mut_ptr(), (dbm_vec.len() ) as u32, &mut res);
-
+        let mut res = dbm_fed_t::new(dim);
+        for dbm in &*dbm_vec {
+            println!("Dbm? {:?}", dbm);
+        }
+        println!("længden er: {:?}", dbm_vec.len());
+        dbm_vec_to_fed(dbm_vec.as_mut_ptr(), (dbm_vec.len() ) as u32, dim, &mut res);
+        println!("VI kommer her");
         return res
     }
 }
 
-pub fn rs_fed_to_vec(fed :&mut dbm_fed_t, vec : &mut Vec<*const raw_t>, dim : cindex_t) -> dbm_fdbm_t {
+pub fn rs_fed_to_vec(fed :&mut dbm_fed_t, vec: &mut Vec<*const raw_t>)  {
     unsafe{
         use std::ptr;
-
-        let mut p: *mut dbm_fdbm_t = ptr::null_mut();
-        let res = dbm_fdbm_t::create(vec[0], dim, p);      
+        println!("fed: {:?}", fed);
+        println!("lvl 4");
+        let res : *const raw_t = ptr::null_mut();
+        //let new_vec = Vec::from_raw_parts(fed,fed.size() as usize,fed.getDimension() as usize);
+        //println!("new_vec is: {:?}",new_vec);
+        println!("Hvad fuck er fed? {:?}", fed);
         dbm_fed_to_vec(fed, res);
+        println!("kan vi det her? {:?}", res);
 
-        return *res
+
+
+        //TODO: Fill vec from res
     }
 }
 

@@ -98,7 +98,7 @@
       "select": "",
       "guard": "",
       "update": "",
-      "sync": "i2",
+      "sync": "i2?",
       "isLocked": false,
       "nails": [
         {

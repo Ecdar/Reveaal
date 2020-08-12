@@ -108,7 +108,7 @@ impl Component {
         return self
     }
 
-    pub fn make_input_enabled(mut self) {
+    pub fn make_input_enabled(self) {
         let dimension = self.get_declarations().get_dimension();
         let len = dimension * dimension;
         for location in self.get_locations(){

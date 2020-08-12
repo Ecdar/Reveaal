@@ -73,14 +73,17 @@ extern "C" {
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
 
+    dbm::fdbm_t* dbm_create_fdbm_t();
+
     /** Create a federation from vector of dbms
      * @param dbm: vector of DBMs
      * @param dim: dimension
      * @return Federation from DBMs
      * @post Federation
      */
-    void dbm_vec_to_fed( raw_t * dbm[], cindex_t dim, dbm::fed_t * fed_out);
+    void dbm_vec_to_fed( raw_t * dbm[], cindex_t len, cindex_t dim, dbm::fed_t * fed_out);
 
-    void dbm_fed_to_vec( dbm::fed_t &fed, dbm::fdbm_t *head);
+    void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t *head);
+
 
 }

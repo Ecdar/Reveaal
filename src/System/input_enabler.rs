@@ -4,32 +4,33 @@ use super::super::EdgeEval::constraint_applyer;
 use super::super::ModelObjects::system_declarations;
 use super::super::ModelObjects::expression_representation;
 use std::collections::HashMap;
+use std::ptr;
 
 pub fn make_input_enabled(component: &mut component::Component, sys_decls : &system_declarations::SystemDeclarations) {
     let dimension = component.get_declarations().get_dimension();
     let len = dimension * dimension;
     let mut new_edges : Vec<component::Edge> = vec![];
 
-    println!("clocks are: {:?}", component.get_declarations().get_clocks());
-    println!("dimension is: {:?}", component.get_declarations().get_dimension());
+    //println!("clocks are: {:?}", component.get_declarations().get_clocks());
+    //println!("dimension is: {:?}", component.get_declarations().get_dimension());
  
     if let Some(inputs) = sys_decls.get_declarations().get_input_actions().get(component.get_name()){
-        println!("Input actions: {:?}", inputs);
+        //println!("Input actions: {:?}", inputs);
 
         for location in component.get_locations(){
-            println!("Current location: {:?}", location);
+            //println!("Current location: {:?}", location);
             let mut zone = [0;1000];
             let mut state = component::State{
                 location: location,
                 declarations: component.get_declarations(),
             };
 
-            println!("zone before: {:?}", &mut zone[0..len as usize]);
+            //println!("zone before: {:?}", &mut zone[0..len as usize]);
             lib::rs_dbm_init(&mut zone[0..len as usize], *dimension);
-            println!("zone after: {:?}", &mut zone[0..len as usize]);
+            //println!("zone after: {:?}", &mut zone[0..len as usize]);
     
             if let Some(invariant) = location.get_invariant(){ 
-                println!("location invariant: {:?}", invariant);
+                //println!("location invariant: {:?}", invariant);
                 constraint_applyer::apply_constraints_to_state(invariant,&mut state ,&mut zone[0..len as usize], dimension);                
             }
 
@@ -39,7 +40,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
             for input in inputs {
                 //maybe we also need to retrieve output edges (that is what they do in jecdar)
                 let input_edges = component.get_next_edges(location, input, component::SyncType::Input);
-                println!("Input edges {:?}, for input {:?}", input_edges, input);
+                //println!("Input edges {:?}, for input {:?}", input_edges, input);
                 let mut zones = vec![];
 
                 for edge in input_edges {
@@ -52,7 +53,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                     if let Some(guard) =  edge.get_guard() {
                         constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], dimension);                        
                     }
-                    println!("adding zone to be ignored {:?}",&mut guard_zone[0..len as usize]);
+                    //println!("adding zone to be ignored {:?}",&mut guard_zone[0..len as usize]);
                     zones.push(guard_zone);
                 }
 
@@ -63,20 +64,21 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 let mut result_federation_vec : Vec<*const i32> = vec![];
 
                 if federation_vec.is_empty() {
-                    println!("No edges to be ignore add the edges");
+                    //println!("No edges to be ignore add the edges");
                     for fed in full_federation_vec.clone() {
                         result_federation_vec.push(fed);
                     }
                     
                 } else {
-                    println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
-                    let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec);
+                    //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
+                    let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
                     println!("lvl1");
-                    let mut federation = lib::rs_vec_to_fed(&mut federation_vec);
+                    let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
                     println!("lvl2 subtracting");
                     let mut result_federation = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
                     println!("result_fed is : {:?}", result_federation);
-                    let res_fed_linked_list = lib::rs_fed_to_vec(&mut result_federation, &mut result_federation_vec, *dimension);
+                    let res_fed_linked_list = lib::rs_fed_to_vec(&mut result_federation, &mut result_federation_vec);
+                    let test = 0;
                 }
                 println!("result_fed_vec is : {:?}", result_federation_vec);
                 for fed_zone in result_federation_vec {
