@@ -37,21 +37,50 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
             let mut full_federation_vec : Vec<*mut i32> = vec![];
             full_federation_vec.push(zone.as_mut_ptr());
 
-            for input in inputs {
+            'inputLoop : for input in inputs {
                 //maybe we also need to retrieve output edges (that is what they do in jecdar)
                 let input_edges = component.get_next_edges(location, input, component::SyncType::Input);
+
                 //println!("Input edges {:?}, for input {:?}", input_edges, input);
                 let mut zones = vec![];
 
                 for edge in input_edges {
                     let mut guard_zone = zone.clone();
 
-                    if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
-                        constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
-                    }
+                    let has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
+                        let res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                        if let expression_representation::BoolExpression::Bool(val) = res {
+                            if val {
+                                true
+                            } else {
+                                panic!("Failed in applying constraints!");
+                                continue;
+                            }
+                        } else {
+                            panic!("invalid output after attempting to apply constraints to zone")
+                        }
+                    } else {
+                        false
+                    };
 
-                    if let Some(guard) =  edge.get_guard() {
-                        constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], dimension);                        
+                    let has_guard = if let Some(guard) =  edge.get_guard() {
+                        let res = constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                        if let expression_representation::BoolExpression::Bool(val) = res {
+                            if val {
+                                true
+                            } else {
+                                panic!("Failed in applying constraints!");
+                                continue;
+                            }
+                        } else {
+                            panic!("invalid output after attempting to apply constraints to zone")
+                        }
+                    } else {
+                        false
+                    };
+
+                    if !has_inv && !has_guard {
+                        continue 'inputLoop;
                     }
                     //println!("adding zone to be ignored {:?}",&mut guard_zone[0..len as usize]);
                     zones.push(guard_zone);
@@ -68,20 +97,26 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                     for fed in full_federation_vec.clone() {
                         result_federation_vec.push(fed);
                     }
-                    
                 } else {
                     //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
                     let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
 
+                    lib::rs_fed_to_vec(&mut full_federation);
+
                     let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
-                    lib::rs_fed_to_vec(&mut federation);
+
                     let mut result_federation = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
 
                     let res_fed_vec = lib::rs_fed_to_vec(&mut result_federation);
-                    println!("res_fed_vec: {:?}", res_fed_vec);
+                    for fed in res_fed_vec {
+                        result_federation_vec.push(fed);
+                    }
                 }
-                println!("result_fed_vec is : {:?}", result_federation_vec);
                 for fed_zone in result_federation_vec {
+                    if fed_zone == ptr::null() {
+                        println!("Skipping a null ptr");
+                        continue;
+                    }
                     new_edges.push(component::Edge {
                         source_location: location.get_id().to_string(),
                             target_location: location.get_id().to_string(),

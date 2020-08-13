@@ -422,7 +422,6 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
 
 pub fn rs_dbm_fed_minus_fed(fed1 :&mut dbm_fed_t, fed2 :&mut dbm_fed_t) -> dbm_fed_t{
     unsafe{
-        println!("we got feds with length {:?}, {:?}", dbm_get_fed_size(fed1), dbm_get_fed_size(fed2));
 
         let mut res = dbm_fed_t::new(1);
         dbm_fed_minus_fed( fed1, fed2, &mut res);
@@ -465,21 +464,24 @@ pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>, dim : u32) ->  dbm_fed_t {
 
 pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
     unsafe{
-        let mut result_vec : Vec<& [i32]>= vec![];
-        let test_vec : Vec<*const i32> = vec![];
+        let mut result: Vec<*const i32> = vec![];
+        let mut debug_print_vec :Vec<&[i32]> = vec![];
         let fed_size = dbm_get_fed_size(fed);
         for i in 0..fed_size {
             let raw_data = dbm_get_ith_element_in_fed(fed, i);
             let mut dbm_slice = slice_from_raw_parts(raw_data,dbm_get_dbm_dimension(fed) as usize);
-            println!("HEEER: {:?}", &*dbm_slice);
-            result_vec.push(& *dbm_slice);
+            let new_const_ptr: *const i32 = (& *dbm_slice).as_ptr();
+            debug_print_vec.push(&*dbm_slice);
+            result.push(new_const_ptr);
         }
-        println!("Result vec is: {:?}",result_vec);
+        for dp in debug_print_vec {
+            println!("debug prtint dbm: {:?}", dp);
+        }
 
+        println!("Result  is: {:?}", result);
 
-        return test_vec;
+        return result;
 
-        //TODO: Fill vec from res
     }
 }
 

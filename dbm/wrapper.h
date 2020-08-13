@@ -68,12 +68,11 @@ extern "C" {
      */
     BOOL dbm_satisfies_exposed(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j, raw_t constraint);
 
-    void dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2, dbm::fed_t * fed_out);
+
+    void dbm_fed_minus_fed(const dbm::fed_t &fed1, const dbm::fed_t &fed2, dbm::fed_t * fed_out);
 
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
-
-    dbm::fdbm_t* dbm_create_fdbm_t();
 
     /** Create a federation from vector of dbms
      * @param dbm: vector of DBMs
@@ -83,7 +82,7 @@ extern "C" {
      */
     void dbm_vec_to_fed( raw_t * dbm[], cindex_t len, cindex_t dim, dbm::fed_t * fed_out);
 
-    void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t *head);
+
 
     int dbm_get_fed_size(dbm::fed_t * fed);
 
