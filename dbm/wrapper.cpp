@@ -77,6 +77,9 @@ extern "C" {
     int dbm_get_fed_size(dbm::fed_t * fed){
         return fed->size();
     }
+    int dbm_get_fed_size_2(dbm::fed_t fed){
+    return fed.size();
+    }
 
     int dbm_get_dbm_dimension(dbm::fed_t * fed){
         return (fed->getDimension() * fed->getDimension());
@@ -129,31 +132,44 @@ extern "C" {
         return f;
     }
 
-    dbm::fed_t* dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2) {
+    dbm::fed_t dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2) {
         std::ofstream myfile;
         myfile.open ("test.txt");
-        /*
+
         int dbm[9];
         size_t dim = 3;
         dbm_init(dbm,dim);
 
         dbm::fed_t fed_test_1 = (*new dbm::fed_t(dim));
-        fed_test_1.add(dbm, dim);
+        /*       fed_test_1.add(dbm, dim);
+               dbm::fed_t fed_test_2 = (*new dbm::fed_t(dim));
 
-        dbm::fed_t fed_test_2 = (*new dbm::fed_t(dim));
+               dbm::fed_t res_test = fed_test_1 -fed_test_2;
+               dbm::fed_t * res_ptr = &res_test ;
 
-        dbm::fed_t res_test = fed_test_1 -fed_test_2;
-        dbm::fed_t * res_ptr = &res_test 
 
-        myfile<< "size of TEST::: " << res_test->size()<<"\n";
-        */
+               myfile<< "size of TEST::: " << res_test.size()<<"\n";
+       */
         // dbm_init(dbm.as_mut_ptr(), dimension);
         
         // myfile<< "size leftside: " <<fed1->size()<<"\n";
         // myfile<< "size rightside: " <<fed2->size()<<"\n";
+        /*for (auto i = fed1.begin(); i != fed1.end(); ++i) {
+            const int dbm[fed2.getDimension() * fed2.getDimension()];
+            const raw_t *x = i->const_dbm();
+            &dbm = x;
+            fed_test_1.add(x, fed1.getDimension());
+        }
 
-        dbm::fed_t res = fed1 - fed2;
-        dbm::fed_t * res_ptr = &res;
+        dbm::fed_t fed_test_2 = (*new dbm::fed_t(dim));
+        for (auto i = fed2.begin(); i != fed2.end(); ++i) {
+            const int dbm[fed2.getDimension() * fed2.getDimension()];
+            const raw_t *x = i->const_dbm();
+            &dbm = x;
+            fed_test_2.add(x, fed2.getDimension());
+        }*/
+        //dbm::fed_t res = fed1 - fed2;
+        //dbm::fed_t * res_ptr = &res;
     
         // myfile<<"pointer dim: "<<res_ptr->getDimension()<<"\n";
         // myfile<<"pointer len: "<<res_ptr->size()<<"\n";
@@ -161,10 +177,20 @@ extern "C" {
         //fed_out=res_ptr;
         //myfile<<"fed_out dim: "<<fed_out->getDimension()<<"\n";
         //myfile<<"fed_out len: "<<fed_out->size()<<"\n";
-        
+        size_t dim1 = fed1.getDimension();
+        myfile<<"fed dim is: "<<dim1<<"\n";
+        myfile<<"fed 1 len before is: "<<fed1.size()<<"\n";
+        myfile<<"fed test len is: " << fed_test_1.size()<<"\n";
+
+        fed1 -= fed_test_1;
+        myfile<<"fed 2 len after is: "<<fed1.size();
+
+
+        //dbm::fed_t res = fed1 - fed2;
+        //dbm::fed_t * res_ptr = &res;
         myfile.close();
 
-        return res_ptr;
+        return fed1;
         //dbm::fed_t * ptr = &res_test;
         
         //fed_out = ptr;

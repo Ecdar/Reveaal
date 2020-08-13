@@ -425,7 +425,7 @@ pub fn rs_dbm_fed_minus_fed(fed1 : &mut dbm_fed_t, fed2 : &mut dbm_fed_t) -> Vec
 
         //let mut res = dbm_fed_t::new(1);
         let mut result = dbm_fed_minus_fed(fed1, fed2);
-        println!("result is {:?}", dbm_get_fed_size(result));
+        println!("result is {:?}", dbm_get_fed_size_2(result));
         
         //let result = rs_fed_to_vec(&mut *res);
 

@@ -1,0 +1,4 @@
+fed dim is: 3
+fed 1 len before is: 1
+fed test len is: 0
+fed 2 len after is: 1

@@ -68,7 +68,7 @@ extern "C" {
      */
     BOOL dbm_satisfies_exposed(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j, raw_t constraint);
 
-    dbm::fed_t* dbm_fed_minus_fed(dbm::fed_t& fed1, dbm::fed_t& fed2);
+    dbm::fed_t dbm_fed_minus_fed(dbm::fed_t& fed1, dbm::fed_t& fed2);
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
 
@@ -79,7 +79,7 @@ extern "C" {
      * @post Federation
      */
     void dbm_vec_to_fed( raw_t * dbm[], cindex_t len, cindex_t dim, dbm::fed_t * fed_out);
-
+    int dbm_get_fed_size_2(dbm::fed_t fed);
 
 
     int dbm_get_fed_size(dbm::fed_t * fed);
@@ -87,6 +87,7 @@ extern "C" {
     int dbm_get_dbm_dimension(dbm::fed_t * fed);
 
     const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num);
+    int dbm_get_fed_size_2(dbm::fed_t fed);
 
 
 }
