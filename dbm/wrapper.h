@@ -68,9 +68,7 @@ extern "C" {
      */
     BOOL dbm_satisfies_exposed(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j, raw_t constraint);
 
-
-    void dbm_fed_minus_fed(const dbm::fed_t &fed1, const dbm::fed_t &fed2, dbm::fed_t * fed_out);
-
+    dbm::fed_t* dbm_fed_minus_fed(dbm::fed_t& fed1, dbm::fed_t& fed2);
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
 

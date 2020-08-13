@@ -83,7 +83,6 @@ extern "C" {
     }
 
 
-
     const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num){
         int counter = 0;
         for (auto i = fed->begin(); i != fed->end(); ++i) {
@@ -95,13 +94,82 @@ extern "C" {
     }
 
 
-    void dbm_fed_minus_fed(const dbm::fed_t &fed1, const dbm::fed_t &fed2, dbm::fed_t * fed_out) {
-        dbm::fed_t res = fed2 - fed1;
-        dbm::fed_t * res_ptr = &res;
-        fed_out->setDimension(res.getDimension());
+    void dbm_fed_to_vec( dbm::fed_t &fed, const raw_t *head)
+    {
+        size_t dimension = fed.getDimension();
+        std::ofstream myfile;
+        myfile.open ("fed_to_vec_test.txt");
+        //std::vector<dbm_t> vec;
+        dbm::fdbm_t * prev = NULL;
+        int y = 0;
+        myfile<<fed.isEmpty()<<"\n";
+        myfile<<"fed size: "<<fed.size();
 
-        //er res en tom fed???????
-        fed_out=res_ptr;
+        //const raw_t *x = fed.begin()->const_dbm();
+        //head = x;
+        for (auto i = fed.begin(); i != fed.end(); ++i) {
+            //myfile << prev <<"lvl2\n";
+            const raw_t *x = i->const_dbm();
+            dbm::fdbm_t * next = dbm::fdbm_t::create(x, dimension, prev);
+            prev = next;
+//
+//
+//
+//            y++;
+        }
+//
+//
+        myfile.close();
+//        head = prev;
+
+    }
+
+    dbm::fdbm_t* dbm_create_fdbm_t() {
+        dbm::fdbm_t * f = NULL;
+        return f;
+    }
+
+    dbm::fed_t* dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2) {
+        std::ofstream myfile;
+        myfile.open ("test.txt");
+        /*
+        int dbm[9];
+        size_t dim = 3;
+        dbm_init(dbm,dim);
+
+        dbm::fed_t fed_test_1 = (*new dbm::fed_t(dim));
+        fed_test_1.add(dbm, dim);
+
+        dbm::fed_t fed_test_2 = (*new dbm::fed_t(dim));
+
+        dbm::fed_t res_test = fed_test_1 -fed_test_2;
+        dbm::fed_t * res_ptr = &res_test 
+
+        myfile<< "size of TEST::: " << res_test->size()<<"\n";
+        */
+        // dbm_init(dbm.as_mut_ptr(), dimension);
+        
+        // myfile<< "size leftside: " <<fed1->size()<<"\n";
+        // myfile<< "size rightside: " <<fed2->size()<<"\n";
+
+        dbm::fed_t res = fed1 - fed2;
+        dbm::fed_t * res_ptr = &res;
+    
+        // myfile<<"pointer dim: "<<res_ptr->getDimension()<<"\n";
+        // myfile<<"pointer len: "<<res_ptr->size()<<"\n";
+
+        //fed_out=res_ptr;
+        //myfile<<"fed_out dim: "<<fed_out->getDimension()<<"\n";
+        //myfile<<"fed_out len: "<<fed_out->size()<<"\n";
+        
+        myfile.close();
+
+        return res_ptr;
+        //dbm::fed_t * ptr = &res_test;
+        
+        //fed_out = ptr;
+        //myfile<<"fed_out size:: " << fed_out->size()<<"\n";
+        
     }
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j) {
