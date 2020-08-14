@@ -183,6 +183,7 @@ pub struct Edge {
     pub guard: Option<expression_representation::BoolExpression>,
     #[serde(deserialize_with = "decode_update")]
     pub update: Option<Vec<parse_edge::Update>>,
+    #[serde(deserialize_with = "decode_sync")]
     pub sync: String,
     
 }
@@ -207,24 +208,28 @@ impl Edge {
         &self.sync
     }
 }
-
+#[derive(Clone)]
 pub struct StatePair<'a> {
-    pub state1 : State<'a>,
-    pub state2 : State<'a>,
+    pub states1 : Vec<State<'a>>,
+    pub states2 : Vec<State<'a>>,
     pub zone : [i32; 1000],
+    pub dimensions : u32,
 
 }
 
 impl StatePair<'_> {
-    pub fn get_state1(&self) -> &State{
-        &self.state1
+    pub fn get_states1(&self) -> &Vec<State>{
+        &self.states1
     }
 
-    pub fn get_state2(&self) -> &State{
-        &self.state2
+    pub fn get_states2(&self) -> &Vec<State>{
+        &self.states2
     }
-    pub fn get_dimensions(&self) -> u32{
-       self.state1.get_dimensions() + self.state2.get_dimensions()
+    pub fn get_dimensions(&self) -> u32 {
+        self.dimensions.clone()
+    }
+    pub fn set_dimensions(&mut self, dim : u32) {
+        self.dimensions = dim;
     }
     pub fn get_zone(&mut self) -> &mut [i32] {
         let dim = self.get_dimensions();
@@ -241,13 +246,21 @@ impl StatePair<'_> {
     }
 
     pub fn init_dbm(&mut self) {
-        let dimension = self.get_dimensions();
-        lib::rs_dbm_init(self.get_zone(), dimension);
+        let mut dimensions = 1;
+        for state in self.get_states1() {
+            dimensions += state.get_dimensions();
+        }
+
+        for state in self.get_states2() {
+            dimensions += state.get_dimensions();
+        }
+        self.dimensions = dimensions;
+        lib::rs_dbm_init(self.get_zone(), dimensions);
     }
 }
-
+#[derive(Clone, Debug)]
 pub struct State<'a> {
-    pub declarations : &'a Declarations,
+    pub declarations : Declarations,
     pub location : &'a Location,
 }
 
@@ -317,7 +330,7 @@ where
     let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
     let mut ints: HashMap<String,  i32> = HashMap::new();
     let mut clocks : HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut counter: u32 = 0;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string == "" {
@@ -336,8 +349,10 @@ where
                     for i in 1..split_string.len(){
                         let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
                         for var in comma_split {
-                            clocks.insert(var, counter);
-                            counter += 1;
+                            if !(var == "") {
+                                clocks.insert(var, counter);
+                                counter += 1;
+                            }
                         }
                     }
                 } else if variable_type == "int" {
@@ -357,10 +372,12 @@ where
         }
         
     }
+
+    let dim  = clocks.keys().len() as u32;
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
-        dimension : counter,
+        dimension : dim,
     })
 }
 
@@ -435,6 +452,23 @@ where
         _ => panic!("Unknown sync type in status {:?}", s)
     }
 }
+
+fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.contains("!") {
+        let res = s.replace("!", "");
+        return Ok(res)
+    } else if s.contains("?") {
+        let res = s.replace("?", "");
+        return Ok(res)
+    } else {
+        panic!("could not determine if channel name was input or output")
+    }
+}
+
 
 //Function used for deserializing location types
 fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>

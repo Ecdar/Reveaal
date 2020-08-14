@@ -98,13 +98,13 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         result_federation_vec.push(fed);
                     }
                 } else {
-                    lib::rs_dbm_fed_minus_fed_using_vec(&mut full_federation_vec, &mut federation_vec.clone(), *dimension);
+                    result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation_vec, &mut federation_vec, *dimension);
                     //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
                     //let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
 
                     //lib::rs_fed_to_vec(&mut full_federation);
 
-                    let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
+                    //let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
                     
 
                     //lib::rs_fed_to_vec(&mut federation);
@@ -130,6 +130,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
         }
     }
     println!("Adding new edges: {:?}", new_edges);
+    println!("Decls for new edges: {:?}", component.get_declarations().get_clocks());
     component.add_input_edges(&mut new_edges);
 
 }

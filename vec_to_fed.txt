@@ -1,0 +1,4 @@
+dim is: 3
+fed diminesion 3
+fed_out diminesion 3
+Fed size:1

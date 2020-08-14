@@ -1,241 +1,379 @@
 use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
-use crate::ModelObjects::component::{State, StatePair};
+use crate::ModelObjects::component::{State, StatePair, Edge, Location, Component};
 use super::super::DBMLib::lib;
-use crate::EdgeEval::constraint_applyer::apply_constraints_to_state_pair;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::expression_representation::BoolExpression;
 
 
-pub fn check_refinement(machine1 : &component::Component, machine2 : &mut component::Component, sys_decls : system_declarations::SystemDeclarations) -> bool {
-    machine2.get_mut_declaration().update_clock_indices(machine1.get_declarations().get_clocks().keys().len() as u32);
-    let result = refines(machine1, &machine2, sys_decls);
-    machine2.get_mut_declaration().reset_clock_indicies();
+pub fn check_refinement(mut machines1: Vec< component::Component>, mut machines2 : Vec< component::Component>, sys_decls : system_declarations::SystemDeclarations) -> bool {
+    let mut clock_counter: u32 = 1;
+    let mut m1 : Vec<& component::Component> = vec![];
+    let mut m2 : Vec<& component::Component> = vec![];
+
+    for comp in &mut machines1 {
+
+        comp.get_mut_declaration().update_clock_indices(clock_counter);
+        m1.push(&*comp);
+        clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
+    }
+    for comp in &mut machines2 {
+        comp.get_mut_declaration().update_clock_indices(clock_counter);
+        m2.push(&*comp);
+        clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
+    }
+    
+    //Need to parse the vectors as immutable references instead
+    let result = refines(m1, m2, sys_decls);
+    //machine2.get_mut_declaration().update_clock_indices(machine1.get_declarations().get_clocks().keys().len() as u32);
+    //let result = refines(machine1, &machine2, sys_decls);
+    //machine2.get_mut_declaration().reset_clock_indicies();
+    for comp in &mut machines1 {
+
+        comp.get_mut_declaration().reset_clock_indicies();
+    }
+    for mut comp in machines2 {
+        comp.get_mut_declaration().reset_clock_indicies();
+    }
+
     return result
 }
 
 //Main Refinement algorithm. Checks if machine2 refines machine1. This is the case if for all output edges in machine2 there is a matching output in machine2
 //and for all input edges in machine1 there is a matching input edge in machine2
-fn refines<'a>(machine1 : &'a component::Component, machine2 : &'a component::Component, sys_decls : system_declarations::SystemDeclarations) -> bool {
+fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a component::Component>, mut sys_decls : system_declarations::SystemDeclarations) -> bool {
+
     let mut refines = true;
     let mut passed_list : Vec<component::StatePair> = vec![];
     let mut waiting_list : Vec<component::StatePair> = vec![];
 
-    let mut inputs2 : &Vec<String> = &vec![];
-    let mut outputs1 : &Vec<String> = &vec![];
+    let mut inputs2 : Vec<String> = vec![];
+    let mut outputs1 : Vec<String> = vec![];
+    let mut initial_states_1 : Vec<State> = vec![];
+    let mut initial_states_2 : Vec<State> = vec![];
 
-    if let Some(inputs2_res) = sys_decls.get_declarations().get_input_actions().get(machine2.get_name()){
-        inputs2 = inputs2_res;
+    for m2 in &machines2 {
+        if let Some(inputs2_res) = sys_decls.get_mut_declarations().get_mut_input_actions().get_mut(m2.get_name()){
+            inputs2.append( &mut inputs2_res.clone());
+        }   
+        let init_loc =  m2.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
+        if let Some(init_loc) = init_loc {
+            let mut state = create_state(init_loc, m2.get_declarations().clone());
+            initial_states_2.push(state);
+        } else {
+            panic!("no initial location found in component")
+        }
+        
     }
 
-    if let Some(outputs1_res) = sys_decls.get_declarations().get_output_actions().get(machine1.get_name()) {
-        outputs1 = outputs1_res;
+    for m1 in &machines1 {
+        if let Some(outputs1_res) = sys_decls.get_mut_declarations().get_mut_output_actions().get_mut(m1.get_name()) {
+            outputs1.append( &mut outputs1_res.clone());
+        }
+        let init_loc =  m1.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
+        if let Some(init_loc) = init_loc {
+            let mut state = create_state(init_loc, m1.get_declarations().clone());
+            initial_states_1.push(state);
+        } else {
+            panic!("no initial location found in component")
+        }
     }
 
-    let initial_locations_1 : Vec<&component::Location> = machine1.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
-    let initial_locations_2 : Vec<&component::Location> = machine2.get_locations().into_iter().filter(|location| location.get_location_type() == &component::LocationType::Initial).collect();
+    if !check_preconditions(&machines1, &machines2, &outputs1, &inputs2, &mut sys_decls) {
+        println!("preconditions failed - refinement false");
+        return false
+    }
 
-    let initial_loc_1 = if initial_locations_1.len() == 1 {
-        initial_locations_1[0]
-    } else {
-        panic!("Found more than one initial location for: {:?}", machine1)
-    };
-
-    let initial_loc_2 = if initial_locations_2.len() == 1 {
-        initial_locations_2[0]
-    } else {
-        panic!("Found more than one initial location for: {:?}", machine2)
-    };
-
-    let mut init_state_1 = create_state(initial_loc_1, machine1.get_declarations());
-    let mut init_state_2 = create_state(initial_loc_2, machine2.get_declarations());
-
-    let mut initial_pair = create_state_pair(init_state_1, init_state_2);
+    let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
     initial_pair.init_dbm();
 
-    let init_inv1 = initial_pair.get_state1().get_location().get_invariant().clone();
-    let init_inv2 = initial_pair.get_state2().get_location().get_invariant().clone();
-
-    let init_inv1_success = if let Some(inv1) = init_inv1{
-        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut initial_pair, true) {
-            val
+    for state in initial_states_1 {
+        let init_inv1 = state.get_location().get_invariant();
+        let init_inv1_success = if let Some(inv1) = init_inv1 {
+            let dim = initial_pair.get_dimensions();
+            if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv1, & state, initial_pair.get_zone(), &dim) {
+                val
+            } else {
+                panic!("unexpected return type when attempting to apply constraints")
+            }
         } else {
-            panic!("unexpected return type when attempting to apply constraints")
-        }
-    } else {
-        true
-    };
-    let init_inv2_success = if let Some(inv2) = init_inv2{
-        if let BoolExpression::Bool(val) =   apply_constraints_to_state_pair(&inv2, &mut initial_pair, false) {
-            val
-        } else {
-            panic!("unexpected return type when attempting to apply constraints")
-        }
-    } else {
-        true
-    };
-
-    if !(init_inv1_success && init_inv2_success) {
-        panic!("Was unable to apply invariants to initial state")
+            true
+        };   
+        if !init_inv1_success {
+            panic!("Was unable to apply invariants to initial state")
+        }      
     }
+
+    for state in initial_states_2 {
+        let init_inv2 = state.get_location().get_invariant();
+        let init_inv2_success = if let Some(inv2) = init_inv2 {
+            let dim = initial_pair.get_dimensions();
+            if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv2, & state, initial_pair.get_zone(), &dim) {
+                val
+            } else {
+                panic!("unexpected return type when attempting to apply constraints")
+            }
+        } else {
+            true
+        };     
+        if !init_inv2_success {
+            panic!("Was unable to apply invariants to initial state")
+        } 
+    }
+
     waiting_list.push(initial_pair);
 
     'Outer: while !waiting_list.is_empty() && refines {
-        println!("starting while");
-        let opt_next_pair = waiting_list.pop();
-        if let Some(mut next_pair)  = opt_next_pair {
-            if is_new_state( &mut next_pair, &mut passed_list) {
-                for output in outputs1 {
+        let mut next_pair = waiting_list.pop().unwrap();
 
-                    let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), output, component::SyncType::Output);
-                    if !next1.is_empty(){
-                        let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), output, component::SyncType::Output);
-                        if next2.is_empty() {
-                            refines = false;
-                            break 'Outer;
-                        } else {
-                            add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
-                        }
-                    }
+        if is_new_state( &mut next_pair, &mut passed_list) {
+            for output in &outputs1 {
+                let mut new_sp : StatePair = create_state_pair(vec![], vec![]);
+                new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
+                if !add_output_states(next_pair.get_states1().len(), &mut new_sp, &machines1, &next_pair, &output, true) {
+                    continue;
                 }
 
-                for input in inputs2 {
-                    let next2 = machine2.get_next_edges(next_pair.get_state2().get_location(), input, component::SyncType::Input);
-                    if !next2.is_empty() {
-                        let next1 = machine1.get_next_edges(next_pair.get_state1().get_location(), input, component::SyncType::Input);
-                        if next1.is_empty() {
-                            refines = false;
-                            break 'Outer;
-                        } else {
-                            add_new_states(next1, next2, &mut waiting_list, &next_pair, &machine1, &machine2);
-                        }
-                    }
-                }
-                passed_list.push(next_pair);
-            } else {
-                continue;
+                add_output_states(next_pair.get_states1().len(), &mut new_sp, &machines2, &next_pair, &output, false);
+
+                waiting_list.push(new_sp);
             }
+
+            //(a!, a?, a?) <= (a?, a?)
+            for input in &inputs2 {
+                let mut new_sp = create_state_pair(vec![], vec![]);
+                new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
+
+                add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines2,&next_pair, &input, false);
+                add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines1,&next_pair, &input, true);
+                waiting_list.push(new_sp);
+            }
+            passed_list.push(next_pair);
         } else {
-            panic!("error acquiring next element from waiting list that should be there")
+            continue;
         }
     }
 
     return refines
 }
 
-//Adds new states to the waiting list according to the available edges
-fn add_new_states<'a>(
-    next1 : Vec<&component::Edge>,
-    next2 : Vec<& component::Edge>,
-    waiting_list : & mut Vec<component::StatePair<'a>>,
-    state_pair : & component::StatePair,
-    machine1 : &'a component::Component,
-    machine2 : &'a component::Component
+fn add_input_states<'a>(
+    loop_length : usize,
+    new_sp : & mut component::StatePair<'a>,
+    machines : & Vec<&'a component::Component>,
+    next_pair : & component::StatePair,
+    input : &String,
+    is_state1 : bool
 ) {
-    //println!("enetered add_new_states");
-    for edge1 in &next1 {
-        for edge2 in &next2 {
+    for i in 0..loop_length {
+        let next_I = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), input, component::SyncType::Input);
 
-            let opt_new_location1 = machine1.get_locations().into_iter().find(|l| l.get_id() == edge1.get_target_location());
-            let opt_new_location2 = machine2.get_locations().into_iter().find(|l| l.get_id() == edge2.get_target_location());
-            if let Some(new_location1) = opt_new_location1 {
-                if let Some(new_location2) = opt_new_location2 {
-
-                    //gives lifetime parameter a to ensure refrence lives atleast as long as machine, as they are needed throughout refinement if the are pushed to WL
-                    let mut new_state1: State<'a> = create_state(new_location1, machine1.get_declarations());
-                    let mut new_state2: State<'a> = create_state(new_location2, machine2.get_declarations());
-
-                    let mut new_state_pair : StatePair<'a> = create_state_pair(new_state1, new_state2);
-                    new_state_pair.set_dbm(state_pair.get_dbm_clone());
-
-                    let g1_success =  if let Some(guard1) = edge1.get_guard() {
-                        let success1 = apply_constraints_to_state_pair(guard1, &mut new_state_pair, true);
-                        if let BoolExpression::Bool(val1) = success1 {
-                            if val1 {
-                                true
-                            } else {
-                                false
-                            }
-                        } else {
-                            panic!("unexpected return type from applying constraints")
-                        }
-                    } else {
-                        true
-                    };
-
-                    let g2_success = if let Some(guard2) = edge2.get_guard() {
-                        let success2 = apply_constraints_to_state_pair(guard2, &mut new_state_pair, false);
-                        if let BoolExpression::Bool(val1) = success2 {
-                            if val1 {
-                                true
-                            } else {
-                                false
-                            }
-                        } else {
-                            panic!("unexpected return type from applying constraints")
-                        }
-                    } else {
-                        true
-                    };
-
-                    if !(g1_success && g2_success) {
-                        continue;
+        if !next_I.is_empty() {
+            let mut found_open_input_edge = false;
+            for edge in next_I {
+                let dim = new_sp.get_dimensions();
+                let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), dim, &machines[i]);
+                if let Some(state) = new_state {
+                    if found_open_input_edge {
+                        panic!("non determenism found, multiple input edges can activate in same component")
                     }
-                    
-                    if let Some(update) = edge1.get_update() {
-                        updater(update, &mut new_state_pair, true);
-                    }
-                    if let Some(update) = edge2.get_update() {
-                        updater(update, &mut new_state_pair, false);
-                    }
-
-                    let invariant1 = new_state_pair.get_state1().get_location().get_invariant().clone();
-                    let invariant2 = new_state_pair.get_state2().get_location().get_invariant().clone();
-
-                    let inv1_success = if let Some(inv1) = invariant1 {
-                        println!("Applying invariant1");
-                        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv1, &mut new_state_pair, true) {
-                            val
-                        } else {
-                            panic!("unexpected return type from applying constraints")
-                        }
+                    if is_state1 {
+                        new_sp.states1.push(state);
                     } else {
-                        true
-                    };
-
-                    let inv2_success = if let Some(inv2) = invariant2 {
-                        println!("Applying invariant2");
-                        if let BoolExpression::Bool(val) = apply_constraints_to_state_pair(&inv2, &mut new_state_pair, false) {
-                            val
-                        } else {
-                            panic!("unexpected return type from applying constraints")
-                        }
-                    } else {
-                        true
-                    };
-                    if inv1_success && inv2_success {
-                        waiting_list.push(new_state_pair);
+                        new_sp.states2.push(state);
                     }
-                } else {
-                    panic!("unable to find the target location for edge")
+                    found_open_input_edge = true;
                 }
-            } else {
-                panic!("unable to find the target location for edge")
             }
+            if !found_open_input_edge {
+                panic!("no open edges for input {:?} found, but it must be input enabled", input)
+            }
+        } else {
+            panic!("component didn't have input edge, and as such was not input enabled")
         }
     }
 
 }
 
-fn is_new_state(state_pair:  &mut component::StatePair, passed_list :  &mut Vec<StatePair> ) -> bool {
-    let mut result = true;
-    for passed_state_pair in passed_list {
-
-        if state_pair.get_state1().get_location().get_id() != passed_state_pair.get_state1().get_location().get_id() {
-            continue;
+fn add_output_states<'a>(
+    loop_length : usize,
+    new_sp : & mut component::StatePair<'a>,
+    machines : &Vec<&'a component::Component>,
+    next_pair : & component::StatePair<'a>,
+    output : &String,
+    is_state1 : bool
+) -> bool {
+    let mut result = false;
+    let mut seen_before = false;
+    for i in 0..loop_length {
+        let mut has_been_pushed = false;
+        if !seen_before {
+            let next_O: Vec<&Edge> = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Output);
+            // println!("starting with output: {:?}", output);
+            if !next_O.is_empty(){
+                println!("level 0");
+                for edge in next_O {
+                    let dim = new_sp.get_dimensions();
+                    //let s = create_state(&machines[i].get_locations()[i], machines[i].get_declarations().clone());
+                    let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), dim, &machines[i]);
+                    if let Some(state) = new_state {
+                        result = true;
+                        if is_state1 {
+                            new_sp.states1.push(state);
+                        } else {
+                            new_sp.states2.push(state);
+                        }
+                        has_been_pushed = true;
+                        break;
+                    }
+                }
+            } else {
+               let next_I = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Input);
+                for edge in next_I {
+                    let dim = new_sp.get_dimensions();
+                    let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), dim, &machines[i]);
+                    if let Some(state) = new_state {
+                        if is_state1 {
+                            new_sp.states1.push(state);
+                        } else {
+                            new_sp.states2.push(state);
+                        }
+                        has_been_pushed = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            let next_I = machines[i].get_next_edges(next_pair.get_states1()[i].get_location(), output, component::SyncType::Input);
+            for edge in next_I {
+                let dim = new_sp.get_dimensions();
+                let new_state = get_state_if_reachable(edge, &next_pair.get_states1()[i], new_sp.get_zone(), dim, &machines[i]);
+                if let Some(state) = new_state {
+                    if is_state1 {
+                        new_sp.states1.push(state);
+                    } else {
+                        new_sp.states2.push(state);
+                    }
+                    has_been_pushed = true;
+                    break;
+                }
+            }
         }
-        if state_pair.get_state2().get_location().get_id() != passed_state_pair.get_state2().get_location().get_id() {
-            continue;
+
+        if !has_been_pushed {
+            if is_state1 {
+                let new_loc= next_pair.get_states1()[i].get_location();
+                let new_loc_ref = machines[i].get_locations().into_iter().find(|l| l.get_id() == new_loc.get_id());
+
+                if let Some(new_l) = new_loc_ref {
+                    let new_s = create_state(new_l, next_pair.get_states1()[i].get_declarations().clone());
+                    new_sp.states1.push(new_s);
+                } else {
+                    panic!("unknown location")
+                }
+            } else {
+                let new_loc= next_pair.get_states2()[i].get_location();
+                let new_loc_ref = machines[i].get_locations().into_iter().find(|l| l.get_id() == new_loc.get_id());
+
+                if let Some(new_l) = new_loc_ref {
+                    let new_s = create_state(new_l, next_pair.get_states2()[i].get_declarations().clone());
+                    new_sp.states2.push(new_s);
+                } else {
+                    panic!("unknown location")
+                }
+            }
+        }
+    }
+    return result
+}
+
+fn get_state_if_reachable<'a>(
+    edge : &'a component::Edge,
+    curr_state : & component::State,
+    dbm  : &mut [i32],
+    dimensions : u32,
+    machine : & &'a component::Component
+) -> Option<component::State<'a>> {
+
+    let opt_new_location = machine.get_locations().into_iter().find(|l| l.get_id() == edge.get_target_location());
+    let new_location = if let Some(new_loc) = opt_new_location {
+        new_loc
+    } else {
+        panic!("New location from edge did not exist in current component")
+    };
+
+    let mut new_state = create_state(new_location , machine.get_declarations().clone());
+    //println!("edge: {:?}", &edge );
+    let g1_success =  if let Some(guard1) = edge.get_guard() {
+        // println!("guard: {:?}", guard1);
+        // println!("clocks in state: {:?}", curr_state.get_declarations().get_clocks());
+        let success1 = apply_constraints_to_state(guard1, curr_state, dbm, &dimensions);
+        if let BoolExpression::Bool(val1) = success1 {
+            if val1 {
+                true
+            } else {
+                false
+            }
+        } else {
+            panic!("unexpected return type from applying constraints")
+        }
+    } else {
+        true
+    };
+
+    if !g1_success {
+        return None
+    }
+
+    if let Some(update) = edge.get_update() {
+        updater(update, &mut new_state, dbm, dimensions);
+    }
+
+
+    let invariant = new_state.get_location().get_invariant();
+
+    let inv_success = if let Some(inv1) = invariant {
+        if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv1, &new_state, dbm, &dimensions) {
+            val
+        } else {
+            panic!("unexpected return type from applying constraints")
+        }
+    } else {
+        true
+    };
+
+    if inv_success {
+        return Some(new_state)
+    }
+
+    return None
+}
+
+
+fn is_new_state<'a>(state_pair:  &mut component::StatePair<'a>, passed_list :  &mut Vec<StatePair<'a>> ) -> bool {
+    let mut result = true;
+    'OuterFor: for passed_state_pair in passed_list {
+
+        if passed_state_pair.get_states1().len() != state_pair.get_states1().len() {
+            panic!("states should always have same length")
+        }
+        if passed_state_pair.get_states2().len() != state_pair.get_states2().len() {
+            panic!("state vectors should always have same length")
+        }
+
+        for i in 0..passed_state_pair.get_states1().len() {
+            if passed_state_pair.get_states1()[i].get_location().get_id() != state_pair.get_states1()[i].get_location().get_id() {
+                continue 'OuterFor;
+            }
+        }
+
+        for i in 0..passed_state_pair.get_states1().len() {
+            if passed_state_pair.get_states2()[i].get_location().get_id() != state_pair.get_states2()[i].get_location().get_id() {
+                continue 'OuterFor;
+            }
         }
         if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
@@ -250,18 +388,95 @@ fn is_new_state(state_pair:  &mut component::StatePair, passed_list :  &mut Vec<
 }
 
 //Creates a new instance of a state
-fn create_state<'a>(location : &'a component::Location, declarations : &'a component::Declarations)  -> component::State<'a> {
+fn create_state(location : &component::Location, declarations : component::Declarations) -> component::State {
     return component::State{
-        location : location,
-        declarations : declarations,
+        location,
+        declarations,
     }
 }
 
 //Creates a new instance of a state pair
-fn create_state_pair<'a>(state1 : State<'a>, state2 : State<'a>) -> StatePair<'a>{
+fn create_state_pair<'a>(state1 : Vec<State<'a>>, state2 : Vec<State<'a>>) -> StatePair<'a>{
     return  StatePair {
-        state1 : state1,
-        state2 : state2,
-        zone : [0;1000]
+        states1 : state1,
+        states2 : state2,
+        zone : [0;1000],
+        dimensions : 0,
     }
+}
+
+fn check_preconditions(machines1 : &Vec<&component::Component>, machines2 : &Vec<&component::Component>, outputs1 : &Vec<String>, inputs2 : &Vec<String>, sys_decls : &mut system_declarations::SystemDeclarations) -> bool {
+    let mut outputs2 : Vec<String> = vec![];
+    let mut inputs1 :Vec<String> = vec![];
+
+    //println!("machines1 {:?}", machines1);
+    for m1 in machines1 {
+        if let Some(inputs1_res) = sys_decls.get_mut_declarations().get_mut_input_actions().get_mut(m1.get_name()){
+            inputs1.append( &mut inputs1_res.clone());
+        }
+    }
+    // println!("inputs 1: {:?}", &inputs1);
+    //println!("sys_decls: {:?}", sys_decls.get_declarations());
+    for m2 in machines2 {
+        if let Some(outputs2_res) = sys_decls.get_mut_declarations().get_mut_output_actions().get_mut(m2.get_name()) {
+            outputs2.append( &mut outputs2_res.clone());
+        }
+    }
+
+    if outputs1.len() > 0 {
+        for j in 0..outputs1.len() - 1 {
+            for q in (j + 1)..outputs1.len() {
+                if outputs1[j] == outputs1[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
+            }
+        }
+    }
+
+    if outputs2.len() > 0 {
+        for j in 0..outputs2.len() - 1 {
+            for q in (j + 1)..outputs2.len() {
+                if outputs2[j] == outputs2[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
+            }
+        }
+    }
+
+    for o1 in outputs1 {
+        let mut found_match = false;
+        for o2 in &outputs2 {
+            if o1 == o2 {
+                found_match = true;
+                break;
+            }
+        }
+        if !found_match {
+            println!("right side could not match a output from left side o1: {:?}, o2 {:?}", outputs1, outputs2);
+            return false
+        }
+    }
+
+    if inputs1.len() == inputs2.len() {
+        for i2 in inputs2 {
+            let mut found_match = false;
+            for i1 in &inputs1 {
+                if i1 == i2 {
+                    found_match = true;
+                    break;
+                }
+            }
+            if !found_match {
+                println!("left side could not match a input from right side");
+                return false
+            }
+        }
+    } else {
+        println!("not equal length i1 {:?}, i2 {:?}", inputs1, inputs2);
+        return false
+    }
+
+    return true
 }

@@ -135,39 +135,9 @@ extern "C" {
         return f;
     }
 
-    dbm::fed_t dbm_fed_minus_fed(dbm::fed_t &fed1, dbm::fed_t &fed2) {
-        std::ofstream myfile;
-        myfile.open ("test.txt");
+    //dbm::fed_t dbm_fed_minus_fed(raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2, cindex_t dim) {
 
-        int dbm[9];
-        size_t dim = 3;
-        dbm_init(dbm,dim);
-
-        dbm::fed_t fed_test_1 = (*new dbm::fed_t(dim));
-
-        size_t dim1 = fed1.getDimension();
-        myfile<<"fed dim is: "<<dim1<<"\n";
-        myfile<<"fed 1 len before is: "<<fed1.size()<<"\n";
-        myfile<<"fed test len is: " << fed_test_1.size()<<"\n";
-
-        dbm::fed_t fed_out = fed1 - fed_test_1;
-
-        myfile<<"fed 2 len after is: "<<fed1.size();
-
-
-        //dbm::fed_t res = fed1 - fed2;
-        //dbm::fed_t * res_ptr = &res;
-        myfile.close();
-
-        return fed_out;
-        //dbm::fed_t * ptr = &res_test;
-
-        //fed_out = ptr;
-        //myfile<<"fed_out size:: " << fed_out->size()<<"\n";
-
-    }
-
-    dbm::fed_t dbm_fed_minus_fed_vec(cindex_t dim, raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2) {
+    void dbm_fed_minus_fed(raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2, cindex_t dim, dbm::fed_t * fed_out) {
         std::ofstream myfile;
         myfile.open ("test2.txt");
         myfile<<"fed dim is: "<<dim<<"\n";
@@ -176,31 +146,20 @@ extern "C" {
         for (int i = 0; i < len1; i++) {
             fed1.add(dbm1[i], dim);
         }
-        
+
         dbm::fed_t fed2 = (*new dbm::fed_t(dim));
         for (int i = 0; i < len2; i++) {
             fed2.add(dbm2[i], dim);
         }
 
-        size_t dim1 = fed1.getDimension();
-        myfile<<"fed1 dim is: "<< dim1<<"\n";
         myfile<<"fed 1 len before is: "<<fed1.size()<<"\n";
 
-        dbm::fed_t fed_out = fed1 - fed2;
+        dbm::fed_t res = fed1 - fed2;
+        myfile<<"fed_out len after is: "<<res.size();
 
-        myfile<<"fed_out len after is: "<<fed_out.size();
+        fed_out->add(res);
 
-
-        //dbm::fed_t res = fed1 - fed2;
-        //dbm::fed_t * res_ptr = &res;
         myfile.close();
-
-        return fed_out;
-        //dbm::fed_t * ptr = &res_test;
-
-        //fed_out = ptr;
-        //myfile<<"fed_out size:: " << fed_out->size()<<"\n";
-
     }
 
 

@@ -420,30 +420,18 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
     }
 }
 
-pub fn rs_dbm_fed_minus_fed(fed1 : &mut dbm_fed_t, fed2 : &mut dbm_fed_t) -> Vec<*const i32>{
+pub fn rs_dbm_fed_minus_fed(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec<*mut raw_t>, dim : u32) -> Vec<*const i32>{
     unsafe{
         //let mut res = dbm_fed_t::new(1);
         println!("FED PRINT::::");
-        let vec1 = rs_fed_to_vec(fed1);
-        let vec2 = rs_fed_to_vec(fed2);
-        let mut result = dbm_fed_minus_fed(fed1, fed2);
-        println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size_2(result));
+        println!("DIM IS MF: {:?}", dim);
+        let mut res = dbm_fed_t::new(dim);
+        dbm_fed_minus_fed(dbm_vec1.as_mut_ptr(), dbm_vec2.as_mut_ptr(), (dbm_vec1.len()) as u32, (dbm_vec2.len()) as u32, dim, &mut res);
+        println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
 
-        //let result = rs_fed_to_vec(&mut *res);
+        let result = rs_fed_to_vec(&mut res);
 
-        let fisk = vec![];
-        return fisk
-    }
-}
-
-pub fn rs_dbm_fed_minus_fed_using_vec(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec<*mut raw_t>, dim : u32) -> Vec<*const i32>{
-    unsafe {
-        println!("dim before:::: {:?}", dim);
-        let mut res = dbm_fed_minus_fed_vec(dim, dbm_vec1.as_mut_ptr(), dbm_vec2.as_mut_ptr(), (dbm_vec1.len()) as u32, (dbm_vec2.len()) as u32);
-        //println!("AHHHHHHHHHHHHHH DBM size: {:?}", dbm_get_fed_size_2(res));
-        //return rs_fed_to_vec(&mut res);
-        let fisk = vec![];
-        return fisk
+        return result
     }
 }
 

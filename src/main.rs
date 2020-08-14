@@ -26,9 +26,10 @@ pub fn main() {
         println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
         optimized_components.push(optimized_comp);
     }
-    let mut comp1 = optimized_components[0].clone();
-    let mut comp2 = optimized_components[1].clone();
-    let result = System::refine::check_refinement(&mut comp1, &mut comp2, system_declarations);
+    let mut m1s = vec![ optimized_components[0].clone()];
+    let mut m2s = vec![ optimized_components[1].clone()];
+
+    let result = Refiner::refine::check_refinement(m1s, m2s, system_declarations);
     println!("Refine result = {:?}", result);
 }
 
