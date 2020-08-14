@@ -1,0 +1,128 @@
+{
+  "name": "Test7",
+  "declarations": "clock y;",
+  "locations": [
+    {
+      "id": "L18",
+      "nickname": "",
+      "invariant": "",
+      "type": "INITIAL",
+      "urgency": "NORMAL",
+      "x": 220.0,
+      "y": 150.0,
+      "color": "8",
+      "nicknameX": 30.0,
+      "nicknameY": -10.0,
+      "invariantX": 30.0,
+      "invariantY": 10.0
+    },
+    {
+      "id": "L19",
+      "nickname": "",
+      "invariant": "",
+      "type": "NORMAL",
+      "urgency": "NORMAL",
+      "x": 220.0,
+      "y": 290.0,
+      "color": "8",
+      "nicknameX": 30.0,
+      "nicknameY": -10.0,
+      "invariantX": 30.0,
+      "invariantY": 10.0
+    }
+  ],
+  "edges": [
+    {
+      "sourceLocation": "L18",
+      "targetLocation": "L19",
+      "status": "OUTPUT",
+      "select": "",
+      "guard": "y \u003c\u003d 10",
+      "update": "",
+      "sync": "b",
+      "isLocked": false,
+      "nails": [
+        {
+          "x": 220.0,
+          "y": 200.0,
+          "propertyType": "GUARD",
+          "propertyX": 10.0,
+          "propertyY": -10.0
+        },
+        {
+          "x": 220.0,
+          "y": 230.0,
+          "propertyType": "SYNCHRONIZATION",
+          "propertyX": 10.0,
+          "propertyY": -10.0
+        }
+      ]
+    },
+    {
+      "sourceLocation": "L18",
+      "targetLocation": "L18",
+      "status": "OUTPUT",
+      "select": "",
+      "guard": "y \u003e 10",
+      "update": "",
+      "sync": "b",
+      "isLocked": false,
+      "nails": [
+        {
+          "x": 260.0,
+          "y": 130.0,
+          "propertyType": "GUARD",
+          "propertyX": -20.0,
+          "propertyY": -30.0
+        },
+        {
+          "x": 290.0,
+          "y": 120.0,
+          "propertyType": "SYNCHRONIZATION",
+          "propertyX": 10.0,
+          "propertyY": -10.0
+        },
+        {
+          "x": 270.0,
+          "y": 160.0,
+          "propertyType": "NONE",
+          "propertyX": 0.0,
+          "propertyY": 0.0
+        }
+      ]
+    },
+    {
+      "sourceLocation": "L19",
+      "targetLocation": "L19",
+      "status": "OUTPUT",
+      "select": "",
+      "guard": "",
+      "update": "",
+      "sync": "b",
+      "isLocked": false,
+      "nails": [
+        {
+          "x": 260.0,
+          "y": 280.0,
+          "propertyType": "SYNCHRONIZATION",
+          "propertyX": 10.0,
+          "propertyY": -10.0
+        },
+        {
+          "x": 260.0,
+          "y": 300.0,
+          "propertyType": "NONE",
+          "propertyX": 0.0,
+          "propertyY": 0.0
+        }
+      ]
+    }
+  ],
+  "description": "",
+  "x": 5.0,
+  "y": 5.0,
+  "width": 450.0,
+  "height": 600.0,
+  "color": "8",
+  "includeInPeriodicCheck": true
+}
