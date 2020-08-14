@@ -98,16 +98,19 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         result_federation_vec.push(fed);
                     }
                 } else {
+                    lib::rs_dbm_fed_minus_fed_using_vec(&mut full_federation_vec, &mut federation_vec.clone(), *dimension);
                     //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
-                    let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
+                    //let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
 
-                    lib::rs_fed_to_vec(&mut full_federation);
+                    //lib::rs_fed_to_vec(&mut full_federation);
 
                     let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
-                    lib::rs_fed_to_vec(&mut federation);
-                    let mut res_fed_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
+                    
+
+                    //lib::rs_fed_to_vec(&mut federation);
+                    //let mut res_fed_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
                     //let res_fed_vec = lib::rs_fed_to_vec(&mut result_federation);
-                    println!("res_fed_vec: {:?}", res_fed_vec);
+                    //println!("res_fed_vec: {:?}", res_fed_vec);
                 }
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {

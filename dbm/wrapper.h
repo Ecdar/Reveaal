@@ -70,6 +70,8 @@ extern "C" {
 
     dbm::fed_t dbm_fed_minus_fed(dbm::fed_t& fed1, dbm::fed_t& fed2);
 
+    dbm::fed_t dbm_fed_minus_fed_vec(cindex_t dim, raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2);
+
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j);
 
     /** Create a federation from vector of dbms
