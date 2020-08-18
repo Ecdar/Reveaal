@@ -76,11 +76,12 @@ impl Component {
 
         return match synch_type {
             SyncType::Input => {
-                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string() + "?").as_str())).collect();
+                
+                let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string()).as_str())).collect();
                 result
             },
             SyncType::Output => {
-                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string() + "!").as_str())).collect();
+                let result: Vec<&Edge> = self.get_output_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string()).as_str())).collect();
                 result
             },
         }
@@ -109,7 +110,7 @@ impl Component {
     }
 
     pub fn make_input_enabled(self) {
-        let dimension = self.get_declarations().get_dimension();
+        let mut dimension = self.get_declarations().get_dimension();
         let len = dimension * dimension;
         for location in self.get_locations(){
             let mut zone_arr = [0;1000];
@@ -118,8 +119,8 @@ impl Component {
 
             if let Some(invariant) = location.get_invariant(){
                 let mut state = State{
+                    declarations: self.get_declarations().clone(),
                     location: location,
-                    declarations: self.get_declarations(),
                 };
     
                 constraint_applyer::apply_constraints_to_state(invariant,&mut state ,zone, dimension);
@@ -268,7 +269,7 @@ impl State<'_> {
     pub fn get_declarations(&self) -> & Declarations {
         &self.declarations
     }
-    pub fn get_mut_declarations(&mut self) -> & Declarations {
+    pub fn get_mut_declarations(&mut self) -> &mut Declarations {
         &mut self.declarations
     }
     pub fn get_location(&self) -> & Location {
@@ -330,7 +331,7 @@ where
     let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
     let mut ints: HashMap<String,  i32> = HashMap::new();
     let mut clocks : HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 0;
+    let mut counter: u32 = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string == "" {
@@ -377,7 +378,7 @@ where
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
-        dimension : dim,
+        dimension : dim +1,
     })
 }
 

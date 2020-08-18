@@ -81,6 +81,7 @@ extern "C" {
     void dbm_vec_to_fed( raw_t * dbm[], cindex_t len, cindex_t dim, dbm::fed_t * fed_out);
     int dbm_get_fed_size_2(dbm::fed_t fed);
 
+    int dbm_get_fed_dim(dbm::fed_t * fed);
 
     int dbm_get_fed_size(dbm::fed_t * fed);
 

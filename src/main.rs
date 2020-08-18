@@ -11,6 +11,7 @@ use ModelObjects::component;
 use ModelObjects::system_declarations;
 use DataReader::json_reader;
 use System::input_enabler;
+use System::refine;
 
 #[macro_use]
 extern crate pest_derive;
@@ -18,18 +19,21 @@ extern crate pest_derive;
 pub fn main() {
     let (mut components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
+    let mut i = 0;
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();
      
         println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
         input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
         println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
+        println!("-------------------");
         optimized_components.push(optimized_comp);
+        i += 1
     }
     let mut m1s = vec![ optimized_components[0].clone()];
     let mut m2s = vec![ optimized_components[1].clone()];
 
-    let result = Refiner::refine::check_refinement(m1s, m2s, system_declarations);
+    let result = refine::check_refinement(m1s, m2s, system_declarations);
     println!("Refine result = {:?}", result);
 }
 

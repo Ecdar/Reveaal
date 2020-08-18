@@ -92,11 +92,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
         let init_inv1 = state.get_location().get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
             let dim = initial_pair.get_dimensions();
-            if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv1, & state, initial_pair.get_zone(), &dim) {
-                val
-            } else {
-                panic!("unexpected return type when attempting to apply constraints")
-            }
+            apply_constraints_to_state(&inv1, & state, initial_pair.get_zone(), &dim)
         } else {
             true
         };   
@@ -109,11 +105,7 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
         let init_inv2 = state.get_location().get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
             let dim = initial_pair.get_dimensions();
-            if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv2, & state, initial_pair.get_zone(), &dim) {
-                val
-            } else {
-                panic!("unexpected return type when attempting to apply constraints")
-            }
+            apply_constraints_to_state(&inv2, & state, initial_pair.get_zone(), &dim)
         } else {
             true
         };     
@@ -151,6 +143,9 @@ fn refines<'a>(machines1 : Vec<&'a component::Component>, machines2 : Vec<&'a co
                 add_input_states(next_pair.get_states2().len(), &mut new_sp, &machines1,&next_pair, &input, true);
                 waiting_list.push(new_sp);
             }
+
+            // per
+            //sp {loc1, loc2 - zone } sp { - zone}
             passed_list.push(next_pair);
         } else {
             continue;
@@ -311,15 +306,7 @@ fn get_state_if_reachable<'a>(
         // println!("guard: {:?}", guard1);
         // println!("clocks in state: {:?}", curr_state.get_declarations().get_clocks());
         let success1 = apply_constraints_to_state(guard1, curr_state, dbm, &dimensions);
-        if let BoolExpression::Bool(val1) = success1 {
-            if val1 {
-                true
-            } else {
-                false
-            }
-        } else {
-            panic!("unexpected return type from applying constraints")
-        }
+        success1
     } else {
         true
     };
@@ -336,11 +323,7 @@ fn get_state_if_reachable<'a>(
     let invariant = new_state.get_location().get_invariant();
 
     let inv_success = if let Some(inv1) = invariant {
-        if let BoolExpression::Bool(val) = apply_constraints_to_state(&inv1, &new_state, dbm, &dimensions) {
-            val
-        } else {
-            panic!("unexpected return type from applying constraints")
-        }
+        apply_constraints_to_state(&inv1, &new_state, dbm, &dimensions)
     } else {
         true
     };

@@ -81,7 +81,10 @@ extern "C" {
         return fed->size();
     }
     int dbm_get_fed_size_2(dbm::fed_t fed){
-    return fed.size();
+        return fed.size();
+    }
+    int dbm_get_fed_dim(dbm::fed_t * fed) {
+        return fed->getDimension();
     }
 
     int dbm_get_dbm_dimension(dbm::fed_t * fed){

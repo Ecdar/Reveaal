@@ -423,11 +423,11 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
 pub fn rs_dbm_fed_minus_fed(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec<*mut raw_t>, dim : u32) -> Vec<*const i32>{
     unsafe{
         //let mut res = dbm_fed_t::new(1);
-        println!("FED PRINT::::");
-        println!("DIM IS MF: {:?}", dim);
+        //println!("FED PRINT::::");
         let mut res = dbm_fed_t::new(dim);
         dbm_fed_minus_fed(dbm_vec1.as_mut_ptr(), dbm_vec2.as_mut_ptr(), (dbm_vec1.len()) as u32, (dbm_vec2.len()) as u32, dim, &mut res);
-        println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
+        //println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
+        //println!("Dimension of resulting fed is: {:?}", dbm_get_fed_dim(&mut res));
 
         let result = rs_fed_to_vec(&mut res);
 
@@ -480,7 +480,7 @@ pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
             result.push(new_const_ptr);
         }
         for dp in debug_print_vec {
-            println!("debug prtint dbm: {:?}", dp);
+            //println!("debug prtint dbm: {:?}", dp);
         }
 
         //println!("Result  is: {:?}", result);

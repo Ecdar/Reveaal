@@ -122,7 +122,7 @@
       "targetLocation": "L3",
       "status": "INPUT",
       "select": "",
-      "guard": "x \u003e 10 \u0026\u0026 y \u003e 10",
+      "guard": "x \u003e 10",
       "update": "",
       "sync": "i1?",
       "isLocked": false,
@@ -132,7 +132,7 @@
           "y": 200.0,
           "propertyType": "GUARD",
           "propertyX": 10.0,
-          "propertyY": -10.0
+          "propertyY": -30.0
         },
         {
           "x": 40.0,
@@ -155,7 +155,7 @@
       "targetLocation": "L3",
       "status": "INPUT",
       "select": "",
-      "guard": "x \u003c 3 \u0026\u0026 y \u003c 3",
+      "guard": "y \u003c 3",
       "update": "",
       "sync": "i2?",
       "isLocked": false,
