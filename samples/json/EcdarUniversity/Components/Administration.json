@@ -87,6 +87,32 @@
       ]
     },
     {
+      "sourceLocation": "L0",
+      "targetLocation": "L3",
+      "status": "INPUT",
+      "select": "",
+      "guard": "",
+      "update": "z\u003d0",
+      "sync": "pub",
+      "isLocked": false,
+      "nails": [
+        {
+          "x": 180.0,
+          "y": 100.0,
+          "propertyType": "SYNCHRONIZATION",
+          "propertyX": -20.0,
+          "propertyY": -30.0
+        },
+        {
+          "x": 230.0,
+          "y": 100.0,
+          "propertyType": "UPDATE",
+          "propertyX": -20.0,
+          "propertyY": -30.0
+        }
+      ]
+    },
+    {
       "sourceLocation": "L1",
       "targetLocation": "L2",
       "status": "OUTPUT",

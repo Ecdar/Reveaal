@@ -27,6 +27,12 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
 
             lib::rs_dbm_init(&mut zone[0..len as usize], *dimension);
 
+            // println!("ZONE1 init:");
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 2)));
+        
+
             //println!("zone before: {:?}", &mut zone[0..len as usize]);
 
             if let Some(invariant) = location.get_invariant(){ 
@@ -52,7 +58,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 //println!("FOR INPUT: {:?}", input);
                 //println!("LEN::: {:?} in location {:?}", input_edges.len(), location.get_id());
                 for edge in input_edges {
-
+                    let mut has_inv = false;
                     let mut guard_zone = zone.clone();
                     //println!("guard zone before: {:?}", &mut guard_zone[0..len as usize]);
 
@@ -63,15 +69,20 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                     } else {
                         false
                     };
-                    //println!("guard zone after guard: {:?}", &mut guard_zone[0..len as usize]);
 
-                    let has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
-                        println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
-                        let res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
-                        res
+                    if let Some(update) = edge.get_update() {
+                        println!("There was an update: {:?}", update);
                     } else {
-                        false
+                        println!("No update so looking for inv");
+                        has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
+                            println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
+                            let res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                            res
+                        } else {
+                            false
+                        };
                     };
+
                     println!("ZONE2:");
                     println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 2)));
                     println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 2)));

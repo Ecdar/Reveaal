@@ -466,7 +466,7 @@ fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
         let res = s.replace("?", "");
         return Ok(res)
     } else {
-        panic!("could not determine if channel name was input or output")
+        return Ok(s)
     }
 }
 
