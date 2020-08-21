@@ -31,10 +31,89 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
+    'Outer: while !waiting_list.is_empty() {
+        let mut next_pair = waiting_list.pop().unwrap();
+
+        if is_new_state( &mut next_pair, &mut passed_list) {
+            for output in &outputs1 {
+                let mut new_sp : StatePair = create_state_pair(vec![], vec![]);
+                new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
+                let mut succes = false;
+                add_output_states_new(next_pair.get_states1().len(), &mut new_sp, &sys1, &next_pair, &output, true, succes);
+                if !succes {
+                    continue;
+                }
+
+                add_output_states_new(next_pair.get_states1().len(), &mut new_sp, &sys1, &next_pair, &output, false, succes);
+
+                waiting_list.push(new_sp);
+            }
+
+            //(a!, a?, a?) <= (a?, a?)
+            for input in &inputs2 {
+                let mut new_sp = create_state_pair(vec![], vec![]);
+                new_sp.set_dbm(next_pair.get_dbm_clone());
+                new_sp.set_dimensions(next_pair.get_dimensions());
+
+                add_input_states_new(next_pair.get_states2().len(), &mut new_sp, &sys2,&next_pair, &input, false);
+                add_input_states_new(next_pair.get_states2().len(), &mut new_sp, &sys2,&next_pair, &input, true);
+                waiting_list.push(new_sp);
+            }
+
+            // per
+            //sp {loc1, loc2 - zone } sp { - zone}
+            passed_list.push(next_pair);
+        } else {
+            continue;
+        }
+    }
+
     return true
 }
 
-//fn get_init_states(sys_rep: &SystemRepresentation) -> 
+
+fn add_output_states_new<'a>(
+    loop_length : usize,
+    new_sp : & mut component::StatePair<'a>,
+    sys_rep: &SystemRepresentation,
+    next_pair : & component::StatePair<'a>,
+    output : &String,
+    is_state1 : bool,
+    succes : bool,
+) {
+    match sys_rep {
+        SystemRepresentation::Composition(leftside, rightside) => {
+            //Should reflect that just one of them has to satisfy 
+            add_output_states_new(loop_length, new_sp, leftside, next_pair, output, is_state1, succes);
+            add_output_states_new(loop_length, new_sp, rightside, next_pair, output, is_state1, succes);            
+        },
+        SystemRepresentation::Conjunction(leftside, rightside) => {
+            //Should reflect that both sides has to satisfy
+            panic!("Conjuction not let implemented")
+        },
+        SystemRepresentation::Parentheses(rep) => {
+            add_output_states_new(loop_length, new_sp, rep, next_pair, output, is_state1, succes);            
+        },
+        SystemRepresentation::Component(comp) => {
+            //Has to progress every single component
+            //Also som stuff with fed minus fed
+            //Maybe needs a new representation of states/statepairs
+        }
+    }
+}
+
+fn add_input_states_new<'a>(
+    loop_length : usize,
+    new_sp : & mut component::StatePair<'a>,
+    sys_rep: &SystemRepresentation,
+    next_pair : & component::StatePair<'a>,
+    output : &String,
+    is_state1 : bool
+) -> bool {
+    return true
+}
+
 
 fn get_actions<'a>(sys_rep: &'a SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations, is_input: bool, actions: &mut Vec<String>, states: &mut Vec<State<'a>>) {
     match sys_rep {
