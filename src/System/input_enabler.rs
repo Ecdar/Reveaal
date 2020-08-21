@@ -2,7 +2,7 @@ use super::super::ModelObjects::component;
 use super::super::DBMLib::lib;
 use super::super::EdgeEval::constraint_applyer;
 use super::super::ModelObjects::system_declarations;
-use super::super::ModelObjects::expression_representation;
+use super::super::ModelObjects::representations;
 use std::collections::HashMap;
 use std::ptr;
 
@@ -145,8 +145,8 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
 
 }
 
-fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<String, u32>) -> Option<expression_representation::BoolExpression> {
-    let mut guards : Vec<expression_representation::BoolExpression> = vec![];
+fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<String, u32>) -> Option<representations::BoolExpression> {
+    let mut guards : Vec<representations::BoolExpression> = vec![];
 
     //Getting complete dbm:
     println!("RESULT ZONE:");
@@ -164,14 +164,14 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
         if raw_lower != 1 {
             if lib::rs_raw_is_strict(raw_lower) {
                 println!("RAW_LOWER VAL: {:?} BOUND VAL : {:?}", raw_lower, lib::rs_raw_to_bound(raw_lower));
-                guards.push(expression_representation::BoolExpression::LessT(
-                    Box::new(expression_representation::BoolExpression::Int((-1) * lib::rs_raw_to_bound(raw_lower))),
-                    Box::new(expression_representation::BoolExpression::Clock(*index))
+                guards.push(representations::BoolExpression::LessT(
+                    Box::new(representations::BoolExpression::Int((-1) * lib::rs_raw_to_bound(raw_lower))),
+                    Box::new(representations::BoolExpression::Clock(*index))
                 ));
             } else {
-                guards.push(expression_representation::BoolExpression::LessEQ(                    
-                    Box::new(expression_representation::BoolExpression::Int((-1) * lib::rs_raw_to_bound(raw_lower))),
-                    Box::new(expression_representation::BoolExpression::Clock(*index))
+                guards.push(representations::BoolExpression::LessEQ(                    
+                    Box::new(representations::BoolExpression::Int((-1) * lib::rs_raw_to_bound(raw_lower))),
+                    Box::new(representations::BoolExpression::Clock(*index))
                 ));
             }
         }
@@ -180,14 +180,14 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
             println!("RAW_UPPER VAL: {:?} BOUND VAL : {:?}", raw_upper, lib::rs_raw_to_bound(raw_upper));
             if lib::rs_raw_is_strict(raw_upper) {
                 println!("is it strict?");
-                guards.push(expression_representation::BoolExpression::LessT(
-                    Box::new(expression_representation::BoolExpression::Clock(*index)),
-                    Box::new(expression_representation::BoolExpression::Int(lib::rs_raw_to_bound(raw_upper)))
+                guards.push(representations::BoolExpression::LessT(
+                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::Int(lib::rs_raw_to_bound(raw_upper)))
                 ));
             } else {
-                guards.push(expression_representation::BoolExpression::LessEQ(
-                    Box::new(expression_representation::BoolExpression::Clock(*index)),
-                    Box::new(expression_representation::BoolExpression::Int(lib::rs_raw_to_bound(raw_upper)))
+                guards.push(representations::BoolExpression::LessEQ(
+                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::Int(lib::rs_raw_to_bound(raw_upper)))
                 ));
             }
 
@@ -196,21 +196,21 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
 
     let res = build_guard_from_zone_helper(&mut guards);
     match res {
-        expression_representation:: BoolExpression::Bool(false) => { return None },
+        representations:: BoolExpression::Bool(false) => { return None },
         _ => {return Some(res) }
     }  
 }
 
-fn build_guard_from_zone_helper (guards: &mut Vec<expression_representation::BoolExpression>) -> expression_representation::BoolExpression {
+fn build_guard_from_zone_helper (guards: &mut Vec<representations::BoolExpression>) -> representations::BoolExpression {
     let num_guards = guards.len();
 
     if let Some(guard) = guards.pop() {
         if num_guards == 1{
             return guard;
         } else {
-            return expression_representation::BoolExpression::AndOp(Box::new(guard), Box::new(build_guard_from_zone_helper(guards)))
+            return representations::BoolExpression::AndOp(Box::new(guard), Box::new(build_guard_from_zone_helper(guards)))
         }
     } else {
-        return expression_representation::BoolExpression::Bool(false)
+        return representations::BoolExpression::Bool(false)
     }
 }

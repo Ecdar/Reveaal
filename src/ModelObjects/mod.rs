@@ -1,6 +1,6 @@
 pub mod queries;
 pub mod component;
-pub mod expression_representation;
+pub mod representations;
 pub mod parse_edge;
 pub mod parse_queries;
 pub mod parse_invariant;

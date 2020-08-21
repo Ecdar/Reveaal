@@ -1,4 +1,6 @@
 use serde::Deserialize;
+use super::component::Component;
+use super::component::State;
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum BoolExpression {
@@ -42,3 +44,17 @@ pub enum QueryExpression {
     Bool(bool),
     Int(i32),
 }
+
+#[derive(Debug, Clone)] 
+pub enum SystemRepresentation {
+    Composition(Box<SystemRepresentation>, Box<SystemRepresentation>),
+    Conjunction(Box<SystemRepresentation>, Box<SystemRepresentation>),
+    Parentheses(Box<SystemRepresentation>),
+    Component(Component)
+}
+
+// pub enum SystemRepresentation<'systemlifetime> {
+//     Composition(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
+//     Conjunction(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
+//     State(State<'systemlifetime>)
+// }

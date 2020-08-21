@@ -1,4 +1,4 @@
-use crate::ModelObjects::expression_representation::BoolExpression;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
 use super::super::ModelObjects::parse_edge;
 use crate::DBMLib::lib::rs_dbm_constrain_var_to_val;

@@ -1,6 +1,6 @@
-use crate::ModelObjects::expression_representation::BoolExpression;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
-use crate::ModelObjects::expression_representation::BoolExpression::Bool;
+use crate::ModelObjects::representations::BoolExpression::Bool;
 use super::super::DBMLib::lib;
 use pest::state;
 use crate::DBMLib::lib::rs_dbm_satisfies_i_EQUAL_j_bounds;

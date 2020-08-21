@@ -1,7 +1,7 @@
 extern crate pest;
 use pest::error::Error;
 use pest::Parser;
-use super::super::ModelObjects::expression_representation::QueryExpression;
+use super::super::ModelObjects::representations::QueryExpression;
 use serde::export::Option::Some;
 
 #[derive(Parser)]

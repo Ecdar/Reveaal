@@ -1,6 +1,7 @@
 use serde::{Deserialize, Deserializer,Serialize};
 use std::collections::HashMap;
-use super::expression_representation;
+use std::num;
+use super::representations;
 use super::parse_edge;
 use crate::DBMLib::lib;
 use super::parse_invariant;
@@ -143,7 +144,7 @@ pub enum LocationType {
 pub struct Location {
     pub id: String,
     #[serde(deserialize_with = "decode_invariant")]
-    pub invariant: Option<expression_representation::BoolExpression>,
+    pub invariant: Option<representations::BoolExpression>,
     #[serde(deserialize_with = "decode_location_type", alias = "type")]
     pub location_type: LocationType,
     pub urgency: String,
@@ -153,7 +154,7 @@ impl Location {
     pub fn get_id(&self) -> &String {
         &self.id
     }
-    pub fn get_invariant(&self) -> &Option<expression_representation::BoolExpression> {
+    pub fn get_invariant(&self) -> &Option<representations::BoolExpression> {
         &self.invariant
     }
     pub fn get_location_type(&self) -> &LocationType {
@@ -181,7 +182,7 @@ pub struct Edge {
     pub sync_type: SyncType,
 
     #[serde(deserialize_with = "decode_guard")]
-    pub guard: Option<expression_representation::BoolExpression>,
+    pub guard: Option<representations::BoolExpression>,
     #[serde(deserialize_with = "decode_update")]
     pub update: Option<Vec<parse_edge::Update>>,
     #[serde(deserialize_with = "decode_sync")]
@@ -199,7 +200,7 @@ impl Edge {
     pub fn get_sync_type(&self) -> &SyncType {
         &self.sync_type
     }
-    pub fn get_guard(&self) -> &Option<expression_representation::BoolExpression> {
+    pub fn get_guard(&self) -> &Option<representations::BoolExpression> {
         &self.guard
     }
     pub fn get_update(&self) -> &Option<Vec<parse_edge::Update>> {
@@ -257,6 +258,17 @@ impl StatePair<'_> {
         }
         self.dimensions = dimensions;
         lib::rs_dbm_init(self.get_zone(), dimensions);
+    }
+
+    pub fn print_dbm(&mut self) {
+        let dim_i32 = self.get_dimensions() as i32;
+        let dim_sqr = (dim_i32 as f32).sqrt() as u32;
+        println!("ZONE:");
+        for i in 0..dim_sqr{
+            for j in 0..dim_sqr {
+                println!("{:?}", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(self.get_zone(), dim_sqr, i, j)));
+            }
+        }
     }
 }
 #[derive(Clone, Debug)]
@@ -384,7 +396,7 @@ where
 
 
 //Function used for deserializing guards
-fn decode_guard<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
+fn decode_guard<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -425,7 +437,7 @@ where
 
 
 //Function used for deserializing invariants
-fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
+fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {

@@ -4,8 +4,166 @@ use crate::ModelObjects::component::{State, StatePair, Edge, Location, Component
 use super::super::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::updater;
-use crate::ModelObjects::expression_representation::BoolExpression;
+use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::SystemRepresentation;
 
+//------------------ NEW IMPL -----------------
+
+pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresentation, sys_decls : system_declarations::SystemDeclarations) -> bool{
+    let mut inputs2 : Vec<String> = vec![];
+    let mut outputs1 : Vec<String> = vec![];
+    let mut passed_list : Vec<component::StatePair> = vec![];
+    let mut waiting_list : Vec<component::StatePair> = vec![];
+    let mut initial_states_1 : Vec<State> = vec![];
+    let mut initial_states_2 : Vec<State> = vec![];
+
+    get_actions(&sys2, &sys_decls, true, &mut inputs2, &mut initial_states_2);
+    get_actions(&sys1, &sys_decls, false, &mut outputs1, &mut initial_states_1);
+
+    //Firstly we check the preconditions - Commented out to test other stuff
+    //if !check_preconditions_new(&sys1, &sys2, &outputs1, &inputs2, &sys_decls) {
+    //    println!("preconditions failed - refinement false");
+    //    return false
+    //}
+
+    let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
+    initial_pair.init_dbm();
+    prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
+    waiting_list.push(initial_pair);
+
+    return true
+}
+
+//fn get_init_states(sys_rep: &SystemRepresentation) -> 
+
+fn get_actions<'a>(sys_rep: &'a SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations, is_input: bool, actions: &mut Vec<String>, states: &mut Vec<State<'a>>) {
+    match sys_rep {
+        SystemRepresentation::Composition(leftside, rightside) => {
+            get_actions(&**leftside, sys_decls, is_input, actions, states);
+            get_actions(&**rightside, sys_decls, is_input, actions, states);
+        },
+        SystemRepresentation::Conjunction(leftside, rightside) => {
+            get_actions(&**leftside, sys_decls, is_input, actions, states);
+            get_actions(&**rightside, sys_decls, is_input, actions, states);
+        },
+        SystemRepresentation::Parentheses(rep) => {
+            get_actions(&**rep, sys_decls, is_input, actions, states);
+        },
+        SystemRepresentation::Component(comp) => {
+            if is_input {
+                if let Some(inputs_res) = sys_decls.get_declarations().get_input_actions().get(comp.get_name()){
+                    actions.append( &mut inputs_res.clone());
+                } 
+            } else {
+                if let Some(outputs_res) = sys_decls.get_declarations().get_output_actions().get(comp.get_name()){
+                    actions.append( &mut outputs_res.clone());
+                }   
+            }
+            let init_loc = comp.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
+            if let Some(init_loc) = init_loc {
+                let mut state = create_state(init_loc, comp.get_declarations().clone());
+                states.push(state);
+            }
+        }
+    }
+}
+
+fn prepare_init_state(initial_pair: &mut StatePair, initial_states_1: Vec<State>, initial_states_2: Vec<State>) {
+    for state in initial_states_1 {
+        let init_inv1 = state.get_location().get_invariant();
+        let init_inv1_success = if let Some(inv1) = init_inv1 {
+            let dim = initial_pair.get_dimensions();
+            apply_constraints_to_state(&inv1, & state, initial_pair.get_zone(), &dim)
+        } else {
+            true
+        };   
+        if !init_inv1_success {
+            panic!("Was unable to apply invariants to initial state")
+        }      
+    }
+
+    for state in initial_states_2 {
+        let init_inv2 = state.get_location().get_invariant();
+        let init_inv2_success = if let Some(inv2) = init_inv2 {
+            let dim = initial_pair.get_dimensions();
+            apply_constraints_to_state(&inv2, & state, initial_pair.get_zone(), &dim)
+        } else {
+            true
+        };     
+        if !init_inv2_success {
+            panic!("Was unable to apply invariants to initial state")
+        } 
+    }
+}
+
+fn check_preconditions_new(sys1 : &SystemRepresentation, sys2 : &SystemRepresentation, outputs1 : &Vec<String>, inputs2 : &Vec<String>, sys_decls : &system_declarations::SystemDeclarations) -> bool {
+    let mut outputs2 : Vec<String> = vec![];
+    let mut inputs1 :Vec<String> = vec![];
+    let mut disposable = vec![]; //Dispoasable vector needed to be parsed to get_actions
+
+    get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
+    get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
+    drop(disposable); //Dropped from memory afterwards
+
+    if outputs1.len() > 0 {
+        for j in 0..outputs1.len() - 1 {
+            for q in (j + 1)..outputs1.len() {
+                if outputs1[j] == outputs1[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
+            }
+        }
+    }
+
+    if outputs2.len() > 0 {
+        for j in 0..outputs2.len() - 1 {
+            for q in (j + 1)..outputs2.len() {
+                if outputs2[j] == outputs2[q] {
+                    println!("output duplicate found on left side");
+                    return false
+                }
+            }
+        }
+    }
+
+    for o1 in outputs1 {
+        let mut found_match = false;
+        for o2 in &outputs2 {
+            if o1 == o2 {
+                found_match = true;
+                break;
+            }
+        }
+        if !found_match {
+            println!("right side could not match a output from left side o1: {:?}, o2 {:?}", outputs1, outputs2);
+            return false
+        }
+    }
+
+    if inputs1.len() == inputs2.len() {
+        for i2 in inputs2 {
+            let mut found_match = false;
+            for i1 in &inputs1 {
+                if i1 == i2 {
+                    found_match = true;
+                    break;
+                }
+            }
+            if !found_match {
+                println!("left side could not match a input from right side");
+                return false
+            }
+        }
+    } else {
+        println!("not equal length i1 {:?}, i2 {:?}", inputs1, inputs2);
+        return false
+    }
+
+    return true
+}
+
+//------------------------OLD IMPL---------------------------
 
 pub fn check_refinement(mut machines1: Vec< component::Component>, mut machines2 : Vec< component::Component>, sys_decls : system_declarations::SystemDeclarations) -> bool {
     let mut clock_counter: u32 = 1;
@@ -13,7 +171,6 @@ pub fn check_refinement(mut machines1: Vec< component::Component>, mut machines2
     let mut m2 : Vec<& component::Component> = vec![];
 
     for comp in &mut machines1 {
-
         comp.get_mut_declaration().update_clock_indices(clock_counter);
         m1.push(&*comp);
         clock_counter += comp.get_declarations().get_clocks().keys().len() as u32;
