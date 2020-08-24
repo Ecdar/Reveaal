@@ -53,6 +53,13 @@ pub enum SystemRepresentation {
     Component(Component)
 }
 
+pub enum StateRep<'a> {
+    Composition(Box<SystemRepresentation>, Box<SystemRepresentation>),
+    Conjunction(Box<SystemRepresentation>, Box<SystemRepresentation>),
+    Parentheses(Box<SystemRepresentation>),
+    Component(State<'a>)
+}
+
 // pub enum SystemRepresentation<'systemlifetime> {
 //     Composition(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
 //     Conjunction(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),

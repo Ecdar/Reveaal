@@ -43,6 +43,9 @@ impl Component {
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
     }
+    pub fn get_mut_edges(&mut self) -> &mut Vec<Edge> {
+        &mut self.edges
+    }
     pub fn add_edge(&mut self, edge: Edge) {
         self.edges.push(edge);
     }
@@ -110,26 +113,6 @@ impl Component {
         return self
     }
 
-    pub fn make_input_enabled(self) {
-        let mut dimension = self.get_declarations().get_dimension();
-        let len = dimension * dimension;
-        for location in self.get_locations(){
-            let mut zone_arr = [0;1000];
-            let zone : &mut[i32] = &mut zone_arr[0..len as usize];
-            lib::rs_dbm_init(zone, *dimension);
-
-            if let Some(invariant) = location.get_invariant(){
-                let mut state = State{
-                    declarations: self.get_declarations().clone(),
-                    location: location,
-                };
-    
-                constraint_applyer::apply_constraints_to_state(invariant,&mut state ,zone, dimension);
-            }
-
-
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
@@ -219,13 +202,19 @@ pub struct StatePair<'a> {
 
 }
 
-impl StatePair<'_> {
+impl <'b> StatePair<'b> {
     pub fn get_states1(&self) -> &Vec<State>{
         &self.states1
     }
 
     pub fn get_states2(&self) -> &Vec<State>{
         &self.states2
+    }
+    pub fn get_mut_states1(&mut self) -> &mut Vec<State<'b>> {
+        &mut self.states1
+    }
+    pub fn get_mut_states2(&mut self) -> &mut Vec<State<'b>> {
+        &mut self.states2
     }
     pub fn get_dimensions(&self) -> u32 {
         self.dimensions.clone()
