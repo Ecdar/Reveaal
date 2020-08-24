@@ -252,6 +252,9 @@ fn build_state_pair(
             true
         };
     });
+
+    let mut invarent_test = new_sp_zone.clone();
+
     let mut inv_success2 = true;
     index2.with(|thread_index| {
         let i = thread_index.get();
@@ -263,6 +266,14 @@ fn build_state_pair(
         };
     });
 
+    let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
+
+    if dbm_test.len() < 1 {
+        return false
+    }
+
+    //Extrapolate max bounds
+    //Check all other comps for potential syncs
 
     new_sp.set_dbm(new_sp_zone);
 
