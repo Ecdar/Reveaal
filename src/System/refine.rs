@@ -272,7 +272,9 @@ fn build_state_pair(
         return false
     }
 
-    //Extrapolate max bounds
+    //cant figure out how/what the maxbounds should be (maybe empty array?)
+    let max_bounds = [0];
+    lib::rs_dbm_extrapolateMaxBounds(&mut new_sp_zone, dim, max_bounds.as_ptr());
     //Check all other comps for potential syncs
 
     new_sp.set_dbm(new_sp_zone);

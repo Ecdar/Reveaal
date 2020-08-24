@@ -442,6 +442,12 @@ pub fn rs_dbm_minus_dbm(dbm1: &mut[i32], dbm2: &mut [i32], dim: u32) -> Vec<*con
     }
 }
 
+pub fn rs_dbm_extrapolateMaxBounds(dbm1 : &mut[i32], dim : u32, maxbounds : *const i32) {
+    unsafe {
+        dbm_extrapolateMaxBounds(dbm1.as_mut_ptr(), dim,maxbounds)
+    }    
+}
+
 pub fn rs_dbm_get_constraint(dbm : &mut[i32], dimension : u32, var_index_i: u32, var_index_j : u32) -> raw_t {
     unsafe {
         return dbm_get_value(dbm.as_mut_ptr(),dimension,var_index_i,var_index_j);
