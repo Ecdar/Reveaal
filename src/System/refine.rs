@@ -36,7 +36,7 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
     waiting_list.push(initial_pair);
 
     'Outer: while !waiting_list.is_empty() {
-        let mut curr_pair = waiting_list.pop().unwrap();
+        let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
 
@@ -65,7 +65,7 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
 
         // per
         //sp {loc1, loc2 - zone } sp { - zone}
-        passed_list.push(curr_pair);
+        passed_list.push(curr_pair.clone());
     }
 
     return true
@@ -76,7 +76,7 @@ fn add_output_states_new<'a>(
     loop_length : usize,
     sys1: &SystemRepresentation,
     sys2: &SystemRepresentation,
-    curr_pair : &'a StatePair,
+    curr_pair : & StatePair<'a>,
     output : &String,
     waiting_list : &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
@@ -133,7 +133,7 @@ fn add_output_states_new<'a>(
 fn create_new_state_pairs<'a>(
     transtions1: &Vec<&Edge>, 
     transitions2: &Vec<&Edge>, 
-    curr_pair: &'a StatePair, 
+    curr_pair: &StatePair<'a>, 
     waiting_list: &mut Vec<StatePair<'a>>, 
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &SystemRepresentation, 
@@ -183,14 +183,14 @@ fn create_new_state_pairs<'a>(
 fn build_state_pair<'a>(
     edge1 : &component::Edge, 
     edge2 : &component::Edge, 
-    curr_pair: &'a StatePair, 
+    curr_pair: & StatePair<'a>, 
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &SystemRepresentation,
     sys2: &SystemRepresentation,
     output: &String,
 ) -> bool {
-    let mut new_sp : StatePair = create_state_pair(curr_pair.get_states1().clone(), curr_pair.get_states2().clone());
+    let mut new_sp : StatePair = create_state_pair(curr_pair.states1.clone(), curr_pair.states2.clone());
     let mut new_sp_zone = curr_pair.get_dbm_clone();
     new_sp.set_dimensions(curr_pair.get_dimensions());
     let dim = new_sp.get_dimensions();
@@ -210,6 +210,20 @@ fn build_state_pair<'a>(
     let inv_success1 = apply_invariant(&new_sp, &mut new_sp_zone, &dim, true);
     let mut invarent_test = new_sp_zone.clone();
     let inv_success2 = apply_invariant(&new_sp, &mut new_sp_zone, &dim, false);
+
+    INDEX1.with(|thread_index| {
+        let i = thread_index.get();
+        let new_loc_name = edge1.get_source_location();
+      //  new_sp.get_mut_states1()[i].location = 
+        //Also update declarations on states when variables are added to the project
+    });
+
+    INDEX2.with(|thread_index| {
+        let i = thread_index.get();
+        let new_loc_name = edge2.get_source_location();
+      //  new_sp.get_mut_states2()[i].location = 
+        //Also update declarations on states when variables are added to the project
+    });
 
     if !inv_success1 || !inv_success2 {
         return false
@@ -238,7 +252,7 @@ fn build_state_pair<'a>(
     new_sp.set_dbm(new_sp_zone);
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
-        waiting_list.push(new_sp);
+        waiting_list.push(new_sp.clone());
     }
 
     return false
@@ -261,26 +275,27 @@ fn apply_syncs_to_comps(sys: &SystemRepresentation, new_sp: &mut StatePair ,zone
         },
         SystemRepresentation::Component(comp) => {
             let mut next_edges = vec![];
+            let mut states_vec = vec![];
             let mut should_break = false; 
             if is_state1 {
+                states_vec = new_sp.get_mut_states1();
                 INDEX1.with(|thread_index| {
-                    let i = thread_index.get();
+                    let i = thread_index.get();                    
                     if *curr_index != i {
-                        next_edges = comp.get_next_edges(new_sp.get_states1()[*curr_index].get_location(), output, component::SyncType::Input);
+                        next_edges = comp.get_next_edges(states_vec[*curr_index].get_location(), output, component::SyncType::Input);
                     } else {
                         should_break = true;
-                    }
-                    *curr_index += 1;
+                    }                   
                 });
             } else {
+                states_vec = new_sp.get_mut_states2();
                 INDEX2.with(|thread_index| {
-                    let i = thread_index.get();
+                    let i = thread_index.get();                    
                     if *curr_index != i {
-                        next_edges = comp.get_next_edges(new_sp.get_states2()[*curr_index].get_location(), output, component::SyncType::Input);
+                        next_edges = comp.get_next_edges(states_vec[*curr_index].get_location(), output, component::SyncType::Input);
                     } else {
                         should_break = true;
                     }
-                    *curr_index += 1;
                 });
             }
             if should_break { return true }
@@ -294,7 +309,11 @@ fn apply_syncs_to_comps(sys: &SystemRepresentation, new_sp: &mut StatePair ,zone
                 if !apply_invariant(new_sp, zone, &dim, is_state1) {
                     return false
                 }
+
+                let target_loc = comp.get_location_by_name(edge.get_target_location());
+                states_vec[*curr_index].location = target_loc;
             }
+            *curr_index += 1;
 
             return true
         }
@@ -841,7 +860,7 @@ fn get_state_if_reachable<'a>(
 }
 
 
-fn is_new_state(state_pair:  &mut component::StatePair, passed_list :  &mut Vec<StatePair> ) -> bool {
+fn is_new_state<'a>(state_pair:  &mut component::StatePair<'a>, passed_list :  &mut Vec<StatePair<'a>> ) -> bool {
     let mut result = true;
     'OuterFor: for passed_state_pair in passed_list {
 
