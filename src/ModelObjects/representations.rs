@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use super::component::Component;
 use super::component::State;
+use super::super::DBMLib::lib;
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum BoolExpression {
