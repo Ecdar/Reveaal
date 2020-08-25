@@ -241,9 +241,9 @@ fn build_state_pair(
 
     new_sp.set_dbm(new_sp_zone);
 
-    if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
+    //if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         
-    }
+    // }
 
     return false
 }

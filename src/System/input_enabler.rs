@@ -27,10 +27,10 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
 
             lib::rs_dbm_init(&mut zone[0..len as usize], *dimension);
 
-            println!("ZONE1 init:");
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 2)));
+            // println!("ZONE1 init:");
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 2)));
         
 
             //println!("zone before: {:?}", &mut zone[0..len as usize]);
@@ -39,10 +39,10 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 //println!("location invariant: {:?}", invariant);
                 constraint_applyer::apply_constraints_to_state(invariant,&mut state ,&mut zone[0..len as usize], dimension);                
             }
-            println!("ZONE1:");
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));
-            println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 2)));
+            // println!("ZONE1:");
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));
+            // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 2, 2)));
         
 
             let mut full_federation_vec : Vec<*mut i32> = vec![];
@@ -63,30 +63,43 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                     //println!("guard zone before: {:?}", &mut guard_zone[0..len as usize]);
 
                     let has_guard = if let Some(guard) =  edge.get_guard() {
-                        println!("{:?}", guard);
+                        //println!("{:?}", guard);
                         let res = constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], dimension);
                         res    
                     } else {
                         false
                     };
 
-                    if let Some(update) = edge.get_update() {
-                        println!("There was an update: {:?}", update);
+                    println!("---------------");
+                    let mut update_clocks = vec![];
+                    if let Some(_) = edge.get_update() {
+                        update_clocks = edge.get_update_clocks();
+                        println!("UPDATE CLOCKS: {:?}", update_clocks);
+                    }
+                    has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
+                        //println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
+                        let mut inv_clocks = vec![];
+                        get_inv_clocks(target_invariant, component, &mut inv_clocks);
+                        println!("INV CLOCKS: {:?}", inv_clocks);
+                        let mut should_apply_inv = false;
+                        for clock in &inv_clocks {
+                            if !update_clocks.contains(clock) { should_apply_inv = true } 
+                        }
+                        let mut res = true;
+                        if should_apply_inv {
+                            println!("Applying inv");
+                            res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                        }      
+                        res                  
                     } else {
-                        println!("No update so looking for inv");
-                        has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
-                            println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
-                            let res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
-                            res
-                        } else {
-                            false
-                        };
+                        false
                     };
+                
 
-                    println!("ZONE2:");
-                    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 2)));
-                    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 2)));
-                    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 2)));
+                    // println!("ZONE2:");
+                    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 0, 2)));
+                    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 1, 2)));
+                    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut guard_zone, *dimension, 2, 2)));
                 
                     if !has_inv && !has_guard {
                         continue 'inputLoop;
@@ -108,19 +121,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         result_federation_vec.push(fed);
                     }
                 } else {
-                    
                     result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation_vec, &mut federation_vec, *dimension);
-                    //println!("removing unwanted edges: {:?} from {:?}", federation_vec, full_federation_vec);
-                    //let mut full_federation = lib::rs_vec_to_fed(&mut full_federation_vec, *dimension);
-
-                    //lib::rs_fed_to_vec(&mut full_federation);
-
-                    //let mut federation = lib::rs_vec_to_fed(&mut federation_vec, *dimension);
-                    
-                    //lib::rs_fed_to_vec(&mut federation);
-                    //let mut res_fed_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation,&mut federation);
-                    //let res_fed_vec = lib::rs_fed_to_vec(&mut result_federation);
-                    //println!("res_fed_vec: {:?}", res_fed_vec);
                 }
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {
@@ -149,21 +150,19 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
     let mut guards : Vec<representations::BoolExpression> = vec![];
 
     //Getting complete dbm:
-    println!("RESULT ZONE:");
-    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 2)));
-    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 2)));
-    println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 2)));
+    // println!("RESULT ZONE:");
+    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, 2)));
+    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 1, 2)));
+    // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 2)));
 
 
     for (clock, index) in clocks {
-        println!("clock: {:?} with index: {:?}", clock, index);
         let raw_upper = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, *index, 0);
         let raw_lower = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, *index);
         
         // lower bound must be different from 1 (==0)
         if raw_lower != 1 {
             if lib::rs_raw_is_strict(raw_lower) {
-                println!("RAW_LOWER VAL: {:?} BOUND VAL : {:?}", raw_lower, lib::rs_raw_to_bound(raw_lower));
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Int((-1) * lib::rs_raw_to_bound(raw_lower))),
                     Box::new(representations::BoolExpression::Clock(*index))
@@ -177,9 +176,7 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
         }
 
         if raw_upper != lib::DBM_INF {
-            println!("RAW_UPPER VAL: {:?} BOUND VAL : {:?}", raw_upper, lib::rs_raw_to_bound(raw_upper));
             if lib::rs_raw_is_strict(raw_upper) {
-                println!("is it strict?");
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Clock(*index)),
                     Box::new(representations::BoolExpression::Int(lib::rs_raw_to_bound(raw_upper)))
@@ -212,5 +209,30 @@ fn build_guard_from_zone_helper (guards: &mut Vec<representations::BoolExpressio
         }
     } else {
         return representations::BoolExpression::Bool(false)
+    }
+}
+
+fn get_inv_clocks<'a>(invariant: &'a representations::BoolExpression, component: &component::Component, clock_vec: &mut Vec<&'a str>){
+    match invariant {
+        representations::BoolExpression::AndOp(left, right) | 
+        representations::BoolExpression::OrOp(left, right) | 
+        representations::BoolExpression::LessEQ(left, right) |
+        representations::BoolExpression::GreatEQ(left, right) | 
+        representations::BoolExpression::LessT(left, right) | 
+        representations::BoolExpression::GreatT(left, right) 
+        => {
+            get_inv_clocks(left, component, clock_vec);
+            get_inv_clocks(right, component, clock_vec);
+        },
+        representations::BoolExpression::Parentheses(inner) => { get_inv_clocks(inner, component, clock_vec);},
+        representations::BoolExpression::Clock(_) | 
+        representations::BoolExpression::Bool(_) | 
+        representations::BoolExpression::Int(_) 
+        => { },
+        representations::BoolExpression::VarName(varname) => {
+            if component.get_declarations().get_clocks().contains_key(varname) {
+                clock_vec.push(varname);
+            }  
+        }
     }
 }

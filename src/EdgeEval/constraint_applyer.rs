@@ -85,7 +85,7 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
                             return (BoolExpression::Bool(result), false)
                         },
                         BoolExpression::Int(right_val) => {
-                            println!("Clock index: {:?} og bound: {:?}", left_index, right_val);
+                            //println!("Clock index: {:?} og bound: {:?}", left_index, right_val);
                             let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, left_index, 0, right_val);
                             return (BoolExpression::Bool(result), false)
                         },

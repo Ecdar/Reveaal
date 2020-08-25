@@ -192,6 +192,15 @@ impl Edge {
     pub fn get_sync(&self) -> &String {
         &self.sync
     }
+    pub fn get_update_clocks(&self) -> Vec<&str> {
+        let mut clock_vec = vec![];
+        if let Some(updates) = self.get_update() {
+            for u in updates {
+                clock_vec.push(u.get_variable_name())
+            }
+        }
+        return clock_vec
+    } 
 }
 #[derive(Clone)]
 pub struct StatePair<'a> {
