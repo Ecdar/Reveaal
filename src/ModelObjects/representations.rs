@@ -53,6 +53,17 @@ pub enum SystemRepresentation {
     Component(Component)
 }
 
+pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
+    println!("DBM:");
+    for i in 0..*dimension {
+        print!("( ");
+        for j in 0..*dimension {
+            print!("{:?} ", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(dbm, *dimension, i, j)));
+        }
+        print!(")\n");
+    }
+}
+
 // pub enum SystemRepresentation<'systemlifetime> {
 //     Composition(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
 //     Conjunction(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
