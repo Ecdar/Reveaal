@@ -8,16 +8,16 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::representations::SystemRepresentation;
 use std::cell::Cell;
 
-thread_local!(static index1: Cell<usize> = Cell::new(0));
-thread_local!(static index2: Cell<usize> = Cell::new(0));
+thread_local!(static INDEX1: Cell<usize> = Cell::new(0));
+thread_local!(static INDEX2: Cell<usize> = Cell::new(0));
 
 //------------------ NEW IMPL -----------------
 
 pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresentation, sys_decls : system_declarations::SystemDeclarations) -> bool{
     let mut inputs2 : Vec<String> = vec![];
     let mut outputs1 : Vec<String> = vec![];
-    let mut passed_list : Vec<component::StatePair> = vec![];
-    let mut waiting_list : Vec<component::StatePair> = vec![];
+    let mut passed_list : Vec<StatePair> = vec![];
+    let mut waiting_list : Vec<StatePair> = vec![];
     let mut initial_states_1 : Vec<State> = vec![];
     let mut initial_states_2 : Vec<State> = vec![];
 
@@ -41,13 +41,13 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
         if is_new_state( &mut curr_pair, &mut passed_list) {
             for output in &outputs1 {
     
-                if !add_output_states_new(curr_pair.get_states1().len(), &sys1, &sys2, &curr_pair, &output, &mut waiting_list ,true, &vec![]) {
+                if !add_output_states_new(curr_pair.get_states1().len(), &sys1, &sys2, &curr_pair, &output, &mut waiting_list, &mut passed_list, true, &vec![]) {
                     continue;
                 }
-                index1.with(|thread_index| {
+                INDEX1.with(|thread_index| {
                     thread_index.set(0);
                 });
-                index2.with(|thread_index| {
+                INDEX2.with(|thread_index| {
                     thread_index.set(0);
                 });
 
@@ -80,53 +80,51 @@ fn add_output_states_new<'a>(
     loop_length : usize,
     sys1: &SystemRepresentation,
     sys2: &SystemRepresentation,
-    curr_pair : & component::StatePair<'a>,
+    curr_pair : &StatePair<'a>,
     output : &String,
-    waiting_list : &mut Vec<component::StatePair>,
+    waiting_list : &mut Vec<StatePair>,
+    passed_list: &mut Vec<StatePair>,
     is_state1 : bool,
-    transitions : &Vec<&component::Edge>,
+    transitions : &Vec<&Edge>,
 ) -> bool {
     match sys1 {
         SystemRepresentation::Composition(leftside, rightside) => {
             //Should reflect that just one of them has to satisfy 
-            add_output_states_new(loop_length, leftside, sys2, curr_pair, output, waiting_list, is_state1, transitions) ||
-            add_output_states_new(loop_length, rightside, sys2, curr_pair, output, waiting_list, is_state1, transitions)           
+            add_output_states_new(loop_length, leftside, sys2, curr_pair, output, waiting_list, passed_list, is_state1, transitions) ||
+            add_output_states_new(loop_length, rightside, sys2, curr_pair, output, waiting_list, passed_list, is_state1, transitions)           
         },
         SystemRepresentation::Conjunction(leftside, rightside) => {
             //Should reflect that both sides has to satisfy
-            add_output_states_new(loop_length, leftside, sys2, curr_pair, output, waiting_list, is_state1, transitions) &&
-            add_output_states_new(loop_length, rightside, sys2, curr_pair, output, waiting_list, is_state1, transitions)   
+            add_output_states_new(loop_length, leftside, sys2, curr_pair, output, waiting_list, passed_list, is_state1, transitions) &&
+            add_output_states_new(loop_length, rightside, sys2, curr_pair, output, waiting_list, passed_list, is_state1, transitions)   
         },
         SystemRepresentation::Parentheses(rep) => {
-            add_output_states_new(loop_length, rep, sys2, curr_pair, output, waiting_list, is_state1, transitions)            
+            add_output_states_new(loop_length, rep, sys2, curr_pair, output, waiting_list, passed_list, is_state1, transitions)            
         },
         SystemRepresentation::Component(comp) => {
-            //Has to progress every single component
-            //Also som stuff with fed minus fed
-            //Maybe needs a new representation of states/statepairs
             let mut next_edges = vec![];
             if is_state1 {
-                index1.with(|thread_index| {
+                INDEX1.with(|thread_index| {
                     let i = thread_index.get();
                     next_edges = comp.get_next_edges(curr_pair.get_states1()[i].get_location(), output, component::SyncType::Output);
                     thread_index.set(i + 1);
                 });
 
                 if next_edges.len() > 0 {
-                    return add_output_states_new(loop_length, sys2, sys1, curr_pair, output, waiting_list, false, &next_edges)
+                    return add_output_states_new(loop_length, sys2, sys1, curr_pair, output, waiting_list, passed_list, false, &next_edges)
                 } else {
                     //Check om der er nogle inputs at sync med
                     //(a!, a?, a?) <= (a!, a?)
                     return true
                 }
             } else {
-                index2.with(|thread_index| {
+                INDEX2.with(|thread_index| {
                     let i = thread_index.get();
                     next_edges = comp.get_next_edges(curr_pair.get_states1()[i].get_location(), output, component::SyncType::Input);
                     thread_index.set(i + 1);
                 });
                 if next_edges.len() > 0 {  
-                    return create_new_state_pairs(transitions, &next_edges, curr_pair, waiting_list, sys1, sys2)
+                    return create_new_state_pairs(transitions, &next_edges, curr_pair, waiting_list, passed_list, sys1, sys2, output)
                 } else {
                     //check inputs
                     return true
@@ -141,8 +139,10 @@ fn create_new_state_pairs(
     transitions2: &Vec<&Edge>, 
     curr_pair: &StatePair, 
     waiting_list: &mut Vec<StatePair>, 
+    passed_list: &mut Vec<StatePair>,
     sys1: &SystemRepresentation, 
-    sys2: &SystemRepresentation
+    sys2: &SystemRepresentation,
+    output: &String,
 ) -> bool {
     let mut guard_zones_left: Vec<*mut i32> = vec![];
     let mut guard_zones_right: Vec<*mut i32> = vec![];
@@ -152,25 +152,19 @@ fn create_new_state_pairs(
     for edge in transtions1 {
         let mut zone = [0;1000];
         lib::rs_dbm_init(&mut zone[0..len as usize], dim);
-        if let Some(guard) = edge.get_guard() {
-            index1.with(|thread_index| {
-                let i = thread_index.get();
-                apply_constraints_to_state(guard, &curr_pair.get_states1()[i], &mut zone[0..len as usize], &dim);
-            });
+        let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, true);
+        if g_succes {        
+            guard_zones_left.push(zone.as_mut_ptr());
         }
-        guard_zones_left.push(zone.as_mut_ptr());
     }
     //Create guard zones right
     for edge in transitions2 {
         let mut zone = [0;1000];
         lib::rs_dbm_init(&mut zone[0..len as usize], dim);
-        if let Some(guard) = edge.get_guard() {
-            index2.with(|thread_index| {
-                let i = thread_index.get();
-                apply_constraints_to_state(guard, &curr_pair.get_states2()[i], &mut zone[0..len as usize], &dim);
-            });
+        let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, false);
+        if g_succes {        
+            guard_zones_right.push(zone.as_mut_ptr());
         }
-        guard_zones_right.push(zone.as_mut_ptr());
     }
 
     let result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut guard_zones_left, &mut guard_zones_right, dim);
@@ -181,7 +175,7 @@ fn create_new_state_pairs(
 
     for edge1 in transtions1 {
         for edge2 in transitions2 {
-            if build_state_pair(edge1, edge2, curr_pair, waiting_list, sys1, sys2) {
+            if build_state_pair(edge1, edge2, curr_pair, waiting_list, passed_list, sys1, sys2, output) {
 
             }
         }
@@ -195,8 +189,10 @@ fn build_state_pair(
     edge2 : &component::Edge, 
     curr_pair: &StatePair, 
     waiting_list: &mut Vec<StatePair>,
+    passed_list: &mut Vec<StatePair>,
     sys1: &SystemRepresentation,
     sys2: &SystemRepresentation,
+    output: &String,
 ) -> bool {
     let mut new_sp : StatePair = create_state_pair(vec![], vec![]);
     let mut new_sp_zone = curr_pair.get_dbm_clone();
@@ -204,67 +200,24 @@ fn build_state_pair(
     let dim = new_sp.get_dimensions();
 
     //Apply guards on both sides
-    let g1_succes = if let Some(guard) = edge1.get_guard() {
-        index1.with(|thread_index| {
-            let i = thread_index.get();
-            let succes1 = apply_constraints_to_state(guard, &new_sp.get_states1()[i], &mut new_sp_zone, &dim);
-            succes1
-        })
-    } else {
-        true
-    };
-    let g2_succes = if let Some(guard) = edge2.get_guard() {
-        index2.with(|thread_index| {
-            let i = thread_index.get();
-            let succes2 = apply_constraints_to_state(guard, &new_sp.get_states2()[i], &mut new_sp_zone, &dim);
-            succes2
-        })
-    } else {
-        true
-    };
-
+    let g1_succes = apply_guard(edge1, &new_sp, &mut new_sp_zone, &dim, true);
+    let g2_succes = apply_guard(edge2, &new_sp, &mut new_sp_zone, &dim, false);
     if !g1_succes || !g2_succes {
         return false
     }
 
     //Apply updates on both sides
-    if let Some(update) = edge1.get_update() {
-        index1.with(|thread_index| {
-            let i = thread_index.get();
-            updater(update, &mut new_sp.get_mut_states1()[i], &mut new_sp_zone, dim);
-        });
-    }
-    if let Some(update) = edge2.get_update() {
-        index1.with(|thread_index| {
-            let i = thread_index.get();
-            updater(update, &mut new_sp.get_mut_states2()[i], &mut new_sp_zone, dim);
-        });
-    }
+    apply_update(edge1, &mut new_sp, &mut new_sp_zone, dim, true);
+    apply_update(edge2, &mut new_sp, &mut new_sp_zone, dim, false);
 
     // //Apply invarients on both sides
-    let mut inv_success1 = true;
-    index1.with(|thread_index| {
-        let i = thread_index.get();
-        let dim = new_sp.get_dimensions();
-        inv_success1 = if let Some(inv) = new_sp.get_states1()[i].get_location().get_invariant() {
-            apply_constraints_to_state(&inv, &new_sp.get_states1()[i], &mut new_sp_zone, &dim)
-        } else {
-            true
-        };
-    });
-
+    let inv_success1 = apply_invariant(&new_sp, &mut new_sp_zone, &dim, true);
     let mut invarent_test = new_sp_zone.clone();
+    let inv_success2 = apply_invariant(&new_sp, &mut new_sp_zone, &dim, false);
 
-    let mut inv_success2 = true;
-    index2.with(|thread_index| {
-        let i = thread_index.get();
-        let dim = new_sp.get_dimensions();
-        inv_success2 = if let Some(inv) = new_sp.get_states2()[i].get_location().get_invariant() {
-            apply_constraints_to_state(&inv, &new_sp.get_states2()[i], &mut new_sp_zone, &dim)
-        } else {
-            true
-        };
-    });
+    if !inv_success1 || !inv_success2 {
+        return false
+    }
 
     let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
 
@@ -275,11 +228,152 @@ fn build_state_pair(
     //cant figure out how/what the maxbounds should be (maybe empty array?)
     let max_bounds = [0];
     lib::rs_dbm_extrapolateMaxBounds(&mut new_sp_zone, dim, max_bounds.as_ptr());
+    
     //Check all other comps for potential syncs
+    let mut test_zone1 = new_sp_zone.clone(); 
+    if apply_syncs_to_comps(sys1, &mut new_sp, &mut test_zone1, output, dim, &mut 0, true) {
+        new_sp_zone = test_zone1;
+    }
+    let mut test_zone2 = new_sp_zone.clone(); 
+    if apply_syncs_to_comps(sys2, &mut new_sp, &mut test_zone2, output, dim, &mut 0, false) {
+        new_sp_zone = test_zone2;
+    }
 
     new_sp.set_dbm(new_sp_zone);
 
+    if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
+        
+    }
+
     return false
+}
+
+fn apply_syncs_to_comps(sys: &SystemRepresentation, new_sp: &mut StatePair ,zone: &mut [i32], output: &String, dim: u32, curr_index: &mut usize ,is_state1: bool) -> bool {
+    match sys {
+        SystemRepresentation::Composition(leftside, rightside) => {
+            //Should reflect that just one of them has to satisfy 
+            apply_syncs_to_comps(leftside, new_sp, zone, output, dim, curr_index, is_state1) ||
+            apply_syncs_to_comps(rightside, new_sp, zone, output, dim, curr_index, is_state1)        
+        },
+        SystemRepresentation::Conjunction(leftside, rightside) => {
+            //We do not care if both sides satisfy. The return value only indicates if atleast 
+            apply_syncs_to_comps(leftside, new_sp, zone, output, dim, curr_index, is_state1) &&
+            apply_syncs_to_comps(rightside, new_sp, zone, output, dim, curr_index, is_state1)  
+        },
+        SystemRepresentation::Parentheses(rep) => {
+            apply_syncs_to_comps(rep, new_sp, zone, output, dim, curr_index, is_state1)        
+        },
+        SystemRepresentation::Component(comp) => {
+            let mut next_edges = vec![];
+            let mut should_break = false; 
+            if is_state1 {
+                INDEX1.with(|thread_index| {
+                    let i = thread_index.get();
+                    if *curr_index != i {
+                        next_edges = comp.get_next_edges(new_sp.get_states1()[*curr_index].get_location(), output, component::SyncType::Input);
+                    } else {
+                        should_break = true;
+                    }
+                    *curr_index += 1;
+                });
+            } else {
+                INDEX2.with(|thread_index| {
+                    let i = thread_index.get();
+                    if *curr_index != i {
+                        next_edges = comp.get_next_edges(new_sp.get_states2()[*curr_index].get_location(), output, component::SyncType::Input);
+                    } else {
+                        should_break = true;
+                    }
+                    *curr_index += 1;
+                });
+            }
+            if should_break { return true }
+            if next_edges.len() < 1 { return false }
+
+            for edge in next_edges {
+                if !apply_guard(edge, new_sp, zone, &dim, is_state1) {
+                    return false
+                }
+                apply_update(edge, new_sp, zone, dim, is_state1);
+                if !apply_invariant(new_sp, zone, &dim, is_state1) {
+                    return false
+                }
+            }
+
+            return true
+        }
+    } 
+}
+
+fn apply_guard(edge: &component::Edge, new_sp: &StatePair, zone: &mut [i32], dim: &u32, is_state1: bool) -> bool {
+    if is_state1 {
+        if let Some(guard) = edge.get_guard() {
+            INDEX1.with(|thread_index| {
+                let i = thread_index.get();
+                let succes = apply_constraints_to_state(guard, &new_sp.get_states1()[i], zone, dim);
+                return succes
+            });
+            panic!("Could not find index of state");
+        } else {
+            return true
+        };
+    } else {
+        if let Some(guard) = edge.get_guard() {
+            INDEX2.with(|thread_index| {
+                let i = thread_index.get();
+                let succes = apply_constraints_to_state(guard, &new_sp.get_states2()[i], zone, dim);
+                return succes
+            });
+            panic!("Could not find index of state");
+        } else {
+            return true
+        };
+    }
+}
+
+fn apply_update(edge: &component::Edge, new_sp: &mut StatePair, zone: &mut [i32], dim: u32, is_state1: bool) {
+    if is_state1 {
+        if let Some(update) = edge.get_update() {
+            INDEX1.with(|thread_index| {
+                let i = thread_index.get();
+                updater(update, &mut new_sp.get_mut_states1()[i], zone, dim);
+            });
+        }
+    } else {
+        if let Some(update) = edge.get_update() {
+            INDEX2.with(|thread_index| {
+                let i = thread_index.get();
+                updater(update, &mut new_sp.get_mut_states2()[i], zone, dim);
+            });
+        }
+    }
+}
+
+fn apply_invariant(new_sp: &StatePair, zone: &mut [i32], dim: &u32, is_state1: bool) -> bool {
+    let mut inv_success = true;
+    if is_state1 {
+        INDEX1.with(|thread_index| {
+            let i = thread_index.get();
+            inv_success = if let Some(inv) = new_sp.get_states1()[i].get_location().get_invariant() {
+                apply_constraints_to_state(&inv, &new_sp.get_states1()[i], zone, dim)
+            } else {
+                true
+            };
+            return inv_success
+        });
+        panic!("Could not find index of state");
+    } else {
+        INDEX2.with(|thread_index| {
+            let i = thread_index.get();
+            inv_success = if let Some(inv) = new_sp.get_states2()[i].get_location().get_invariant() {
+                apply_constraints_to_state(&inv, &new_sp.get_states2()[i], zone, dim)
+            } else {
+                true
+            };
+            return inv_success
+        });
+        panic!("Could not find index of state");
+    }
 }
 
 fn add_input_states_new<'a>(
