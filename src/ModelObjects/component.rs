@@ -275,7 +275,7 @@ pub struct State<'a> {
     pub location : &'a Location,
 }
 
-impl State<'_> {
+impl <'a> State<'a> {
     pub fn get_declarations(&self) -> & Declarations {
         &self.declarations
     }
@@ -285,7 +285,9 @@ impl State<'_> {
     pub fn get_location(&self) -> & Location {
         &self.location
     }
-
+    pub fn set_location(&mut self, location : &'a Location){
+        self.location = location;
+    }
     pub fn get_dimensions(&self) -> &u32 {
         self.get_declarations().get_dimension()
     }

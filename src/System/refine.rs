@@ -74,8 +74,8 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
 
 fn add_output_states_new<'a>(
     loop_length : usize,
-    sys1: &SystemRepresentation,
-    sys2: &SystemRepresentation,
+    sys1: &'a SystemRepresentation,
+    sys2: &'a SystemRepresentation,
     curr_pair : & StatePair<'a>,
     output : &String,
     waiting_list : &mut Vec<StatePair<'a>>,
@@ -136,8 +136,8 @@ fn create_new_state_pairs<'a>(
     curr_pair: &StatePair<'a>, 
     waiting_list: &mut Vec<StatePair<'a>>, 
     passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &SystemRepresentation, 
-    sys2: &SystemRepresentation,
+    sys1: &'a SystemRepresentation, 
+    sys2: &'a SystemRepresentation,
     output: &String,
 ) -> bool {
     let mut guard_zones_left: Vec<*mut i32> = vec![];
@@ -186,8 +186,8 @@ fn build_state_pair<'a>(
     curr_pair: & StatePair<'a>, 
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &SystemRepresentation,
-    sys2: &SystemRepresentation,
+    sys1: &'a SystemRepresentation,
+    sys2: &'a SystemRepresentation,
     output: &String,
 ) -> bool {
     let mut new_sp : StatePair = create_state_pair(curr_pair.states1.clone(), curr_pair.states2.clone());
@@ -258,7 +258,7 @@ fn build_state_pair<'a>(
     return false
 }
 
-fn apply_syncs_to_comps(sys: &SystemRepresentation, new_sp: &mut StatePair ,zone: &mut [i32], output: &String, dim: u32, curr_index: &mut usize ,is_state1: bool) -> bool {
+fn apply_syncs_to_comps<'a>(sys: &'a SystemRepresentation, new_sp: &mut StatePair<'a> ,zone: &mut [i32], output: &String, dim: u32, curr_index: &mut usize ,is_state1: bool) -> bool {
     match sys {
         SystemRepresentation::Composition(leftside, rightside) => {
             //Should reflect that just one of them has to satisfy 
@@ -275,46 +275,56 @@ fn apply_syncs_to_comps(sys: &SystemRepresentation, new_sp: &mut StatePair ,zone
         },
         SystemRepresentation::Component(comp) => {
             let mut next_edges = vec![];
-            let mut states_vec = vec![];
             let mut should_break = false; 
             if is_state1 {
-                states_vec = new_sp.get_mut_states1();
                 INDEX1.with(|thread_index| {
                     let i = thread_index.get();                    
                     if *curr_index != i {
-                        next_edges = comp.get_next_edges(states_vec[*curr_index].get_location(), output, component::SyncType::Input);
+                        next_edges = comp.get_next_edges(new_sp.get_states1()[*curr_index].get_location(), output, component::SyncType::Input);
                     } else {
                         should_break = true;
                     }                   
                 });
             } else {
-                states_vec = new_sp.get_mut_states2();
                 INDEX2.with(|thread_index| {
                     let i = thread_index.get();                    
                     if *curr_index != i {
-                        next_edges = comp.get_next_edges(states_vec[*curr_index].get_location(), output, component::SyncType::Input);
+                        next_edges = comp.get_next_edges(new_sp.get_states2()[*curr_index].get_location(), output, component::SyncType::Input);
                     } else {
                         should_break = true;
                     }
                 });
             }
-            if should_break { return true }
-            if next_edges.len() < 1 { return false }
+            if should_break { 
+                *curr_index += 1;
+                return true
+            }
+            if next_edges.len() < 1 { 
+                *curr_index += 1; 
+                return false 
+            }
 
             for edge in next_edges {
                 if !apply_guard(edge, new_sp, zone, &dim, is_state1) {
+                    *curr_index += 1;
                     return false
                 }
                 apply_update(edge, new_sp, zone, dim, is_state1);
                 if !apply_invariant(new_sp, zone, &dim, is_state1) {
+                    *curr_index += 1;
                     return false
                 }
 
+                //Declarations on the states should also be updated when variables are added to reveaal
                 let target_loc = comp.get_location_by_name(edge.get_target_location());
-                states_vec[*curr_index].location = target_loc;
+                if is_state1 {                    
+                    new_sp.get_mut_states1()[*curr_index].set_location(target_loc);
+                } else {
+                    new_sp.get_mut_states2()[*curr_index].set_location(target_loc);
+                }
+
             }
             *curr_index += 1;
-
             return true
         }
     } 
