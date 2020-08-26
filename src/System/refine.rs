@@ -53,15 +53,14 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
             //waiting_list.push(new_sp);
         }
 
-        //(a!, a?, a?) <= (a?, a?)
-        for input in &inputs2 {
-            let mut new_sp = create_state_pair(vec![], vec![]);
-            new_sp.set_dbm(curr_pair.get_dbm_clone());
-            new_sp.set_dimensions(curr_pair.get_dimensions());
+        // for input in &inputs2 {
+        //     let mut new_sp = create_state_pair(vec![], vec![]);
+        //     new_sp.set_dbm(curr_pair.get_dbm_clone());
+        //     new_sp.set_dimensions(curr_pair.get_dimensions());
 
-            add_input_states_new(curr_pair.get_states2().len(), &mut new_sp, &sys2,&curr_pair, &input, false);
-            waiting_list.push(new_sp);
-        }
+        //     add_input_states_new(curr_pair.get_states2().len(), &mut new_sp, &sys2,&curr_pair, &input, false);
+        //     waiting_list.push(new_sp);
+        // }
 
         // per
         //sp {loc1, loc2 - zone } sp { - zone}
@@ -120,7 +119,7 @@ fn add_output_states_new<'a>(
                     thread_index.set(i + 1);
                 });
                 if next_edges.len() > 0 {  
-                    return create_new_state_pairs(transitions, &next_edges, curr_pair, waiting_list, passed_list, sys1, sys2, output)
+                    return create_new_state_pairs(transitions, &next_edges, curr_pair, waiting_list, passed_list, sys1, sys2, comp, output)
                 } else {
                     //check inputs
                     return true
@@ -138,6 +137,7 @@ fn create_new_state_pairs<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation, 
     sys2: &'a SystemRepresentation,
+    comp: &'a Component,
     output: &String,
 ) -> bool {
     let mut guard_zones_left: Vec<*mut i32> = vec![];
@@ -171,7 +171,7 @@ fn create_new_state_pairs<'a>(
 
     for edge1 in transtions1 {
         for edge2 in transitions2 {
-            if build_state_pair(edge1, edge2, curr_pair, waiting_list, passed_list, sys1, sys2, output) {
+            if build_state_pair(edge1, edge2, curr_pair, waiting_list, passed_list, sys1, sys2, comp, output) {
 
             }
         }
@@ -188,6 +188,7 @@ fn build_state_pair<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
+    comp: &'a Component,
     output: &String,
 ) -> bool {
     let mut new_sp : StatePair = create_state_pair(curr_pair.states1.clone(), curr_pair.states2.clone());
@@ -213,15 +214,17 @@ fn build_state_pair<'a>(
 
     INDEX1.with(|thread_index| {
         let i = thread_index.get();
-        let new_loc_name = edge1.get_source_location();
-      //  new_sp.get_mut_states1()[i].location = 
+        let new_loc_name = edge1.get_target_location();
+        let next_location = comp.get_location_by_name(new_loc_name);
+        new_sp.get_mut_states1()[i].set_location(next_location); 
         //Also update declarations on states when variables are added to the project
     });
 
     INDEX2.with(|thread_index| {
         let i = thread_index.get();
-        let new_loc_name = edge2.get_source_location();
-      //  new_sp.get_mut_states2()[i].location = 
+        let new_loc_name = edge2.get_target_location();
+        let next_location = comp.get_location_by_name(new_loc_name);
+        new_sp.get_mut_states2()[i].set_location(next_location); 
         //Also update declarations on states when variables are added to the project
     });
 
@@ -250,6 +253,8 @@ fn build_state_pair<'a>(
     }
 
     new_sp.set_dbm(new_sp_zone);
+
+    println!("\nStates1: {:?}\nStates2: {:?}\nDimensions: {:?}\n", new_sp.states1, new_sp.states2, new_sp.dimensions);
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());
