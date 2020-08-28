@@ -1,0 +1,7 @@
+[
+  {
+    "query": "(Component1 || Component2) \u003c\u003d Component33",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

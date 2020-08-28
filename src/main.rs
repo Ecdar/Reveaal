@@ -19,9 +19,8 @@ use System::extract_system_rep;
 extern crate pest_derive;
 
 pub fn main() {
-    let (mut components, system_declarations, queries) = parse_args().unwrap();
+    let (components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
-    let mut refine_res = false;
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();
         println!("COMPONENT: {:?}", optimized_comp.name);
@@ -31,18 +30,18 @@ pub fn main() {
         println!("-------------------");
         optimized_components.push(optimized_comp);
     }
-    let system_rep_tuple = extract_system_rep::create_system_rep_from_query(&queries[4], &optimized_components);
-    if system_rep_tuple.2 == "refinement" {
-        refine_res = refine::check_refinement_new(system_rep_tuple.0, system_rep_tuple.1, system_declarations)
+
+    for query in &queries {
+        let system_rep_tuple = extract_system_rep::create_system_rep_from_query(query, &optimized_components);
+        if system_rep_tuple.2 == "refinement" {
+            if let Some(sys2) = system_rep_tuple.1 {
+                match refine::check_refinement(system_rep_tuple.0, sys2, &system_declarations) {
+                    Ok(res) => println!("Refinement result: {:?}", res),
+                    Err(err_msg) => println!("{}", err_msg)
+                }
+            }
+        }
     }
-    //println!("SYSTEM LEFT: {:?}", system_rep_tuple.0);
-    //println!("SYSTEM RIGHT: {:?}", system_rep_tuple.1);
-
-    let mut m1s = vec![ optimized_components[0].clone()];
-    let mut m2s = vec![ optimized_components[1].clone()];
-
-    //let result = refine::check_refinement(m1s, m2s, system_declarations);
-    println!("Refine result = {:?}", refine_res);
 }
 
 fn parse_args() -> io::Result<(Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>)>{
