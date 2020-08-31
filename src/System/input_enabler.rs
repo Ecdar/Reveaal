@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::ptr;
 
 pub fn make_input_enabled(component: &mut component::Component, sys_decls : &system_declarations::SystemDeclarations) {
-    let dimension = component.get_declarations().get_dimension();
+    let dimension = *(component.get_declarations().get_dimension()) +1;
     let len = dimension * dimension;
     let mut new_edges : Vec<component::Edge> = vec![];
 
@@ -25,7 +25,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 location: location,
             };
 
-            lib::rs_dbm_init(&mut zone[0..len as usize], *dimension);
+            lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
 
             // println!("ZONE1 init:");
             // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
@@ -37,7 +37,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
 
             if let Some(invariant) = location.get_invariant(){ 
                 //println!("location invariant: {:?}", invariant);
-                constraint_applyer::apply_constraints_to_state(invariant,&mut state ,&mut zone[0..len as usize], dimension);                
+                constraint_applyer::apply_constraints_to_state(invariant,&mut state ,&mut zone[0..len as usize], &dimension);                
             }
             // println!("ZONE1:");
             // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
@@ -64,7 +64,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
 
                     let has_guard = if let Some(guard) =  edge.get_guard() {
                         //println!("{:?}", guard);
-                        let res = constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                        let res = constraint_applyer::apply_constraints_to_state(guard,&mut state ,&mut guard_zone[0..len as usize], &dimension);
                         res    
                     } else {
                         false
@@ -88,7 +88,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         let mut res = true;
                         if should_apply_inv {
                             println!("Applying inv");
-                            res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], dimension);
+                            res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], &dimension);
                         }      
                         res                  
                     } else {
@@ -121,7 +121,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         result_federation_vec.push(fed);
                     }
                 } else {
-                    result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation_vec, &mut federation_vec, *dimension);
+                    result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut full_federation_vec, &mut federation_vec, dimension);
                 }
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {
@@ -132,7 +132,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         source_location: location.get_id().to_string(),
                         target_location: location.get_id().to_string(),
                         sync_type: component::SyncType::Input,
-                        guard: build_guard_from_zone(fed_zone, *dimension, component.get_declarations().get_clocks()),
+                        guard: build_guard_from_zone(fed_zone, dimension, component.get_declarations().get_clocks()),
                         update: None,
                         sync: input.to_string(),
                     });                    
@@ -218,6 +218,7 @@ fn get_inv_clocks<'a>(invariant: &'a representations::BoolExpression, component:
         representations::BoolExpression::OrOp(left, right) | 
         representations::BoolExpression::LessEQ(left, right) |
         representations::BoolExpression::GreatEQ(left, right) | 
+        representations::BoolExpression::EQ(left, right) |
         representations::BoolExpression::LessT(left, right) | 
         representations::BoolExpression::GreatT(left, right) 
         => {

@@ -1,6 +1,6 @@
 [
   {
-    "query": "Component1 \u003c\u003d Component2",
+    "query": "refinement: Component1 \u003c\u003d Component1",
     "comment": "",
     "isPeriodic": false
   }

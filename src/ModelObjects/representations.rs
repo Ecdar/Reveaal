@@ -11,6 +11,7 @@ pub enum BoolExpression {
     GreatEQ(Box<BoolExpression>, Box<BoolExpression>),
     LessT(Box<BoolExpression>, Box<BoolExpression>),
     GreatT(Box<BoolExpression>, Box<BoolExpression>),
+    EQ(Box<BoolExpression>, Box<BoolExpression>),
     Parentheses(Box<BoolExpression>),
     Clock(u32),
     VarName(String),
@@ -59,7 +60,7 @@ pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
     for i in 0..*dimension {
         print!("( ");
         for j in 0..*dimension {
-            print!("{:?} ", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(dbm, *dimension, i, j)));
+            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, *dimension, i, j));
         }
         print!(")\n");
     }

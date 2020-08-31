@@ -71,7 +71,7 @@
       "status": "INPUT",
       "select": "",
       "guard": "",
-      "update": "x\u003d0",
+      "update": "x \u003d 0",
       "sync": "i",
       "isLocked": false,
       "nails": [

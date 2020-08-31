@@ -148,7 +148,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 pub enum SyncType {
     Input,
     Output,
@@ -390,7 +390,7 @@ where
     Ok(Declarations {
         ints: ints,
         clocks: clocks,
-        dimension : dim +1,
+        dimension : dim,
     })
 }
 

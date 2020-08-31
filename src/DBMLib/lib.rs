@@ -263,7 +263,6 @@ fn rs_dbm_constrain1(dbm : &mut[i32], dimension : u32, var_index_i: u32, var_ind
 pub fn rs_dbm_add_LTE_constraint(dbm : &mut[i32], dimension : u32, var_index_i: u32, var_index_j : u32, bound : i32) -> bool{
     unsafe {
         let constraint = dbm_boundbool2raw_exposed(bound, false);
-
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
 }
@@ -337,6 +336,35 @@ pub fn rs_dbm_add_EQ_constraint(dbm : &mut[i32], dimension : u32, var_index_i: u
     }
 }
 
+/// Contrain DBM with one constraint based on the bound
+/// 
+/// `x_i-0 <= 5` and `0-x_i <= -5`
+/// * DBM must be closed and non empty
+/// * dim > 1 induced by i < dim & j < dim & i != j
+/// * as a consequence: i>=0 & j>=0 & i!=j => (i or j) > 0 and dim > (i or j) > 0 => dim > 1
+/// 
+/// # Arguments
+///
+/// * `dbm` - The DBM
+/// * `dimension` - The dimension of the dbm
+/// * `var_index` - The index of the variable representing the ith element
+/// * `bound` - The constant bound the clock is set equal to
+///
+/// # Return
+/// Bool indicating if the constraint was applied sucessfully.
+/// 
+/// The resulting DBM is closed if it is non empty.
+pub fn rs_dbm_add_EQ_const_constraint(dbm : &mut[i32], dimension : u32, var_index: u32, bound : i32) -> bool{
+    unsafe {
+        let constraint1 = dbm_boundbool2raw_exposed(bound, false);
+        let constraint2 = dbm_boundbool2raw_exposed(-bound, false);
+
+        let res1 = rs_dbm_constrain1(dbm, dimension, var_index, 0, constraint1);
+        let res2 = rs_dbm_constrain1(dbm, dimension, 0, var_index, constraint2);
+        return res1 && res2
+    }
+}
+
 /// Contrain DBM with two constraints both applied to the same variables.
 /// * DBM must be closed and non empty
 /// * dim > 1 induced by i < dim & j < dim & i != j
@@ -406,6 +434,13 @@ pub fn rs_dbm_constrain_var_to_val(dbm : &mut[i32], dimension : u32, var_index: 
     }
 }
 
+pub fn rs_dbm_update_clock(dbm : &mut[i32], dimension : u32, var_index: u32, value : i32) -> bool {
+    unsafe{
+        dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
+        return rs_dbm_add_LTE_constraint(dbm, dimension, 0, var_index, -value);
+    }
+}
+
 /** Test only if dbm1 <= dbm2.
  * @param dbm1,dbm2: DBMs to be tested.
  * @param dim: dimension of the DBMs.
@@ -426,8 +461,8 @@ pub fn rs_dbm_fed_minus_fed(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec
         //println!("FED PRINT::::");
         let mut res = dbm_fed_t::new(dim);
         dbm_fed_minus_fed(dbm_vec1.as_mut_ptr(), dbm_vec2.as_mut_ptr(), (dbm_vec1.len()) as u32, (dbm_vec2.len()) as u32, dim, &mut res);
-        //println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
-        //println!("Dimension of resulting fed is: {:?}", dbm_get_fed_dim(&mut res));
+        // println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
+        // println!("Dimension of resulting fed is: {:?}", dbm_get_fed_dim(&mut res));
 
         let result = rs_fed_to_vec(&mut res);
 
