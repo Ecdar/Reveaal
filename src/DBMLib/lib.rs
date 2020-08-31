@@ -534,6 +534,12 @@ pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
     }
 }
 
+pub fn rs_dbm_up(dbm : &mut[i32], dimension : u32){
+    unsafe {
+        dbm_up(dbm.as_mut_ptr(), dimension);
+    }
+}
+
 
 pub fn libtest() {
     let mut intArr = [0,0,0,0,0,0,0,0,0];

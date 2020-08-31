@@ -334,6 +334,8 @@ fn build_state_pair<'a>(
         }
     }
 
+    lib::rs_dbm_up(&mut new_sp_zone, dim);
+
     // Apply invariants on both sides and collect used indexes
     let mut inv_success1 = true;
     let mut inv_success2 = true;
@@ -356,18 +358,18 @@ fn build_state_pair<'a>(
 
     representations::print_DBM(&mut invarent_test, &dim);
     representations::print_DBM(&mut new_sp_zone, &dim);
-    let mut inv_test_vec = vec![invarent_test.as_mut_ptr()];
-    let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
-    println!("start fed test dim is {:?}", dim);
-    let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
-    println!("fed test sucess, fed res len is {:?}", fed_res.len());
+    // let mut inv_test_vec = vec![invarent_test.as_mut_ptr()];
+    // let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
+    // println!("start fed test dim is {:?}", dim);
+    // let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
+    // println!("fed test sucess, fed res len is {:?}", fed_res.len());
 
     println!("states1: {:?}", curr_pair.get_states1());
     println!("states2: {:?}", curr_pair.get_states2());
     //could not get dbm_minus_dbm working
-    //let dbm_test = lib::rs_dbm_minus_dbm(&mut zone1, &mut zone2, dim);
+    let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
 
-    if fed_res.len() > 0 {
+    if dbm_test.len() > 0 {
         println!("return false");
         return false
     }
