@@ -480,6 +480,12 @@ pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>, dim : u32) ->  dbm_fed_t {
     }
 }
 
+pub fn rs_dbm_up(dbm : &mut[i32], dim: u32) {
+    unsafe {
+        dbm_up(dbm.as_mut_ptr(), dim);
+    }
+}
+
 pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
     unsafe{
         let mut result: Vec<*const i32> = vec![];

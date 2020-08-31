@@ -40,9 +40,9 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
 
         for output in &outputs1 {
 
-            if !add_output_states_new(curr_pair.get_states1().len(), &sys1, &sys2, &curr_pair, &output, &mut waiting_list, &mut passed_list, true, &vec![]) {
-                continue;
-            }
+            //if !add_output_states_new(curr_pair.get_states1().len(), &sys1, &sys2, &curr_pair, &output, &mut waiting_list, &mut passed_list, true, &vec![]) {
+            //    continue;
+            //}
             INDEX1.with(|thread_index| {
                 thread_index.set(0);
             });
@@ -60,7 +60,7 @@ pub fn check_refinement_new(sys1 : SystemRepresentation, sys2 : SystemRepresenta
             new_sp.set_dimensions(curr_pair.get_dimensions());
 
             add_input_states_new(curr_pair.get_states2().len(), &mut new_sp, &sys2,&curr_pair, &input, false);
-            waiting_list.push(new_sp);
+            //waiting_list.push(new_sp);
         }
 
         // per
@@ -205,6 +205,8 @@ fn build_state_pair<'a>(
     //Apply updates on both sides
     apply_update(edge1, &mut new_sp, &mut new_sp_zone, dim, true);
     apply_update(edge2, &mut new_sp, &mut new_sp_zone, dim, false);
+
+    lib::rs_dbm_up(&mut new_sp_zone, dim);
 
     // //Apply invarients on both sides
     let inv_success1 = apply_invariant(&new_sp, &mut new_sp_zone, &dim, true);

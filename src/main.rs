@@ -14,6 +14,7 @@ use System::input_enabler;
 use System::refine;
 use ModelObjects::representations;
 use System::extract_system_rep;
+use generic_array::{ArrayLength, GenericArray,arr};
 
 #[macro_use]
 extern crate pest_derive;
@@ -31,6 +32,10 @@ pub fn main() {
         println!("-------------------");
         optimized_components.push(optimized_comp);
     }
+
+    let dim = optimized_components[0].get_declarations().get_dimension();
+    
+
     let system_rep_tuple = extract_system_rep::create_system_rep_from_query(&queries[4], &optimized_components);
     if system_rep_tuple.2 == "refinement" {
         refine_res = refine::check_refinement_new(system_rep_tuple.0, system_rep_tuple.1, system_declarations)
@@ -132,4 +137,10 @@ Result<(
         panic!("Could not retrieve system declarations")
     }
     
+}
+
+pub fn create_zone(dim: u32, zone: &mut [u32]) {
+    match dim {
+        2 => {*zone = &mut [0;4]}
+    }
 }
