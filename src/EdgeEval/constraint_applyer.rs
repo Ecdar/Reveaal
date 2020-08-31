@@ -157,6 +157,50 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
                 }
             }
         },
+        BoolExpression::EQ(left, right) => {
+            let (computed_left, contains_clock_left) = apply_constraints_to_state_helper(&**left, state, zone, dimensions, false);
+            let (computed_right, contains_clock_right) = apply_constraints_to_state_helper(&**right, state, zone, dimensions, false);
+
+            if !should_apply && (contains_clock_right || contains_clock_left) {
+                return( BoolExpression::GreatEQ(left.clone(), right.clone()), true)
+            }
+            match computed_left {
+                BoolExpression::Clock(left_index) => {
+                    //println!("CLOCK INDEX {:?}", left_index);
+                    //println!("dimn: {:?}", dimensions);
+                    match computed_right {
+                        BoolExpression::Clock(right_index) => {
+                            let result = lib::rs_dbm_add_EQ_constraint(zone, *dimensions, right_index, left_index);
+                            return (BoolExpression::Bool(result), false)
+                        },
+                        BoolExpression::Int(right_val) => {
+                            let result = lib::rs_dbm_add_EQ_const_constraint(zone, *dimensions, left_index, right_val);
+                            return (BoolExpression::Bool(result), false)
+                        },
+                        _ => {
+                            panic!("invalid type in EQ expression in guard")
+                        }
+                    }
+                },
+                BoolExpression::Int(left_val) => {
+                    match computed_right {
+                        BoolExpression::Clock(right_index) => {
+                            let result = lib::rs_dbm_add_EQ_const_constraint(zone, *dimensions, right_index,left_val);
+                            return (BoolExpression::Bool(result), false)
+                        },
+                        BoolExpression::Int(right_val) => {
+                            return (BoolExpression::Bool(left_val == right_val), false)
+                        },
+                        _ => {
+                            panic!("invalid type in EQ expression in guard")
+                        }
+                    }
+                },
+                _ => {
+                    panic!("invalid type in EQ expression in guard")
+                }
+            }
+        },
         BoolExpression::LessT(left, right) => {
             let (computed_left, contains_clock_left) = apply_constraints_to_state_helper(&**left, state, zone, dimensions, false);
             let (computed_right, contains_clock_right) = apply_constraints_to_state_helper(&**right, state, zone, dimensions, false);
@@ -252,7 +296,7 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
             if let Some(val) = state.get_declarations().get_ints().get(name.as_str()) {
                 return (BoolExpression::Int(*val), false)
             }
-            panic!("could not find variable in declarations");
+            panic!("could not find variable: {:?} in declarations", name);
         },
         BoolExpression::Bool(val) => {
             return (BoolExpression::Bool(*val), false)

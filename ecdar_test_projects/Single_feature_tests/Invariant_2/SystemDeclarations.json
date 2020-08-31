@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Component1, Component2, Component3;\n\nIO Component1 {i?,ri?,o!,ro!}\nIO Component2 {i!,i!, o?}\nIO Component3 {ri?, ro!}"
+}

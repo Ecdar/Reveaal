@@ -44,7 +44,7 @@ char = {!("\"") ~ ANY}
 
 operator = { "+" | "-" }
 highOperator = { "/" | "*" | "%" }
-lowOperator = { ">=" | "<=" | "<" | ">" }
+lowOperator = { ">=" | "<=" | "==" | "<" | ">" }
 
 
 WHITESPACE = _{ " " }

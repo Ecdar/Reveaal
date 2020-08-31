@@ -15,7 +15,7 @@
     "isPeriodic": false
   },
   {
-    "query": "consistency: (Administration || Machine || Researcher : A[] not Researcher.Universal)",
+    "query": "consistency: (Administration || Machine || Researcher)",
     "comment": "",
     "isPeriodic": false
   },

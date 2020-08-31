@@ -94,32 +94,35 @@ where
 
                         let s = split_string[i].replace("{", "");
                         let p = s.replace("}", "");
-                        let q = p.replace(",", "");
-                        if q.len() == 0 {
-                            continue;
-                        }
-                        if q.ends_with("?") {
-                            let r = q.replace("?", "");
-                            if let Some(Channel_vec) = input_actions.get_mut(&component_name){
-                                Channel_vec.push(r)
-                            } else {
-                                let mut Channel_vec = vec![];
-                                Channel_vec.push(r);
-                                input_actions.insert(component_name.clone(),Channel_vec);
+                        let comp_actions : Vec<String> = p.split(",").map(|s| s.into()).collect();
+                        for action in comp_actions {                        
+                            if action.len() == 0 {
+                                continue;
                             }
-                            
-                        } else if q.ends_with("!") {
-                            let r = q.replace("!", "");
-                            if let Some(Channel_vec) = output_actions.get_mut(&component_name){
-                                Channel_vec.push(r.clone())
+                            if action.ends_with("?") {
+                                let r = action.replace("?", "");
+                                if let Some(Channel_vec) = input_actions.get_mut(&component_name){
+                                    Channel_vec.push(r)
+                                } else {
+                                    let mut Channel_vec = vec![];
+                                    Channel_vec.push(r);
+                                    input_actions.insert(component_name.clone(),Channel_vec);
+                                }
+                                
+                            } else if action.ends_with("!") {
+                                let r = action.replace("!", "");
+                                if let Some(Channel_vec) = output_actions.get_mut(&component_name){
+                                    Channel_vec.push(r.clone())
+                                } else {
+                                    let mut Channel_vec = vec![];
+                                    Channel_vec.push(r.clone());
+                                    output_actions.insert(component_name.clone(),Channel_vec);
+                                }
                             } else {
-                                let mut Channel_vec = vec![];
-                                Channel_vec.push(r.clone());
-                                output_actions.insert(component_name.clone(),Channel_vec);
+                                panic!("Channel type not defined for Channel {:?}", action)
                             }
-                        } else {
-                            panic!("Channel type not defined for Channel {:?}", q)
                         }
+                        
                     }
 
                 } else {

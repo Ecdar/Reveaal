@@ -1,0 +1,7 @@
+[
+  {
+    "query": "refinement:(Administration ||Machine || Researcher) \u003c\u003d Spec",
+    "comment": "",
+    "isPeriodic": false
+  }
+]

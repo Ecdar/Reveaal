@@ -5,16 +5,28 @@ use super::super::ModelObjects::component;
 use super::super::ModelObjects::system_declarations;
 
 //This function should create a system representation and extract the goal
-pub fn create_system_rep_from_query<'systemlifetime>(full_query : &Query, components : &Vec<component::Component>) -> (SystemRepresentation, SystemRepresentation, String) {
+pub fn create_system_rep_from_query<'systemlifetime>(full_query : &Query, components : &Vec<component::Component>) -> (SystemRepresentation, Option<SystemRepresentation>, String) {
     println!("Query: {:?}", full_query);
     let mut clock_index : u32 = 0;
 
     if let Some(query) = full_query.get_query() { 
         match query {
             QueryExpression::Refinement(leftside, rightside) => {
-                (extract_side(leftside,components,&mut clock_index), extract_side(rightside,components,&mut clock_index), String::from("refinement"))
+                (extract_side(leftside,components,&mut clock_index), Some(extract_side(rightside,components,&mut clock_index)), String::from("refinement"))
             },
-            //Should handle consistency, Implementation, determantion and specificiation here, but we cant deal with it atm anyway
+            QueryExpression::Specification(body) => {
+                (extract_side(body,components,&mut clock_index), None,  String::from("specification"))
+            },
+            QueryExpression::Consistency(body) => {
+                (extract_side(body,components,&mut clock_index), None,  String::from("consistency"))
+            },
+            QueryExpression::Implementation(body) => {
+                (extract_side(body,components,&mut clock_index), None,  String::from("implementation"))
+            },
+            QueryExpression::Determinism(body) => {
+                (extract_side(body,components,&mut clock_index), None,  String::from("determinism"))
+            }
+            //Should handle consistency, Implementation, determinism and specificiation here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query)
         }
     } else {
@@ -47,30 +59,3 @@ fn extract_side(side : &QueryExpression, components : &Vec<component::Component>
         _ => panic!("Got unexpected query side: {:?}", side)
     }
 }
-
-// pub enum QueryExpression {
-//     Refinement(Box<QueryExpression>, Box<QueryExpression>),
-//     Consistency(Box<QueryExpression>),
-//     Implementation(Box<QueryExpression>),
-//     Determinism(Box<QueryExpression>),
-//     Specification(Box<QueryExpression>),
-//     Conjunction(Box<QueryExpression>, Box<QueryExpression>),
-//     Composition(Box<QueryExpression>, Box<QueryExpression>),
-//     Quotient(Box<QueryExpression>, Box<QueryExpression>),
-//     Possibly(Box<QueryExpression>),
-//     Invariantly(Box<QueryExpression>),
-//     EventuallyAlways(Box<QueryExpression>),
-//     Potentially(Box<QueryExpression>),
-//     Parentheses(Box<QueryExpression>),
-//     ComponentExpression(Box<QueryExpression>, Box<QueryExpression>),
-//     AndOp(Box<QueryExpression>, Box<QueryExpression>),
-//     OrOp(Box<QueryExpression>, Box<QueryExpression>),
-//     LessEQ(Box<QueryExpression>, Box<QueryExpression>),
-//     GreatEQ(Box<QueryExpression>, Box<QueryExpression>),
-//     LessT(Box<QueryExpression>, Box<QueryExpression>),
-//     GreatT(Box<QueryExpression>, Box<QueryExpression>),
-//     Not(Box<QueryExpression>),
-//     VarName(String),
-//     Bool(bool),
-//     Int(i32),
-// }

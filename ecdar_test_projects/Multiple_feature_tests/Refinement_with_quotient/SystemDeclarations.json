@@ -1,0 +1,4 @@
+{
+  "name": "System Declarations",
+  "declarations": "system Administration, Machine, Researcher, Spec;\n\nIO Administration {grant?,pub?,coin!,patent!}\nIO Machine {coin?,cof!,tea!}\nIO Researcher {cof?,tea?,pub!}\nIO Spec{grant?,patent!} \n"
+}

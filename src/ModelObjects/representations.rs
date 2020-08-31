@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use super::component::Component;
 use super::component::State;
+use super::super::DBMLib::lib;
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum BoolExpression {
@@ -10,6 +11,7 @@ pub enum BoolExpression {
     GreatEQ(Box<BoolExpression>, Box<BoolExpression>),
     LessT(Box<BoolExpression>, Box<BoolExpression>),
     GreatT(Box<BoolExpression>, Box<BoolExpression>),
+    EQ(Box<BoolExpression>, Box<BoolExpression>),
     Parentheses(Box<BoolExpression>),
     Clock(u32),
     VarName(String),
@@ -51,6 +53,17 @@ pub enum SystemRepresentation {
     Conjunction(Box<SystemRepresentation>, Box<SystemRepresentation>),
     Parentheses(Box<SystemRepresentation>),
     Component(Component)
+}
+
+pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
+    println!("DBM:");
+    for i in 0..*dimension {
+        print!("( ");
+        for j in 0..*dimension {
+            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, *dimension, i, j));
+        }
+        print!(")\n");
+    }
 }
 
 // pub enum SystemRepresentation<'systemlifetime> {

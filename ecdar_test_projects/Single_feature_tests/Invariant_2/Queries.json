@@ -1,0 +1,7 @@
+[
+  {
+    "query": "refinement: (Component1 || Component2) \u003c\u003d Component3",
+    "comment": "",
+    "isPeriodic": false
+  }
+]
