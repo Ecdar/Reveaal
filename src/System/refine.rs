@@ -11,8 +11,7 @@ use std::cell::Cell;
 thread_local!(static INDEX1: Cell<usize> = Cell::new(0));
 thread_local!(static INDEX2: Cell<usize> = Cell::new(0));
 
-//------------------ NEW IMPL -----------------
-
+//------------------ NEW IMPL ------------------
 pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation, sys_decls : &system_declarations::SystemDeclarations) -> Result<bool, String>{
     let mut inputs2 : Vec<String> = vec![];
     let mut outputs1 : Vec<String> = vec![];
@@ -37,7 +36,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
-    'Outer: while !waiting_list.is_empty() {
+    while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
         println!("outpust {:?}", outputs1);
         for output in &outputs1 {
@@ -108,8 +107,6 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
     return Ok(true)
 }
 
-    
-
 fn collect_open_edges<'a>(
     sys: &'a SystemRepresentation,
     curr_pair : & StatePair<'a>,
@@ -134,7 +131,6 @@ fn collect_open_edges<'a>(
                     return left_found_transitions == right_found_transitions
                 }
             }            
-
             return false
         },
         SystemRepresentation::Parentheses(rep) => {
@@ -354,32 +350,31 @@ fn build_state_pair<'a>(
     if !inv_success1 || !inv_success2 {
         return false
     }
-    println!("dbm - dbm");
 
     representations::print_DBM(&mut invarent_test, &dim);
     representations::print_DBM(&mut new_sp_zone, &dim);
-    // let mut inv_test_vec = vec![invarent_test.as_mut_ptr()];
-    // let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
+    let mut inv_test_vec = vec![invarent_test.as_mut_ptr()];
+    let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
     // println!("start fed test dim is {:?}", dim);
-    // let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
+    let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
     // println!("fed test sucess, fed res len is {:?}", fed_res.len());
 
     println!("states1: {:?}", curr_pair.get_states1());
     println!("states2: {:?}", curr_pair.get_states2());
     //could not get dbm_minus_dbm working
-    let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
+    //let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
 
-    if dbm_test.len() > 0 {
-        println!("return false");
+    if fed_res.len() > 0 {
+        //TODO: Report failure to main function - programmer error
         return false
     }
-    return false;
 
-    //cant figure out how/what the maxbounds should be
+    //cant figure out how/what the maxbounds should be - Spørg ulrik
     // let max_bounds = [0];
     // lib::rs_dbm_extrapolateMaxBounds(&mut new_sp_zone, dim, max_bounds.as_ptr());
     
     //Check all other comps for potential syncs
+    //TODO: Kig efter om det her ikke bør kunne ske under input step
     let mut test_zone1 = new_sp_zone.clone(); 
     if apply_syncs_to_comps(sys1, &mut new_sp, &index_vec1, &mut test_zone1, action, dim, &mut 0, is_state1, adding_input) {
         new_sp_zone = test_zone1;
@@ -588,7 +583,7 @@ fn prepare_init_state(initial_pair: &mut StatePair, initial_states_1: Vec<State>
 fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentation, outputs1 : &Vec<String>, inputs2 : &Vec<String>, sys_decls : &system_declarations::SystemDeclarations) -> bool {
     let mut outputs2 : Vec<String> = vec![];
     let mut inputs1 :Vec<String> = vec![];
-    let mut disposable = vec![]; //Dispoasable vector needed to be parsed to get_actions
+    let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions
 
     get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
     get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
