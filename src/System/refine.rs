@@ -38,7 +38,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-        println!("outpust {:?}", outputs1);
+        //println!("outpust {:?}", outputs1);
         for output in &outputs1 {
             combined_transitions1.clear();
             combined_transitions2.clear();
@@ -50,7 +50,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
             if !collect_open_edges(&sys2, &curr_pair, output, false, &mut combined_transitions2, &component::SyncType::Output){
                 return Err("Conjunction rules on output not satisfied on right side".to_string())
             }
-            println!("1: {:?}\n2: {:?}", combined_transitions1, combined_transitions2);
+            //println!("1: {:?}\n2: {:?}", combined_transitions1, combined_transitions2);
             if combined_transitions1.len() > 0 {
                 if combined_transitions2.len() > 0 {
                     //If this returns false we should continue after resetting global indexes
@@ -70,7 +70,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
             });
         }
 
-        println!("inputs {:?}", inputs2);
+        //println!("inputs {:?}", inputs2);
         for input in &inputs2 {
             combined_transitions1.clear();
             combined_transitions2.clear();
@@ -86,6 +86,8 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(&combined_transitions2, &combined_transitions1, &curr_pair, &mut waiting_list, &mut passed_list, &sys2, &sys1, input, true, false){
                         return Ok(false)
+                    } else {
+                        println!("Should something be done here???");
                     }
         
                 } else {
@@ -184,10 +186,10 @@ fn create_new_state_pairs<'a>(
     let dim = curr_pair.get_dimensions();
     let len = dim * dim;
     //Create guard zones left
-    println!("Zones1");
+    //println!("Zones1");
     for (_,edge_vec1, state_index) in transitions1 {
         for edge in edge_vec1 {
-            println!("Edge: {:?}", edge);
+            //println!("Edge: {:?}", edge);
             let mut zone = [0;1000];
             lib::rs_dbm_init(&mut zone[0..len as usize], dim);
             let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, *state_index, true);
@@ -198,10 +200,10 @@ fn create_new_state_pairs<'a>(
         }         
     }
     //Create guard zones right
-    println!("Zones2");
+    //println!("Zones2");
     for (_, edge_vec2, state_index) in transitions2 {
         for edge in edge_vec2 {
-            println!("Edge: {:?}", edge);
+            //println!("Edge: {:?}", edge);
             let mut zone = [0;1000];
             lib::rs_dbm_init(&mut zone[0..len as usize], dim);
             let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, *state_index, false);
@@ -220,7 +222,7 @@ fn create_new_state_pairs<'a>(
     // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dim, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dim, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dim, 2, 2)));
     // }
 
-    println!("fed len {:?}", result_federation_vec.len());
+    //println!("fed len {:?}", result_federation_vec.len());
     if result_federation_vec.len() > 0 {
         println!("fed len greater than 0");
         return false
@@ -281,7 +283,7 @@ fn build_state_pair<'a>(
     let mut new_sp_zone = curr_pair.get_dbm_clone();
     new_sp.set_dimensions(curr_pair.get_dimensions());
     let dim = new_sp.get_dimensions();
-    println!("new_sp init");
+    //println!("new_sp init");
     representations::print_DBM(&mut new_sp_zone, &dim);
     //Apply guards on both sides
     let mut g1_success = true;
@@ -296,7 +298,8 @@ fn build_state_pair<'a>(
     if !g1_success || !g2_success {
         return false
     }
-    println!("new_sp after guard");
+
+    //println!("new_sp after guard");
     representations::print_DBM(&mut new_sp_zone, &dim);
 
     //Apply updates on both sides
@@ -306,7 +309,7 @@ fn build_state_pair<'a>(
     for (_, edge, state_index) in transitions2 {
         apply_update(edge, &mut new_sp, &mut new_sp_zone, dim, *state_index, !is_state1);
     }
-    println!("new_sp after update");
+    //println!("new_sp after update");
     representations::print_DBM(&mut new_sp_zone, &dim);
 
     //Update locations in states
@@ -359,8 +362,8 @@ fn build_state_pair<'a>(
     let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
     // println!("fed test sucess, fed res len is {:?}", fed_res.len());
 
-    println!("states1: {:?}", curr_pair.get_states1());
-    println!("states2: {:?}", curr_pair.get_states2());
+    // println!("states1: {:?}", curr_pair.get_states1());
+    // println!("states2: {:?}", curr_pair.get_states2());
     //could not get dbm_minus_dbm working
     //let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
 
@@ -594,23 +597,11 @@ fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentatio
             for q in (j + 1)..outputs1.len() {
                 if outputs1[j] == outputs1[q] {
                     println!("output duplicate found on left side");
-                    return false
-                }
+                    panic!("Duplicate outputs found in system decl")                }
             }
         }
     }
-
-    if outputs2.len() > 0 {
-        for j in 0..outputs2.len() - 1 {
-            for q in (j + 1)..outputs2.len() {
-                if outputs2[j] == outputs2[q] {
-                    println!("output duplicate found on left side");
-                    return false
-                }
-            }
-        }
-    }
-
+    
     for o1 in outputs1 {
         let mut found_match = false;
         for o2 in &outputs2 {
@@ -625,23 +616,18 @@ fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentatio
         }
     }
 
-    if inputs1.len() == inputs2.len() {
-        for i2 in inputs2 {
-            let mut found_match = false;
-            for i1 in &inputs1 {
-                if i1 == i2 {
-                    found_match = true;
-                    break;
-                }
-            }
-            if !found_match {
-                println!("left side could not match a input from right side");
-                return false
+    for i2 in inputs2 {
+        let mut found_match = false;
+        for i1 in &inputs1 {
+            if i1 == i2 {
+                found_match = true;
+                break;
             }
         }
-    } else {
-        println!("not equal length i1 {:?}, i2 {:?}", inputs1, inputs2);
-        return false
+        if !found_match {
+            println!("left side could not match a input from right side");
+            return false
+        }
     }
 
     return true

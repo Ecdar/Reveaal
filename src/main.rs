@@ -24,11 +24,11 @@ pub fn main() {
     let mut optimized_components = vec![];
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();
-        println!("COMPONENT: {:?}", optimized_comp.name);
-        println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
+        // println!("COMPONENT: {:?}", optimized_comp.name);
+        // println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
         input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
-        println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
-        println!("-------------------");
+        // println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
+        // println!("-------------------");
         optimized_components.push(optimized_comp);
     }
 

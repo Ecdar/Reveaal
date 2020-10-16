@@ -1,6 +1,6 @@
 [
   {
-    "query": "refinement: (A || G) \u003c\u003d (A || Imp)",
+    "query": "refinement: (A || G) <= (A || Imp)",
     "comment": "",
     "isPeriodic": false
   },

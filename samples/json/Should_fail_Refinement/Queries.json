@@ -1,6 +1,6 @@
 [
   {
-    "query": "refinement: Component1 <= Component2",
+    "query": "refinement: Component1 <= Component1",
     "comment": "",
     "isPeriodic": false
   }

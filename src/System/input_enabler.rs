@@ -70,24 +70,24 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         false
                     };
 
-                    println!("---------------");
+                    // println!("---------------");
                     let mut update_clocks = vec![];
                     if let Some(_) = edge.get_update() {
                         update_clocks = edge.get_update_clocks();
-                        println!("UPDATE CLOCKS: {:?}", update_clocks);
+                        // println!("UPDATE CLOCKS: {:?}", update_clocks);
                     }
                     has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
                         //println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
                         let mut inv_clocks = vec![];
                         get_inv_clocks(target_invariant, component, &mut inv_clocks);
-                        println!("INV CLOCKS: {:?}", inv_clocks);
+                        // println!("INV CLOCKS: {:?}", inv_clocks);
                         let mut should_apply_inv = false;
                         for clock in &inv_clocks {
                             if !update_clocks.contains(clock) { should_apply_inv = true } 
                         }
                         let mut res = true;
                         if should_apply_inv {
-                            println!("Applying inv");
+                            // println!("Applying inv");
                             res = constraint_applyer::apply_constraints_to_state(target_invariant,&mut state ,&mut guard_zone[0..len as usize], &dimension);
                         }      
                         res                  
@@ -125,7 +125,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 }
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {
-                        println!("Skipping a null ptr");
+                        // println!("Skipping a null ptr");
                         continue;
                     }
                     new_edges.push(component::Edge {
@@ -140,8 +140,8 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
             }
         }
     }
-    println!("Adding new edges: {:?}", new_edges);
-    println!("Decls for new edges: {:?}", component.get_declarations().get_clocks());
+    // println!("Adding new edges: {:?}", new_edges);
+    // println!("Decls for new edges: {:?}", component.get_declarations().get_clocks());
     component.add_input_edges(&mut new_edges);
 
 }
