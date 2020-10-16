@@ -12,6 +12,33 @@ const LT : i32 = 0;
 const LTE : i32 = 1;
 pub const DBM_INF : i32 = i32::MAX -1;
 
+/// Checks DBMS validity
+/// returns true or false
+///
+/// # Arguments
+///
+/// * `dbm` - A mutable pointer to an array, which will be the dbm
+/// * `dimension` - The dimension of the dbm
+///
+/// # Examples
+///
+/// ```
+/// let mut dbm : [i32; 9] = [0; 9];
+/// dbm_init(dbm.as_mut_ptr(), 3);
+/// ```
+pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> bool {
+    unsafe {
+        let res =  dbm_isValid(dbm.as_mut_ptr(), dimension);
+        return if BOOL_TRUE == res{
+            true
+        } else if BOOL_FALSE == res {
+            false
+        } else {
+            panic!("Could not convert bool value from libary, found {:?}", res)
+        }
+    }
+}
+
 /// Initializes a DBM with 
 /// * <= 0 on the diagonal and the first row
 /// * <= infinity elsewhere

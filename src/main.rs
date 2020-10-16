@@ -4,6 +4,7 @@ mod System;
 mod EdgeEval;
 mod ModelObjects;
 mod DBMLib;
+mod tests;
 use std::{fs, io};
 use clap::{load_yaml, App};
 use ModelObjects::queries;

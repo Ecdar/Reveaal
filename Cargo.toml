@@ -14,7 +14,11 @@ pest = "2.1.3"
 pest_derive = "2.1.0"
 pkg-config = {git = "https://github.com/rust-lang/pkg-config-rs.git"}
 generic-array = "0.14.4"
+lazy_static = "1.4.0"
+xml-rs = "0.8.3"
 
 [build-dependencies]
 bindgen = "0.54.0"
 cc = "1.0.56"
+
+
