@@ -13,9 +13,7 @@ use ModelObjects::system_declarations;
 use DataReader::json_reader;
 use System::input_enabler;
 use System::refine;
-use ModelObjects::representations;
 use System::extract_system_rep;
-use generic_array::{ArrayLength, GenericArray,arr};
 
 #[macro_use]
 extern crate pest_derive;

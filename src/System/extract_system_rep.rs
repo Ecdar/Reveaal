@@ -2,7 +2,6 @@ use super::super::ModelObjects::representations::SystemRepresentation;
 use super::super::ModelObjects::representations::QueryExpression;
 use super::super::ModelObjects::queries::Query;
 use super::super::ModelObjects::component;
-use super::super::ModelObjects::system_declarations;
 
 //This function should create a system representation and extract the goal
 pub fn create_system_rep_from_query<'systemlifetime>(full_query : &Query, components : &Vec<component::Component>) -> (SystemRepresentation, Option<SystemRepresentation>, String) {

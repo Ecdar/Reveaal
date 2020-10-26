@@ -1,9 +1,6 @@
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
-use crate::ModelObjects::representations::BoolExpression::Bool;
 use super::super::DBMLib::lib;
-use pest::state;
-use crate::DBMLib::lib::rs_dbm_satisfies_i_EQUAL_j_bounds;
 
 
 pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::State, zone : &mut [i32], dimensions : &u32) -> bool{

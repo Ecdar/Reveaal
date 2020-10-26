@@ -1,6 +1,6 @@
 {
   "name": "Component2",
-  "declarations": "clock y;",
+  "declarations": "clock x;",
   "locations": [
     {
       "id": "L2",
@@ -37,7 +37,7 @@
       "targetLocation": "L3",
       "status": "OUTPUT",
       "select": "",
-      "guard": "y\u003c\u003d2",
+      "guard": "x\u003c\u003d4",
       "update": "",
       "sync": "o!",
       "isLocked": false,

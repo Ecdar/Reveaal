@@ -5,11 +5,11 @@ mod Conjunction_refinement {
     use crate::ModelObjects::representations::SystemRepresentation;
     use std::borrow::Borrow;
 
-    static path: &str = "samples/json/Conjunction";
+    static PATH: &str = "samples/json/Conjunction";
 
     #[test]
     fn T1RefinesSelf() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
                                          SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
                                          decl.borrow()).unwrap());
@@ -17,7 +17,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T2RefinesSelf() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
                                          SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
                                          decl.borrow()).unwrap());
@@ -25,7 +25,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T3RefinesSelf() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
                                          SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
                                          decl.borrow()).unwrap());
@@ -33,7 +33,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T4RefinesSelf() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
                                          SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
                                          decl.borrow()).unwrap());
@@ -41,7 +41,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T5RefinesSelf() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
                                          SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
                                          decl.borrow()).unwrap());
@@ -49,7 +49,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T1ConjT2RefinesT3() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
                                               Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone()))),
@@ -59,7 +59,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T2ConjT3RefinesT1() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone())),
                                               Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone()))),
@@ -69,7 +69,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T1ConjT3RefinesT2() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
                                               Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone()))),
@@ -79,7 +79,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T1ConjT2ConjT4RefinesT5() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(
                 Box::from(SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
@@ -91,7 +91,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T3ConjT4RefinesT5() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone())),
                                               Box::from(SystemRepresentation::Component(automataList.get(3).unwrap().clone()))),
@@ -101,7 +101,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn test1NestedConjRefinesT5() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         let ts1: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
                                                                           Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone())));
         let ts2: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(ts1),
@@ -112,7 +112,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn T6ConjT7RefinesT8() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
             SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(5).unwrap().clone())),
                                               Box::from(SystemRepresentation::Component(automataList.get(6).unwrap().clone()))),
@@ -122,7 +122,7 @@ mod Conjunction_refinement {
 
     #[test]
     fn test1NestedConjRefinesT12() {
-        let (automataList, decl) = setup(path.to_string());
+        let (automataList, decl) = setup(PATH.to_string());
         let ts1: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(8).unwrap().clone())),
                                                                           Box::from(SystemRepresentation::Component(automataList.get(9).unwrap().clone())));
         let ts2: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(ts1),

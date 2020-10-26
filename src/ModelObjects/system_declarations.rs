@@ -3,9 +3,9 @@ use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SystemDeclarations {
-    name : String,
+    pub(crate) name : String,
     #[serde(deserialize_with = "decode_sync_type")]
-    declarations : SystemSpecification,
+    pub(crate) declarations : SystemSpecification,
 }
 
 impl SystemDeclarations {
@@ -19,9 +19,9 @@ impl SystemDeclarations {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SystemSpecification {
-    components : Vec<String>,
-    input_actions : HashMap<String, Vec<String>>,
-    output_actions : HashMap<String, Vec<String>>,
+    pub(crate) components : Vec<String>,
+    pub(crate) input_actions : HashMap<String, Vec<String>>,
+    pub(crate) output_actions : HashMap<String, Vec<String>>,
 }
 
 impl SystemSpecification {

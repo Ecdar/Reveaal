@@ -87,6 +87,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
                     if !create_new_state_pairs(&combined_transitions2, &combined_transitions1, &curr_pair, &mut waiting_list, &mut passed_list, &sys2, &sys1, input, true, false){
                         return Ok(false)
                     } else {
+                        //return Ok(true);
                         println!("Should something be done here???");
                     }
         
@@ -186,12 +187,13 @@ fn create_new_state_pairs<'a>(
     let dim = curr_pair.get_dimensions();
     let len = dim * dim;
     //Create guard zones left
-    //println!("Zones1");
+    println!("Zones1");
     for (_,edge_vec1, state_index) in transitions1 {
         for edge in edge_vec1 {
             //println!("Edge: {:?}", edge);
             let mut zone = [0;1000];
-            lib::rs_dbm_init(&mut zone[0..len as usize], dim);
+            lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
+            lib::rs_dbm_up(&mut zone[0..len as usize], dim);
             let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, *state_index, true);
             if g_succes {   
                 representations::print_DBM(&mut zone, &dim);     
@@ -200,12 +202,13 @@ fn create_new_state_pairs<'a>(
         }         
     }
     //Create guard zones right
-    //println!("Zones2");
+    println!("Zones2");
     for (_, edge_vec2, state_index) in transitions2 {
         for edge in edge_vec2 {
             //println!("Edge: {:?}", edge);
             let mut zone = [0;1000];
-            lib::rs_dbm_init(&mut zone[0..len as usize], dim);
+            lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
+            lib::rs_dbm_up(&mut zone[0..len as usize], dim);
             let g_succes = apply_guard(edge, &curr_pair, &mut zone, &dim, *state_index, false);
             if g_succes {    
                 representations::print_DBM(&mut zone, &dim);     
@@ -279,27 +282,33 @@ fn build_state_pair<'a>(
     adding_input : bool,
     is_state1: bool,
 ) -> bool {
+    //Creates new state pair
     let mut new_sp : StatePair = create_state_pair(curr_pair.states1.clone(), curr_pair.states2.clone());
+    //Creates DBM for that sate pair
     let mut new_sp_zone = curr_pair.get_dbm_clone();
     new_sp.set_dimensions(curr_pair.get_dimensions());
     let dim = new_sp.get_dimensions();
     //println!("new_sp init");
     representations::print_DBM(&mut new_sp_zone, &dim);
     //Apply guards on both sides
+    //Boolean for the left side guards
     let mut g1_success = true;
+    //Boolean for the right side guards
     let mut g2_success = true;
+    //Applies the left side guards and checks if zone is valid
     for (_, edge, state_index) in transitions1 {
         g1_success = g1_success && apply_guard(edge, &new_sp, &mut new_sp_zone, &dim, *state_index, is_state1);
     }
+    //Applies the right side guards and checks if zone is valid
     for (_, edge, state_index) in transitions2 {
         g2_success = g2_success && apply_guard(edge, &new_sp, &mut new_sp_zone, &dim, *state_index, !is_state1);
     }
-    
+    //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
         return false
     }
 
-    //println!("new_sp after guard");
+    println!("new_sp after guard");
     representations::print_DBM(&mut new_sp_zone, &dim);
 
     //Apply updates on both sides
@@ -309,7 +318,7 @@ fn build_state_pair<'a>(
     for (_, edge, state_index) in transitions2 {
         apply_update(edge, &mut new_sp, &mut new_sp_zone, dim, *state_index, !is_state1);
     }
-    //println!("new_sp after update");
+    println!("new_sp after update");
     representations::print_DBM(&mut new_sp_zone, &dim);
 
     //Update locations in states
@@ -332,31 +341,32 @@ fn build_state_pair<'a>(
             new_sp.get_mut_states2()[*state_index].set_location(next_location);
         }
     }
-
+    //Perform a delay on the zone after the updates were applied
     lib::rs_dbm_up(&mut new_sp_zone, dim);
 
-    // Apply invariants on both sides and collect used indexes
+    // Apply invariants on the left side of relation
     let mut inv_success1 = true;
-    let mut inv_success2 = true;
     let mut index_vec1 : Vec<usize> = vec![];
-    let mut index_vec2 : Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
         inv_success1 = inv_success1 && apply_invariant(&new_sp, &mut new_sp_zone, &dim, *state_index, is_state1);
         index_vec1.push(*state_index);
     }
-    let mut invarent_test = new_sp_zone.clone();
+    // Perform a copy of the zone and apply right side invariants on the copied zone
+    let mut inv_success2 = true;
+    let mut index_vec2 : Vec<usize> = vec![];
+    let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
-        inv_success2 = inv_success2 && apply_invariant(&new_sp, &mut new_sp_zone, &dim, *state_index, !is_state1);
+        inv_success2 = inv_success2 && apply_invariant(&new_sp, &mut invariant_test, &dim, *state_index, !is_state1);
         index_vec2.push(*state_index);
     }
-
+    // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
         return false
     }
 
-    representations::print_DBM(&mut invarent_test, &dim);
+    representations::print_DBM(&mut invariant_test, &dim);
     representations::print_DBM(&mut new_sp_zone, &dim);
-    let mut inv_test_vec = vec![invarent_test.as_mut_ptr()];
+    let mut inv_test_vec = vec![invariant_test.as_mut_ptr()];
     let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
     // println!("start fed test dim is {:?}", dim);
     let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
@@ -364,15 +374,18 @@ fn build_state_pair<'a>(
 
     // println!("states1: {:?}", curr_pair.get_states1());
     // println!("states2: {:?}", curr_pair.get_states2());
-    //could not get dbm_minus_dbm working
+    //TODO could not get dbm_minus_dbm working
     //let dbm_test = lib::rs_dbm_minus_dbm(&mut invarent_test, &mut new_sp_zone, dim);
 
+
+    // Check if the invariant of the other side does not cut solutions and if so, report failure
+    // This also happens to be a delay check
     if fed_res.len() > 0 {
         //TODO: Report failure to main function - programmer error
         return false
     }
 
-    //cant figure out how/what the maxbounds should be - Spørg ulrik
+    // TODO cant figure out how/what the maxbounds should be - Spørg ulrik
     // let max_bounds = [0];
     // lib::rs_dbm_extrapolateMaxBounds(&mut new_sp_zone, dim, max_bounds.as_ptr());
     
@@ -505,7 +518,8 @@ fn apply_update(edge: &component::Edge, new_sp: &mut StatePair, zone: &mut [i32]
 }
 
 fn apply_invariant(new_sp: &StatePair, zone: &mut [i32], dim: &u32, state_index : usize, is_state1: bool) -> bool {
-    let mut inv_success = true;
+
+    let mut inv_success = true; //unused variable
     if is_state1 {
             inv_success = if let Some(inv) = new_sp.get_states1()[state_index].get_location().get_invariant() {
                 apply_constraints_to_state(&inv, &new_sp.get_states1()[state_index], zone, dim)
@@ -592,15 +606,15 @@ fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentatio
     get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
     drop(disposable); //Dropped from memory afterwards
 
-    if outputs1.len() > 0 {
-        for j in 0..outputs1.len() - 1 {
-            for q in (j + 1)..outputs1.len() {
-                if outputs1[j] == outputs1[q] {
-                    println!("output duplicate found on left side");
-                    panic!("Duplicate outputs found in system decl")                }
-            }
-        }
-    }
+    // if outputs1.len() > 0 {
+    //     for j in 0..outputs1.len() - 1 {
+    //         for q in (j + 1)..outputs1.len() {
+    //             if outputs1[j] == outputs1[q] {
+    //                 println!("output duplicate found on left side");
+    //                 panic!("Duplicate outputs found in system decl")                }
+    //         }
+    //     }
+    // }
     
     for o1 in outputs1 {
         let mut found_match = false;
@@ -616,19 +630,19 @@ fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentatio
         }
     }
 
-    for i2 in inputs2 {
-        let mut found_match = false;
-        for i1 in &inputs1 {
-            if i1 == i2 {
-                found_match = true;
-                break;
-            }
-        }
-        if !found_match {
-            println!("left side could not match a input from right side");
-            return false
-        }
-    }
+    // for i2 in inputs2 {
+    //     let mut found_match = false;
+    //     for i1 in &inputs1 {
+    //         if i1 == i2 {
+    //             found_match = true;
+    //             break;
+    //         }
+    //     }
+    //     if !found_match {
+    //         println!("left side could not match a input from right side");
+    //         return false
+    //     }
+    // }
 
     return true
 }

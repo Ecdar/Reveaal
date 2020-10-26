@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 
 use std::ptr::slice_from_raw_parts;
-use std::slice::from_raw_parts;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
@@ -549,7 +548,7 @@ pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
         let fed_size = dbm_get_fed_size(fed);
         for i in 0..fed_size {
             let raw_data = dbm_get_ith_element_in_fed(fed, i);
-            let mut dbm_slice = slice_from_raw_parts(raw_data,dbm_get_dbm_dimension(fed) as usize);
+            let dbm_slice = slice_from_raw_parts(raw_data,dbm_get_dbm_dimension(fed) as usize);
             let new_const_ptr: *const i32 = (& *dbm_slice).as_ptr();
             result.push(new_const_ptr);
         }
@@ -564,6 +563,11 @@ pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
 pub fn rs_dbm_up(dbm : &mut[i32], dimension : u32){
     unsafe {
         dbm_up(dbm.as_mut_ptr(), dimension);
+    }
+}
+pub fn rs_dbm_zero(dbm : &mut[i32], dimension : u32){
+    unsafe {
+        dbm_zero_exposed(dbm.as_mut_ptr(), dimension);
     }
 }
 

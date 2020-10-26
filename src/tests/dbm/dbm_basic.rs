@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::super::super::DBMLib::lib;
 
     #[test]
@@ -97,6 +96,28 @@ mod test {
         lib::rs_dbm_add_LTE_constraint(dbm, 2, 0, 1, -2);
         assert_eq!([1, -3, 11, 1].as_mut(), dbm);
     }
+
+    #[test]
+    fn testDbmConstrain4() {
+        //DBM With two clocks from o to inf both
+        let mut intArr = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let dbm = &mut intArr;
+        //Apply constraint on the first clock <= 5 in raw value 11
+        lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
+        //both clocks gets bounded to 11
+        assert_eq!([1, 1, 1, 11, 1, 1, 11, 1, 1].as_mut(), dbm);
+    }
+    #[test]
+    fn testDbmConstrain5() {
+        //DBM With two clocks from o to inf both
+        let mut intArr = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let dbm = &mut intArr;
+        //Apply constraint on the first clock <= 5 in raw value 11
+        lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
+        //both clocks gets bounded to 11
+        assert_eq!([1, 1, 1, 11, 1, 1, 11, 1, 1].as_mut(), dbm);
+    }
+
     #[test]
     fn testDbmConstrain3() {
         let mut intArr = [1, 1, 1, 1, 1, 1, 1, 1, 1];

@@ -1,11 +1,9 @@
 use serde::{Deserialize, Deserializer,Serialize};
 use std::collections::HashMap;
-use std::num;
 use super::representations;
 use super::parse_edge;
 use crate::DBMLib::lib;
 use super::parse_invariant;
-use super::super::EdgeEval::constraint_applyer;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
