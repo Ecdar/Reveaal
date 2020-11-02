@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod AG_Tests {
     use std::borrow::Borrow;
-    use super::super::super::super::refine;
     use crate::ModelObjects::representations::SystemRepresentation;
     use crate::tests::refinement::Helper::setup;
+    use crate::System::refine;
 
     static PATH: &str = "samples/json/AG";
 

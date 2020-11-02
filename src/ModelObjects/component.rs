@@ -124,7 +124,7 @@ pub enum LocationType {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Location {
     pub id: String,
-    #[serde(deserialize_with = "decode_invariant")]
+    #[serde(deserialize_with = "decode_invariant", default)]
     pub invariant: Option<representations::BoolExpression>,
     #[serde(deserialize_with = "decode_location_type", alias = "type")]
     pub location_type: LocationType,
@@ -146,7 +146,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 pub enum SyncType {
     Input,
     Output,
@@ -314,13 +314,13 @@ impl Declarations {
         &self.dimension
     }
     pub fn update_clock_indices(&mut self, start_index : u32) {
-        for (k, v ) in self.clocks.iter_mut() {
+        for (_, v ) in self.clocks.iter_mut() {
             *v = *v + start_index
         }
     }
     pub fn reset_clock_indicies(&mut self) {
         let mut i = 1;
-        for (k, v) in self.clocks.iter_mut() {
+        for (_, v) in self.clocks.iter_mut() {
             *v = i;
             i += 1;
         }
@@ -435,7 +435,7 @@ where
 
 
 //Function used for deserializing invariants
-fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
+pub fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {

@@ -5,3 +5,4 @@ mod Refinement_delay_add;
 mod Refinement_university;
 mod Refinement_unspec;
 pub mod Helper;
+pub mod xml;

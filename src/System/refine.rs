@@ -38,7 +38,7 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-        //println!("outpust {:?}", outputs1);
+        println!("outputs {:?}", outputs1);
         for output in &outputs1 {
             combined_transitions1.clear();
             combined_transitions2.clear();
@@ -518,22 +518,18 @@ fn apply_update(edge: &component::Edge, new_sp: &mut StatePair, zone: &mut [i32]
 }
 
 fn apply_invariant(new_sp: &StatePair, zone: &mut [i32], dim: &u32, state_index : usize, is_state1: bool) -> bool {
-
-    let mut inv_success = true; //unused variable
-    if is_state1 {
-            inv_success = if let Some(inv) = new_sp.get_states1()[state_index].get_location().get_invariant() {
-                apply_constraints_to_state(&inv, &new_sp.get_states1()[state_index], zone, dim)
-            } else {
-                true
-            };
-            return inv_success
+    return if is_state1 {
+        if let Some(inv) = new_sp.get_states1()[state_index].get_location().get_invariant() {
+            apply_constraints_to_state(&inv, &new_sp.get_states1()[state_index], zone, dim)
+        } else {
+            true
+        }
     } else {
-            inv_success = if let Some(inv) = new_sp.get_states2()[state_index].get_location().get_invariant() {
-                apply_constraints_to_state(&inv, &new_sp.get_states2()[state_index], zone, dim)
-            } else {
-                true
-            };
-            return inv_success
+        if let Some(inv) = new_sp.get_states2()[state_index].get_location().get_invariant() {
+            apply_constraints_to_state(&inv, &new_sp.get_states2()[state_index], zone, dim)
+        } else {
+            true
+        }
     }
 }
 
@@ -562,7 +558,7 @@ fn get_actions<'a>(sys_rep: &'a SystemRepresentation, sys_decls: &system_declara
             }
             let init_loc = comp.get_locations().into_iter().find(|location| location.get_location_type() == &component::LocationType::Initial);
             if let Some(init_loc) = init_loc {
-                let mut state = create_state(init_loc, comp.get_declarations().clone());
+                let state = create_state(init_loc, comp.get_declarations().clone());
                 states.push(state);
             }
         }

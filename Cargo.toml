@@ -16,6 +16,8 @@ pkg-config = {git = "https://github.com/rust-lang/pkg-config-rs.git"}
 generic-array = "0.14.4"
 lazy_static = "1.4.0"
 xml-rs = "0.8.3"
+serde-xml-rs = "0.4.0"
+elementtree = "0"
 
 [build-dependencies]
 bindgen = "0.54.0"

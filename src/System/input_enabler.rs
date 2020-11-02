@@ -156,7 +156,7 @@ fn build_guard_from_zone(zone: *const i32, dimension: u32, clocks : &HashMap<Str
     // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 2, 2)));
 
 
-    for (clock, index) in clocks {
+    for (_, index) in clocks {
         let raw_upper = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, *index, 0);
         let raw_lower = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, *index);
         
