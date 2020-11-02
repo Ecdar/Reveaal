@@ -489,6 +489,7 @@ mod Big_refinement {
         // assert!(refine::check_refinement(SystemRepresentation::Component(optimized_components.get(19).unwrap().clone()),
         //                                  SystemRepresentation::Component(optimized_components.get(20).unwrap().clone()),
         //                                  decl.borrow()).unwrap());
+
     }
 
     #[test]

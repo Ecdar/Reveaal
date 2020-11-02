@@ -5,22 +5,22 @@ broadcast chan i, o, o1, i1, o2,k, go;</declaration><template><name x="5" y="5">
 </declaration><location id="id36" x="88" y="-48"></location><location id="id37" x="224" y="-232"></location><location id="id38" x="80" y="-240"></location><location id="id39" x="224" y="-136"></location><location id="id40" x="80" y="-136"></location><location id="id41" x="-56" y="-136"></location><location id="id42" x="-184" y="-136"></location><init ref="id42"/><transition controllable="false" action=""><source ref="id40"/><target ref="id36"/><label kind="synchronisation" x="24" y="-107">go!</label></transition><transition controllable="false" action=""><source ref="id39"/><target ref="id37"/><label kind="synchronisation" x="160" y="-207">o!</label></transition><transition action=""><source ref="id40"/><target ref="id39"/><label kind="synchronisation" x="136" y="-160">i1?</label></transition><transition controllable="false" action=""><source ref="id40"/><target ref="id38"/><label kind="synchronisation" x="56" y="-208">o!</label></transition><transition controllable="false" action=""><source ref="id41"/><target ref="id40"/><label kind="synchronisation" x="0" y="-160">o1!</label></transition><transition action=""><source ref="id42"/><target ref="id41"/><label kind="synchronisation" x="-128" y="-160">i?</label></transition></template><template><name>P8</name><location id="id43" x="160" y="72"></location><location id="id44" x="248" y="-128"></location><location id="id45" x="248" y="-16"></location><location id="id46" x="168" y="-16"></location><location id="id47" x="48" y="-112"></location><location id="id48" x="48" y="-16"></location><location id="id49" x="-80" y="-16"></location><init ref="id49"/><transition controllable="false" action=""><source ref="id46"/><target ref="id43"/><label kind="synchronisation" x="136" y="8">go!</label></transition><transition controllable="false" action=""><source ref="id45"/><target ref="id44"/><label kind="synchronisation" x="224" y="-80">o!</label></transition><transition action=""><source ref="id46"/><target ref="id45"/><label kind="synchronisation" x="200" y="-40">i1?</label></transition><transition controllable="false" action=""><source ref="id48"/><target ref="id46"/><label kind="synchronisation" x="96" y="-40">o1!</label></transition><transition controllable="false" action=""><source ref="id48"/><target ref="id47"/><label kind="synchronisation" x="24" y="-72">o!</label></transition><transition action=""><source ref="id49"/><target ref="id48"/><label kind="synchronisation" x="-24" y="-40">i?</label></transition></template><template><name>P9</name><location id="id50" x="56" y="0"></location><location id="id51" x="-80" y="-216"></location><location id="id52" x="56" y="-224"></location><location id="id53" x="-80" y="-112"></location><location id="id54" x="56" y="-112"></location><location id="id55" x="-200" y="-112"></location><init ref="id55"/><transition controllable="false" action=""><source ref="id54"/><target ref="id50"/><label kind="synchronisation" x="72" y="-72">go!</label></transition><transition controllable="false" action=""><source ref="id53"/><target ref="id51"/><label kind="synchronisation" x="-140" y="-179">o!</label></transition><transition action=""><source ref="id54"/><target ref="id52"/><label kind="synchronisation" x="72" y="-152">i1?</label></transition><transition controllable="false" action=""><source ref="id53"/><target ref="id54"/><label kind="synchronisation" x="-24" y="-96">o1!</label></transition><transition action=""><source ref="id55"/><target ref="id53"/><label kind="synchronisation" x="-136" y="-96">i?</label></transition></template><template><name>P10</name><location id="id56" x="64" y="8"></location><location id="id57" x="-48" y="8"></location><location id="id58" x="-152" y="8"></location><init ref="id58"/><transition controllable="false" action=""><source ref="id57"/><target ref="id56"/><label kind="synchronisation" x="0" y="-16">o1!</label></transition><transition action=""><source ref="id58"/><target ref="id57"/><label kind="synchronisation" x="-112" y="-16">i?</label></transition></template><template><name>P11</name><declaration>clock x;</declaration><location id="id59" x="168" y="0"></location><location id="id60" x="16" y="16"></location><location id="id61" x="-160" y="0"></location><init ref="id61"/><transition controllable="false" action=""><source ref="id60"/><target ref="id59"/><label kind="synchronisation" x="88" y="-24">o!</label></transition><transition action=""><source ref="id61"/><target ref="id60"/><label kind="guard" x="-96" y="8">x&lt;10</label><label kind="synchronisation" x="-88" y="-16">i?</label></transition></template><template><name>P12</name><declaration>clock x;</declaration><location id="id62" x="192" y="-8"></location><location id="id63" x="8" y="-16"></location><location id="id64" x="-176" y="-16"></location><init ref="id64"/><transition controllable="false" action=""><source ref="id63"/><target ref="id62"/><label kind="synchronisation" x="80" y="-40">o!</label></transition><transition action=""><source ref="id64"/><target ref="id63"/><label kind="guard" x="-120" y="-8">x&gt;5</label><label kind="synchronisation" x="-104" y="-40">i?</label></transition></template><template><name>P13</name><declaration>clock x;</declaration><location id="id65" x="88" y="-24"></location><location id="id66" x="-144" y="-40"></location><init ref="id66"/><transition controllable="false" action=""><source ref="id65"/><target ref="id65"/><label kind="synchronisation" x="72" y="-136">o!</label><nail x="40" y="-112"/><nail x="128" y="-112"/></transition><transition action=""><source ref="id66"/><target ref="id65"/><label kind="guard" x="-40" y="-24">x==7</label><label kind="synchronisation" x="-32" y="-64">i?</label></transition></template><system>// Place template instantiations here.
 
 // List one or more processes to be composed into a system.
-system P0, P1, P2, P3, P4, P5, P6, P7, P8,P9,P10,P11,P12,P13;
+system P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13;
 
 IO P0 { i?, o!, o1!, i1?, o2!}
 IO P1 { i?, o!, o1!, i1?, o2! }
-IO P2 {o!,  o1!, o2!, i?, i1? }
+IO P2 { o!,  o1!, o2!, i?, i1? }
 
-IO P3 { i?, o!, o1!, i1?, o2!, k!}
+IO P3 { i?, o!, o1!, i1?, o2!, k! }
 IO P4 { i?, o!, o1!, i1?, o2!, k! }
-IO P5 {k?, go!}
-IO P6 {o!,  o1!, o2!, i?, i1?, go!}
+IO P5 { k?, go! }
+IO P6 { o!,  o1!, o2!, i?, i1?, go! }
 
-IO P7 {i?, o!, o1!, i1?, go!}
-IO P8 {i?, o!, o1!, i1?, go!}
-IO P9 {i?, o!, o1!, i1?, go!}
-IO P10 {i?, o!, o1!, go!}
+IO P7 { i?, o!, o1!, i1?, go! }
+IO P8 { i?, o!, o1!, i1?, go! }
+IO P9 { i?, o!, o1!, i1?, go! }
+IO P10 { i?, o!, o1!, go! }
 
-IO P11 {i?, o!}
-IO P12 {i?, o!}
-IO P13 {i?, o!}</system></nta>
+IO P11 { i?, o! }
+IO P12 { i?, o! }
+IO P13 { i?, o! }</system></nta>
