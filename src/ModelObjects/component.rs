@@ -206,9 +206,8 @@ impl Edge {
 pub struct StatePair<'a> {
     pub states1 : Vec<State<'a>>,
     pub states2 : Vec<State<'a>>,
-    pub zone : [i32; 1000],
+    pub zone : Vec<i32>,
     pub dimensions : u32,
-
 }
 
 impl <'b> StatePair<'b> {
@@ -231,17 +230,17 @@ impl <'b> StatePair<'b> {
     pub fn set_dimensions(&mut self, dim : u32) {
         self.dimensions = dim;
     }
-    pub fn get_zone(&mut self) -> &mut [i32] {
+    pub fn get_zone(&mut self) -> &mut Vec<i32> {
         let dim = self.get_dimensions();
         let len = dim * dim;
-        &mut self.zone[0..len as usize]
+        &mut self.zone
     }
 
-    pub fn get_dbm_clone(&self) -> [i32; 1000] {
+    pub fn get_dbm_clone(&self) -> Vec<i32> {
         return self.zone.clone()
     }
 
-    pub fn set_dbm(&mut self, dbm : [i32;1000]) {
+    pub fn set_dbm(&mut self, dbm : Vec<i32>) {
         self.zone = dbm;
     }
 
@@ -255,6 +254,7 @@ impl <'b> StatePair<'b> {
             dimensions += state.get_dimensions();
         }
         self.dimensions = dimensions;
+        self.zone = vec![0;(dimensions * dimensions) as usize];
         lib::rs_dbm_init(self.get_zone(), dimensions);
     }
 
@@ -499,5 +499,5 @@ where
 
 pub enum StateRepresentation<'a> {
     StatePair(&'a mut StatePair<'a>),
-    DbmTuple((&'a State<'a>, &'a mut [i32], u32))
+    DbmTuple((&'a State<'a>, &'a mut Vec<i32>, u32))
 }

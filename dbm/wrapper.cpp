@@ -121,16 +121,8 @@ extern "C" {
             const raw_t *x = i->const_dbm();
             dbm::fdbm_t * next = dbm::fdbm_t::create(x, dimension, prev);
             prev = next;
-//
-//
-//
-//            y++;
         }
-//
-//
         myfile.close();
-//        head = prev;
-
     }
 
     dbm::fdbm_t* dbm_create_fdbm_t() {
@@ -142,9 +134,9 @@ extern "C" {
 
     void dbm_fed_minus_fed(raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2, cindex_t dim, dbm::fed_t * fed_out) {
         std::ofstream myfile;
-        myfile.open ("test2.txt");
+        myfile.open("test2.txt", ios::app);
         myfile<<"fed dim is: "<<dim<<"\n";
-
+        myfile.close();
         dbm::fed_t fed1 = (*new dbm::fed_t(dim));
         for (int i = 0; i < len1; i++) {
             fed1.add(dbm1[i], dim);

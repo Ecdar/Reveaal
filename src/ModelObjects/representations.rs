@@ -55,7 +55,7 @@ pub enum SystemRepresentation {
     Component(Component)
 }
 
-pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
+pub fn print_DBM(dbm:  &mut Vec<i32>, dimension : &u32){
     println!("DBM:");
     for i in 0..*dimension {
         print!("( ");

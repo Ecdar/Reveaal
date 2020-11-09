@@ -21,6 +21,23 @@ use generic_array::{ArrayLength, GenericArray,arr};
 extern crate pest_derive;
 
 pub fn main() {
+
+    // let mut guard_zones_left: Vec<*mut i32> = vec![];
+    // guard_zones_left.push(vec![0, 1, 2, 3].as_mut_ptr());
+    //
+    // println!("{:?}", guard_zones_left);
+    // for gz in guard_zones_left {
+    //     println!("{:?}", gz)
+    // }
+
+    // let test = 0;
+
+    // let mut vec_test : Vec<i32> = vec![0 ; 9];
+    // DBMLib::lib::libtest();
+    // println!("starting libtest 2 --------------");
+    // DBMLib::lib::libtest2();
+    // println!("{:?}", vec_test);
+
     let (components, system_declarations, queries) = parse_args().unwrap();
     let mut optimized_components = vec![];
     for comp in components {

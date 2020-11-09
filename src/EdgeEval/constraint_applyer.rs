@@ -6,7 +6,7 @@ use pest::state;
 use crate::DBMLib::lib::rs_dbm_satisfies_i_EQUAL_j_bounds;
 
 
-pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::State, zone : &mut [i32], dimensions : &u32) -> bool{
+pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::State, zone : &mut Vec<i32>, dimensions : &u32) -> bool{
     if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, state, zone, dimensions, true).0 {
         val
     } else {
@@ -14,7 +14,7 @@ pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::
     }
 }
 
-pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & component::State, zone : &mut [i32], dimensions : &u32, should_apply : bool) -> (BoolExpression, bool){
+pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & component::State, zone : &mut Vec<i32>, dimensions : &u32, should_apply : bool) -> (BoolExpression, bool){
     match guard {
         BoolExpression::AndOp(left, right) => {
             let (left, contains_clock_left) = apply_constraints_to_state_helper(&**left, state, zone, dimensions, true);
