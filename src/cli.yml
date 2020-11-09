@@ -3,6 +3,16 @@ version: "1.0"
 about: Rust engine for ecdar
 args:
     - folder:
-        help: input folder with components as json and a Queries.json file 
+        help: input folder with components as json and a Queries.json file
         required: true
         index: 1
+    - query:
+        help: query in a format of function:component<=component, if -query is present, the queries file will be ignored
+        required: false
+        index: 2
+    - checkInputOutput:
+        short: c
+        long: checkInputOutput
+        help: returns extra ouputs which are present on the left side and vise versa inputs
+        required: false
+        takes_value: false

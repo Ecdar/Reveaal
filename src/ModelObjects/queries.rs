@@ -6,8 +6,8 @@ use super::parse_queries;
 #[derive(Debug, Deserialize)]
 pub struct Query {
     #[serde(deserialize_with = "decode_query")]
-    query: Option<representations::QueryExpression>,
-    comment: String,
+    pub(crate) query: Option<representations::QueryExpression>,
+    pub(crate) comment: String,
 }
 
 impl Query {
@@ -20,7 +20,7 @@ impl Query {
 }
 
 //Function used for deserializing queries
-fn decode_query<'de, D>(deserializer: D) -> Result<Option<representations::QueryExpression>, D::Error>
+pub fn decode_query<'de, D>(deserializer: D) -> Result<Option<representations::QueryExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {

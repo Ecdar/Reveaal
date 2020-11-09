@@ -533,7 +533,7 @@ fn apply_invariant(new_sp: &StatePair, zone: &mut [i32], dim: &u32, state_index 
     }
 }
 
-fn get_actions<'a>(sys_rep: &'a SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations, is_input: bool, actions: &mut Vec<String>, states: &mut Vec<State<'a>>) {
+pub fn get_actions<'a>(sys_rep: &'a SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations, is_input: bool, actions: &mut Vec<String>, states: &mut Vec<State<'a>>) {
     match sys_rep {
         SystemRepresentation::Composition(leftside, rightside) => {
             get_actions(&**leftside, sys_decls, is_input, actions, states);
@@ -641,6 +641,45 @@ fn check_preconditions(sys1 : &SystemRepresentation, sys2 : &SystemRepresentatio
     // }
 
     return true
+}
+
+pub fn find_extra_input_output(sys1 : &SystemRepresentation,
+                           sys2 : &SystemRepresentation,
+                           outputs1 : &Vec<String>,
+                           inputs2 : &Vec<String>,
+                           sys_decls : &system_declarations::SystemDeclarations) -> Vec<String> {
+    let mut outputs2 : Vec<String> = vec![];
+    let mut inputs1 :Vec<String> = vec![];
+    let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions
+
+    get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
+    get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
+    drop(disposable); //Dropped from memory afterwards
+
+    let mut extra_o_i :Vec<String> = vec![];
+    for o1 in outputs1 {
+        let mut found_match = false;
+        for o2 in &outputs2 {
+            if o1 == o2 {
+                found_match = true;
+            }
+        }
+        if !found_match {
+            extra_o_i.push(o1.clone());
+        }
+    }
+    for i2 in inputs2 {
+        let mut found_match = false;
+        for i1 in &inputs1 {
+            if i1 == i2 {
+                found_match = true;
+            }
+        }
+        if !found_match {
+            extra_o_i.push(i2.clone());
+        }
+    }
+    return extra_o_i
 }
 
 fn is_new_state<'a>(state_pair:  &mut component::StatePair<'a>, passed_list :  &mut Vec<StatePair<'a>> ) -> bool {
