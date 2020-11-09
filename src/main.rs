@@ -61,8 +61,9 @@ pub fn main() {
                         let mut initial_states_2 : Vec<State> = vec![];
                         refine::get_actions(&sys2, &system_declarations, true, &mut inputs2, &mut initial_states_2);
                         refine::get_actions(&system_rep_tuple.0, &system_declarations, false, &mut outputs1, &mut initial_states_1);
-                        let extra_i_o = refine::find_extra_input_output(&system_rep_tuple.0, &sys2, &outputs1, &inputs2, &system_declarations);
-                        println!("{:?}", extra_i_o);
+                        let (extra_o, extra_i) = refine::find_extra_input_output(&system_rep_tuple.0, &sys2, &outputs1, &inputs2, &system_declarations);
+                        println!("extra outputs {:?}", extra_o);
+                        println!("extra inputs {:?}", extra_i);
                     }
                 }
             }

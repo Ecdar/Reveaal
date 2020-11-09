@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod Big_refinement {
+mod delay_refinement {
     use crate::ModelObjects::xml_parser;
     use crate::System::{refine, input_enabler};
     use crate::ModelObjects::representations::SystemRepresentation;
