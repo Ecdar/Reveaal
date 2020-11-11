@@ -1,6 +1,7 @@
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
 use super::super::DBMLib::lib;
+use crate::ModelObjects::representations;
 
 
 pub fn apply_constraints_to_state(guard : &BoolExpression, state : & component::State, zone : &mut [i32], dimensions : &u32) -> bool{
@@ -78,7 +79,10 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
+
                             let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, left_index, right_index, 0);
+
+                            representations::print_DBM(zone, dimensions);
                             return (BoolExpression::Bool(result), false)
                         },
                         BoolExpression::Int(right_val) => {
@@ -123,7 +127,9 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
                     //println!("dimn: {:?}", dimensions);
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
+
                             let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, right_index, left_index, 0);
+
                             return (BoolExpression::Bool(result), false)
                         },
                         BoolExpression::Int(right_val) => {
