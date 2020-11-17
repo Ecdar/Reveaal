@@ -464,6 +464,14 @@ pub fn rs_dbm_update_clock(dbm : &mut[i32], dimension : u32, var_index: u32, val
     unsafe{
         dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
         return rs_dbm_add_LTE_constraint(dbm, dimension, 0, var_index, -value);
+        //return dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, -value);
+    }
+}
+pub fn rs_dbm_update(dbm : &mut[i32], dimension : u32, var_index: u32, value : i32) {
+    unsafe{
+        //dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
+        //return rs_dbm_add_LTE_constraint(dbm, dimension, 0, var_index, -value);
+        dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, -value);
     }
 }
 

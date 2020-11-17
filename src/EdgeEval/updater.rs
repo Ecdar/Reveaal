@@ -2,6 +2,7 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
 use super::super::ModelObjects::parse_edge;
 use crate::DBMLib::lib::rs_dbm_update_clock;
+use crate::DBMLib::lib;
 
 pub fn updater(updates: &Vec<parse_edge::Update>, state : &mut component::State, dbm: &mut [i32], dim : u32) {
     for update in updates {
@@ -9,7 +10,7 @@ pub fn updater(updates: &Vec<parse_edge::Update>, state : &mut component::State,
         match update.get_expression(){
             BoolExpression::Int(val) => {
                 if let Some(&clock_index) = state.get_declarations().get_clock_index_by_name(update.get_variable_name()) {
-                    rs_dbm_update_clock(dbm, dim,clock_index,*val);
+                    lib::rs_dbm_update(dbm, dim,clock_index,*val);
                 }
                 else {
                     panic!("Attempting to update a clock which is not initialized")

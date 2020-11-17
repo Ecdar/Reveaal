@@ -32,7 +32,9 @@ pub fn check_refinement(sys1 : SystemRepresentation, sys2 : SystemRepresentation
     }
 
     let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
+    //initial_pair.init_dbm();
     initial_pair.init_dbm();
+    // apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
@@ -188,20 +190,24 @@ fn create_new_state_pairs<'a>(
     let mut zones_to_print2 = vec![];
     //Create guard zones left
     //println!("Zones1");
+
     for (_,edge_vec1, state_index) in transitions1 {
+
         for edge in edge_vec1 {
             //println!("Edge: {:?}", edge);
-            let mut zone = [0;1000];
-            lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
-            lib::rs_dbm_up(&mut zone[0..len as usize], dim);
+            //let mut zone = [0;1000];
+            let mut zone = curr_pair.zone;
+            // lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
+            // lib::rs_dbm_up(&mut zone[0..len as usize], dim);
             println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DIMENSION left: {:?}", dim);
             representations::print_DBM(&mut zone[0..len as usize], &dim);
+
             let g_succes = apply_guard(edge, &curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
             if g_succes {   
                 //representations::print_DBM(&mut zone, &dim);
                 //TODO apply invariant here
 
-                apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, true);
+                //apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, true);
                 println!("-------------------------------After update ----------------------------");
                 representations::print_DBM(&mut zone[0..len as usize], &dim);
                 let inv_success = apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
@@ -217,13 +223,16 @@ fn create_new_state_pairs<'a>(
     for (_, edge_vec2, state_index) in transitions2 {
         for edge in edge_vec2 {
             //println!("Edge: {:?}", edge);
-            let mut zone = [0;1000];
-            lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
-            lib::rs_dbm_up(&mut zone[0..len as usize], dim);
+            //let mut zone = [0;1000];
+            let mut zone = curr_pair.zone;
+            // lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
+            // lib::rs_dbm_up(&mut zone[0..len as usize], dim);
+            println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DIMENSION left: {:?}", dim);
+            representations::print_DBM(&mut zone[0..len as usize], &dim);
             let g_succes = apply_guard(edge, &curr_pair, &mut zone[0..len as usize], &dim, *state_index, false);
             if g_succes {
 
-                apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, false);
+               // apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, false);
                 println!("-------------------------------After update ----------------------------");
                 representations::print_DBM(&mut zone[0..len as usize], &dim);
                 let inv_success = apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, false);
@@ -233,6 +242,7 @@ fn create_new_state_pairs<'a>(
                 }
                 //representations::print_DBM(&mut zone, &dim);
             }
+            //curr_pair.zone = zone.clone();
         }
     }
     println!("left side");
@@ -251,7 +261,7 @@ fn create_new_state_pairs<'a>(
     let combinations1 = create_transition_combinations(transitions1);
     let combinations2 = create_transition_combinations(transitions2);
 
-    
+
     for comb_vec1 in &combinations1 {
         for comb_vec2 in &combinations2 {
             //We currently don't use the bool returned here for anything

@@ -25,8 +25,9 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 location: location,
             };
 
-            lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
-
+            //lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
+            lib::rs_dbm_zero(&mut zone[0..len as usize], dimension);
+            lib::rs_dbm_up(&mut zone[0..len as usize], dimension);
             // println!("ZONE1 init:");
             // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 0, 2)));
             // println!("( {:?} {:?} {:?} )", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 0)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 1)), lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(&mut zone, *dimension, 1, 2)));

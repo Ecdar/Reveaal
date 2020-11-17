@@ -253,9 +253,13 @@ impl <'b> StatePair<'b> {
             dimensions += state.get_dimensions();
         }
         self.dimensions = dimensions;
-        lib::rs_dbm_init(self.get_zone(), dimensions);
+        //lib::rs_dbm_init(self.get_zone(), dimensions);
+        lib::rs_dbm_zero(self.get_zone(), dimensions);
+        lib::rs_dbm_up(self.get_zone(), dimensions);
     }
+    pub fn applyInvariants(&mut self){
 
+    }
     pub fn print_dbm(&mut self) {
         let dim_i32 = self.get_dimensions() as i32;
         let dim_sqr = (dim_i32 as f32).sqrt() as u32;
