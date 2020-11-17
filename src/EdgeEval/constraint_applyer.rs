@@ -79,7 +79,6 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
                 BoolExpression::Clock(left_index) => {
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
-
                             let result = lib::rs_dbm_add_LTE_constraint(zone, *dimensions, left_index, right_index, 0);
 
                             representations::print_DBM(zone, dimensions);

@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod delay_refinement {
-    use crate::ModelObjects::xml_parser;
+    use crate::ModelObjects::{xml_parser, parse_queries};
     use crate::System::{refine, input_enabler};
     use crate::ModelObjects::representations::SystemRepresentation;
     use std::borrow::Borrow;
     use crate::ModelObjects::component::Component;
     use crate::ModelObjects::system_declarations::SystemDeclarations;
     use crate::tests::refinement::Helper::optimize_components;
+    use crate::System::extract_system_rep::create_system_rep_from_query;
+    use crate::ModelObjects::queries::Query;
 
     static PATH: &str = "samples/xml/delayRefinement.xml";
 
@@ -525,10 +527,20 @@ mod delay_refinement {
     #[test]
     fn K1NotRefinesK2() {
         //Should fail, but passes ?
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        assert!(!refine::check_refinement(SystemRepresentation::Component(optimized_components.get(25).unwrap().clone()),
-                                          SystemRepresentation::Component(optimized_components.get(26).unwrap().clone()),
+        let (automataList, decl, _) = xml_parser::parse_xml(PATH); let mut optimized_components = optimize_components(automataList, &decl);
+        let query = parse_queries::parse("refinement: K1 <= K2").unwrap();
+        let q = Query {
+            query: Option::from(query),
+            comment: "".to_string()
+        };
+
+        let res = create_system_rep_from_query(&q, &optimized_components);
+        let leftSys = res.0;
+        let rightSys = res.1.unwrap();
+
+
+        assert!(!refine::check_refinement(leftSys,
+                                          rightSys,
                                           decl.borrow()).unwrap());
     }
 
@@ -536,9 +548,21 @@ mod delay_refinement {
     fn K3NotRefinesK4() {
         //should fail, tho passes ?!
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        assert!(!refine::check_refinement(SystemRepresentation::Component(optimized_components.get(27).unwrap().clone()),
-                                          SystemRepresentation::Component(optimized_components.get(28).unwrap().clone()),
+
+        let mut optimized_components = optimize_components(automataList, &decl);
+        let query = parse_queries::parse("refinement: K3 <= K4").unwrap();
+        let q = Query {
+            query: Option::from(query),
+            comment: "".to_string()
+        };
+
+        let res = create_system_rep_from_query(&q, &optimized_components);
+        let leftSys = res.0;
+        let rightSys = res.1.unwrap();
+
+
+        assert!(!refine::check_refinement(leftSys,
+                                          rightSys,
                                           decl.borrow()).unwrap());
     }
 
@@ -607,9 +631,18 @@ mod delay_refinement {
     fn L4RefinesL5() {
         //should pass tho fails
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        assert!(refine::check_refinement(SystemRepresentation::Component(optimized_components.get(42).unwrap().clone()),
-                                         SystemRepresentation::Component(optimized_components.get(43).unwrap().clone()),
+        let mut optimized_components = optimize_components(automataList, &decl);
+        let query = parse_queries::parse("refinement: L4 <= L5").unwrap();
+        let q = Query {
+            query: Option::from(query),
+            comment: "".to_string()
+        };
+
+        let res = create_system_rep_from_query(&q, &optimized_components);
+        let leftSys = res.0;
+        let rightSys = res.1.unwrap();
+        assert!(refine::check_refinement(leftSys,
+                                         rightSys,
                                          decl.borrow()).unwrap());
     }
 

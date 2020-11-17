@@ -43,7 +43,7 @@ pub fn setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
     //                          system_declarations.borrow());
     (optimize_components(comps, &system_declarations), system_declarations.clone())
 }
-pub fn optimize_components(automataList : Vec<Component>, decl : &SystemDeclarations) -> Vec<Component>{
+pub fn optimize_components(automataList: Vec<Component>, decl : &SystemDeclarations) -> Vec<Component>{
     let mut optimized_components = vec![];
     for comp in automataList {
         let mut optimized_comp = comp.create_edge_io_split();

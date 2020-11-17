@@ -3,7 +3,6 @@
 #include "dbm.h"
 
 extern "C" {
-
     /** Encoding of bound into (strict) less or less equal.
      * @param bound,strict: the bound to encode with the strictness.
      * @return encoded constraint ("raw").
