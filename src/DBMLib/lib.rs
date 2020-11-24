@@ -26,11 +26,17 @@ pub const DBM_INF : i32 = i32::MAX -1;
 /// dbm_init(dbm.as_mut_ptr(), 3);
 /// ```
 pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> bool {
+    let first = dbm.get(0).unwrap();
+    if first == &-1 {
+        return false
+    }
     unsafe {
-        let res =  dbm_isValid(dbm.as_mut_ptr(), dimension);
-        return if BOOL_TRUE == res{
+
+        let res = dbm_check_validity(dbm.as_mut_ptr(), dimension);
+
+        return if 1 == res{
             true
-        } else if BOOL_FALSE == res {
+        } else if 0 == res {
             false
         } else {
             panic!("Could not convert bool value from libary, found {:?}", res)

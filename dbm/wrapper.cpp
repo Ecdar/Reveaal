@@ -59,6 +59,19 @@ extern "C" {
         return dbm_satisfies(dbm, dim, i, j, constraint);
     }
 
+    int dbm_check_validity(const raw_t *dbm, cindex_t dim)
+    {
+        try {
+            if (dbm_isValid(dbm, dim) == BOOL::TRUE) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } catch (...) {
+            return 0;
+        }
+    }
+
     void dbm_vec_to_fed( raw_t * dbm[], cindex_t len, cindex_t dim, dbm::fed_t * fed_out)
     {
         std::ofstream myfile;

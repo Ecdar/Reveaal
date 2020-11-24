@@ -89,5 +89,5 @@ extern "C" {
     const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num);
     int dbm_get_fed_size_2(dbm::fed_t fed);
 
-
+    int dbm_check_validity(const raw_t *dbm, cindex_t dim);
 }

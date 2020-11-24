@@ -115,74 +115,10 @@ impl Component {
 
         return self
     }
-    // pub fn is_consistent(&self, currState : State, canPrune : bool) -> bool {
-    //     let mut passed_list : Vec<FullState> = vec![];
-    //     let mut waiting_list : Vec<FullState> = vec![];
-    //
-    //     let initial_loc :&Location = self.get_inital_location();
-    //
-    //     let initial_state = State{
-    //         location : initial_loc,
-    //         declarations : self.get_declarations().clone()
-    //     };
-    //
-    //     let mut dimension = self.get_declarations().get_dimension();
-    //
-    //     let len = dimension * dimension;
-    //
-    //     let mut zone_array = [0;1000];
-    //
-    //     let zone : &mut[i32] = &mut zone_array[0..len as usize];
-    //
-    //
-    //     //lib::rs_dbm_init(zone, *dimension);
-    //     lib::rs_dbm_zero(zone, *dimension);
-    //     lib::rs_dbm_up(zone, *dimension);
-    // if (passedContainsState(currState))
-    // return true;
-    //
-    // passed.add(new State(currState));
-    //
-    // // Check if the target of every outgoing input edge ensures independent progress
-    // for (Channel channel : inputs) {
-    // List<Transition> tempTrans = getNextTransitions(currState, channel);
-    // for (Transition ts : tempTrans) {
-    // boolean inputConsistent = checkConsistency(ts.getTarget(), inputs, outputs, canPrune);
-    // if (!inputConsistent)
-    // return false;
-    // }
-    // }
-    //
-    // boolean outputExisted = false;
-    // // If delaying indefinitely is possible -> Prune the rest
-    // if (canPrune && currState.getInvZone().canDelayIndefinitely())
-    // return true;
-    // // Else if independent progress does not hold through delaying indefinitely,
-    // // we must check for being able to output and satisfy independent progress
-    // else {
-    // for (Channel channel : outputs) {
-    // List<Transition> tempTrans = getNextTransitions(currState, channel);
-    //
-    // for (Transition ts : tempTrans) {
-    // if(!outputExisted) outputExisted = true;
-    // boolean outputConsistent = checkConsistency(ts.getTarget(), inputs, outputs, canPrune);
-    // if (outputConsistent && canPrune)
-    // return true;
-    // if(!outputConsistent && !canPrune)
-    // return false;
-    // }
-    // }
-    // if(!canPrune) {
-    // if (outputExisted)
-    // return true;
-    // return currState.getInvZone().canDelayIndefinitely();
-    //
-    // }
-    // // If by now no locations reached by output edges managed to satisfy independent progress check
-    // // or there are no output edges from the current location -> Independent progress does not hold
-    // else return false;
-    // }
-    // }
+
+    //TODO list:
+    //first make full state take not a slice but rather hold ownership of a copy of the zone
+    //make sure that the state that are takenn from the full state into the new state is actually updated to the edges target location as it does not seem like this is done atm
     pub fn is_deterministic(&self) -> bool {
         let mut passed_list : Vec<FullState> = vec![];
         let mut waiting_list : Vec<FullState> = vec![];
@@ -194,19 +130,17 @@ impl Component {
             declarations : self.get_declarations().clone()
         };
 
-        let mut dimension = &(self.get_declarations().get_dimension()+1);
-
+        let mut dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
         let len = dimension * dimension;
 
-        let mut zone_array = [0;4];
-
+        let mut zone_array = [0;1000];
         let zone : &mut[i32] = &mut zone_array[0..len as usize];
 
 
         //lib::rs_dbm_init(zone, *dimension);
-        lib::rs_dbm_zero(zone, *dimension);
-        lib::rs_dbm_up(zone, *dimension);
-        let fullSt :FullState = FullState{state: &initial_state, zone };
+        lib::rs_dbm_zero(zone, dimension);
+        lib::rs_dbm_up(zone, dimension);
+        let fullSt :FullState = FullState{state: &initial_state, zone, dimensions:dimension };
         waiting_list.push(fullSt);
 
         while !waiting_list.is_empty() {
@@ -229,20 +163,22 @@ impl Component {
                 } else {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-
-                        let new_zone : &mut[i32] = &mut [0; 4];
+                        let mut full_new_zone = [0;1000];
+                        let new_zone : &mut[i32] = &mut full_new_zone[0..len as usize];
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         new_zone.clone_from_slice(full_state.get_mut_zone());
-                        let mut new_state = FullState { state: full_state.get_state(), zone:new_zone };
+
+                        let mut new_state = FullState { state: full_state.get_state(), zone:new_zone, dimensions:full_state.get_dimensions() };
 
                         if let Some(guard) = edge.get_guard() {
-                            constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,dimension);
+                            constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,&dimension);
                         }
 
                         if let Some(updates) = edge.get_update() {
 
-                            fullState_updater(updates, &mut new_state, dimension);
+                            fullState_updater(updates, &mut new_state, &dimension);
                         }
+                        add_state_to_wl(&mut waiting_list, new_state);
                     }
                 }
 
@@ -255,11 +191,13 @@ impl Component {
         return true
     }
 
+
+
     fn check_moves_overlap(&self, edges : &Vec<&Edge>, full_state : &mut FullState) -> bool {
         if edges.len() < 2 {
             return false
         }
-        let dimension = &(self.get_declarations().get_dimension()+1);
+        let dimension = (self.get_declarations().get_clocks().len()+1) as u32;
 
         for i in 0..edges.len() {
             for j in i+1..edges.len() {
@@ -276,39 +214,45 @@ impl Component {
                 let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
                 let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
 
-                let zone_i : &mut[i32] = &mut [0; 4];
+                let mut full_new_zone = [0;1000];
+                let len = full_state.get_dimensions() * full_state.get_dimensions();
+                let zone_i : &mut[i32] = &mut full_new_zone[0..len as usize];
+
                 zone_i.clone_from_slice(full_state.get_mut_zone());
 
-                let mut state_i = FullState { state: full_state.get_state(), zone: zone_i };
+                let mut state_i = FullState { state: full_state.get_state(), zone: zone_i, dimensions: dimension};
                 if let Some(update_i) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, dimension);
+                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, &dimension);
                 }
                 if let Some(update_i) = &edges[i].guard {
-                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, dimension);
+                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, &dimension);
                 }
 
                 println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! zone we remember:");
-                representations::print_DBM(&mut state_i.zone[0..2], &2);
+                representations::print_DBM(state_i.get_mut_zone(), &full_state.get_dimensions());
                 //let mut dbm_1 = &mut zone_i[0..4];
                // representations::print_DBM(dbm_1, &4);
-                let zone_j : &mut[i32] = &mut [0; 4];
+
+                let mut full_new_zone = [0;1000];
+                let zone_j : &mut[i32] = &mut full_new_zone[0..len as usize];
+
                 zone_j.clone_from_slice(full_state.get_zone());
-                let mut state_j = FullState { state: full_state.get_state(), zone: zone_j };
+                let mut state_j = FullState { state: full_state.get_state(), zone: zone_j, dimensions: dimension };
                 if let Some(update_j) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, dimension);
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, &dimension);
                 }
 
                 if let Some(update_j) = &edges[j].guard {
-                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, dimension);
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, &dimension);
                 }
                 println!("State_j DBM:");
-                representations::print_DBM(&mut state_j.zone[0..2], &2);
+                representations::print_DBM(state_j.get_mut_zone(), &full_state.get_dimensions());
 
-                // if lib::rs_dbm_is_valid(state_i.get_mut_zone(), *dimension) && lib::rs_dbm_is_valid(state_j.get_mut_zone(), *dimension) {
-                //     if lib::rs_dmb_intersection(state_i.get_mut_zone(), state_j.get_mut_zone(), *dimension) {
-                //         return true
-                //     }
-                // }
+                if lib::rs_dbm_is_valid(state_i.get_mut_zone(), dimension) && lib::rs_dbm_is_valid(state_j.get_mut_zone(), dimension) {
+                    if lib::rs_dmb_intersection(state_i.get_mut_zone(), state_j.get_mut_zone(), dimension) {
+                        return true
+                    }
+                }
                //  match lib::rs_wrapped_dbm_is_valid(state_i.get_mut_zone(), *dimension){
                //      Ok(result) => {
                //          match lib::rs_wrapped_dbm_is_valid(state_j.get_mut_zone(), *dimension) {
@@ -401,6 +345,7 @@ pub fn contain(channels : &Vec<Channel>, channel : &str) ->bool{
 pub struct FullState<'a> {
     pub state : &'a State<'a>,
     pub zone: & 'a mut[i32],
+    pub dimensions : u32
 }
 
 impl FullState<'_> {
@@ -413,6 +358,7 @@ impl FullState<'_> {
     pub fn get_zone(&self) -> &[i32]{
         &self.zone
     }
+    pub fn get_dimensions(&self) -> u32 {self.dimensions.clone()}
 }
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
 pub enum LocationType {
@@ -798,6 +744,9 @@ fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
     }
 }
 
+fn add_state_to_wl<'a>(wl: &mut  Vec<FullState<'a>>, full_state: FullState<'a>) {
+    wl.push(full_state)
+}
 
 //Function used for deserializing location types
 fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>
