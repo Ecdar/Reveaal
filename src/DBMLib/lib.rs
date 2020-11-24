@@ -38,6 +38,11 @@ pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> bool {
     }
 }
 
+pub fn rs_wrapped_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> Result<bool, &'static str> {
+    match unsafe { let res = dbm_isValid(dbm.as_mut_ptr(), dimension); } {
+        res => Ok(true),
+    }
+}
 /// Initializes a DBM with 
 /// * <= 0 on the diagonal and the first row
 /// * <= infinity elsewhere
@@ -467,6 +472,21 @@ pub fn rs_dbm_update_clock(dbm : &mut[i32], dimension : u32, var_index: u32, val
         //return dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, -value);
     }
 }
+
+pub fn rs_dmb_intersection(dbm1: &mut[i32], dbm2: &mut[i32], dimension: u32) -> bool{
+    unsafe{
+        let res = dbm_intersection(dbm1.as_mut_ptr(),dbm2.as_mut_ptr(), dimension);
+        return if BOOL_TRUE == res{
+            true
+        } else if BOOL_FALSE == res {
+            false
+        } else {
+            panic!("Could not convert bool value from libary, found {:?}", res)
+        }
+    }
+}
+
+
 pub fn rs_dbm_update(dbm : &mut[i32], dimension : u32, var_index: u32, value : i32) {
     unsafe{
         //dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);

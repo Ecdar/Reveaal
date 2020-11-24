@@ -20,3 +20,19 @@ pub fn updater(updates: &Vec<parse_edge::Update>, state : &mut component::State,
         }
     }
 }
+pub fn fullState_updater(updates: &Vec<parse_edge::Update>, full_state : &mut component::FullState, dimension : &u32) {
+    for update in updates {
+        println!("Applying update: {:?}", update);
+        match update.get_expression(){
+            BoolExpression::Int(val) => {
+                if let Some(&clock_index) = full_state.get_state().get_declarations().get_clock_index_by_name(update.get_variable_name()) {
+                    lib::rs_dbm_constrain_var_to_val(full_state.get_mut_zone(), *dimension,clock_index,*val);
+                }
+                else {
+                    panic!("Attempting to update a clock which is not initialized")
+                }
+            }
+            _ => {panic!("Should not be able to assign to {:?} in update", update)}
+        }
+    }
+}

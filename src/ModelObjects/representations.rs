@@ -2,7 +2,7 @@ use serde::Deserialize;
 use super::component::Component;
 use super::super::DBMLib::lib;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
 pub enum BoolExpression {
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),
