@@ -44,11 +44,11 @@ pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> bool {
     }
 }
 
-pub fn rs_wrapped_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> Result<bool, &'static str> {
-    match unsafe { let res = dbm_isValid(dbm.as_mut_ptr(), dimension); } {
-        res => Ok(true),
-    }
-}
+// pub fn rs_wrapped_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> Result<bool, &'static str> {
+//     match unsafe { let res = dbm_isValid(dbm.as_mut_ptr(), dimension); } {
+//         res => Ok(true),
+//     }
+// }
 /// Initializes a DBM with 
 /// * <= 0 on the diagonal and the first row
 /// * <= infinity elsewhere

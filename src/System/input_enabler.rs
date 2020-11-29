@@ -59,7 +59,6 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                 //println!("FOR INPUT: {:?}", input);
                 //println!("LEN::: {:?} in location {:?}", input_edges.len(), location.get_id());
                 for edge in input_edges {
-                    let mut has_inv = false;
                     let mut guard_zone = zone.clone();
                     //println!("guard zone before: {:?}", &mut guard_zone[0..len as usize]);
 
@@ -77,7 +76,7 @@ pub fn make_input_enabled(component: &mut component::Component, sys_decls : &sys
                         update_clocks = edge.get_update_clocks();
                         // println!("UPDATE CLOCKS: {:?}", update_clocks);
                     }
-                    has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
+                    let has_inv = if let Some(target_invariant) = component.get_location_by_name(edge.get_target_location()).get_invariant(){
                         //println!("Source loc: {:?} Target inv: {:?}", edge.get_source_location(), target_invariant);
                         let mut inv_clocks = vec![];
                         get_inv_clocks(target_invariant, component, &mut inv_clocks);

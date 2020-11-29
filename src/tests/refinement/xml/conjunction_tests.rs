@@ -1,11 +1,9 @@
 #[cfg(test)]
 mod conjunction_tests {
     use crate::ModelObjects::xml_parser;
-    use crate::System::{refine, input_enabler};
+    use crate::System::{refine};
     use crate::ModelObjects::representations::SystemRepresentation;
     use std::borrow::Borrow;
-    use crate::ModelObjects::component::Component;
-    use crate::ModelObjects::system_declarations::SystemDeclarations;
     use crate::tests::refinement::Helper::optimize_components;
 
     static PATH: &str = "samples/xml/conjun.xml";

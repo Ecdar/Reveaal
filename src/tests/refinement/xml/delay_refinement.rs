@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod delay_refinement {
     use crate::ModelObjects::{xml_parser, parse_queries};
-    use crate::System::{refine, input_enabler};
-    use crate::ModelObjects::representations::SystemRepresentation;
+    use crate::System::{refine};
     use std::borrow::Borrow;
-    use crate::ModelObjects::component::Component;
-    use crate::ModelObjects::system_declarations::SystemDeclarations;
     use crate::tests::refinement::Helper::optimize_components;
     use crate::System::extract_system_rep::create_system_rep_from_query;
     use crate::ModelObjects::queries::Query;
@@ -16,7 +13,7 @@ mod delay_refinement {
     #[test]
     fn T1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T1 <= T1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -36,7 +33,7 @@ mod delay_refinement {
     #[test]
     fn T2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T2 <= T2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -56,7 +53,7 @@ mod delay_refinement {
     #[test]
     fn T3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T3 <= T3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -76,7 +73,7 @@ mod delay_refinement {
     #[test]
     fn C1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: C1 <= C1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -96,7 +93,7 @@ mod delay_refinement {
     #[test]
     fn C2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: C2 <= C2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -116,7 +113,7 @@ mod delay_refinement {
     #[test]
     fn F1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: F1 <= F1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -136,7 +133,7 @@ mod delay_refinement {
     #[test]
     fn F2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: F2 <= F2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -156,7 +153,7 @@ mod delay_refinement {
     #[test]
     fn F3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: F3 <= F3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -176,7 +173,7 @@ mod delay_refinement {
     #[test]
     fn T4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T4 <= T4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -196,7 +193,7 @@ mod delay_refinement {
     #[test]
     fn T0RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T0 <= T0").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -216,7 +213,7 @@ mod delay_refinement {
     #[test]
     fn T5RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T5 <= T5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -236,7 +233,7 @@ mod delay_refinement {
     #[test]
     fn T6RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T6 <= T6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -256,7 +253,7 @@ mod delay_refinement {
     #[test]
     fn T7RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T7 <= T7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -276,7 +273,7 @@ mod delay_refinement {
     #[test]
     fn T8RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T8 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -296,7 +293,7 @@ mod delay_refinement {
     #[test]
     fn T9RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T9 <= T9").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -316,7 +313,7 @@ mod delay_refinement {
     #[test]
     fn T10RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T10 <= T10").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -336,7 +333,7 @@ mod delay_refinement {
     #[test]
     fn T11RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T11 <= T11").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -356,7 +353,7 @@ mod delay_refinement {
     #[test]
     fn N1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: N1 <= N1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -376,7 +373,7 @@ mod delay_refinement {
     #[test]
     fn N2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: N2 <= N2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -396,7 +393,7 @@ mod delay_refinement {
     #[test]
     fn N3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: N3 <= N3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -416,7 +413,7 @@ mod delay_refinement {
     #[test]
     fn N4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: N4 <= N4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -436,7 +433,7 @@ mod delay_refinement {
     #[test]
     fn D1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: D1 <= D1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -456,7 +453,7 @@ mod delay_refinement {
     #[test]
     fn D2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: D2 <= D2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -476,7 +473,7 @@ mod delay_refinement {
     #[test]
     fn K1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K1 <= K1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -496,7 +493,7 @@ mod delay_refinement {
     #[test]
     fn K2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K2 <= K2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -516,7 +513,7 @@ mod delay_refinement {
     #[test]
     fn K3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K3 <= K3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -536,7 +533,7 @@ mod delay_refinement {
     #[test]
     fn K4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K4 <= K4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -556,7 +553,7 @@ mod delay_refinement {
     #[test]
     fn K5RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K5 <= K5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -576,7 +573,7 @@ mod delay_refinement {
     #[test]
     fn K6RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K6 <= K6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -596,7 +593,7 @@ mod delay_refinement {
     #[test]
     fn P0RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P0 <= P0").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -616,7 +613,7 @@ mod delay_refinement {
     #[test]
     fn P1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P1 <= P1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -636,7 +633,7 @@ mod delay_refinement {
     #[test]
     fn P2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P2 <= P2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -656,7 +653,7 @@ mod delay_refinement {
     #[test]
     fn P3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P3 <= P3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -676,7 +673,7 @@ mod delay_refinement {
     #[test]
     fn P4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P4 <= P4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -696,7 +693,7 @@ mod delay_refinement {
     #[test]
     fn P5RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P5 <= P5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -716,7 +713,7 @@ mod delay_refinement {
     #[test]
     fn P6RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P6 <= P6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -736,7 +733,7 @@ mod delay_refinement {
     #[test]
     fn P7RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P7 <= P7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -756,7 +753,7 @@ mod delay_refinement {
     #[test]
     fn L1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L1 <= L1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -776,7 +773,7 @@ mod delay_refinement {
     #[test]
     fn L2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L2 <= L2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -796,7 +793,7 @@ mod delay_refinement {
     #[test]
     fn L3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L3 <= L3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -816,7 +813,7 @@ mod delay_refinement {
     #[test]
     fn L4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L4 <= L4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -836,7 +833,7 @@ mod delay_refinement {
     #[test]
     fn L5RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L5 <= L5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -856,7 +853,7 @@ mod delay_refinement {
     #[test]
     fn L6RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L6 <= L6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -876,7 +873,7 @@ mod delay_refinement {
     #[test]
     fn L7RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L7 <= L7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -896,7 +893,7 @@ mod delay_refinement {
     #[test]
     fn Z1RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z1 <= Z1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -916,7 +913,7 @@ mod delay_refinement {
     #[test]
     fn Z2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z2 <= Z2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -936,7 +933,7 @@ mod delay_refinement {
     #[test]
     fn Z3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z3 <= Z3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -956,7 +953,7 @@ mod delay_refinement {
     #[test]
     fn Z4RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z4 <= Z4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -976,7 +973,7 @@ mod delay_refinement {
     #[test]
     fn Z5RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z5 <= Z5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -996,7 +993,7 @@ mod delay_refinement {
     #[test]
     fn Z6RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z6 <= Z6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1016,7 +1013,7 @@ mod delay_refinement {
     #[test]
     fn Z7RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Z7 <= Z7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1050,7 +1047,7 @@ mod delay_refinement {
     #[test]
     fn C1RefinesC2() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: C1 <= C2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1070,7 +1067,7 @@ mod delay_refinement {
     #[test]
     fn C2RefinesC1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: C2 <= C1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1137,7 +1134,7 @@ mod delay_refinement {
     fn T7NotRefinesT8() {
         //Refinement passes, tho should fail ! same symbols
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T7 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1158,7 +1155,7 @@ mod delay_refinement {
     fn T9NotRefinesT8() {
         //Refinement passes, tho should fail ! same symbols
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T9 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1179,7 +1176,7 @@ mod delay_refinement {
     fn T10NotRefinesT11() {
         //Refinement passes, tho should fail !
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: T10 <= T11").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1210,7 +1207,7 @@ mod delay_refinement {
     #[test]
     fn N3NotRefinesN4() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: N3 <= N4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1240,7 +1237,7 @@ mod delay_refinement {
     #[test]
     fn D1NotRefinesD2() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: D1 <= D2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1260,7 +1257,8 @@ mod delay_refinement {
     #[test]
     fn K1NotRefinesK2() {
         //Should fail, but passes ?
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH); let mut optimized_components = optimize_components(automataList, &decl);
+        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K1 <= K2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1281,8 +1279,7 @@ mod delay_refinement {
     fn K3NotRefinesK4() {
         //should fail, tho passes ?!
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K3 <= K4").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1303,7 +1300,7 @@ mod delay_refinement {
     fn K5NotRefinesK6() {
         //Should fail, tho passes ?!?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: K5 <= K6").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1323,7 +1320,7 @@ mod delay_refinement {
     #[test]
     fn P0RefinesP1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P0 <= P1").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1343,7 +1340,7 @@ mod delay_refinement {
     #[test]
     fn P2NotRefinesP3() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P2 <= P3").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1374,7 +1371,7 @@ mod delay_refinement {
     #[test]
     fn P6RefinesP7() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: P6 <= P7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1408,7 +1405,7 @@ mod delay_refinement {
     fn L4RefinesL5() {
         //should pass tho fails
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L5 <= L5").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1428,7 +1425,7 @@ mod delay_refinement {
     #[test]
     fn L6NotRefinesL7() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: L6 <= L7").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1493,7 +1490,7 @@ mod delay_refinement {
     fn Q1NotRefinesQ2() {
         //refinement should not hold tho it holds ?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Q1 <= Q2").unwrap();
         let q = Query {
             query: Option::from(query),
@@ -1513,7 +1510,7 @@ mod delay_refinement {
     #[test]
     fn Q2NotRefinesQ1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let mut optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("refinement: Q2 <= Q1").unwrap();
         let q = Query {
             query: Option::from(query),

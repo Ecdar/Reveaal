@@ -7,7 +7,7 @@ use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::representations;
 use std::cell::Cell;
-use std::collections::VecDeque;
+
 
 thread_local!(static INDEX1: Cell<usize> = Cell::new(0));
 thread_local!(static INDEX2: Cell<usize> = Cell::new(0));
@@ -704,7 +704,7 @@ fn prepare_init_state(initial_pair: &mut StatePair, initial_states_1: Vec<State>
 //     return is_Consistent && is_deterministic;
 // }
 
-fn check_preconditions(sys1: &SystemRepresentation, sys2: &SystemRepresentation, outputs1: &Vec<String>, inputs2: &Vec<String>, sys_decls: &system_declarations::SystemDeclarations) -> bool {
+fn check_preconditions(sys1: &SystemRepresentation, sys2: &SystemRepresentation, outputs1: &Vec<String>, _inputs2: &Vec<String>, sys_decls: &system_declarations::SystemDeclarations) -> bool {
     let mut outputs2: Vec<String> = vec![];
     let mut inputs1: Vec<String> = vec![];
     let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions

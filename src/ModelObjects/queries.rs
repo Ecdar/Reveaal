@@ -14,9 +14,9 @@ impl Query {
     pub fn get_query(&self) -> &Option<representations::QueryExpression> {
         &self.query
     }
-    pub fn get_comment(&self) -> &String {
-        &self.comment
-    }
+    // pub fn get_comment(&self) -> &String {
+    //     &self.comment
+    // }
 }
 
 //Function used for deserializing queries

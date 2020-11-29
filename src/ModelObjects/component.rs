@@ -5,10 +5,7 @@ use super::parse_edge;
 use crate::DBMLib::lib;
 use super::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
-use crate::EdgeEval::updater::{updater, fullState_updater};
-use std::ptr::replace;
-use serde::de::Error;
-use std::panic::resume_unwind;
+use crate::EdgeEval::updater::{fullState_updater};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -21,7 +18,7 @@ pub struct Component {
     pub input_edges : Option<Vec<Edge>>,
     pub output_edges : Option<Vec<Edge>>,
 }
-
+#[allow(dead_code)]
 impl Component {
     pub fn get_name(&self) -> &String {
         &self.name
@@ -130,11 +127,9 @@ impl Component {
             declarations : self.get_declarations().clone()
         };
 
-        let mut dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let len = dimension * dimension;
-
-        let mut zone_array = [0;1000];
+        let zone_array = [0;1000];
 
         let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);//FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
         println!("start Dim is: {:?}", fullSt.get_dimensions());
@@ -162,7 +157,7 @@ impl Component {
                 } else {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                        let mut full_new_zone = full_state.get_zoneclone();
+                        let full_new_zone = full_state.get_zoneclone();
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
                         let state = create_state(loc, full_state.get_state().get_declarations().clone());
@@ -210,8 +205,8 @@ impl Component {
                     }
                 }
                 let location_source : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_source_location())).collect::<Vec<&Location>>()[0];
-                let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
-                let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
+                // let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
+                // let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
 
 
                 let zone_i = full_state.get_zoneclone();
@@ -230,7 +225,7 @@ impl Component {
                 //let mut dbm_1 = &mut zone_i[0..4];
                // representations::print_DBM(dbm_1, &4);
 
-                let mut zone_j = full_state.get_zoneclone();
+                let zone_j = full_state.get_zoneclone();
                 let state = create_state(full_state.get_state().get_location(), full_state.get_state().get_declarations().clone());
                 let mut state_j = FullState { state: state, zone: zone_j, dimensions: dimension };
                 if let Some(update_j) = location_source.get_invariant() {
@@ -345,7 +340,7 @@ fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullSt
         println!("right DBM in subsetEQ:(dim {:?}): ", passed_state_pair.get_dimensions());
         let dim = &passed_state_pair.get_dimensions();
         representations::print_DBM(passed_state_pair.get_zone(), dim);
-        let dim = full_state.get_dimensions();
+        // let dim = full_state.get_dimensions();
         // if lib::rs_dbm_isSubsetEq(full_state.get_zone(), passed_state_pair.get_zone(), dim) {
         //     return false;
         // }
@@ -413,7 +408,7 @@ pub struct Location {
     pub location_type: LocationType,
     pub urgency: String,
 }
-
+#[allow(dead_code)]
 impl Location {
     pub fn get_id(&self) -> &String {
         &self.id
@@ -553,26 +548,26 @@ impl <'b> StatePair<'b> {
         lib::rs_dbm_zero(self.get_zone(), dimensions);
         lib::rs_dbm_up(self.get_zone(), dimensions);
     }
-    pub fn applyInvariants(&mut self){
 
-    }
-    pub fn print_dbm(&mut self) {
-        let dim_i32 = self.get_dimensions() as i32;
-        let dim_sqr = (dim_i32 as f32).sqrt() as u32;
-        println!("ZONE:");
-        for i in 0..dim_sqr{
-            for j in 0..dim_sqr {
-                println!("{:?}", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(self.get_zone(), dim_sqr, i, j)));
-            }
-        }
-    }
+
+    //use print function in representations::print_dbm
+    // pub fn print_dbm(&mut self) {
+    //     let dim_i32 = self.get_dimensions() as i32;
+    //     let dim_sqr = (dim_i32 as f32).sqrt() as u32;
+    //     println!("ZONE:");
+    //     for i in 0..dim_sqr{
+    //         for j in 0..dim_sqr {
+    //             println!("{:?}", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(self.get_zone(), dim_sqr, i, j)));
+    //         }
+    //     }
+    // }
 }
 #[derive(Clone, Debug)]
 pub struct State<'a> {
     pub location : &'a Location,
     pub declarations : Declarations,
 }
-
+#[allow(dead_code)]
 impl <'a> State<'a> {
     pub fn get_declarations(&self) -> & Declarations {
         &self.declarations
@@ -598,7 +593,7 @@ pub struct Declarations {
     pub clocks : HashMap<String, u32>,
     pub dimension : u32,
 }
-
+#[allow(dead_code)]
 impl Declarations {
     pub fn get_ints(&self) -> &HashMap<String, i32> {
         &self.ints
@@ -802,15 +797,16 @@ where
     }
 }
 //Function used for deserializing sync to channel
-fn decode_channel<'de, D>(deserializer: D) -> Result<Channel, D::Error>
-    where
-        D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    Ok(Channel{name: s})
-}
-pub enum StateRepresentation<'a> {
-    StatePair(&'a mut StatePair<'a>),
-    DbmTuple((&'a State<'a>, &'a mut [i32], u32))
-}
+
+// fn decode_channel<'de, D>(deserializer: D) -> Result<Channel, D::Error>
+//     where
+//         D: Deserializer<'de>,
+// {
+//     let s = String::deserialize(deserializer)?;
+//     Ok(Channel{name: s})
+// }
+// pub enum StateRepresentation<'a> {
+//     StatePair(&'a mut StatePair<'a>),
+//     DbmTuple((&'a State<'a>, &'a mut [i32], u32))
+// }
 

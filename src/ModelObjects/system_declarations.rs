@@ -7,7 +7,7 @@ pub struct SystemDeclarations {
     #[serde(deserialize_with = "decode_sync_type")]
     pub(crate) declarations : SystemSpecification,
 }
-
+#[allow(dead_code)]
 impl SystemDeclarations {
     pub fn get_declarations(&self) -> &SystemSpecification {
         &self.declarations
@@ -23,7 +23,7 @@ pub struct SystemSpecification {
     pub(crate) input_actions : HashMap<String, Vec<String>>,
     pub(crate) output_actions : HashMap<String, Vec<String>>,
 }
-
+#[allow(dead_code)]
 impl SystemSpecification {
     pub fn get_components(&self) -> &Vec<String> {
         &self.components

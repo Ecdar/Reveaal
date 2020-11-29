@@ -1,7 +1,6 @@
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::component;
 use super::super::ModelObjects::parse_edge;
-use crate::DBMLib::lib::rs_dbm_update_clock;
 use crate::DBMLib::lib;
 
 pub fn updater(updates: &Vec<parse_edge::Update>, state : &mut component::State, dbm: &mut [i32], dim : u32) {

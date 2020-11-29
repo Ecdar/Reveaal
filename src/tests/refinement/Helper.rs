@@ -3,7 +3,6 @@ use crate::ModelObjects::system_declarations::SystemDeclarations;
 use std::{fs, io};
 use crate::read_input;
 use crate::System::input_enabler;
-use std::borrow::Borrow;
 
 pub fn setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
     println!("refTest()");
@@ -24,7 +23,7 @@ pub fn setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
     paths.sort();
     components.sort();
 
-    let (comps, system_declarations, queries) = read_input(paths, components).unwrap();
+    let (comps, system_declarations, _queries) = read_input(paths, components).unwrap();
 
     //let mut optimized_components = vec![];
 

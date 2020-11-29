@@ -6,15 +6,14 @@ mod test {
     fn testDbmValid0() {
         let mut intArr = [0, 0, 0, 0, 0, 0, 0, 0, 0];
         let mut intArr2 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let mut arr2 = [1, 1, 2147483646, 1];
+        let mut _arr2 = [1, 1, 2147483646, 1];
 
         let dbm = &mut intArr;
-        let dbm2 = &mut intArr2;
-        unsafe {
-            println!("dbm before init: {:?}", dbm);
-            lib::rs_dbm_init(dbm, 3);
-            println!("dbm after init: {:?}", dbm);
-        }
+        let _dbm2 = &mut intArr2;
+
+        println!("dbm before init: {:?}", dbm);
+        lib::rs_dbm_init(dbm, 3);
+        println!("dbm after init: {:?}", dbm);
     }
 
     #[test]
@@ -168,9 +167,9 @@ mod test {
     #[test]
     fn testDbmMinusDbm() {
         println!("testDbmMinusDbm");
-        let mut dim = 3;
+        let dim = 3;
         let mut intArr1 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
-        let dbm1 = &mut intArr1;
+        let _dbm1 = &mut intArr1;
         let mut intArr2 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
         let dbm2 = &mut intArr2;
 

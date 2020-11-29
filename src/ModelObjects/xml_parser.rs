@@ -5,7 +5,6 @@ use crate::ModelObjects::{component, parse_invariant, representations, parse_edg
 use crate::ModelObjects::component::{LocationType, SyncType, Declarations, Edge};
 use crate::ModelObjects::parse_edge::Update;
 use std::collections::HashMap;
-use std::panic::catch_unwind;
 use crate::ModelObjects::system_declarations::{SystemSpecification, SystemDeclarations};
 
 pub(crate) fn parse_xml(fileName :&str)-> (Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>) {
@@ -19,12 +18,12 @@ pub(crate) fn parse_xml(fileName :&str)-> (Vec<component::Component>, system_dec
     let mut xml_components: Vec<component::Component> = vec![];
 
     for xml_comp in root.find_all("template") {
-        let mut declarations : Declarations;
+        let declarations : Declarations;
         match xml_comp.find("declaration"){
             Some(e) => declarations = parse_declarations(e.text()) ,
             None => declarations = parse_declarations(""),
         }
-        let mut edges : Vec<component::Edge> = collect_edges(xml_comp.find_all("transition"));
+        let edges : Vec<component::Edge> = collect_edges(xml_comp.find_all("transition"));
         // let input_edges: Vec<component::Edge> = edges.clone()
         //     .into_iter()
         //     .filter(|e| e.sync_type == SyncType::Input)
@@ -33,7 +32,7 @@ pub(crate) fn parse_xml(fileName :&str)-> (Vec<component::Component>, system_dec
         //     .into_iter()
         //     .filter(|e| e.sync_type == SyncType::Output)
         //     .collect();
-        let mut comp : component::Component = component::Component{
+        let comp : component::Component = component::Component{
             name: xml_comp.find("name").unwrap().text().parse().unwrap(),
             declarations,
             locations : collect_locations(xml_comp.find_all("location"), xml_comp.find("init").expect("No initial location").get_attr("ref").unwrap()),
@@ -55,7 +54,7 @@ pub(crate) fn parse_xml(fileName :&str)-> (Vec<component::Component>, system_dec
 fn collect_locations(xml_locations : FindChildren, initial_id : &str) -> Vec<component::Location> {
     let mut locations : Vec<component::Location> = vec![];
     for loc in xml_locations{
-        let mut location : component::Location = component::Location{
+        let location : component::Location = component::Location{
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
                 Some(x)=>{
@@ -115,7 +114,7 @@ fn collect_edges(xml_edges : FindChildren) -> Vec<Edge>{
                 _ => {}
             }
         }
-        let mut edge : component::Edge = component::Edge{
+        let edge : component::Edge = component::Edge{
             source_location: e.find("source").expect("source edge not found").get_attr("ref").expect("no source edge ID").to_string(),
             target_location: e.find("target").expect("target edge not found").get_attr("ref").expect("no target edge ID").to_string(),
             sync_type:  match sync.contains("?") {

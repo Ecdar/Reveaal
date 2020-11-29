@@ -15,11 +15,9 @@ use ModelObjects::system_declarations;
 use DataReader::json_reader;
 use crate::ModelObjects::xml_parser;
 use crate::System::{extract_system_rep, refine, input_enabler};
-use std::borrow::Borrow;
 use std::path::PathBuf;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::parse_queries;
-use crate::ModelObjects::representations::QueryExpression;
 use crate::ModelObjects::component::State;
 
 
@@ -131,10 +129,10 @@ fn parse_automata(mut folder_path: String) -> io::Result<(Vec<component::Compone
     if let Ok(result) = read_input(paths, components) {
         return Ok(result);
     } else {
-        if let result1 = xml_parser::parse_xml(&folder_path) {
-            return Ok(result1);
-        }
-        panic!("Failed to convert JSON/XML to components")
+        let result1 = xml_parser::parse_xml(&folder_path);
+        return Ok(result1);
+
+
     }
 }
 
