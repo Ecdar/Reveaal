@@ -117,30 +117,30 @@ impl Component {
     }
 
     pub fn check_consistency(&self, prune : bool)->bool {
-        let mut passed_list : Vec<FullState> = vec![];
+    let mut passed_list : Vec<FullState> = vec![];
 
-        let initial_loc :&Location = self.get_inital_location();
+    let initial_loc :&Location = self.get_inital_location();
 
-        let initial_state :State = State{
-            location : initial_loc,
-            declarations : self.get_declarations().clone()
-        };
+    let initial_state :State = State{
+        location : initial_loc,
+        declarations : self.get_declarations().clone()
+    };
 
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+    let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let zone_array = [0;1000];
-
-
+    let zone_array = [0;1000];
 
 
-        let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);
+
+
+    let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);
     lib::rs_dbm_zero(fullSt.get_zone(), dimension);
     lib::rs_dbm_up(fullSt.get_zone(), dimension);
     if let Some(update_i) = fullSt.state.location.get_invariant() {
         constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, &dimension);
     }
     println!("start Dim is: {:?}", fullSt.get_dimensions());
-    return self.consistency_helper(&mut fullSt, prune, &mut passed_list);
+    return self.consistency_helper(fullSt, prune, &mut passed_list);
    // add_state_to_wl(&mut waiting_list, fullSt);
 
     }
@@ -159,8 +159,8 @@ impl Component {
 
     return false;
     }
-    pub fn consistency_helper (&self, currState : &mut FullState, prune : bool, passed_list : &mut Vec<FullState>) -> bool{
-        if self.passed_contains_state( currState, passed_list) {
+    pub fn consistency_helper<'a> (&'a self, mut currState : FullState<'a>, prune : bool, passed_list: & mut Vec<FullState<'a>>) -> bool{
+        if self.passed_contains_state( &mut currState, passed_list) {
             return true;
         }
         //add_state_to_pl( passed_list, currState);
@@ -176,14 +176,27 @@ impl Component {
             let state = create_state(loc, currState.get_state().get_declarations().clone());
             println!("Dim is: {:?}", currState.get_dimensions());
             let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
-            let inputConsistent : bool = self.consistency_helper(new_state.borrow_mut(), prune,passed_list);
+
+            if let Some(source_inv) = self.get_location_by_name(edge.get_source_location()).get_invariant(){
+                constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state ,&currState.get_dimensions());
+            }
+
+            if let Some(guard) = edge.get_guard() {
+                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,&currState.get_dimensions());
+            }
+
+            add_state_to_pl(passed_list, new_state.clone());
+
+            //passed_list.push(new_state);
+
+            let inputConsistent : bool = self.consistency_helper(new_state, prune,passed_list);
             if !inputConsistent{
                 return false;
             }
         }
         let mut outputExisted : bool = false;
         // If delaying indefinitely is possible -> Prune the rest
-        if prune && ModelObjects::component::Component::canDelayIndefinitely(currState) {
+        if prune && ModelObjects::component::Component::canDelayIndefinitely(&mut currState) {
             return true;
         }
         else {
@@ -203,7 +216,18 @@ impl Component {
                 println!("Dim is: {:?}", currState.get_dimensions());
                 let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
 
-                let outputConsistent : bool = self.consistency_helper(new_state.borrow_mut(), prune,passed_list);
+                if let Some(source_inv) = self.get_location_by_name(edge.get_source_location()).get_invariant(){
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state ,&currState.get_dimensions());
+                }
+
+                if let Some(guard) = edge.get_guard() {
+                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,&currState.get_dimensions());
+                }
+
+                add_state_to_pl(passed_list, new_state.clone());
+
+
+                let outputConsistent : bool = self.consistency_helper(new_state, prune,passed_list);
                 if outputConsistent && prune{
                     return true;
                 }
@@ -216,7 +240,7 @@ impl Component {
                 if outputExisted {
                     return true;
                 }
-                return ModelObjects::component::Component::canDelayIndefinitely(currState);
+                return ModelObjects::component::Component::canDelayIndefinitely(&mut currState);
 
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
@@ -482,7 +506,7 @@ fn create_full_state<'a>(state : State<'a>, zone : [i32;1000], dim : u32) -> Ful
         dimensions: dim
     }
 }
-
+#[derive(Clone)]
 pub struct FullState<'a> {
     pub state : State<'a>,
     pub zone: [i32;1000],
