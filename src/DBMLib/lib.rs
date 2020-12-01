@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 use std::ptr::slice_from_raw_parts;
+use crate::ModelObjects::representations;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
@@ -26,6 +27,8 @@ pub const DBM_INF : i32 = i32::MAX -1;
 /// dbm_init(dbm.as_mut_ptr(), 3);
 /// ```
 pub fn rs_dbm_is_valid(dbm: &mut[i32], dimension : u32) -> bool {
+    println!("IN DBM IS VALID");
+    representations::print_DBM(dbm, &dimension);
     let first = dbm.get(0).unwrap();
     if first == &-1 {
         return false

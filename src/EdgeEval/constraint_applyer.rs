@@ -294,10 +294,12 @@ pub fn apply_constraints_to_state_helper(guard : &BoolExpression, state : & comp
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = state.get_declarations().get_clocks().get(name.as_str()) {
                 return (BoolExpression::Clock(*clock_index), true)
-            }
-            if let Some(val) = state.get_declarations().get_ints().get(name.as_str()) {
+            } else if let Some(val) = state.get_declarations().get_ints().get(name.as_str()) {
                 return (BoolExpression::Int(*val), false)
+            }else {
+                panic!("No clock or variable named {:?} was found", name)
             }
+
             panic!("could not find variable: {:?} in declarations", name);
         },
         BoolExpression::Bool(val) => {
@@ -519,9 +521,10 @@ pub fn apply_constraints_to_state2(guard : &BoolExpression, full_state : &mut co
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = full_state.state.get_declarations().get_clocks().get(name.as_str()) {
                 return BoolExpression::Clock(*clock_index)
-            }
-            if let Some(val) = full_state.state.get_declarations().get_ints().get(name.as_str()) {
+            } else if let Some(val) = full_state.state.get_declarations().get_ints().get(name.as_str()) {
                 return BoolExpression::Int(*val)
+            } else {
+                panic!("no variable or clock named {:?}", name)
             }
         },
         BoolExpression::Bool(val) => {

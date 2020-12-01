@@ -25,7 +25,7 @@ pub fn fullState_updater(updates: &Vec<parse_edge::Update>, full_state : &mut co
         match update.get_expression(){
             BoolExpression::Int(val) => {
                 if let Some(&clock_index) = full_state.get_state().get_declarations().get_clock_index_by_name(update.get_variable_name()) {
-                    lib::rs_dbm_constrain_var_to_val(full_state.get_zone(), *dimension,clock_index,*val);
+                    lib::rs_dbm_update_clock(full_state.get_zone(), *dimension,clock_index,*val);
                 }
                 else {
                     panic!("Attempting to update a clock which is not initialized")

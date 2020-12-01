@@ -169,9 +169,11 @@ impl Component {
                         }
 
                         if let Some(updates) = edge.get_update() {
-
                             fullState_updater(updates, &mut new_state, &dimension);
                         }
+                        // if let Some(inv) = self.get_location_by_name(edge.get_target_location()).get_invariant(){
+                        //     constraint_applyer::apply_constraints_to_state2(inv, &mut new_state ,&dimension);
+                        // }
                         if is_new_state(&mut new_state, &mut passed_list) && is_new_state(&mut new_state, &mut waiting_list){
                             add_state_to_wl(&mut waiting_list, new_state);
                         }
@@ -205,20 +207,24 @@ impl Component {
                     }
                 }
                 let location_source : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_source_location())).collect::<Vec<&Location>>()[0];
-                // let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
-                // let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
+                let location_i : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[i].get_target_location())).collect::<Vec<&Location>>()[0];
+                let location_j : &Location = self.get_locations().into_iter().filter(|l| (l.get_id() == edges[j].get_target_location())).collect::<Vec<&Location>>()[0];
 
 
                 let zone_i = full_state.get_zoneclone();
 
                 let state = create_state(full_state.get_state().get_location(), full_state.get_state().get_declarations().clone());
                 let mut state_i = FullState { state: state, zone: zone_i, dimensions: dimension};
-                if let Some(update_i) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, &dimension);
+                if let Some(inv_source) = location_source.get_invariant() {
+                    constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, &dimension);
                 }
                 if let Some(update_i) = &edges[i].guard {
                     constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, &dimension);
                 }
+                if let Some(inv_target) = location_i.get_invariant() {
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, &dimension);
+                }
+
 
                 println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! zone we remember:");
                 representations::print_DBM(state_i.get_zone(), &full_state.get_dimensions());
@@ -235,6 +241,9 @@ impl Component {
                 if let Some(update_j) = &edges[j].guard {
                     constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, &dimension);
                 }
+                if let Some(inv_target) = location_j.get_invariant() {
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j, &dimension);
+                }
                 println!("State_j DBM:");
                 representations::print_DBM(state_j.get_zone(), &full_state.get_dimensions());
 
@@ -243,31 +252,7 @@ impl Component {
                         return true
                     }
                 }
-               //  match lib::rs_wrapped_dbm_is_valid(state_i.get_mut_zone(), *dimension){
-               //      Ok(result) => {
-               //          match lib::rs_wrapped_dbm_is_valid(state_j.get_mut_zone(), *dimension) {
-               //              Ok(result) => {
-               //                  if lib::rs_dmb_intersection(state_i.get_mut_zone(), state_j.get_mut_zone(), *dimension) {
-               //                      return true
-               //                  }
-               //              }
-               //              Err(err) => {println!("Epic fail {:?}", err)}
-               //          }
-               //      }
-               //      Err(err) => {println!("Epic fail {:?}", err)}
-               //  }
-                // if let Some(update_i) = location_i.get_invariant() {
-                //     constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, dimension);
-                //
-                //     if let Some(update_j) = location_j.get_invariant() {
-                //         constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j,dimension);
-                //         //if lib::rs_dbm_is_valid(state_i.get_mut_zone(), *dimension) && lib::rs_dbm_is_valid(state_j.get_mut_zone(), *dimension) {
-                //             if lib::rs_dmb_intersection(state_i.get_mut_zone(), state_j.get_mut_zone(), *dimension) {
-                //                 return true
-                //             }
-                //         //}
-                //     }
-                // }
+
             }
         }
 
@@ -340,10 +325,10 @@ fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullSt
         println!("right DBM in subsetEQ:(dim {:?}): ", passed_state_pair.get_dimensions());
         let dim = &passed_state_pair.get_dimensions();
         representations::print_DBM(passed_state_pair.get_zone(), dim);
-        // let dim = full_state.get_dimensions();
-        // if lib::rs_dbm_isSubsetEq(full_state.get_zone(), passed_state_pair.get_zone(), dim) {
-        //     return false;
-        // }
+        let dim = full_state.get_dimensions();
+        if lib::rs_dbm_isSubsetEq(full_state.get_zone(), passed_state_pair.get_zone(), dim) {
+            return false;
+        }
     }
     return true;
 }
