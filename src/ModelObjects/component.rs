@@ -6,6 +6,9 @@ use crate::DBMLib::lib;
 use super::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::updater::{fullState_updater};
+use std::borrow::BorrowMut;
+use crate::ModelObjects;
+use std::convert::TryFrom;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -112,6 +115,131 @@ impl Component {
 
         return self
     }
+
+    pub fn check_consistency(&self, prune : bool)->bool {
+        let mut passed_list : Vec<FullState> = vec![];
+
+        let initial_loc :&Location = self.get_inital_location();
+
+        let initial_state :State = State{
+            location : initial_loc,
+            declarations : self.get_declarations().clone()
+        };
+
+        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+
+        let zone_array = [0;1000];
+
+
+
+
+        let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);
+    lib::rs_dbm_zero(fullSt.get_zone(), dimension);
+    lib::rs_dbm_up(fullSt.get_zone(), dimension);
+    if let Some(update_i) = fullSt.state.location.get_invariant() {
+        constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, &dimension);
+    }
+    println!("start Dim is: {:?}", fullSt.get_dimensions());
+    return self.consistency_helper(&mut fullSt, prune, &mut passed_list);
+   // add_state_to_wl(&mut waiting_list, fullSt);
+
+    }
+    pub fn passed_contains_state(&self, currState: &mut FullState, passed_list : &mut Vec<FullState>) -> bool {
+        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        for state in passed_list {
+            if state.state.location.id == currState.state.location.id {
+                if lib::rs_dbm_isSubsetEq(currState.get_zone(),  state.get_zone(), dimension){
+                    return true;
+                }
+            }
+        }
+
+    // if (state.getLocation().equals(passedState.getLocation()) &&
+    // state.getInvZone().isSubset(passedState.getInvZone())) {
+
+    return false;
+    }
+    pub fn consistency_helper (&self, currState : &mut FullState, prune : bool, passed_list : &mut Vec<FullState>) -> bool{
+        if self.passed_contains_state( currState, passed_list) {
+            return true;
+        }
+        //add_state_to_pl( passed_list, currState);
+        let mut edges : Vec<&Edge> = vec![];
+        for input_action in self.get_input_actions() {
+            edges.append(&mut self.get_next_edges(&currState.get_state().location, input_action.get_name(), SyncType::Input));
+        }
+        for edge in edges {
+            //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
+            let full_new_zone = currState.get_zoneclone();
+            //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
+            let loc = self.get_location_by_name(&edge.target_location);
+            let state = create_state(loc, currState.get_state().get_declarations().clone());
+            println!("Dim is: {:?}", currState.get_dimensions());
+            let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
+            let inputConsistent : bool = self.consistency_helper(new_state.borrow_mut(), prune,passed_list);
+            if !inputConsistent{
+                return false;
+            }
+        }
+        let mut outputExisted : bool = false;
+        // If delaying indefinitely is possible -> Prune the rest
+        if prune && ModelObjects::component::Component::canDelayIndefinitely(currState) {
+            return true;
+        }
+        else {
+            let mut edges : Vec<&Edge> = vec![];
+            for output_action in self.get_output_actions() {
+                edges.append(&mut self.get_next_edges(&currState.get_state().location, output_action.get_name(), SyncType::Output));
+            }
+            for edge in edges {
+                if !outputExisted {
+                    outputExisted = true;
+                }
+                //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
+                let full_new_zone = currState.get_zoneclone();
+                //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
+                let loc = self.get_location_by_name(&edge.target_location);
+                let state = create_state(loc, currState.get_state().get_declarations().clone());
+                println!("Dim is: {:?}", currState.get_dimensions());
+                let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
+
+                let outputConsistent : bool = self.consistency_helper(new_state.borrow_mut(), prune,passed_list);
+                if outputConsistent && prune{
+                    return true;
+                }
+                if !outputConsistent && !prune{
+                    return false;
+                }
+
+            }
+            if !prune {
+                if outputExisted {
+                    return true;
+                }
+                return ModelObjects::component::Component::canDelayIndefinitely(currState);
+
+            }
+            // If by now no locations reached by output edges managed to satisfy independent progress check
+            // or there are no output edges from the current location -> Independent progress does not hold
+            else{ return false;}
+        }
+        // Else if independent progress does not hold through delaying indefinitely,
+        // we must check for being able to output and satisfy independent progress
+
+
+        return false;
+    }
+    pub fn canDelayIndefinitely(currState : &mut FullState) -> bool{
+        for i in 0..currState.dimensions{
+            let n_us = usize::try_from(currState.dimensions * i).unwrap();
+            let curr = currState.get_zone().get(n_us).unwrap();
+            if curr < &lib::DBM_INF {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     //TODO list:
     //first make full state take not a slice but rather hold ownership of a copy of the zone
