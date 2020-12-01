@@ -513,6 +513,8 @@ pub fn rs_dbm_update(dbm : &mut[i32], dimension : u32, var_index: u32, value : i
  * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
  */
 pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) -> bool {
+    println!("printing from subseteq");
+    representations::print_DBM(dbm1, &dimension);
     unsafe {
         return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension)
     }

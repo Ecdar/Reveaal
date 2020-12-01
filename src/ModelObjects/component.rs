@@ -34,14 +34,14 @@ impl Component {
     }
     pub fn get_location_by_name(&self, name : &str) ->&Location{
         let loc_vec = self.locations.iter().filter(|l| l.id == name).collect::<Vec<&Location>>();
-        
+
         if loc_vec.len() == 1 {
             return loc_vec[0]
-        } else 
+        } else
         {
             panic!("Unable to retrive location based on id: {}", name)
         }
-        
+
     }
     pub fn get_edges(&self) -> &Vec<Edge> {
         &self.edges
@@ -83,7 +83,7 @@ impl Component {
 
         return match synch_type {
             SyncType::Input => {
-                
+
                 let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string()).as_str())).collect();
                 result
             },
@@ -117,51 +117,63 @@ impl Component {
     }
 
     pub fn check_consistency(&self, prune : bool)->bool {
-    let mut passed_list : Vec<FullState> = vec![];
+        if !self.is_deterministic() {
+            return false
+        }
+        let mut passed_list : Vec<FullState> = vec![];
 
-    let initial_loc :&Location = self.get_inital_location();
+        let initial_loc :&Location = self.get_inital_location();
 
-    let initial_state :State = State{
-        location : initial_loc,
-        declarations : self.get_declarations().clone()
-    };
+        let initial_state :State = State{
+            location : initial_loc,
+            declarations : self.get_declarations().clone()
+        };
 
-    let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-    let zone_array = [0;1000];
-
-
+        let zone_array = [0;1000];
 
 
-    let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);
-    lib::rs_dbm_zero(fullSt.get_zone(), dimension);
-    lib::rs_dbm_up(fullSt.get_zone(), dimension);
-    if let Some(update_i) = fullSt.state.location.get_invariant() {
-        constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, &dimension);
-    }
-    println!("start Dim is: {:?}", fullSt.get_dimensions());
-    return self.consistency_helper(fullSt, prune, &mut passed_list);
-   // add_state_to_wl(&mut waiting_list, fullSt);
+
+
+        let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);
+        lib::rs_dbm_zero(fullSt.get_zone(), dimension);
+        lib::rs_dbm_up(fullSt.get_zone(), dimension);
+        if let Some(update_i) = fullSt.state.location.get_invariant() {
+            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, &dimension);
+        }
+        println!("start Dim is: {:?}", fullSt.get_dimensions());
+        return self.consistency_helper(fullSt, prune, &mut passed_list);
+        // add_state_to_wl(&mut waiting_list, fullSt);
 
     }
     pub fn passed_contains_state(&self, currState: &mut FullState, passed_list : &mut Vec<FullState>) -> bool {
+        println!("entered passed_contains_state");
+        let dim = currState.get_dimensions();
+
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
         for state in passed_list {
             if state.state.location.id == currState.state.location.id {
+                println!("left of subseteq");
+                representations::print_DBM(currState.get_zone(), &dim);
+                println!("right of subseteq");
+                representations::print_DBM(state.get_zone(), &dim);
                 if lib::rs_dbm_isSubsetEq(currState.get_zone(),  state.get_zone(), dimension){
                     return true;
                 }
             }
         }
 
-    // if (state.getLocation().equals(passedState.getLocation()) &&
-    // state.getInvZone().isSubset(passedState.getInvZone())) {
+        // if (state.getLocation().equals(passedState.getLocation()) &&
+        // state.getInvZone().isSubset(passedState.getInvZone())) {
 
-    return false;
+        return false;
     }
     pub fn consistency_helper<'a> (&'a self, mut currState : FullState<'a>, prune : bool, passed_list: & mut Vec<FullState<'a>>) -> bool{
         if self.passed_contains_state( &mut currState, passed_list) {
             return true;
+        } else {
+            add_state_to_pl(passed_list, currState.clone())
         }
         //add_state_to_pl( passed_list, currState);
         let mut edges : Vec<&Edge> = vec![];
@@ -185,9 +197,24 @@ impl Component {
                 constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,&currState.get_dimensions());
             }
 
-            add_state_to_pl(passed_list, new_state.clone());
+            if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                continue
+            }
+
+            if let Some(update) = edge.get_update() {
+                fullState_updater(update, &mut new_state, &currState.get_dimensions());
+            }
+
+            lib::rs_dbm_up(new_state.get_zone(), currState.get_dimensions());
+
+            if let Some(target_inv) = self.get_location_by_name(edge.get_target_location()).get_invariant(){
+                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state ,&currState.get_dimensions());
+            }
 
             //passed_list.push(new_state);
+            if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                continue
+            }
 
             let inputConsistent : bool = self.consistency_helper(new_state, prune,passed_list);
             if !inputConsistent{
@@ -198,8 +225,7 @@ impl Component {
         // If delaying indefinitely is possible -> Prune the rest
         if prune && ModelObjects::component::Component::canDelayIndefinitely(&mut currState) {
             return true;
-        }
-        else {
+        } else {
             let mut edges : Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
                 edges.append(&mut self.get_next_edges(&currState.get_state().location, output_action.get_name(), SyncType::Output));
@@ -223,44 +249,63 @@ impl Component {
                 if let Some(guard) = edge.get_guard() {
                     constraint_applyer::apply_constraints_to_state2(guard, &mut new_state ,&currState.get_dimensions());
                 }
+                if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                    continue
+                }
 
-                add_state_to_pl(passed_list, new_state.clone());
+                if let Some(update) = edge.get_update() {
+                    fullState_updater(update, &mut new_state, &currState.get_dimensions());
+                }
+                lib::rs_dbm_up(new_state.get_zone(), currState.get_dimensions());
 
+                if let Some(target_inv) = self.get_location_by_name(edge.get_target_location()).get_invariant(){
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state ,&currState.get_dimensions());
+                }
+
+                if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                    continue
+                }
 
                 let outputConsistent : bool = self.consistency_helper(new_state, prune,passed_list);
                 if outputConsistent && prune{
-                    return true;
+                    return true
                 }
                 if !outputConsistent && !prune{
-                    return false;
+                    return false
                 }
 
             }
             if !prune {
                 if outputExisted {
-                    return true;
+                    return true
                 }
                 return ModelObjects::component::Component::canDelayIndefinitely(&mut currState);
 
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
             // or there are no output edges from the current location -> Independent progress does not hold
-            else{ return false;}
+            else {
+                return false
+            }
         }
         // Else if independent progress does not hold through delaying indefinitely,
         // we must check for being able to output and satisfy independent progress
 
-
-        return false;
     }
     pub fn canDelayIndefinitely(currState : &mut FullState) -> bool{
-        for i in 0..currState.dimensions{
+        println!("Entered canDelayIndefinitely");
+        let dim = currState.get_dimensions();
+        representations::print_DBM(currState.get_zone(), &dim);
+        for i in 1..currState.dimensions{
             let n_us = usize::try_from(currState.dimensions * i).unwrap();
             let curr = currState.get_zone().get(n_us).unwrap();
+
             if curr < &lib::DBM_INF {
+                println!("Returned False");
                 return false;
             }
         }
+        println!("Returned True");
         return true;
     }
 
@@ -381,7 +426,7 @@ impl Component {
                 println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! zone we remember:");
                 representations::print_DBM(state_i.get_zone(), &full_state.get_dimensions());
                 //let mut dbm_1 = &mut zone_i[0..4];
-               // representations::print_DBM(dbm_1, &4);
+                // representations::print_DBM(dbm_1, &4);
 
                 let zone_j = full_state.get_zoneclone();
                 let state = create_state(full_state.get_state().get_location(), full_state.get_state().get_declarations().clone());
@@ -583,7 +628,7 @@ pub struct Edge {
     pub update: Option<Vec<parse_edge::Update>>,
     #[serde(deserialize_with = "decode_sync")]
     pub sync: String,
-    
+
 }
 
 impl Edge {
@@ -613,7 +658,7 @@ impl Edge {
             }
         }
         return clock_vec
-    } 
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -765,8 +810,8 @@ impl Declarations {
 
 //Function used for deserializing declarations
 fn decode_declarations<'de, D>(deserializer: D) -> Result<Declarations, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     //Split string into vector of strings
@@ -783,8 +828,8 @@ where
 
         for sub_decl in sub_decls {
             if sub_decl.len() != 0 {
-                
-                
+
+
                 let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
                 let variable_type = split_string[0].as_str();
 
@@ -813,7 +858,7 @@ where
                 }
             }
         }
-        
+
     }
 
     let dim  = clocks.keys().len() as u32;
@@ -827,8 +872,8 @@ where
 
 //Function used for deserializing guards
 fn decode_guard<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
@@ -847,8 +892,8 @@ where
 
 //Function used for deserializing updates
 fn decode_update<'de, D>(deserializer: D) -> Result<Option<Vec<parse_edge::Update>>, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
@@ -868,8 +913,8 @@ where
 
 //Function used for deserializing invariants
 pub fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<representations::BoolExpression>, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
@@ -885,8 +930,8 @@ where
 
 //Function used for deserializing sync types
 fn decode_sync_type<'de, D>(deserializer: D) -> Result<SyncType, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     match s.as_str() {
@@ -922,8 +967,8 @@ fn add_state_to_pl<'a>(wl: &mut  Vec<FullState<'a>>, full_state: FullState<'a>) 
 
 //Function used for deserializing location types
 fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     match s.as_str() {
