@@ -14,7 +14,7 @@ thread_local!(static INDEX2: Cell<usize> = Cell::new(0));
 
 
 //------------------ NEW IMPL ------------------
-pub fn check_refinement(sys1: SystemRepresentation, sys2: SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations) -> Result<bool, String> {
+pub fn check_refinement(mut sys1: SystemRepresentation, mut sys2: SystemRepresentation, sys_decls: &system_declarations::SystemDeclarations) -> Result<bool, String> {
     let mut inputs2: Vec<String> = vec![];
     let mut outputs1: Vec<String> = vec![];
     let mut passed_list: Vec<StatePair> = vec![];
@@ -24,39 +24,39 @@ pub fn check_refinement(sys1: SystemRepresentation, sys2: SystemRepresentation, 
     let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
 
-    get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
-    get_actions(&sys1, sys_decls, false, &mut outputs1, &mut initial_states_1);
-
-    //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2, &outputs1, &inputs2, sys_decls) {
+    if !check_preconditions(&mut sys1, &mut sys2, &outputs1, &inputs2, sys_decls) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
 
+    get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
+    get_actions(&sys1, sys_decls, false, &mut outputs1, &mut initial_states_1);
+
+    //Firstly we check the preconditions
+
+
     let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
-    //initial_pair.init_dbm();
     initial_pair.init_dbm();
-    // apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let mut curr_pair = waiting_list.pop().unwrap();
-        //println!("outputs {:?}", outputs1);
+
         for output in &outputs1 {
             combined_transitions1.clear();
             combined_transitions2.clear();
 
-            //Conjunction failed, on left side. This means the expression does not satisfy conjunction rules. Should maybe fail
             if !collect_open_edges(&sys1, &curr_pair, output, true, &mut combined_transitions1, &component::SyncType::Output) {
                 return Err("Conjunction rules on output not satisfied on left side".to_string());
             }
             if !collect_open_edges(&sys2, &curr_pair, output, false, &mut combined_transitions2, &component::SyncType::Output) {
                 return Err("Conjunction rules on output not satisfied on right side".to_string());
             }
-            //println!("1: {:?}\n2: {:?}", combined_transitions1, combined_transitions2);
+
             if combined_transitions1.len() > 0 {
                 if combined_transitions2.len() > 0 {
+                    //TODO: Check with alex or thomas to see if this comment is important
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(&combined_transitions1, &combined_transitions2, &mut curr_pair, &mut waiting_list, &mut passed_list, &sys1, &sys2, output, false, true) {
                         return Ok(false);
@@ -74,7 +74,6 @@ pub fn check_refinement(sys1: SystemRepresentation, sys2: SystemRepresentation, 
             });
         }
 
-        //println!("inputs {:?}", inputs2);
         for input in &inputs2 {
             combined_transitions1.clear();
             combined_transitions2.clear();
@@ -120,12 +119,10 @@ fn collect_open_edges<'a>(
 ) -> bool {
     match sys {
         SystemRepresentation::Composition(leftside, rightside) => {
-            //Should reflect that just one of them has to satisfy 
             collect_open_edges(leftside, curr_pair, action, is_state1, open_edges, sync_type) ||
                 collect_open_edges(rightside, curr_pair, action, is_state1, open_edges, sync_type)
         }
         SystemRepresentation::Conjunction(leftside, rightside) => {
-            //Should reflect that both sides has to satisfy and both being able to take a transition if one of them can take a transition
             let open_edges_len = open_edges.len();
             if collect_open_edges(leftside, curr_pair, action, is_state1, open_edges, sync_type) {
                 let left_found_transitions = open_edges_len != open_edges.len();
@@ -180,7 +177,6 @@ fn create_new_state_pairs<'a>(
     adding_input: bool,
     is_state1: bool,
 ) -> bool {
-    //println!("Entered create new state pairs");
     let mut guard_zones_left: Vec<*mut i32> = vec![];
     let mut guard_zones_right: Vec<*mut i32> = vec![];
     let dim = curr_pair.get_dimensions();
@@ -188,24 +184,16 @@ fn create_new_state_pairs<'a>(
 
     let mut zones_to_print1 = vec![];
     let mut zones_to_print2 = vec![];
-    //Create guard zones left
-    //println!("Zones1");
 
+    //create guard zones left
     for (_, edge_vec1, state_index) in transitions1 {
         for edge in edge_vec1 {
-            //println!("Edge: {:?}", edge);
-            //let mut zone = [0;1000];
+
             let mut zone = curr_pair.get_dbm_clone();
-            // lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
-            // lib::rs_dbm_up(&mut zone[0..len as usize], dim);
-            // println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! zone we remember:");
-            // representations::print_DBM(&mut zone[0..len as usize], &dim);
+
 
             let g_succes = apply_guard(edge, &curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
             if g_succes {
-                //apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, true);
-                // println!("-------------------------------After guard left side ----------------------------");
-                // representations::print_DBM(&mut zone[0..len as usize], &dim);
                 let inv_success = apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, true);
                 if inv_success {
                     zones_to_print1.push(zone.clone());
@@ -215,41 +203,24 @@ fn create_new_state_pairs<'a>(
         }
     }
     //Create guard zones right
-    //println!("Zones2");
     for (_, edge_vec2, state_index) in transitions2 {
         for edge in edge_vec2 {
-            //println!("Edge: {:?}", edge);
-            //let mut zone = [0;1000];
             let mut zone = curr_pair.get_dbm_clone();
-            // lib::rs_dbm_zero(&mut zone[0..len as usize], dim);
-            // lib::rs_dbm_up(&mut zone[0..len as usize], dim);
-            // println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DIMENSION left: {:?}", dim);
-            // representations::print_DBM(&mut zone[0..len as usize], &dim);
+
             let g_succes = apply_guard(edge, &curr_pair, &mut zone[0..len as usize], &dim, *state_index, false);
             if g_succes {
-
-                //apply_update(edge, curr_pair, &mut zone[0..len as usize], dim, *state_index, false);
-                // println!("-------------------------------After guard ----------------------------");
-                // representations::print_DBM(&mut zone[0..len as usize], &dim);
                 let inv_success = apply_invariant(&curr_pair, &mut zone[0..len as usize], &dim, *state_index, false);
                 if inv_success {
                     zones_to_print2.push(zone.clone());
                     guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
                 }
-                //representations::print_DBM(&mut zone, &dim);
             }
-            //curr_pair.zone = zone.clone();
         }
     }
-    println!("left side");
-    representations::print_DBM(&mut zones_to_print1[0][0..len as usize], &dim);
-    println!("right side");
-    representations::print_DBM(&mut zones_to_print2[0][0..len as usize], &dim);
 
 
     let result_federation_vec = lib::rs_dbm_fed_minus_fed(&mut guard_zones_left, &mut guard_zones_right, dim);
 
-    //println!("fed len {:?}", result_federation_vec.len());
     if result_federation_vec.len() > 0 {
         return false;
     }
@@ -264,7 +235,6 @@ fn create_new_state_pairs<'a>(
             build_state_pair(comb_vec1, comb_vec2, curr_pair, waiting_list, passed_list, sys1, sys2, action, adding_input, is_state1);
         }
     }
-
 
     return true;
 }
@@ -311,8 +281,6 @@ fn build_state_pair<'a>(
     let mut new_sp_zone = curr_pair.get_dbm_clone();
     new_sp.set_dimensions(curr_pair.get_dimensions());
     let dim = new_sp.get_dimensions();
-    //println!("new_sp init");
-    //representations::print_DBM(&mut new_sp_zone, &dim);
     //Apply guards on both sides
     //Boolean for the left side guards
     let mut g1_success = true;
@@ -331,9 +299,6 @@ fn build_state_pair<'a>(
         return false;
     }
 
-    //println!("new_sp after guard");
-    //representations::print_DBM(&mut new_sp_zone, &dim);
-
     //Apply updates on both sides
     for (_, edge, state_index) in transitions1 {
         apply_update(edge, &mut new_sp, &mut new_sp_zone, dim, *state_index, is_state1);
@@ -341,8 +306,6 @@ fn build_state_pair<'a>(
     for (_, edge, state_index) in transitions2 {
         apply_update(edge, &mut new_sp, &mut new_sp_zone, dim, *state_index, !is_state1);
     }
-    //println!("new_sp after update");
-    //representations::print_DBM(&mut new_sp_zone, &dim);
 
     //Update locations in states
     for (comp, edge, state_index) in transitions1 {
@@ -366,14 +329,11 @@ fn build_state_pair<'a>(
     //Perform a delay on the zone after the updates were applied
     lib::rs_dbm_up(&mut new_sp_zone, dim);
 
-    // println!("-------------Start1 ---------------");
-    // representations::print_DBM(&mut new_sp_zone, &dim);
-    // println!("-------------End1 ---------------");
+
     // Apply invariants on the left side of relation
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
-        // println!("Is state 1: {:?}", is_state1);
         inv_success1 = inv_success1 && apply_invariant(&new_sp, &mut new_sp_zone, &dim, *state_index, is_state1);
         index_vec1.push(*state_index);
     }
@@ -391,17 +351,10 @@ fn build_state_pair<'a>(
         return false;
     }
 
-    //representations::print_DBM(&mut invariant_test, &dim);
-    //representations::print_DBM(&mut new_sp_zone, &dim);
     let mut inv_test_vec = vec![invariant_test.as_mut_ptr()];
     let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
-    // println!("start fed test dim is {:?}", dim);
-    // println!("-------------Start2 ---------------");
-    // representations::print_DBM(&mut invariant_test, &dim);
-    // println!("-----------------------");
-    // representations::print_DBM(&mut new_sp_zone, &dim); sp_zone_vec
+
     let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
-    // println!("-------------End2 ---------------");
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
@@ -491,6 +444,7 @@ fn apply_syncs_to_comps<'a>(
                     return false;
                 }
 
+                //TODO: see below
                 //Declarations on the states should also be updated when variables are added to reveaal
                 let target_loc = comp.get_location_by_name(edge.get_target_location());
                 if is_state1 {
@@ -611,117 +565,47 @@ fn prepare_init_state(initial_pair: &mut StatePair, initial_states_1: Vec<State>
         }
     }
 }
-// pub fn getSystems(sys_rep: &SystemRepresentation, mut components: &vec<Component>) {
-//     match sys_rep {
-//         SystemRepresentation::Composition(left_side, right_side) => {
-//             getSystems(&**left_side, components);
-//             getSystems(&**right_side, components);
-//         }
-//         SystemRepresentation::Conjunction(left_side, right_side) => {
-//             getSystems(&**left_side, components);
-//             getSystems(&**right_side, components);
-//         }
-//         SystemRepresentation::Parentheses(rep) => {
-//             getSystems(&**rep, components);
-//         }
-//         SystemRepresentation::Component(comp) => {
-//             components.push(comp.clone());
-//     }
-// }
-//     pub fn passedContainsState(state : State) -> bool {
-//         for passedState in passed {
-//             // check for zone inclusion
-//             if (state.getLocation().equals(passedState.getLocation()) && state.getInvZone().isSubset(passedState.getInvZone())) {
-//                 return true;
-//             }
-//         }
-//         return false;
-//     }
-//     pub fn checkConsistency(currState : State, inputs : Set<Channel> , outputs : Set<Channel> ,canPrune : bool)->bool {
-//         let automaton: Component;
-//         let waiting : Deque<State>;
-//         let passed : List<State>;
-//         if passedContainsState(currState){return true;}
-//
-//         passed.add(new State(currState));
-//
-//         // Check if the target of every outgoing input edge ensures independent progress
-//         for channel in inputs {
-//             let mut tempTrans : List<Transition>  = getNextTransitions(currState, channel);
-//             for ts in tempTrans {
-//                 let mut inputConsistent = checkConsistency(ts.getTarget(), inputs, outputs, canPrune);
-//                 if !inputConsistent {
-//                     return false;
-//                 }
-//             }
-//         }
-//
-//         let mut outputExisted : bool = false;
-//         // If delaying indefinitely is possible -> Prune the rest
-//         if canPrune && currState.getInvZone().canDelayIndefinitely() {return true;}
-//
-//         // Else if independent progress does not hold through delaying indefinitely,
-//         // we must check for being able to output and satisfy independent progress
-//         else {
-//             for (Channel channel : outputs) {
-//                 List<Transition> tempTrans = getNextTransitions(currState, channel);
-//
-//                 for (Transition ts : tempTrans) {
-//                     if(!outputExisted) outputExisted = true;
-//                     boolean outputConsistent = checkConsistency(ts.getTarget(), inputs, outputs, canPrune);
-//                     if (outputConsistent && canPrune)
-//                     return true;
-//                     if(!outputConsistent && !canPrune)
-//                     return false;
-//                 }
-//             }
-//             if !canPrune {
-//                 if outputExisted{
-//                     return true;
-//                 }
-//                 return currState.getInvZone().canDelayIndefinitely();
-//
-//             }
-//             // If by now no locations reached by output edges managed to satisfy independent progress check
-//             // or there are no output edges from the current location -> Independent progress does not hold
-//             else { return false; }
-//         }
-//     }
-// pub fn isConsistent(canPrune: bool, transitionSystem : &SystemRepresentation) -> bool {
-//     let is_deterministic: bool = isDeterministic();
-//     let mut is_Consistent: bool = true;
-//
-//     let mut components :vec<Component> = vec![];
-//     getSystems(transitionSystem, components);
-//     for comp in components{
-//         if !ts.isConsistentHelper(canPrune) {
-//             is_Consistent = false;
-//         }
-//     }
-//
-//     // if !is_Consistent
-//     //     buildErrMessage(inconsistentTs, "inconsistent");
-//     return is_Consistent && is_deterministic;
-// }
 
-fn check_preconditions(sys1: &SystemRepresentation, sys2: &SystemRepresentation, outputs1: &Vec<String>, _inputs2: &Vec<String>, sys_decls: &system_declarations::SystemDeclarations) -> bool {
+fn precheck_sys_rep(sys : &mut SystemRepresentation) -> bool {
+    match sys {
+        SystemRepresentation::Composition(left, right) => {
+            return  precheck_sys_rep(left) && precheck_sys_rep(right)
+        }
+        SystemRepresentation::Conjunction(left, right) => {
+            return  precheck_sys_rep(left) && precheck_sys_rep(right)
+        }
+        SystemRepresentation::Parentheses(val) => {
+            return  precheck_sys_rep(val)
+        }
+        SystemRepresentation::Component(comp) => {
+            let clock_clone = comp.get_declarations().get_clocks().clone();
+
+
+            let len = comp.get_mut_declaration().get_clocks().len();
+            comp.get_mut_declaration().dimension = 1 + len as u32;
+            let dim = comp.get_mut_declaration().get_dimension().clone();
+
+            comp.get_mut_declaration().reset_clock_indicies();
+
+            let res = comp.check_consistency(true);
+            comp.get_mut_declaration().clocks = clock_clone;
+            return res
+        }
+    }
+    panic!("Unexpected type in system representation")
+}
+
+fn check_preconditions(sys1: &mut SystemRepresentation, sys2: &mut SystemRepresentation, outputs1: &Vec<String>, _inputs2: &Vec<String>, sys_decls: &system_declarations::SystemDeclarations) -> bool {
     let mut outputs2: Vec<String> = vec![];
     let mut inputs1: Vec<String> = vec![];
     let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions
 
+    if !(precheck_sys_rep(sys2) && precheck_sys_rep(sys1)) {
+        return false
+    }
     get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
     get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
     drop(disposable); //Dropped from memory afterwards
-
-    // if outputs1.len() > 0 {
-    //     for j in 0..outputs1.len() - 1 {
-    //         for q in (j + 1)..outputs1.len() {
-    //             if outputs1[j] == outputs1[q] {
-    //                 println!("output duplicate found on left side");
-    //                 panic!("Duplicate outputs found in system decl")                }
-    //         }
-    //     }
-    // }
 
     for o1 in outputs1 {
         let mut found_match = false;
@@ -737,19 +621,6 @@ fn check_preconditions(sys1: &SystemRepresentation, sys2: &SystemRepresentation,
         }
     }
 
-    // for i2 in inputs2 {
-    //     let mut found_match = false;
-    //     for i1 in &inputs1 {
-    //         if i1 == i2 {
-    //             found_match = true;
-    //             break;
-    //         }
-    //     }
-    //     if !found_match {
-    //         println!("left side could not match a input from right side");
-    //         return false
-    //     }
-    // }
 
     return true;
 }

@@ -8,7 +8,8 @@ use serde::export::Option::Some;
 #[grammar = "ModelObjects/grammars/query_grammar.pest"]
 pub struct QueryParser;
 
-
+///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
+///For clarification see documentation on pest crate
 
 pub fn parse(edge_attribute_str : &str) -> Result<QueryExpression, Error<Rule>>{
     let mut pairs = QueryParser::parse(Rule::query, edge_attribute_str).unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));

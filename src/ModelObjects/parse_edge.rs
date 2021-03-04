@@ -5,6 +5,8 @@ use super::super::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize};
 use serde::export::Option::Some;
 
+///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
+///For clarification see documentation on pest crate
 #[derive(Parser)]  
 #[grammar = "ModelObjects/grammars/edge_grammar.pest"]
 pub struct EdgeParser;

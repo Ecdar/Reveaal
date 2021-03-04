@@ -2,6 +2,9 @@ use serde::Deserialize;
 use super::component::Component;
 use super::super::DBMLib::lib;
 
+///This file contains the nested enums used to represent systems on each side of refinement aswell as all guards, updates etc
+/// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
+
 #[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
 pub enum BoolExpression {
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
@@ -64,9 +67,3 @@ pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
         print!(")\n");
     }
 }
-
-// pub enum SystemRepresentation<'systemlifetime> {
-//     Composition(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
-//     Conjunction(Box<SystemRepresentation<'systemlifetime>>, Box<SystemRepresentation<'systemlifetime>>),
-//     State(State<'systemlifetime>)
-// }

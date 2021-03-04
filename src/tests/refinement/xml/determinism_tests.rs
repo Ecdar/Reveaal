@@ -7,7 +7,7 @@ mod determinism_tests {
     use crate::System::extract_system_rep::create_system_rep_from_query;
 
     static PATH: &str = "samples/xml/ConsTests.xml";
-    
+
     #[test]
     fn testG1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);

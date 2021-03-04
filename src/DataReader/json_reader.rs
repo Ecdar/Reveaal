@@ -13,7 +13,7 @@ pub fn read_json<T: DeserializeOwned>(filename: String) -> Result<T> {
     let mut file = File::open(filename.clone()).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
-    //println!("{:?}", data);
+
     let output : String =  filename + ": Json format is not as expected";
     let json_file: T = serde_json::from_str(&data).expect(output.as_str());
 

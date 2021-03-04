@@ -536,8 +536,49 @@ pub fn apply_constraints_to_state2(guard : &BoolExpression, full_state : &mut co
         BoolExpression::Clock(index) => {
             return BoolExpression::Clock(*index)
         }
-        _ => {}
+        //_ => {}
+        BoolExpression::EQ(left, right) => {
+            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
+            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+
+            match computed_left {
+                BoolExpression::Clock(left_index) => {
+                    //println!("CLOCK INDEX {:?}", left_index);
+                    //println!("dimn: {:?}", dimensions);
+                    match computed_right {
+                        BoolExpression::Clock(right_index) => {
+                            let result = lib::rs_dbm_add_EQ_constraint(full_state.get_zone(), *dimensions, right_index, left_index);
+                            return BoolExpression::Bool(result)
+                        },
+                        BoolExpression::Int(right_val) => {
+                            let result = lib::rs_dbm_add_EQ_const_constraint(full_state.get_zone(), *dimensions, left_index, right_val);
+                            return BoolExpression::Bool(result)
+                        },
+                        _ => {
+                            panic!("invalid type in EQ expression in guard")
+                        }
+                    }
+                },
+                BoolExpression::Int(left_val) => {
+                    match computed_right {
+                        BoolExpression::Clock(right_index) => {
+                            let result = lib::rs_dbm_add_EQ_const_constraint(full_state.get_zone(), *dimensions, right_index,left_val);
+                            return BoolExpression::Bool(result)
+                        },
+                        BoolExpression::Int(right_val) => {
+                            return BoolExpression::Bool(left_val == right_val)
+                        },
+                        _ => {
+                            panic!("invalid type in EQ expression in guard")
+                        }
+                    }
+                },
+                _ => {
+                    panic!("invalid type in EQ expression in guard")
+                }
+            }
+        }
     }
 
-    panic!("not implemented")
+    //panic!("not implemented")
 }

@@ -4,6 +4,9 @@ use pest::Parser;
 use super::super::ModelObjects::representations::BoolExpression;
 use serde::export::Option::Some;
 
+
+///This file handles parsing the invariants based on the abstract syntax described in the .pest files in the grammar folder
+///For clarification see documentation on pest crate
 #[derive(Parser)]  
 #[grammar = "ModelObjects/grammars/invariant_grammar.pest"]
 pub struct InvariantParser;

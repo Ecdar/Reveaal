@@ -7,6 +7,8 @@ use crate::ModelObjects::parse_edge::Update;
 use std::collections::HashMap;
 use crate::ModelObjects::system_declarations::{SystemSpecification, SystemDeclarations};
 
+
+///Used to parse systems described in xml
 pub(crate) fn parse_xml(fileName :&str)-> (Vec<component::Component>, system_declarations::SystemDeclarations, Vec<queries::Query>) {
     //Open file
     let file = File::open(fileName).unwrap();

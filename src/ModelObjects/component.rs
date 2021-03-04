@@ -10,6 +10,7 @@ use std::borrow::BorrowMut;
 use crate::ModelObjects;
 use std::convert::TryFrom;
 
+/// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
     pub name: String,
@@ -23,6 +24,8 @@ pub struct Component {
 }
 #[allow(dead_code)]
 impl Component {
+
+    ///Start of basic methods for manipulating fields
     pub fn get_name(&self) -> &String {
         &self.name
     }
@@ -79,11 +82,63 @@ impl Component {
         }
     }
 
+    pub fn get_inital_location(&self) -> &Location {
+        let vec : Vec<&Location> = self.get_locations().into_iter().filter(|location| location.get_location_type() == &LocationType::Initial).collect();
+
+        match vec.first() {
+            Some(initial_loc) => initial_loc,
+            None => panic!("Could not find initial location on component: {:?}", self)
+        }
+    }
+
+    pub fn get_actions(&self) -> Vec<Channel> {
+        let mut actions: Vec<Channel> = vec![];
+        for edge in self.get_edges() {
+            actions.push(Channel {
+                name: edge.get_sync().clone()
+            });
+        }
+
+        actions
+    }
+
+    pub fn get_input_actions(&self) -> Vec<Channel> {
+        let mut actions = vec![];
+        for edge in self.input_edges.as_ref().unwrap() {
+            if edge.get_sync_type() == &SyncType::Input {
+                if !contain(&actions, edge.get_sync())
+                {
+                    actions.push(Channel {
+                        name: edge.get_sync().clone()
+                    });
+                }
+            }
+        }
+        actions
+    }
+
+    pub fn get_output_actions(&self) -> Vec<Channel> {
+        let mut actions = vec![];
+        for edge in self.output_edges.as_ref().unwrap() {
+            if edge.get_sync_type() == &SyncType::Output {
+                if !contain(&actions, edge.get_sync())
+                {
+                    actions.push(Channel {
+                        name: edge.get_sync().clone()
+                    });
+                }
+            }
+        }
+        actions
+    }
+
+    /// End of basic methods
+
+    ///method used to get the next edges based on a current location and a specific synchtype (i.e input or output)
     pub fn get_next_edges(&self, location : &Location, channel_name :&str , synch_type : SyncType) -> Vec<&Edge> {
 
         return match synch_type {
             SyncType::Input => {
-
                 let result: Vec<&Edge> = self.get_input_edges().into_iter().filter(|e| (e.get_source_location() == location.get_id()) && (e.get_sync() == (channel_name.to_string()).as_str())).collect();
                 result
             },
@@ -94,6 +149,7 @@ impl Component {
         }
     }
 
+    /// used in initial setup to split edges based on their synchtype
     pub fn create_edge_io_split(mut self) -> Component {
         let mut o_edges = vec![];
         let mut i_edges = vec![];
@@ -116,6 +172,7 @@ impl Component {
         return self
     }
 
+    /// method used to verify that the individuel component is consistent e.i deterministic etc.
     pub fn check_consistency(&self, prune : bool)->bool {
         if !self.is_deterministic() {
             return false
@@ -144,38 +201,32 @@ impl Component {
         }
         println!("start Dim is: {:?}", fullSt.get_dimensions());
         return self.consistency_helper(fullSt, prune, &mut passed_list);
-        // add_state_to_wl(&mut waiting_list, fullSt);
-
     }
+
+    ///Method used to check if a state is contained in the passed list
     pub fn passed_contains_state(&self, currState: &mut FullState, passed_list : &mut Vec<FullState>) -> bool {
-        println!("entered passed_contains_state");
         let dim = currState.get_dimensions();
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
         for state in passed_list {
             if state.state.location.id == currState.state.location.id {
-                println!("left of subseteq");
-                representations::print_DBM(currState.get_zone(), &dim);
-                println!("right of subseteq");
-                representations::print_DBM(state.get_zone(), &dim);
                 if lib::rs_dbm_isSubsetEq(currState.get_zone(),  state.get_zone(), dimension){
                     return true;
                 }
             }
         }
 
-        // if (state.getLocation().equals(passedState.getLocation()) &&
-        // state.getInvZone().isSubset(passedState.getInvZone())) {
-
         return false;
     }
+
+    /// helper method to check consistency
     pub fn consistency_helper<'a> (&'a self, mut currState : FullState<'a>, prune : bool, passed_list: & mut Vec<FullState<'a>>) -> bool{
         if self.passed_contains_state( &mut currState, passed_list) {
             return true;
         } else {
             add_state_to_pl(passed_list, currState.clone())
         }
-        //add_state_to_pl( passed_list, currState);
+
         let mut edges : Vec<&Edge> = vec![];
         for input_action in self.get_input_actions() {
             edges.append(&mut self.get_next_edges(&currState.get_state().location, input_action.get_name(), SyncType::Input));
@@ -183,10 +234,9 @@ impl Component {
         for edge in edges {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.get_zoneclone();
-            //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
             let loc = self.get_location_by_name(&edge.target_location);
             let state = create_state(loc, currState.get_state().get_declarations().clone());
-            println!("Dim is: {:?}", currState.get_dimensions());
+
             let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
 
             if let Some(source_inv) = self.get_location_by_name(edge.get_source_location()).get_invariant(){
@@ -211,7 +261,6 @@ impl Component {
                 constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state ,&currState.get_dimensions());
             }
 
-            //passed_list.push(new_state);
             if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
                 continue
             }
@@ -236,10 +285,10 @@ impl Component {
                 }
                 //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                 let full_new_zone = currState.get_zoneclone();
-                //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
+
                 let loc = self.get_location_by_name(&edge.target_location);
                 let state = create_state(loc, currState.get_state().get_declarations().clone());
-                println!("Dim is: {:?}", currState.get_dimensions());
+
                 let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
 
                 if let Some(source_inv) = self.get_location_by_name(edge.get_source_location()).get_invariant(){
@@ -290,29 +339,22 @@ impl Component {
         }
         // Else if independent progress does not hold through delaying indefinitely,
         // we must check for being able to output and satisfy independent progress
-
     }
     pub fn canDelayIndefinitely(currState : &mut FullState) -> bool{
-        println!("Entered canDelayIndefinitely");
-        let dim = currState.get_dimensions();
-        representations::print_DBM(currState.get_zone(), &dim);
+
         for i in 1..currState.dimensions{
             let n_us = usize::try_from(currState.dimensions * i).unwrap();
             let curr = currState.get_zone().get(n_us).unwrap();
 
             if curr < &lib::DBM_INF {
-                println!("Returned False");
                 return false;
             }
         }
-        println!("Returned True");
         return true;
     }
 
 
-    //TODO list:
-    //first make full state take not a slice but rather hold ownership of a copy of the zone
-    //make sure that the state that are takenn from the full state into the new state is actually updated to the edges target location as it does not seem like this is done atm
+    ///method to verify that component is deterministic, remember to verify the clock indicies before calling this - check call in refinement.rs for refrence
     pub fn is_deterministic(&self) -> bool {
         let mut passed_list : Vec<FullState> = vec![];
         let mut waiting_list : Vec<FullState> = vec![];
@@ -329,7 +371,7 @@ impl Component {
         let zone_array = [0;1000];
 
         let mut fullSt :FullState = create_full_state(initial_state, zone_array, dimension);//FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
-        println!("start Dim is: {:?}", fullSt.get_dimensions());
+
         lib::rs_dbm_zero(fullSt.get_zone(), dimension);
         lib::rs_dbm_up(fullSt.get_zone(), dimension);
         add_state_to_wl(&mut waiting_list, fullSt);
@@ -368,9 +410,7 @@ impl Component {
                         if let Some(updates) = edge.get_update() {
                             fullState_updater(updates, &mut new_state, &dimension);
                         }
-                        // if let Some(inv) = self.get_location_by_name(edge.get_target_location()).get_invariant(){
-                        //     constraint_applyer::apply_constraints_to_state2(inv, &mut new_state ,&dimension);
-                        // }
+
                         if is_new_state(&mut new_state, &mut passed_list) && is_new_state(&mut new_state, &mut waiting_list){
                             add_state_to_wl(&mut waiting_list, new_state);
                         }
@@ -385,7 +425,7 @@ impl Component {
     }
 
 
-
+    ///method to check if moves are overlapping to for instance to verify that component is deterministic
     fn check_moves_overlap(&self, edges : &Vec<&Edge>, full_state : &mut FullState) -> bool {
         if edges.len() < 2 {
             return false
@@ -422,12 +462,6 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, &dimension);
                 }
 
-
-                println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! zone we remember:");
-                representations::print_DBM(state_i.get_zone(), &full_state.get_dimensions());
-                //let mut dbm_1 = &mut zone_i[0..4];
-                // representations::print_DBM(dbm_1, &4);
-
                 let zone_j = full_state.get_zoneclone();
                 let state = create_state(full_state.get_state().get_location(), full_state.get_state().get_declarations().clone());
                 let mut state_j = FullState { state: state, zone: zone_j, dimensions: dimension };
@@ -456,56 +490,9 @@ impl Component {
         return false
     }
 
-    pub fn get_inital_location(&self) -> &Location {
-        let vec : Vec<&Location> = self.get_locations().into_iter().filter(|location| location.get_location_type() == &LocationType::Initial).collect();
-
-        match vec.first() {
-            Some(initial_loc) => initial_loc,
-            None => panic!("Could not find initial location on component: {:?}", self)
-        }
-    }
-
-    pub fn get_actions(&self) -> Vec<Channel> {
-        let mut actions: Vec<Channel> = vec![];
-        for edge in self.get_edges() {
-            actions.push(Channel {
-                name: edge.get_sync().clone()
-            });
-        }
-
-        actions
-    }
-
-    pub fn get_input_actions(&self) -> Vec<Channel> {
-        let mut actions = vec![];
-        for edge in self.input_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Input {
-                if !contain(&actions, edge.get_sync())
-                {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone()
-                    });
-                }
-            }
-        }
-        actions
-    }
-
-    pub fn get_output_actions(&self) -> Vec<Channel> {
-        let mut actions = vec![];
-        for edge in self.output_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Output {
-                if !contain(&actions, edge.get_sync())
-                {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone()
-                    });
-                }
-            }
-        }
-        actions
-    }
 }
+
+///Function to check if a state is contained in the passed list, similar to the method impl by component
 fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullState<'a>>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
 
@@ -516,12 +503,6 @@ fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullSt
             panic!("dimensions of dbm didn't match - fatal error")
         }
 
-        println!("left DBM in subsetEQ (dim {:?}): ", full_state.get_dimensions());
-        let dim = &full_state.get_dimensions();
-        representations::print_DBM(full_state.get_zone(), dim);
-        println!("right DBM in subsetEQ:(dim {:?}): ", passed_state_pair.get_dimensions());
-        let dim = &passed_state_pair.get_dimensions();
-        representations::print_DBM(passed_state_pair.get_zone(), dim);
         let dim = full_state.get_dimensions();
         if lib::rs_dbm_isSubsetEq(full_state.get_zone(), passed_state_pair.get_zone(), dim) {
             return false;
@@ -551,6 +532,10 @@ fn create_full_state<'a>(state : State<'a>, zone : [i32;1000], dim : u32) -> Ful
         dimensions: dim
     }
 }
+
+///Fullstate is a struct used for initial verification of consitency, and determinism as a state that also hols a dbm
+/// This is done as the type used in refinement statepair asumes to sides of an operation
+/// this should probably be refactored as it causes unecesary confusion
 #[derive(Clone)]
 pub struct FullState<'a> {
     pub state : State<'a>,
@@ -726,23 +711,9 @@ impl <'b> StatePair<'b> {
             dimensions += state.get_dimensions();
         }
         self.dimensions = dimensions;
-        //lib::rs_dbm_init(self.get_zone(), dimensions);
         lib::rs_dbm_zero(self.get_zone(), dimensions);
         lib::rs_dbm_up(self.get_zone(), dimensions);
     }
-
-
-    //use print function in representations::print_dbm
-    // pub fn print_dbm(&mut self) {
-    //     let dim_i32 = self.get_dimensions() as i32;
-    //     let dim_sqr = (dim_i32 as f32).sqrt() as u32;
-    //     println!("ZONE:");
-    //     for i in 0..dim_sqr{
-    //         for j in 0..dim_sqr {
-    //             println!("{:?}", lib::rs_raw_to_bound(lib::rs_dbm_get_constraint(self.get_zone(), dim_sqr, i, j)));
-    //         }
-    //     }
-    // }
 }
 #[derive(Clone, Debug)]
 pub struct State<'a> {
@@ -769,6 +740,8 @@ impl <'a> State<'a> {
 
 }
 
+
+///The declaration struct is used to hold the indicies for each clock, and is meant to be the owner of int variables once implemented
 #[derive(Debug, Deserialize, Clone, std::cmp::PartialEq,Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String,  i32>,
@@ -978,17 +951,3 @@ fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Erro
         _ => panic!("Unknown sync type in status {:?}", s)
     }
 }
-//Function used for deserializing sync to channel
-
-// fn decode_channel<'de, D>(deserializer: D) -> Result<Channel, D::Error>
-//     where
-//         D: Deserializer<'de>,
-// {
-//     let s = String::deserialize(deserializer)?;
-//     Ok(Channel{name: s})
-// }
-// pub enum StateRepresentation<'a> {
-//     StatePair(&'a mut StatePair<'a>),
-//     DbmTuple((&'a State<'a>, &'a mut [i32], u32))
-// }
-

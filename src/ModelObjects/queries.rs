@@ -6,17 +6,14 @@ use super::parse_queries;
 #[derive(Debug, Deserialize)]
 pub struct Query {
     #[serde(deserialize_with = "decode_query")]
-    pub(crate) query: Option<representations::QueryExpression>,
-    pub(crate) comment: String,
+    pub query: Option<representations::QueryExpression>,
+    pub comment: String,
 }
 
 impl Query {
     pub fn get_query(&self) -> &Option<representations::QueryExpression> {
         &self.query
     }
-    // pub fn get_comment(&self) -> &String {
-    //     &self.comment
-    // }
 }
 
 //Function used for deserializing queries

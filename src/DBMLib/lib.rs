@@ -474,14 +474,7 @@ pub fn rs_dbm_constrain_var_to_val(dbm : &mut[i32], dimension : u32, var_index: 
     }
 }
 
-pub fn rs_dbm_update_clock(dbm : &mut[i32], dimension : u32, var_index: u32, value : i32) -> bool {
-    unsafe{
-        dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
-        return rs_dbm_add_LTE_constraint(dbm, dimension, 0, var_index, -value);
-        //return dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, -value);
-    }
-}
-
+/// Used to check if dbms intersect and thus have overlapping moves
 pub fn rs_dmb_intersection(dbm1: &mut[i32], dbm2: &mut[i32], dimension: u32) -> bool{
     unsafe{
         let res = dbm_intersection(dbm1.as_mut_ptr(),dbm2.as_mut_ptr(), dimension);
@@ -498,8 +491,6 @@ pub fn rs_dmb_intersection(dbm1: &mut[i32], dbm2: &mut[i32], dimension: u32) -> 
 
 pub fn rs_dbm_update(dbm : &mut[i32], dimension : u32, var_index: u32, value : i32) {
     unsafe{
-        //dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
-        //return rs_dbm_add_LTE_constraint(dbm, dimension, 0, var_index, -value);
         dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, value);
     }
 }
@@ -520,14 +511,11 @@ pub fn rs_dbm_isSubsetEq(dbm1 : &mut[i32], dbm2 : &mut[i32], dimension : u32) ->
     }
 }
 
+///  oda federation minus federation
 pub fn rs_dbm_fed_minus_fed(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec<*mut raw_t>, dim : u32) -> Vec<*const i32>{
     unsafe{
-        //let mut res = dbm_fed_t::new(1);
-        //println!("FED PRINT::::");
         let mut res = dbm_fed_t::new(dim);
         dbm_fed_minus_fed(dbm_vec1.as_mut_ptr(), dbm_vec2.as_mut_ptr(), (dbm_vec1.len()) as u32, (dbm_vec2.len()) as u32, dim, &mut res);
-        // println!("resulting size of fed minus fed is {:?}", dbm_get_fed_size(&mut res));
-        // println!("Dimension of resulting fed is: {:?}", dbm_get_fed_dim(&mut res));
 
         let result = rs_fed_to_vec(&mut res);
 
@@ -535,6 +523,7 @@ pub fn rs_dbm_fed_minus_fed(dbm_vec1 : &mut Vec<*mut raw_t>, dbm_vec2 : &mut Vec
     }
 }
 
+/// currently unused
 pub fn rs_dbm_minus_dbm(dbm1: &mut[i32], dbm2: &mut [i32], dim: u32) -> Vec<*const i32>{
     unsafe {
         let mut res = dbm_subtract1_exposed(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dim);
@@ -542,6 +531,7 @@ pub fn rs_dbm_minus_dbm(dbm1: &mut[i32], dbm2: &mut [i32], dim: u32) -> Vec<*con
     }
 }
 
+///Currently unused
 pub fn rs_dbm_extrapolateMaxBounds(dbm1 : &mut[i32], dim : u32, maxbounds : *const i32) {
     unsafe {
         dbm_extrapolateMaxBounds(dbm1.as_mut_ptr(), dim,maxbounds)
@@ -554,18 +544,21 @@ pub fn rs_dbm_get_constraint(dbm : &mut[i32], dimension : u32, var_index_i: u32,
     }
 }
 
+///used by input enabler to get the upper and lower bounds for each clocks so that constraints can be created
 pub fn rs_dbm_get_constraint_from_dbm_ptr(dbm : *const i32, dimension : u32, var_index_i: u32, var_index_j : u32) -> raw_t {
     unsafe {
         return dbm_get_value(dbm,dimension,var_index_i,var_index_j);
     }
 }
 
+/// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw : raw_t) -> bool {
     unsafe{
         return BOOL_TRUE == dbm_rawIsStrict_exposed(raw)
     }
 }
 
+///converts the bound from c++ to an usable rust type - used when input enabling
 pub fn rs_raw_to_bound(raw : raw_t) -> i32 {
     unsafe {
         dbm_raw2bound_exposed(raw)
@@ -580,10 +573,10 @@ pub fn rs_vec_to_fed(dbm_vec : &mut Vec<*mut raw_t>, dim : u32) ->  dbm_fed_t {
     }
 }
 
+/// takes a c++ federation and convert it to a vector of pointers
 pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
     unsafe{
         let mut result: Vec<*const i32> = vec![];
-        //let mut debug_print_vec :Vec<&[i32]> = vec![];
         let fed_size = dbm_get_fed_size(fed);
         for i in 0..fed_size {
             let raw_data = dbm_get_ith_element_in_fed(fed, i);
@@ -592,25 +585,25 @@ pub fn rs_fed_to_vec(fed :&mut dbm_fed_t) -> Vec<*const i32> {
             result.push(new_const_ptr);
         }
 
-        //println!("Result  is: {:?}", result);
-
         return result;
 
     }
 }
-
+///does a dbm up operation
 pub fn rs_dbm_up(dbm : &mut[i32], dimension : u32){
     unsafe {
         dbm_up(dbm.as_mut_ptr(), dimension);
     }
 }
+
+///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm : &mut[i32], dimension : u32){
     unsafe {
         dbm_zero_exposed(dbm.as_mut_ptr(), dimension);
     }
 }
 
-
+/// test function taken from Jecdar
 pub fn libtest() {
     let mut intArr = [0,0,0,0,0,0,0,0,0];
     let mut intArr2 = [0,0,0,0,0,0,0,0,0];
@@ -661,9 +654,8 @@ pub fn libtest() {
 
 }
 
+/// test function taken from Jecdar
 pub fn libtest2() {
-    
-
     unsafe{
         let mut dbm : [i32; 9] = [0; 9];
         dbm_init(dbm.as_mut_ptr(), 3);
@@ -683,8 +675,5 @@ pub fn libtest2() {
         dbm_up(dbm.as_mut_ptr(), 3);
         println!("{:?}", dbm);
     }
-    
-
-
 }
 
