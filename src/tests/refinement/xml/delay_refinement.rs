@@ -8,6 +8,29 @@ mod delay_refinement {
     use crate::ModelObjects::queries::Query;
 
     static PATH: &str = "samples/xml/delayRefinement.xml";
+    static PATH_2: &str = "samples/xml/loop.xml";
+
+
+    // Self Refinements
+    #[test]
+    fn LoopTest() {
+        let (automataList, decl, _) = xml_parser::parse_xml(PATH_2);
+        let optimized_components = optimize_components(automataList, &decl);
+        let query = parse_queries::parse("refinement: SelfloopNonZeno <= SelfloopNonZeno").unwrap();
+        let q = Query {
+            query: Option::from(query),
+            comment: "".to_string()
+        };
+
+        let res = create_system_rep_from_query(&q, &optimized_components);
+        let leftSys = res.0;
+        let rightSys = res.1.unwrap();
+
+
+        assert!(refine::check_refinement(leftSys,
+                                         rightSys,
+                                         decl.borrow()).unwrap());
+    }
 
     // Self Refinements
     #[test]
