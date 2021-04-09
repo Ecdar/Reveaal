@@ -1,8 +1,8 @@
-use serde::{Deserialize, Deserializer,Serialize};
-use std::collections::HashMap;
 use super::expression_representation;
 use super::parse_edge;
 use super::parse_invariant;
+use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Component {
@@ -33,7 +33,7 @@ impl Component {
 pub enum LocationType {
     Normal,
     Initial,
-    Universal
+    Universal,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -82,7 +82,6 @@ pub struct Edge {
     #[serde(deserialize_with = "decode_update")]
     pub update: Option<Vec<parse_edge::Update>>,
     pub sync: String,
-    
 }
 
 impl Edge {
@@ -106,11 +105,10 @@ impl Edge {
     }
 }
 
-
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq,Serialize)]
+#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq, Serialize)]
 pub struct Declarations {
-    pub ints: HashMap<String,  i32>,
-    pub clocks : HashMap<String, i32>,
+    pub ints: HashMap<String, i32>,
+    pub clocks: HashMap<String, i32>,
 }
 
 impl Declarations {
@@ -137,8 +135,8 @@ where
     let s = String::deserialize(deserializer)?;
     //Split string into vector of strings
     let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
-    let mut ints: HashMap<String,  i32> = HashMap::new();
-    let mut clocks : HashMap<String, i32> = HashMap::new();
+    let mut ints: HashMap<String, i32> = HashMap::new();
+    let mut clocks: HashMap<String, i32> = HashMap::new();
 
     for string in decls {
         //skip comments
@@ -146,24 +144,24 @@ where
             continue;
         }
         let sub_decls: Vec<String> = string.split(";").map(|s| s.into()).collect();
-        
+
         for sub_decl in sub_decls {
             if sub_decl.len() != 0 {
-                
-                
                 let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
                 let variable_type = split_string[0].as_str();
 
                 if variable_type == "clock" {
-                    for i in 1..split_string.len(){
-                        let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
+                    for i in 1..split_string.len() {
+                        let comma_split: Vec<String> =
+                            split_string[i].split(",").map(|s| s.into()).collect();
                         for var in comma_split {
                             clocks.insert(var, -1);
                         }
                     }
                 } else if variable_type == "int" {
-                    for i in 1..split_string.len(){
-                        let comma_split: Vec<String> = split_string[i].split(",").map(|s| s.into()).collect();
+                    for i in 1..split_string.len() {
+                        let comma_split: Vec<String> =
+                            split_string[i].split(",").map(|s| s.into()).collect();
                         for var in comma_split {
                             ints.insert(var, 0);
                         }
@@ -176,7 +174,6 @@ where
                 }
             }
         }
-        
     }
     Ok(Declarations {
         ints: ints,
@@ -184,24 +181,25 @@ where
     })
 }
 
-
 //Function used for deserializing guards
-fn decode_guard<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
+fn decode_guard<'de, D>(
+    deserializer: D,
+) -> Result<Option<expression_representation::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
-        return Ok(None)
+        return Ok(None);
     }
     match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => {
-            match edgeAttribute{
-                parse_edge::EdgeAttribute::Guard(guard_res) => return Ok(Some(guard_res)),
-                parse_edge::EdgeAttribute::Updates(_) => panic!("We expected a guard but got an update? {:?}\n", s)
+        Ok(edgeAttribute) => match edgeAttribute {
+            parse_edge::EdgeAttribute::Guard(guard_res) => return Ok(Some(guard_res)),
+            parse_edge::EdgeAttribute::Updates(_) => {
+                panic!("We expected a guard but got an update? {:?}\n", s)
             }
         },
-        Err(e) => panic!("Could not parse {} got error: {:?}",s, e )
+        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
     }
 }
 
@@ -212,34 +210,33 @@ where
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
-        return Ok(None)
+        return Ok(None);
     }
     match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => {
-            match edgeAttribute{
-                parse_edge::EdgeAttribute::Guard(_) => panic!("We expected an update but got a guard? {:?}",s),
-                parse_edge::EdgeAttribute::Updates(update_vec) => return Ok(Some(update_vec))
+        Ok(edgeAttribute) => match edgeAttribute {
+            parse_edge::EdgeAttribute::Guard(_) => {
+                panic!("We expected an update but got a guard? {:?}", s)
             }
+            parse_edge::EdgeAttribute::Updates(update_vec) => return Ok(Some(update_vec)),
         },
-        Err(e) => panic!("Could not parse {} got error: {:?}",s, e )
+        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
     }
 }
 
-
 //Function used for deserializing invariants
-fn decode_invariant<'de, D>(deserializer: D) -> Result<Option<expression_representation::BoolExpression>, D::Error>
+fn decode_invariant<'de, D>(
+    deserializer: D,
+) -> Result<Option<expression_representation::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
-        return Ok(None)
+        return Ok(None);
     }
     match parse_invariant::parse(&s) {
-        Ok(edgeAttribute) => {
-            return Ok(Some(edgeAttribute))
-        },
-        Err(e) => panic!("Could not parse invariant {} got error: {:?}",s, e )
+        Ok(edgeAttribute) => return Ok(Some(edgeAttribute)),
+        Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
     }
 }
 
@@ -252,7 +249,7 @@ where
     match s.as_str() {
         "INPUT" => Ok(SyncType::Input),
         "OUTPUT" => Ok(SyncType::Output),
-        _ => panic!("Unknown sync type in status {:?}", s)
+        _ => panic!("Unknown sync type in status {:?}", s),
     }
 }
 
@@ -266,6 +263,6 @@ where
         "NORMAL" => Ok(LocationType::Normal),
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
-        _ => panic!("Unknown sync type in status {:?}", s)
+        _ => panic!("Unknown sync type in status {:?}", s),
     }
 }

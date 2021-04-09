@@ -3,7 +3,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Clone)]
 pub struct System {
     pub name: String,
-    pub componentInstances : ComponentInstances,
+    pub componentInstances: ComponentInstances,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -11,10 +11,9 @@ pub struct ComponentInstances {
     pub id: usize,
 }
 
-pub enum OperatorType{
+pub enum OperatorType {
     composition,
     refinement,
-
 }
 
 #[derive(Debug, Deserialize, Clone)]
