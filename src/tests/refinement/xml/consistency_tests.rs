@@ -11,7 +11,7 @@ mod consistency_tests {
     #[test]
     fn testG1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
+        let optimized_components = optimize_components(automataList, &decl); // input enabler samt opsætter clock indcies
         let query = parse_queries::parse("consistency: G1").unwrap();
         let q = Query {
             query: Option::from(query),

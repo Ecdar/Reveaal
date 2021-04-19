@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd%27%3E
-        <nta>
-        <declaration>chan o;</declaration>
-        <template>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>
+<nta>
+    <declaration>chan o;</declaration>
+    <template>
         <name>SelfloopNonZeno</name>
-        <declaration>clock x; clock y;</declaration>
+        <declaration>clock x, y;</declaration>
         <location id="id0" x="40" y="80">
-        <name x="30" y="50">id3</name>
-        <label kind="invariant" x="25" y="102">x&lt;=3</label>
+            <name x="30" y="50">id3</name>
+            <label kind="invariant" x="25" y="102">x&lt;=3</label>
         </location>
         <init ref="id0"/>
         <transition controllable="false">
-        <source ref="id0"/>
-        <target ref="id0"/>
-        <label kind="guard" x="-25" y="0">x&lt;=3</label>
-        <label kind="synchronisation" x="-25" y="17">o!</label>
-        <label kind="assignment" x="-25" y="34">x = 0</label>
-        <nail x="10" y="50"/>
-        <nail x="70" y="50"/>
+            <source ref="id0"/>
+            <target ref="id0"/>
+            <label kind="guard" x="-25" y="0">x&lt;=3</label>
+            <label kind="synchronisation" x="-25" y="17">o!</label>
+            <label kind="assignment" x="-25" y="34">x = 0</label>
+            <nail x="10" y="50"/>
+            <nail x="70" y="50"/>
         </transition>
-        </template>
-        <system>system SelfloopNonZeno;</system>
-        </nta>
+    </template>
+    <system>system SelfloopNonZeno;</system>
+    <queries>
+        <query>
+            <formula></formula>
+            <comment></comment>
+        </query>
+    </queries>
+</nta>
