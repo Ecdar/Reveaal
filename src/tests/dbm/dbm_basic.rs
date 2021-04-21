@@ -128,7 +128,7 @@ mod test {
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 4);
         //the clock and difference gets bounded by 9 but no other clocks change
         assert_eq!(
-            [1, 1, 1, 9, 1, 9, lib::DBM_INF, lib::DBM_INF, 1].as_mut(), 
+            [1, 1, 1, 9, 1, 9, lib::DBM_INF, lib::DBM_INF, 1].as_mut(),
             dbm
         );
     }
