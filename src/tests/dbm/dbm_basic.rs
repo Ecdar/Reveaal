@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use super::super::super::super::DBMLib::lib;
+    use crate::DBMLib::lib;
 
     #[test]
     fn testDbmValid0() {
@@ -157,18 +157,18 @@ mod test {
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 4);
         let mut intArr2 = [1, 1, 1, 1, 1, 1, 1, 1, 1];
         let dbm2 = &mut intArr2;
-        lib::rs_dbm_init(dbm2, 3);
-        lib::rs_dbm_add_LTE_constraint(dbm2, 3, 2, 0, 4);
+        lib_linux::rs_dbm_init(dbm2, 3);
+        lib_linux::rs_dbm_add_LTE_constraint(dbm2, 3, 2, 0, 4);
         //assert_eq!([1, -3, 11, 1].as_mut(), dbm);
         assert_eq!([1, -3, 11, 1].as_mut(), dbm2);
     }
 
     #[test]
     fn testDbmReset1() {
-        //TODO Check why it fails whilel it shouldn't
+        //TODO Check why it fails while it shouldn't
         let mut intArr = [1, -3, 11, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 2, 1, 0);
+        lib_linux::rs_dbm_constrain_var_to_val(dbm, 2, 1, 0);
         assert_eq!([1, 1, 1, 1].as_mut(), dbm);
     }
 
@@ -176,7 +176,7 @@ mod test {
     fn testDbmReset2() {
         let mut intArr = [1, 1, 1, 7, 1, 7, 5, 5, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 3, 1, 0);
+        lib_linux::rs_dbm_constrain_var_to_val(dbm, 3, 1, 0);
         assert_eq!([1, 1, 1, 1, 1, 1, 5, 5, 1].as_mut(), dbm);
     }
 
@@ -184,16 +184,16 @@ mod test {
     fn testDbmFuture1() {
         let mut intArr = [1, 1, 1, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_up(dbm, 2);
-        assert_eq!([1, 1, lib::DBM_INF, 1].as_mut(), dbm);
+        lib_linux::rs_dbm_up(dbm, 2);
+        assert_eq!([1, 1, lib_linux::DBM_INF, 1].as_mut(), dbm);
     }
 
     #[test]
     fn testDbmFuture2() {
         let mut intArr = [1, -3, 11, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_up(dbm, 2);
-        assert_eq!([1, -3, lib::DBM_INF, 1].as_mut(), dbm);
+        lib_linux::rs_dbm_up(dbm, 2);
+        assert_eq!([1, -3, lib_linux::DBM_INF, 1].as_mut(), dbm);
     }
 
     #[test]
@@ -204,11 +204,11 @@ mod test {
             1,
             1,
             1,
-            lib::DBM_INF,
+            lib_linux::DBM_INF,
             1,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            lib::DBM_INF,
+            lib_linux::DBM_INF,
+            lib_linux::DBM_INF,
+            lib_linux::DBM_INF,
             1,
         ];
         let _dbm1 = &mut intArr1;
@@ -216,20 +216,20 @@ mod test {
             1,
             1,
             1,
-            lib::DBM_INF,
+            lib_linux::DBM_INF,
             1,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            lib::DBM_INF,
+            lib_linux::DBM_INF,
+            lib_linux::DBM_INF,
+            lib_linux::DBM_INF,
             1,
         ];
         let dbm2 = &mut intArr2;
 
-        lib::rs_dbm_add_LTE_constraint(dbm2, dim, 0, 1, -2);
+        lib_linux::rs_dbm_add_LTE_constraint(dbm2, dim, 0, 1, -2);
         println!("{:?}", dbm2);
-        lib::rs_dbm_add_LTE_constraint(dbm2, dim, 0, 2, -3);
-        lib::rs_dbm_add_LTE_constraint(dbm2, dim, 1, 0, 4);
-        lib::rs_dbm_add_LTE_constraint(dbm2, dim, 2, 0, 5);
+        lib_linux::rs_dbm_add_LTE_constraint(dbm2, dim, 0, 2, -3);
+        lib_linux::rs_dbm_add_LTE_constraint(dbm2, dim, 1, 0, 4);
+        lib_linux::rs_dbm_add_LTE_constraint(dbm2, dim, 2, 0, 5);
         println!("{:?}", dbm2);
         //TODO check DBM - DBM error
         //let mut arr1 = lib::rs_dbm_minus_dbm(dbm1, dbm2, dim);

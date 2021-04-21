@@ -27,12 +27,11 @@ pub(crate) fn parse_xml(
     let mut xml_components: Vec<component::Component> = vec![];
 
     for xml_comp in root.find_all("template") {
-        let declarations: Declarations;
-        match xml_comp.find("declaration") {
-            Some(e) => declarations = parse_declarations(e.text()),
-            None => declarations = parse_declarations(""),
-        }
-        let edges: Vec<component::Edge> = collect_edges(xml_comp.find_all("transition"));
+        let declarations = match xml_comp.find("declaration") {
+            Some(e) => parse_declarations(e.text()),
+            None => parse_declarations(""),
+        };
+        let edges = collect_edges(xml_comp.find_all("transition"));
         // let input_edges: Vec<component::Edge> = edges.clone()
         //     .into_iter()
         //     .filter(|e| e.sync_type == SyncType::Input)
@@ -41,7 +40,7 @@ pub(crate) fn parse_xml(
         //     .into_iter()
         //     .filter(|e| e.sync_type == SyncType::Output)
         //     .collect();
-        let comp: component::Component = component::Component {
+        let comp = component::Component {
             name: xml_comp.find("name").unwrap().text().parse().unwrap(),
             declarations,
             locations: collect_locations(
@@ -59,7 +58,7 @@ pub(crate) fn parse_xml(
         xml_components.push(comp);
     }
 
-    let system_declarations: SystemDeclarations = SystemDeclarations {
+    let system_declarations = SystemDeclarations {
         name: "".to_string(),
         declarations: decode_sync_type(root.find("system").unwrap().text()),
     };
@@ -70,7 +69,7 @@ pub(crate) fn parse_xml(
 fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<component::Location> {
     let mut locations: Vec<component::Location> = vec![];
     for loc in xml_locations {
-        let location: component::Location = component::Location {
+        let location = component::Location {
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
                 Some(x) => match parse_invariant::parse(x.text()) {
@@ -120,7 +119,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                 _ => {}
             }
         }
-        let edge: component::Edge = component::Edge {
+        let edge = component::Edge {
             source_location: e
                 .find("source")
                 .expect("source edge not found")
@@ -186,7 +185,7 @@ fn parse_declarations(variables: &str) -> Declarations {
                 } else {
                     let mut error_string = "not implemented read for type: ".to_string();
                     error_string.push_str(&variable_type.to_string());
-                    panic!(error_string);
+                    panic!("{}", error_string);
                 }
             }
         }

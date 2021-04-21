@@ -1,8 +1,8 @@
-use super::super::DBMLib::lib;
-use super::super::EdgeEval::constraint_applyer;
-use super::super::ModelObjects::component;
-use super::super::ModelObjects::representations;
-use super::super::ModelObjects::system_declarations;
+use crate::DBMLib::lib;
+use crate::EdgeEval::constraint_applyer;
+use crate::ModelObjects::component;
+use crate::ModelObjects::representations;
+use crate::ModelObjects::system_declarations;
 use std::collections::HashMap;
 use std::ptr;
 
@@ -23,7 +23,7 @@ pub fn make_input_enabled(
             let mut zone = [0; 1000];
             let mut state = component::State {
                 declarations: component.get_declarations().clone(),
-                location: location,
+                location,
             };
 
             lib::rs_dbm_zero(&mut zone[0..len as usize], dimension);
@@ -34,7 +34,7 @@ pub fn make_input_enabled(
                     invariant,
                     &mut state,
                     &mut zone[0..len as usize],
-                    &dimension,
+                    dimension,
                 );
             }
 
@@ -54,7 +54,7 @@ pub fn make_input_enabled(
                             guard,
                             &mut state,
                             &mut guard_zone[0..len as usize],
-                            &dimension,
+                            dimension,
                         );
                         res
                     } else {
@@ -83,7 +83,7 @@ pub fn make_input_enabled(
                                 target_invariant,
                                 &mut state,
                                 &mut guard_zone[0..len as usize],
-                                &dimension,
+                                dimension,
                             );
                         }
                         res
@@ -188,10 +188,10 @@ fn build_guard_from_zone(
     }
 
     let res = build_guard_from_zone_helper(&mut guards);
-    match res {
-        representations::BoolExpression::Bool(false) => return None,
-        _ => return Some(res),
-    }
+    return match res {
+        representations::BoolExpression::Bool(false) => None,
+        _ => Some(res),
+    };
 }
 
 fn build_guard_from_zone_helper(
@@ -199,18 +199,18 @@ fn build_guard_from_zone_helper(
 ) -> representations::BoolExpression {
     let num_guards = guards.len();
 
-    if let Some(guard) = guards.pop() {
+    return if let Some(guard) = guards.pop() {
         if num_guards == 1 {
-            return guard;
+            guard
         } else {
-            return representations::BoolExpression::AndOp(
+            representations::BoolExpression::AndOp(
                 Box::new(guard),
                 Box::new(build_guard_from_zone_helper(guards)),
-            );
+            )
         }
     } else {
-        return representations::BoolExpression::Bool(false);
-    }
+        representations::BoolExpression::Bool(false)
+    };
 }
 
 fn get_inv_clocks<'a>(

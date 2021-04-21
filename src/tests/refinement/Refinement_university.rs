@@ -322,9 +322,9 @@ mod Refinement_university {
 
     #[test]
     fn testCompRefinesSpec() {
-        //TODO This test must succeed, while it fails
+        // TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let comp: SystemRepresentation = SystemRepresentation::Composition(
+        let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),
@@ -347,9 +347,9 @@ mod Refinement_university {
 
     #[test]
     fn testCompRefinesSelf() {
-        //TODO This test must succeed, while it fails
+        // TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let comp1: SystemRepresentation = SystemRepresentation::Composition(
+        let comp1 = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),
@@ -357,13 +357,13 @@ mod Refinement_university {
                 automataList.get(1).unwrap().clone(),
             )),
         );
-        let comp2: SystemRepresentation = SystemRepresentation::Conjunction(
+        let comp2 = SystemRepresentation::Conjunction(
             Box::from(comp1),
             Box::from(SystemRepresentation::Component(
                 automataList.get(2).unwrap().clone(),
             )),
         );
-        let compCopy1: SystemRepresentation = SystemRepresentation::Composition(
+        let compCopy1 = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),
@@ -371,7 +371,7 @@ mod Refinement_university {
                 automataList.get(1).unwrap().clone(),
             )),
         );
-        let compCopy2: SystemRepresentation = SystemRepresentation::Conjunction(
+        let compCopy2 = SystemRepresentation::Conjunction(
             Box::from(compCopy1),
             Box::from(SystemRepresentation::Component(
                 automataList.get(2).unwrap().clone(),
@@ -382,9 +382,9 @@ mod Refinement_university {
 
     #[test]
     fn testHalf1AndHalf2RefinesAdm2() {
-        //TODO This test must succeed, while it fails
+        // TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let conj: SystemRepresentation = SystemRepresentation::Conjunction(
+        let conj = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
                 automataList.get(6).unwrap().clone(),
             )),
@@ -402,9 +402,9 @@ mod Refinement_university {
 
     #[test]
     fn testAdm2RefinesHalf1AndHalf2() {
-        //TODO This test must succeed, while it fails
+        // TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let conj: SystemRepresentation = SystemRepresentation::Conjunction(
+        let conj = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
                 automataList.get(6).unwrap().clone(),
             )),

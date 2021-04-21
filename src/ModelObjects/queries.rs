@@ -1,8 +1,8 @@
-use super::parse_queries;
-use super::representations;
+use crate::ModelObjects::parse_queries;
+use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer};
 
-//The struct containing a single query
+/// The struct containing a single query
 #[derive(Debug, Deserialize)]
 pub struct Query {
     #[serde(deserialize_with = "decode_query")]
@@ -16,7 +16,7 @@ impl Query {
     }
 }
 
-//Function used for deserializing queries
+/// Function used for deserializing queries
 pub fn decode_query<'de, D>(
     deserializer: D,
 ) -> Result<Option<representations::QueryExpression>, D::Error>

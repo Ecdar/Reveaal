@@ -1,11 +1,11 @@
 extern crate pest;
-use super::super::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
 use serde::export::Option::Some;
 
-///This file handles parsing the invariants based on the abstract syntax described in the .pest files in the grammar folder
-///For clarification see documentation on pest crate
+/// This file handles parsing the invariants based on the abstract syntax described in the .pest files in the grammar folder
+/// For clarification see documentation on pest crate
 #[derive(Parser)]
 #[grammar = "ModelObjects/grammars/invariant_grammar.pest"]
 pub struct InvariantParser;
@@ -28,7 +28,7 @@ pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpre
         Rule::andExpr => {
             let pair_span = pair.as_span();
 
-            //check if we have an empty pair
+            // check if we have an empty pair
             if pair_span.start() == pair_span.end() {
                 return BoolExpression::Bool(true);
             }
