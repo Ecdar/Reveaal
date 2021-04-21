@@ -136,7 +136,7 @@ mod test {
         //TODO Check why it fails whilel it shouldn't
         let mut intArr = [1, -3, 11, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 2, 1, 0);
+        lib::rs_dbm_update(dbm, 2, 1, 0);
         assert_eq!([1, 1, 1, 1].as_mut(), dbm);
     }
 
@@ -144,7 +144,7 @@ mod test {
     fn testDbmReset2() {
         let mut intArr = [1, 1, 1, 7, 1, 7, 5, 5, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 3, 1, 0);
+        lib::rs_dbm_update(dbm, 3, 1, 0);
         assert_eq!([1, 1, 1, 1, 1, 1, 5, 5, 1].as_mut(), dbm);
     }
 
