@@ -125,10 +125,12 @@ mod test {
         let mut intArr = [1, 1, 1, 1, 1, 1, 1, 1, 1];
         let dbm = &mut intArr;
         lib::rs_dbm_init(dbm, 3);
-        //assert_eq!([1].as_mut(), dbm);
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 4);
         //the clock and difference gets bounded by 9 but no other clocks change
-        assert_eq!([1, 1, 1, 9, 1, 9, lib::DBM_INF, lib::DBM_INF, 1].as_mut(), dbm);
+        assert_eq!(
+            [1, 1, 1, 9, 1, 9, lib::DBM_INF, lib::DBM_INF, 1].as_mut(), 
+            dbm
+        );
     }
 
     #[test]

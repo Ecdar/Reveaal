@@ -540,7 +540,7 @@ pub fn rs_dbm_add_and_constraint(
 
 /// Constrain clock to == value, and return
 /// * if the result is non empty.
-/// 
+///
 /// # Arguments
 ///
 /// * `dbm` - The DBM
@@ -594,7 +594,7 @@ pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -
 
 /// Former "reset" operation, properly called update.
 /// * Implement the operation x := v, where x is a clock and v a positive integer.
-/// 
+///
 /// # Arguments
 ///
 /// * `dbm` - The DBM
