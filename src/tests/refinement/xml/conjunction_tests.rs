@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod conjunction_tests {
-    use crate::ModelObjects::xml_parser;
-    use crate::System::{refine};
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use std::borrow::Borrow;
     use crate::tests::refinement::Helper::optimize_components;
+    use crate::ModelObjects::representations::SystemRepresentation;
+    use crate::ModelObjects::xml_parser;
+    use crate::System::refine;
+    use std::borrow::Borrow;
 
     static PATH: &str = "samples/xml/conjun.xml";
 
@@ -14,10 +14,18 @@ mod conjunction_tests {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
         assert!(!refine::check_refinement(
-            SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(optimized_components.get(1).unwrap().clone())),
-                                              Box::from(SystemRepresentation::Component(optimized_components.get(0).unwrap().clone()))),
+            SystemRepresentation::Conjunction(
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(1).unwrap().clone()
+                )),
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(0).unwrap().clone()
+                ))
+            ),
             SystemRepresentation::Component(optimized_components.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -28,13 +36,22 @@ mod conjunction_tests {
         let optimized_components = optimize_components(automataList, &decl);
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
-                Box::from(SystemRepresentation::Composition(Box::from(SystemRepresentation::Component(optimized_components.get(3).unwrap().clone())),
-                                                            Box::from(SystemRepresentation::Component(optimized_components.get(4).unwrap().clone())))),
-                Box::from(SystemRepresentation::Component(optimized_components.get(5).unwrap().clone()))),
-
-
+                Box::from(SystemRepresentation::Composition(
+                    Box::from(SystemRepresentation::Component(
+                        optimized_components.get(3).unwrap().clone()
+                    )),
+                    Box::from(SystemRepresentation::Component(
+                        optimized_components.get(4).unwrap().clone()
+                    ))
+                )),
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(5).unwrap().clone()
+                ))
+            ),
             SystemRepresentation::Component(optimized_components.get(6).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -44,13 +61,22 @@ mod conjunction_tests {
         let optimized_components = optimize_components(automataList, &decl);
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
-                Box::from(SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(optimized_components.get(7).unwrap().clone())),
-                                                            Box::from(SystemRepresentation::Component(optimized_components.get(8).unwrap().clone())))),
-                Box::from(SystemRepresentation::Component(optimized_components.get(9).unwrap().clone()))),
-
-
+                Box::from(SystemRepresentation::Conjunction(
+                    Box::from(SystemRepresentation::Component(
+                        optimized_components.get(7).unwrap().clone()
+                    )),
+                    Box::from(SystemRepresentation::Component(
+                        optimized_components.get(8).unwrap().clone()
+                    ))
+                )),
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(9).unwrap().clone()
+                ))
+            ),
             SystemRepresentation::Component(optimized_components.get(10).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -59,9 +85,17 @@ mod conjunction_tests {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
         assert!(!refine::check_refinement(
-            SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(optimized_components.get(11).unwrap().clone())),
-                                              Box::from(SystemRepresentation::Component(optimized_components.get(12).unwrap().clone()))),
+            SystemRepresentation::Conjunction(
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(11).unwrap().clone()
+                )),
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(12).unwrap().clone()
+                ))
+            ),
             SystemRepresentation::Component(optimized_components.get(13).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 }
