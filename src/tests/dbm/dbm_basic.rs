@@ -53,15 +53,15 @@ mod test {
     }
 
     //TOD O add bound to raw
-//     @Test
-//     public void testBound2Raw1() {
-// assertEquals(1, DBMLib.boundbool2raw(0, false));
-// }
-//
-//     @Test
-//     public void testBound2Raw2() {
-// assertEquals(2147483647, DBMLib.boundbool2raw(1073741823, false));
-// }
+    //     @Test
+    //     public void testBound2Raw1() {
+    // assertEquals(1, DBMLib.boundbool2raw(0, false));
+    // }
+    //
+    //     @Test
+    //     public void testBound2Raw2() {
+    // assertEquals(2147483647, DBMLib.boundbool2raw(1073741823, false));
+    // }
     #[test]
     fn testDbmInit1() {
         let mut intArr = [0, 0, 0, 0];
@@ -75,10 +75,22 @@ mod test {
         let mut intArr = [0, 0, 0, 0, 0, 0, 0, 0, 0];
         let dbm = &mut intArr;
         lib::rs_dbm_init(dbm, 3);
-        assert_eq!([1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1].as_mut(),
-                   dbm);
+        assert_eq!(
+            [
+                1,
+                1,
+                1,
+                lib::DBM_INF,
+                1,
+                lib::DBM_INF,
+                lib::DBM_INF,
+                lib::DBM_INF,
+                1
+            ]
+            .as_mut(),
+            dbm
+        );
     }
-
 
     #[test]
     fn testDbmConstrain1() {
@@ -99,7 +111,17 @@ mod test {
     #[test]
     fn testDbmConstrain4() {
         //DBM With two clocks from o to inf both
-        let mut intArr = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let mut intArr = [
+            1,
+            1,
+            1,
+            lib::DBM_INF,
+            1,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            1,
+        ];
         let dbm = &mut intArr;
         //Apply constraint on the first clock <= 5 in raw value 11
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
@@ -109,7 +131,17 @@ mod test {
     #[test]
     fn testDbmConstrain5() {
         //DBM With two clocks from o to inf both
-        let mut intArr = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let mut intArr = [
+            1,
+            1,
+            1,
+            lib::DBM_INF,
+            1,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            1,
+        ];
         let dbm = &mut intArr;
         //Apply constraint on the first clock <= 5 in raw value 11
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
@@ -168,9 +200,29 @@ mod test {
     fn testDbmMinusDbm() {
         println!("testDbmMinusDbm");
         let dim = 3;
-        let mut intArr1 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let mut intArr1 = [
+            1,
+            1,
+            1,
+            lib::DBM_INF,
+            1,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            1,
+        ];
         let _dbm1 = &mut intArr1;
-        let mut intArr2 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        let mut intArr2 = [
+            1,
+            1,
+            1,
+            lib::DBM_INF,
+            1,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            lib::DBM_INF,
+            1,
+        ];
         let dbm2 = &mut intArr2;
 
         lib::rs_dbm_add_LTE_constraint(dbm2, dim, 0, 1, -2);
@@ -183,14 +235,14 @@ mod test {
         //let mut arr1 = lib::rs_dbm_minus_dbm(dbm1, dbm2, dim);
 
         // let mut fed1 = Federation(arr1);
-//         let mut intArr3 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
-//         let dbm3 = &mut intArr3;
-//
-//         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 0, 1, 0);
-//         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 0, 2, 0);
-//         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 1, 0, 1);
-//         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 2, 0, 1);
-//         let fedP = &mut arr1;
+        //         let mut intArr3 = [1, 1, 1, lib::DBM_INF, 1, lib::DBM_INF, lib::DBM_INF, lib::DBM_INF, 1];
+        //         let dbm3 = &mut intArr3;
+        //
+        //         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 0, 1, 0);
+        //         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 0, 2, 0);
+        //         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 1, 0, 1);
+        //         lib::rs_dbm_add_LTE_constraint(dbm3, dim, 2, 0, 1);
+        //         let fedP = &mut arr1;
         //let mut arr2 = lib::rs_dbm_fed_minus_fed(fedP, dbm3, dim);
 
         //    assert_eq!(arr1.len(), 4);

@@ -1,15 +1,14 @@
 #[cfg(test)]
 mod delay_refinement {
-    use crate::ModelObjects::{xml_parser, parse_queries};
-    use crate::System::{refine};
-    use std::borrow::Borrow;
     use crate::tests::refinement::Helper::optimize_components;
-    use crate::System::extract_system_rep::create_system_rep_from_query;
     use crate::ModelObjects::queries::Query;
+    use crate::ModelObjects::{parse_queries, xml_parser};
+    use crate::System::extract_system_rep::create_system_rep_from_query;
+    use crate::System::refine;
+    use std::borrow::Borrow;
 
     static PATH: &str = "samples/xml/delayRefinement.xml";
     static PATH_2: &str = "samples/xml/loop.xml";
-
 
     // Self Refinements
     #[test]
@@ -19,17 +18,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: SelfloopNonZeno <= SelfloopNonZeno").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                         rightSys,
-                                         decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     // Self Refinements
@@ -40,17 +36,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T1 <= T1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -60,17 +53,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T2 <= T2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -80,17 +70,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T3 <= T3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -100,17 +87,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: C1 <= C1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -120,17 +104,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: C2 <= C2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -140,17 +121,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: F1 <= F1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -160,17 +138,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: F2 <= F2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -180,17 +155,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: F3 <= F3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -200,17 +172,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T4 <= T4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -220,17 +189,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T0 <= T0").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -240,17 +206,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T5 <= T5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -260,17 +223,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T6 <= T6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -280,17 +240,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T7 <= T7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -300,17 +257,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T8 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -320,17 +274,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T9 <= T9").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -340,17 +291,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T10 <= T10").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -360,17 +308,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T11 <= T11").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -380,17 +325,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: N1 <= N1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -400,17 +342,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: N2 <= N2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -420,17 +359,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: N3 <= N3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -440,17 +376,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: N4 <= N4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -460,17 +393,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: D1 <= D1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -480,17 +410,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: D2 <= D2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -500,17 +427,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K1 <= K1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -520,17 +444,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K2 <= K2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -540,17 +461,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K3 <= K3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -560,17 +478,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K4 <= K4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -580,17 +495,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K5 <= K5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -600,17 +512,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K6 <= K6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -620,17 +529,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P0 <= P0").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -640,17 +546,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P1 <= P1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -660,17 +563,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P2 <= P2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -680,17 +580,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P3 <= P3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -700,17 +597,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P4 <= P4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -720,17 +614,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P5 <= P5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -740,17 +631,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P6 <= P6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -760,17 +648,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P7 <= P7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -780,17 +665,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L1 <= L1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -800,17 +682,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L2 <= L2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -820,17 +699,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L3 <= L3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -840,17 +716,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L4 <= L4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -860,17 +733,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L5 <= L5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -880,17 +750,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L6 <= L6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -900,17 +767,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L7 <= L7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -920,17 +784,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z1 <= Z1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -940,17 +801,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z2 <= Z2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -960,17 +818,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z3 <= Z3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -980,17 +835,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z4 <= Z4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1000,17 +852,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z5 <= Z5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1020,17 +869,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z6 <= Z6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1040,20 +886,17 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Z7 <= Z7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
-//     // Rest of the tests
+    //     // Rest of the tests
 
     #[test]
     fn T1T2RefinesT3() {
@@ -1074,17 +917,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: C1 <= C2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1094,17 +934,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: C2 <= C1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1161,17 +998,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T7 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1182,17 +1016,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T9 <= T8").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1203,17 +1034,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: T10 <= T11").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1224,7 +1052,6 @@ mod delay_refinement {
         // assert!(refine::check_refinement(SystemRepresentation::Component(optimized_components.get(19).unwrap().clone()),
         //                                  SystemRepresentation::Component(optimized_components.get(20).unwrap().clone()),
         //                                  decl.borrow()).unwrap());
-
     }
 
     #[test]
@@ -1234,17 +1061,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: N3 <= N4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1264,17 +1088,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: D1 <= D2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1285,17 +1106,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K1 <= K2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1306,17 +1124,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K3 <= K4").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1327,17 +1142,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: K5 <= K6").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1347,17 +1159,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P0 <= P1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1367,17 +1176,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P2 <= P3").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1398,21 +1204,18 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: P6 <= P7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
-    fn L1L2NotRefinesL3(){
+    fn L1L2NotRefinesL3() {
         //test passes but for wrong reasons ?
         //right side could not match a output from left side o1: ["o", "ro"], o2 ["ro"]
         // let (automataList, decl, _) = xml_parser::parse_xml(PATH);
@@ -1432,17 +1235,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L5 <= L5").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1452,17 +1252,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: L6 <= L7").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1517,17 +1314,14 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Q1 <= Q2").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
     #[test]
@@ -1537,16 +1331,13 @@ mod delay_refinement {
         let query = parse_queries::parse("refinement: Q2 <= Q1").unwrap();
         let q = Query {
             query: Option::from(query),
-            comment: "".to_string()
+            comment: "".to_string(),
         };
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
         let rightSys = res.1.unwrap();
 
-
-        assert!(!refine::check_refinement(leftSys,
-                                          rightSys,
-                                          decl.borrow()).unwrap());
+        assert!(!refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 }

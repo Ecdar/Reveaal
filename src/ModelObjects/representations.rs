@@ -1,6 +1,6 @@
-use serde::Deserialize;
-use super::component::Component;
 use super::super::DBMLib::lib;
+use super::component::Component;
+use serde::Deserialize;
 
 ///This file contains the nested enums used to represent systems on each side of refinement aswell as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -49,15 +49,15 @@ pub enum QueryExpression {
     Int(i32),
 }
 
-#[derive(Debug, Clone)] 
+#[derive(Debug, Clone)]
 pub enum SystemRepresentation {
     Composition(Box<SystemRepresentation>, Box<SystemRepresentation>),
     Conjunction(Box<SystemRepresentation>, Box<SystemRepresentation>),
     Parentheses(Box<SystemRepresentation>),
-    Component(Component)
+    Component(Component),
 }
 
-pub fn print_DBM(dbm:  &mut [i32], dimension : &u32){
+pub fn print_DBM(dbm: &mut [i32], dimension: &u32) {
     println!("DBM:");
     for i in 0..*dimension {
         print!("( ");

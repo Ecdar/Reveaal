@@ -13,7 +13,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -22,7 +24,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(6).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(6).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -31,7 +35,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(7).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(7).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -40,7 +46,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -49,9 +57,10 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
-
 
     #[test]
     fn testResRefinesSelf() {
@@ -59,7 +68,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -68,7 +79,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -77,7 +90,9 @@ mod Refinement_university {
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -86,7 +101,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -96,7 +113,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -106,7 +125,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -115,7 +136,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -125,7 +148,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -135,7 +160,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -145,7 +172,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -154,7 +183,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -163,7 +194,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -172,7 +205,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -181,7 +216,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -190,7 +227,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -199,7 +238,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -208,7 +249,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -217,7 +260,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -226,7 +271,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -235,7 +282,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -244,7 +293,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -253,7 +304,9 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
@@ -262,33 +315,68 @@ mod Refinement_university {
         assert!(!refine::check_refinement(
             SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
     fn testCompRefinesSpec() {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let comp: SystemRepresentation = SystemRepresentation::Composition(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
-                                                                           Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone())));
+        let comp: SystemRepresentation = SystemRepresentation::Composition(
+            Box::from(SystemRepresentation::Component(
+                automataList.get(0).unwrap().clone(),
+            )),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(2).unwrap().clone(),
+            )),
+        );
         assert!(refine::check_refinement(
-            SystemRepresentation::Composition(Box::from(comp), Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone()))),
+            SystemRepresentation::Composition(
+                Box::from(comp),
+                Box::from(SystemRepresentation::Component(
+                    automataList.get(1).unwrap().clone()
+                ))
+            ),
             SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
     fn testCompRefinesSelf() {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let comp1: SystemRepresentation = SystemRepresentation::Composition(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
-                                                                            Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone())));
-        let comp2: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(comp1),
-                                                                            Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone())));
-        let compCopy1: SystemRepresentation = SystemRepresentation::Composition(Box::from(SystemRepresentation::Component(automataList.get(0).unwrap().clone())),
-                                                                                Box::from(SystemRepresentation::Component(automataList.get(1).unwrap().clone())));
-        let compCopy2: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(compCopy1),
-                                                                                Box::from(SystemRepresentation::Component(automataList.get(2).unwrap().clone())));
+        let comp1: SystemRepresentation = SystemRepresentation::Composition(
+            Box::from(SystemRepresentation::Component(
+                automataList.get(0).unwrap().clone(),
+            )),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(1).unwrap().clone(),
+            )),
+        );
+        let comp2: SystemRepresentation = SystemRepresentation::Conjunction(
+            Box::from(comp1),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(2).unwrap().clone(),
+            )),
+        );
+        let compCopy1: SystemRepresentation = SystemRepresentation::Composition(
+            Box::from(SystemRepresentation::Component(
+                automataList.get(0).unwrap().clone(),
+            )),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(1).unwrap().clone(),
+            )),
+        );
+        let compCopy2: SystemRepresentation = SystemRepresentation::Conjunction(
+            Box::from(compCopy1),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(2).unwrap().clone(),
+            )),
+        );
         assert!(refine::check_refinement(comp2, compCopy2, decl.borrow()).unwrap());
     }
 
@@ -296,23 +384,39 @@ mod Refinement_university {
     fn testHalf1AndHalf2RefinesAdm2() {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let conj: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(6).unwrap().clone())),
-                                                                           Box::from(SystemRepresentation::Component(automataList.get(7).unwrap().clone())));
+        let conj: SystemRepresentation = SystemRepresentation::Conjunction(
+            Box::from(SystemRepresentation::Component(
+                automataList.get(6).unwrap().clone(),
+            )),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(7).unwrap().clone(),
+            )),
+        );
         assert!(refine::check_refinement(
             conj,
             SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 
     #[test]
     fn testAdm2RefinesHalf1AndHalf2() {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
-        let conj: SystemRepresentation = SystemRepresentation::Conjunction(Box::from(SystemRepresentation::Component(automataList.get(6).unwrap().clone())),
-                                                                           Box::from(SystemRepresentation::Component(automataList.get(7).unwrap().clone())));
+        let conj: SystemRepresentation = SystemRepresentation::Conjunction(
+            Box::from(SystemRepresentation::Component(
+                automataList.get(6).unwrap().clone(),
+            )),
+            Box::from(SystemRepresentation::Component(
+                automataList.get(7).unwrap().clone(),
+            )),
+        );
         assert!(refine::check_refinement(
             SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
             conj,
-            decl.borrow()).unwrap());
+            decl.borrow()
+        )
+        .unwrap());
     }
 }

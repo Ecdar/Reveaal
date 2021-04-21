@@ -1,6 +1,6 @@
-use serde::{Deserialize, Deserializer};
-use super::representations;
 use super::parse_queries;
+use super::representations;
+use serde::{Deserialize, Deserializer};
 
 //The struct containing a single query
 #[derive(Debug, Deserialize)]
@@ -17,18 +17,18 @@ impl Query {
 }
 
 //Function used for deserializing queries
-pub fn decode_query<'de, D>(deserializer: D) -> Result<Option<representations::QueryExpression>, D::Error>
+pub fn decode_query<'de, D>(
+    deserializer: D,
+) -> Result<Option<representations::QueryExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     if s.len() == 0 {
-        return Ok(None)
+        return Ok(None);
     }
     match parse_queries::parse(&s) {
-        Ok(edgeAttribute) => {
-            return Ok(Some(edgeAttribute))
-        },
-        Err(e) => panic!("Could not parse query {} got error: {:?}",s, e )
+        Ok(edgeAttribute) => return Ok(Some(edgeAttribute)),
+        Err(e) => panic!("Could not parse query {} got error: {:?}", s, e),
     }
 }
