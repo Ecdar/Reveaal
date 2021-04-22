@@ -110,65 +110,34 @@ mod test {
 
     #[test]
     fn testDbmConstrain4() {
-        //DBM With two clocks from o to inf both
-        let mut intArr = [
-            1,
-            1,
-            1,
-            lib::DBM_INF,
-            1,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            1,
-        ];
+        //DBM With two dependent clocks from 0 to inf both
+        let mut intArr = [1, 1, 1, lib::DBM_INF, 1, 1, lib::DBM_INF, 1, 1];
         let dbm = &mut intArr;
         //Apply constraint on the first clock <= 5 in raw value 11
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
-        //both clocks gets bounded to 11
-        assert_eq!([1, 1, 1, 11, 1, 1, 11, 1, 1].as_mut(), dbm);
-    }
-    #[test]
-    fn testDbmConstrain5() {
-        //DBM With two clocks from o to inf both
-        let mut intArr = [
-            1,
-            1,
-            1,
-            lib::DBM_INF,
-            1,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            lib::DBM_INF,
-            1,
-        ];
-        let dbm = &mut intArr;
-        //Apply constraint on the first clock <= 5 in raw value 11
-        lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 5);
-        //both clocks gets bounded to 11
+        //Both clocks are bounded by 11 but no differences change
         assert_eq!([1, 1, 1, 11, 1, 1, 11, 1, 1].as_mut(), dbm);
     }
 
     #[test]
     fn testDbmConstrain3() {
+        //DBM with two independent clocks from 0 to inf
         let mut intArr = [1, 1, 1, 1, 1, 1, 1, 1, 1];
         let dbm = &mut intArr;
         lib::rs_dbm_init(dbm, 3);
         lib::rs_dbm_add_LTE_constraint(dbm, 3, 1, 0, 4);
-        let mut intArr2 = [1, 1, 1, 1, 1, 1, 1, 1, 1];
-        let dbm2 = &mut intArr2;
-        lib::rs_dbm_init(dbm2, 3);
-        lib::rs_dbm_add_LTE_constraint(dbm2, 3, 2, 0, 4);
-        //assert_eq!([1, -3, 11, 1].as_mut(), dbm);
-        assert_eq!([1, -3, 11, 1].as_mut(), dbm2);
+        //the clock and difference gets bounded by 9 but no other clocks change
+        assert_eq!(
+            [1, 1, 1, 9, 1, 9, lib::DBM_INF, lib::DBM_INF, 1].as_mut(),
+            dbm
+        );
     }
 
     #[test]
     fn testDbmReset1() {
-        //TODO Check why it fails whilel it shouldn't
         let mut intArr = [1, -3, 11, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 2, 1, 0);
+        lib::rs_dbm_update(dbm, 2, 1, 0);
         assert_eq!([1, 1, 1, 1].as_mut(), dbm);
     }
 
@@ -176,7 +145,7 @@ mod test {
     fn testDbmReset2() {
         let mut intArr = [1, 1, 1, 7, 1, 7, 5, 5, 1];
         let dbm = &mut intArr;
-        lib::rs_dbm_constrain_var_to_val(dbm, 3, 1, 0);
+        lib::rs_dbm_update(dbm, 3, 1, 0);
         assert_eq!([1, 1, 1, 1, 1, 1, 5, 5, 1].as_mut(), dbm);
     }
 
