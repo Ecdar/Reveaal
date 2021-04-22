@@ -135,7 +135,6 @@ mod test {
 
     #[test]
     fn testDbmReset1() {
-        //TODO Check why it fails whilel it shouldn't
         let mut intArr = [1, -3, 11, 1];
         let dbm = &mut intArr;
         lib::rs_dbm_update(dbm, 2, 1, 0);
