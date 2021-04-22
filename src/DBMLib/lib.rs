@@ -538,7 +538,8 @@ pub fn rs_dbm_add_and_constraint(
     return res1 && res2;
 }
 
-/// Contrain DBM by setting variable to value.
+/// Constrain clock to == value, and return
+/// * if the result is non empty.
 ///
 /// # Arguments
 ///
@@ -591,6 +592,16 @@ pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -
     }
 }
 
+/// Former "reset" operation, properly called update.
+/// * Implement the operation x := v, where x is a clock and v a positive integer.
+///
+/// # Arguments
+///
+/// * `dbm` - The DBM
+/// * `dimension` - The dimension of the dbm
+/// * `var_index` - The index of the clock
+/// * `value` - the value to reset the clock to
+///
 pub fn rs_dbm_update(dbm: &mut [i32], dimension: u32, var_index: u32, value: i32) {
     unsafe {
         dbm_updateValue(dbm.as_mut_ptr(), dimension, var_index, value);
