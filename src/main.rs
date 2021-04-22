@@ -139,7 +139,7 @@ fn parse_automata(
     system_declarations::SystemDeclarations,
     Vec<queries::Query>,
 )> {
-    let mut paths: Vec<PathBuf> = vec![];
+    let mut paths: Vec<PathBuf>;
     match fs::read_dir(&folder_path) {
         Ok(read_value) => {
             paths = read_value

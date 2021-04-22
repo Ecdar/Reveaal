@@ -1,11 +1,10 @@
-use super::super::DBMLib::lib;
-use super::super::ModelObjects::component;
-use super::super::ModelObjects::system_declarations;
+use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::updater;
+use crate::ModelObjects::component;
 use crate::ModelObjects::component::{Component, Edge, State, StatePair};
-use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::SystemRepresentation;
+use crate::ModelObjects::system_declarations;
 use std::cell::Cell;
 
 thread_local!(static INDEX1: Cell<usize> = Cell::new(0));
@@ -175,21 +174,21 @@ fn collect_open_edges<'a>(
     sync_type: &component::SyncType,
 ) -> bool {
     match sys {
-        SystemRepresentation::Composition(leftside, rightside) => {
+        SystemRepresentation::Composition(left_side, right_side) => {
             collect_open_edges(
-                leftside, curr_pair, action, is_state1, open_edges, sync_type,
+                left_side, curr_pair, action, is_state1, open_edges, sync_type,
             ) || collect_open_edges(
-                rightside, curr_pair, action, is_state1, open_edges, sync_type,
+                right_side, curr_pair, action, is_state1, open_edges, sync_type,
             )
         }
-        SystemRepresentation::Conjunction(leftside, rightside) => {
+        SystemRepresentation::Conjunction(left_side, right_side) => {
             let open_edges_len = open_edges.len();
             if collect_open_edges(
-                leftside, curr_pair, action, is_state1, open_edges, sync_type,
+                left_side, curr_pair, action, is_state1, open_edges, sync_type,
             ) {
                 let left_found_transitions = open_edges_len != open_edges.len();
                 if collect_open_edges(
-                    rightside, curr_pair, action, is_state1, open_edges, sync_type,
+                    right_side, curr_pair, action, is_state1, open_edges, sync_type,
                 ) {
                     let right_found_transitions = open_edges_len != open_edges.len();
                     return left_found_transitions == right_found_transitions;
@@ -203,7 +202,7 @@ fn collect_open_edges<'a>(
         SystemRepresentation::Component(comp) => {
             let mut next_edges = vec![];
             let mut i = 0;
-            if is_state1 {
+            return if is_state1 {
                 INDEX1.with(|thread_index| {
                     i = thread_index.get();
                     next_edges = comp.get_next_edges(
@@ -217,7 +216,7 @@ fn collect_open_edges<'a>(
                 if next_edges.len() > 0 {
                     open_edges.push((comp, next_edges, i));
                 }
-                return true;
+                true
             } else {
                 INDEX2.with(|thread_index| {
                     i = thread_index.get();
@@ -231,8 +230,8 @@ fn collect_open_edges<'a>(
                 if next_edges.len() > 0 {
                     open_edges.push((comp, next_edges, i));
                 }
-                return true;
-            }
+                true
+            };
         }
     }
 }
@@ -262,19 +261,19 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec1 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_succes = apply_guard(
+            let g_success = apply_guard(
                 edge,
                 &curr_pair,
                 &mut zone[0..len as usize],
-                &dim,
+                dim,
                 *state_index,
                 true,
             );
-            if g_succes {
+            if g_success {
                 let inv_success = apply_invariant(
                     &curr_pair,
                     &mut zone[0..len as usize],
-                    &dim,
+                    dim,
                     *state_index,
                     true,
                 );
@@ -290,19 +289,19 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec2 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_succes = apply_guard(
+            let g_success = apply_guard(
                 edge,
                 &curr_pair,
                 &mut zone[0..len as usize],
-                &dim,
+                dim,
                 *state_index,
                 false,
             );
-            if g_succes {
+            if g_success {
                 let inv_success = apply_invariant(
                     &curr_pair,
                     &mut zone[0..len as usize],
-                    &dim,
+                    dim,
                     *state_index,
                     false,
                 );
@@ -402,7 +401,7 @@ fn build_state_pair<'a>(
                 edge,
                 &new_sp,
                 &mut new_sp_zone,
-                &dim,
+                dim,
                 *state_index,
                 is_state1,
             );
@@ -414,7 +413,7 @@ fn build_state_pair<'a>(
                 edge,
                 &new_sp,
                 &mut new_sp_zone,
-                &dim,
+                dim,
                 *state_index,
                 !is_state1,
             );
@@ -473,7 +472,7 @@ fn build_state_pair<'a>(
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
         inv_success1 = inv_success1
-            && apply_invariant(&new_sp, &mut new_sp_zone, &dim, *state_index, is_state1);
+            && apply_invariant(&new_sp, &mut new_sp_zone, dim, *state_index, is_state1);
         index_vec1.push(*state_index);
     }
 
@@ -483,7 +482,7 @@ fn build_state_pair<'a>(
     let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
         inv_success2 = inv_success2
-            && apply_invariant(&new_sp, &mut invariant_test, &dim, *state_index, !is_state1);
+            && apply_invariant(&new_sp, &mut invariant_test, dim, *state_index, !is_state1);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
@@ -552,10 +551,10 @@ fn apply_syncs_to_comps<'a>(
     adding_input: bool,
 ) -> bool {
     match sys {
-        SystemRepresentation::Composition(leftside, rightside) => {
+        SystemRepresentation::Composition(left_side, right_side) => {
             //Should reflect that just one of them has to satisfy
             apply_syncs_to_comps(
-                leftside,
+                left_side,
                 new_sp,
                 index_vec,
                 zone,
@@ -565,7 +564,7 @@ fn apply_syncs_to_comps<'a>(
                 is_state1,
                 adding_input,
             ) || apply_syncs_to_comps(
-                rightside,
+                right_side,
                 new_sp,
                 index_vec,
                 zone,
@@ -576,10 +575,10 @@ fn apply_syncs_to_comps<'a>(
                 adding_input,
             )
         }
-        SystemRepresentation::Conjunction(leftside, rightside) => {
-            //We do not care if both sides satisfy. The return value only indicates if atleast
+        SystemRepresentation::Conjunction(left_side, right_side) => {
+            //We do not care if both sides satisfy. The return value only indicates if at least
             apply_syncs_to_comps(
-                leftside,
+                left_side,
                 new_sp,
                 index_vec,
                 zone,
@@ -589,7 +588,7 @@ fn apply_syncs_to_comps<'a>(
                 is_state1,
                 adding_input,
             ) && apply_syncs_to_comps(
-                rightside,
+                right_side,
                 new_sp,
                 index_vec,
                 zone,
@@ -651,18 +650,18 @@ fn apply_syncs_to_comps<'a>(
             }
 
             for edge in next_edges {
-                if !apply_guard(edge, new_sp, zone, &dim, *curr_index, is_state1) {
+                if !apply_guard(edge, new_sp, zone, dim, *curr_index, is_state1) {
                     *curr_index += 1;
                     return false;
                 }
                 apply_update(edge, new_sp, zone, dim, *curr_index, is_state1);
-                if !apply_invariant(new_sp, zone, &dim, *curr_index, is_state1) {
+                if !apply_invariant(new_sp, zone, dim, *curr_index, is_state1) {
                     *curr_index += 1;
                     return false;
                 }
 
-                //TODO: see below
-                //Declarations on the states should also be updated when variables are added to reveaal
+                // TODO: see below
+                // Declarations on the states should also be updated when variables are added to Reveaal
                 let target_loc = comp.get_location_by_name(edge.get_target_location());
                 if is_state1 {
                     new_sp.get_mut_states1()[*curr_index].set_location(target_loc);
@@ -680,27 +679,27 @@ fn apply_guard(
     edge: &component::Edge,
     new_sp: &StatePair,
     zone: &mut [i32],
-    dim: &u32,
+    dim: u32,
     state_index: usize,
     is_state1: bool,
 ) -> bool {
-    if is_state1 {
+    return if is_state1 {
         if let Some(guard) = edge.get_guard() {
-            let succes =
+            let success =
                 apply_constraints_to_state(guard, &new_sp.get_states1()[state_index], zone, dim);
-            return succes;
+            success
         } else {
-            return true;
-        };
+            true
+        }
     } else {
         if let Some(guard) = edge.get_guard() {
-            let succes =
+            let success =
                 apply_constraints_to_state(guard, &new_sp.get_states2()[state_index], zone, dim);
-            return succes;
+            success
         } else {
-            return true;
-        };
-    }
+            true
+        }
+    };
 }
 
 fn apply_update(
@@ -735,7 +734,7 @@ fn apply_update(
 fn apply_invariant(
     new_sp: &StatePair,
     zone: &mut [i32],
-    dim: &u32,
+    dim: u32,
     state_index: usize,
     is_state1: bool,
 ) -> bool {
@@ -769,13 +768,13 @@ pub fn get_actions<'a>(
     states: &mut Vec<State<'a>>,
 ) {
     match sys_rep {
-        SystemRepresentation::Composition(leftside, rightside) => {
-            get_actions(&**leftside, sys_decls, is_input, actions, states);
-            get_actions(&**rightside, sys_decls, is_input, actions, states);
+        SystemRepresentation::Composition(left_side, right_side) => {
+            get_actions(&**left_side, sys_decls, is_input, actions, states);
+            get_actions(&**right_side, sys_decls, is_input, actions, states);
         }
-        SystemRepresentation::Conjunction(leftside, rightside) => {
-            get_actions(&**leftside, sys_decls, is_input, actions, states);
-            get_actions(&**rightside, sys_decls, is_input, actions, states);
+        SystemRepresentation::Conjunction(left_side, right_side) => {
+            get_actions(&**left_side, sys_decls, is_input, actions, states);
+            get_actions(&**right_side, sys_decls, is_input, actions, states);
         }
         SystemRepresentation::Parentheses(rep) => {
             get_actions(&**rep, sys_decls, is_input, actions, states);
@@ -819,7 +818,7 @@ fn prepare_init_state(
         let init_inv1 = state.get_location().get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
             let dim = initial_pair.get_dimensions();
-            apply_constraints_to_state(&inv1, &state, initial_pair.get_zone(), &dim)
+            apply_constraints_to_state(&inv1, &state, initial_pair.get_zone(), dim)
         } else {
             true
         };
@@ -832,7 +831,7 @@ fn prepare_init_state(
         let init_inv2 = state.get_location().get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
             let dim = initial_pair.get_dimensions();
-            apply_constraints_to_state(&inv2, &state, initial_pair.get_zone(), &dim)
+            apply_constraints_to_state(&inv2, &state, initial_pair.get_zone(), dim)
         } else {
             true
         };
@@ -843,29 +842,27 @@ fn prepare_init_state(
 }
 
 fn precheck_sys_rep(sys: &mut SystemRepresentation) -> bool {
-    match sys {
+    return match sys {
         SystemRepresentation::Composition(left, right) => {
-            return precheck_sys_rep(left) && precheck_sys_rep(right)
+            precheck_sys_rep(left) && precheck_sys_rep(right)
         }
         SystemRepresentation::Conjunction(left, right) => {
-            return precheck_sys_rep(left) && precheck_sys_rep(right)
+            precheck_sys_rep(left) && precheck_sys_rep(right)
         }
-        SystemRepresentation::Parentheses(val) => return precheck_sys_rep(val),
+        SystemRepresentation::Parentheses(val) => precheck_sys_rep(val),
         SystemRepresentation::Component(comp) => {
             let clock_clone = comp.get_declarations().get_clocks().clone();
 
             let len = comp.get_mut_declaration().get_clocks().len();
             comp.get_mut_declaration().dimension = 1 + len as u32;
-            let dim = comp.get_mut_declaration().get_dimension().clone();
 
-            comp.get_mut_declaration().reset_clock_indicies();
+            comp.get_mut_declaration().reset_clock_indices();
 
             let res = comp.check_consistency(true);
             comp.get_mut_declaration().clocks = clock_clone;
-            return res;
+            res
         }
-    }
-    panic!("Unexpected type in system representation")
+    };
 }
 
 fn check_preconditions(
@@ -877,7 +874,7 @@ fn check_preconditions(
 ) -> bool {
     let mut outputs2: Vec<String> = vec![];
     let mut inputs1: Vec<String> = vec![];
-    let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions
+    let mut disposable = vec![]; // Disposable vector need to be parsed to get_actions
 
     if !(precheck_sys_rep(sys2) && precheck_sys_rep(sys1)) {
         return false;
@@ -915,7 +912,7 @@ pub fn find_extra_input_output(
 ) -> (Vec<String>, Vec<String>) {
     let mut outputs2: Vec<String> = vec![];
     let mut inputs1: Vec<String> = vec![];
-    let mut disposable = vec![]; //Dispoasable vector need to be parsed to get_actions
+    let mut disposable = vec![]; // Disposable vector need to be parsed to get_actions
 
     get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
     get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);

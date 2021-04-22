@@ -44,7 +44,7 @@ mod Refinement_unspec {
     fn compNotRefinesB() {
         // should fail because right side has more inputs
         let (automataList, decl) = setup(PATH.to_string());
-        let comp: SystemRepresentation = SystemRepresentation::Composition(
+        let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),

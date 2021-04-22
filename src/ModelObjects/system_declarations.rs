@@ -42,7 +42,7 @@ impl SystemSpecification {
     }
 }
 
-//Function used for deserializing system declarations
+/// Function used for deserializing system declarations
 fn decode_sync_type<'de, D>(deserializer: D) -> Result<SystemSpecification, D::Error>
 where
     D: Deserializer<'de>,
@@ -119,14 +119,14 @@ where
                         }
                     }
                 } else {
-                    panic!("Was not able to finde component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
                 }
             }
         }
     }
     Ok(SystemSpecification {
-        components: components,
-        input_actions: input_actions,
-        output_actions: output_actions,
+        components,
+        input_actions,
+        output_actions,
     })
 }

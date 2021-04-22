@@ -368,7 +368,7 @@ mod determinism_tests {
 
     #[test]
     fn testG23() {
-        //shouldn't be deterministic
+        // shouldn't be deterministic
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
         let query = parse_queries::parse("determinism: G23").unwrap();

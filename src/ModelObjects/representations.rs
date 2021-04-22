@@ -1,8 +1,8 @@
-use super::super::DBMLib::lib;
-use super::component::Component;
+use crate::DBMLib::lib;
+use crate::ModelObjects::component::Component;
 use serde::Deserialize;
 
-///This file contains the nested enums used to represent systems on each side of refinement aswell as all guards, updates etc
+/// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
 
 #[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
@@ -57,12 +57,12 @@ pub enum SystemRepresentation {
     Component(Component),
 }
 
-pub fn print_DBM(dbm: &mut [i32], dimension: &u32) {
+pub fn print_DBM(dbm: &mut [i32], dimension: u32) {
     println!("DBM:");
-    for i in 0..*dimension {
+    for i in 0..dimension {
         print!("( ");
-        for j in 0..*dimension {
-            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, *dimension, i, j));
+        for j in 0..dimension {
+            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, dimension, i, j));
         }
         print!(")\n");
     }

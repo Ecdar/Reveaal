@@ -160,7 +160,7 @@ mod Conjunction_refinement {
     #[test]
     fn test1NestedConjRefinesT5() {
         let (automataList, decl) = setup(PATH.to_string());
-        let ts1: SystemRepresentation = SystemRepresentation::Conjunction(
+        let ts1 = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),
@@ -204,7 +204,7 @@ mod Conjunction_refinement {
     #[test]
     fn test1NestedConjRefinesT12() {
         let (automataList, decl) = setup(PATH.to_string());
-        let ts1: SystemRepresentation = SystemRepresentation::Conjunction(
+        let ts1 = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
                 automataList.get(8).unwrap().clone(),
             )),

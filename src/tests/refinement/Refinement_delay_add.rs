@@ -10,7 +10,7 @@ mod Refinement_delay_add {
     #[test]
     fn A1A2NotRefinesB() {
         let (automataList, decl) = setup(PATH.to_string());
-        let comp: SystemRepresentation = SystemRepresentation::Composition(
+        let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
                 automataList.get(0).unwrap().clone(),
             )),
