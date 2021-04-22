@@ -4,9 +4,8 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Use stub on unsupported platforms
-    if !cfg!(linux) {
-        println!("cargo:warning=Using stub instead of DBM library, because your compiling to a unsupported platform");
+    if cfg!(feature = "dbm-stub") {
+        println!("cargo:warning=Using stub instead of DBM library");
         return;
     }
 

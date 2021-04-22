@@ -5,6 +5,9 @@ build = "src/build.rs"
 authors = ["Peter Greve <Pgreve16@student.aau.dk>"]
 edition = "2018"
 
+[features]
+dbm-stub = []
+
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
