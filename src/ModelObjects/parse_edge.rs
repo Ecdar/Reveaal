@@ -1,5 +1,5 @@
 extern crate pest;
-use super::super::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
 use serde::export::Option::Some;
@@ -45,6 +45,7 @@ pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Error<Rule>> {
         }
     }
 }
+
 pub fn build_edgeAttribute_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
     let pair = pair.into_inner().next().unwrap();
     match pair.as_rule() {
@@ -55,6 +56,7 @@ pub fn build_edgeAttribute_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeA
         }
     }
 }
+
 fn build_guard_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
     match pair.as_rule() {
         Rule::guard => {
@@ -126,15 +128,14 @@ fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Vec<Update>
 }
 
 fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
-    let expression: BoolExpression;
     let mut inner_pairs = pair.into_inner();
     let variable = inner_pairs.next().unwrap().as_str();
     let expression_pair = inner_pairs.next().unwrap();
 
-    expression = build_expression_from_pair(expression_pair);
+    let expression = build_expression_from_pair(expression_pair);
     let update = Update {
         variable: variable.trim().to_string(),
-        expression: expression,
+        expression,
     };
 
     return update;

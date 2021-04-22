@@ -1,5 +1,5 @@
 extern crate pest;
-use super::super::ModelObjects::representations::QueryExpression;
+use crate::ModelObjects::representations::QueryExpression;
 use pest::error::Error;
 use pest::Parser;
 use serde::export::Option::Some;

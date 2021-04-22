@@ -1,11 +1,11 @@
-use super::super::ModelObjects::component;
-use super::super::ModelObjects::queries::Query;
-use super::super::ModelObjects::representations::QueryExpression;
-use super::super::ModelObjects::representations::SystemRepresentation;
+use crate::ModelObjects::component;
+use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::representations::QueryExpression;
+use crate::ModelObjects::representations::SystemRepresentation;
 
-/// This function fetches the apropriate components based on the structure of the query and makes the enum structure match the query
-/// this function also handles setting up the correct indicies for clocks based on the amount of components in each system representation
-pub fn create_system_rep_from_query<'systemlifetime>(
+/// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
+/// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
+pub fn create_system_rep_from_query<'system>(
     full_query: &Query,
     components: &Vec<component::Component>,
 ) -> (SystemRepresentation, Option<SystemRepresentation>, String) {
@@ -13,9 +13,9 @@ pub fn create_system_rep_from_query<'systemlifetime>(
 
     if let Some(query) = full_query.get_query() {
         match query {
-            QueryExpression::Refinement(leftside, rightside) => (
-                extract_side(leftside, components, &mut clock_index),
-                Some(extract_side(rightside, components, &mut clock_index)),
+            QueryExpression::Refinement(left_side, right_side) => (
+                extract_side(left_side, components, &mut clock_index),
+                Some(extract_side(right_side, components, &mut clock_index)),
                 String::from("refinement"),
             ),
             QueryExpression::Specification(body) => (
@@ -38,7 +38,7 @@ pub fn create_system_rep_from_query<'systemlifetime>(
                 None,
                 String::from("determinism"),
             ),
-            //Should handle consistency, Implementation, determinism and specificiation here, but we cant deal with it atm anyway
+            // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query),
         }
     } else {

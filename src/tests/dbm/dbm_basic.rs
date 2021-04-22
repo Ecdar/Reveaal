@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use super::super::super::super::DBMLib::lib;
+    use crate::DBMLib::lib;
 
     #[test]
     fn testDbmValid0() {
