@@ -4,6 +4,11 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    if cfg!(feature = "dbm-stub") {
+        println!("cargo:warning=Using stub instead of DBM library");
+        return;
+    }
+
     // Tell cargo to tell rustc to link the DBM
     // shared library.
     //C/Users/Tomas/Documents/Code/Ecdar/HMKAAL/hmkaal/dbm/
