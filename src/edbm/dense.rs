@@ -123,8 +123,8 @@ impl DBMRelationOp<DenseDBM> for DenseDBM {
     }
 }
 
-impl Into<SparseDBM> for DenseDBM {
-    fn into(self) -> SparseDBM {
+impl From<SparseDBM> for DenseDBM {
+    fn from(_: SparseDBM) -> Self {
         todo!("convert into the minimal constraint system equivalent to the DenseDBM")
     }
 }

@@ -12,8 +12,8 @@ pub struct SparseDBM {
     bounds: Vec<Bound>,
 }
 
-impl Into<DenseDBM> for SparseDBM {
-    fn into(self) -> DenseDBM {
+impl From<DenseDBM> for SparseDBM {
+    fn from(_: DenseDBM) -> Self {
         todo!("convert into DenseDBM that is in canonical form")
     }
 }
