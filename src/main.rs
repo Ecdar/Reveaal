@@ -5,6 +5,7 @@ mod DataReader;
 mod EdgeEval;
 mod ModelObjects;
 mod System;
+mod edbm;
 mod tests;
 
 use crate::ModelObjects::component::State;
