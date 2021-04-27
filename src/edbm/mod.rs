@@ -15,7 +15,7 @@ enum RelationOps {
     LessEq,
 }
 
-trait DBM {
+trait Dbm {
     /* Property-Checking */
 
     fn consistent(&self) -> bool;
@@ -47,6 +47,6 @@ trait DBM {
     fn norm(&mut self /*TODO arguments*/);
 }
 
-trait DBMRelationOp<O> {
+trait DbmRelationOp<O> {
     fn relation(&self, other: O) -> bool;
 }

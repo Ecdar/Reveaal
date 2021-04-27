@@ -1,4 +1,4 @@
-use crate::edbm::dense::DenseDBM;
+use crate::edbm::dense::DenseDbm;
 use crate::edbm::{DimensionIndex, DimensionValue};
 
 pub struct Bound {
@@ -7,13 +7,13 @@ pub struct Bound {
     val: DimensionValue,
 }
 
-pub struct SparseDBM {
+pub struct SparseDbm {
     pub dimension: DimensionIndex,
     bounds: Vec<Bound>,
 }
 
-impl From<DenseDBM> for SparseDBM {
-    fn from(_: DenseDBM) -> Self {
+impl From<DenseDbm> for SparseDbm {
+    fn from(_: DenseDbm) -> Self {
         todo!("convert into DenseDBM that is in canonical form")
     }
 }

@@ -1,8 +1,8 @@
-use crate::edbm::sparse::SparseDBM;
-use crate::edbm::{DBMRelationOp, DimensionIndex, DimensionValue, RelationOps, DBM};
+use crate::edbm::sparse::SparseDbm;
+use crate::edbm::{Dbm, DbmRelationOp, DimensionIndex, DimensionValue, RelationOps};
 use std::fmt::{Display, Formatter, Write};
 
-pub struct DenseDBM {
+pub struct DenseDbm {
     pub dimension: u32,
     // Column-row order, index = col * dim + row
     // Least signification bit denotes `RelationOps`. O == Less, 1 == LessEq
@@ -10,7 +10,7 @@ pub struct DenseDBM {
     matrix: Vec<i32>,
 }
 
-impl DenseDBM {
+impl DenseDbm {
     fn get_n(&self, row: DimensionIndex, col: DimensionIndex) -> DimensionValue {
         self.matrix[self.get_index(row, col)] / 2
     }
@@ -36,8 +36,7 @@ impl DenseDBM {
     fn new(dimension: u32, matrix: Vec<(i32, RelationOps)>) -> Self {
         let matrix = matrix
             .iter()
-            .enumerate()
-            .map(|(i, (val, rel))| {
+            .map(|(val, rel)| {
                 val * 2
                     + match rel {
                         RelationOps::Less => 0,
@@ -49,7 +48,7 @@ impl DenseDBM {
     }
 }
 
-impl DBM for DenseDBM {
+impl Dbm for DenseDbm {
     fn consistent(&self) -> bool {
         todo!()
     }
@@ -117,19 +116,19 @@ impl DBM for DenseDBM {
     }
 }
 
-impl DBMRelationOp<DenseDBM> for DenseDBM {
-    fn relation(&self, other: DenseDBM) -> bool {
+impl DbmRelationOp<DenseDbm> for DenseDbm {
+    fn relation(&self, other: DenseDbm) -> bool {
         todo!()
     }
 }
 
-impl From<SparseDBM> for DenseDBM {
-    fn from(_: SparseDBM) -> Self {
+impl From<SparseDbm> for DenseDbm {
+    fn from(_: SparseDbm) -> Self {
         todo!("convert into the minimal constraint system equivalent to the DenseDBM")
     }
 }
 
-impl Display for DenseDBM {
+impl Display for DenseDbm {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("DenseDBM[")?;
         for col in 0..self.dimension {
@@ -158,10 +157,8 @@ impl Display for DenseDBM {
 
 #[cfg(test)]
 mod test {
-    use crate::edbm::dense::DenseDBM;
-    use crate::edbm::RelationOps::LessEq;
-    use crate::edbm::{RelationOps, DBM};
-    use std::sync::atomic::Ordering::Release;
+    use crate::edbm::dense::DenseDbm;
+    use crate::edbm::{Dbm, RelationOps};
 
     /// Checks that a zeroed DBM does changed when changed to canonical form
     #[test]
@@ -178,7 +175,7 @@ mod test {
             (0, RelationOps::LessEq),
             (0, RelationOps::LessEq),
         ];
-        let mut dbm = DenseDBM::new(3, matrix);
+        let mut dbm = DenseDbm::new(3, matrix);
 
         dbm.make_canonical();
 
@@ -220,7 +217,7 @@ mod test {
             (10, RelationOps::LessEq),  // y, x
             (0, RelationOps::LessEq),   // y, y
         ];
-        let mut dbm = DenseDBM::new(3, matrix);
+        let mut dbm = DenseDbm::new(3, matrix);
 
         dbm.make_canonical();
 
@@ -257,7 +254,7 @@ mod test {
             (40, RelationOps::Less),    // row 0, col 1
             (-23, RelationOps::LessEq), // row 0, col 1
         ];
-        let mut dbm = DenseDBM::new(3, matrix);
+        let mut dbm = DenseDbm::new(3, matrix);
 
         assert_eq!(5, dbm.get_n(0, 0));
         assert_eq!(RelationOps::LessEq, dbm.get_rel(0, 0));
