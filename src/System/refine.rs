@@ -25,7 +25,6 @@ pub fn check_refinement(
     let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
 
-    
     get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
     get_actions(
         &sys1,
@@ -35,11 +34,11 @@ pub fn check_refinement(
         &mut initial_states_1,
     );
     
+    //Firstly we check the preconditions
     if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), &outputs1, &inputs2, sys_decls) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
-    //Firstly we check the preconditions
 
     let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
     initial_pair.init_dbm();
