@@ -2,7 +2,8 @@ use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::component;
-use crate::ModelObjects::component::{Component, Edge, State, StatePair};
+use crate::ModelObjects::statepair::StatePair;
+use crate::ModelObjects::component::{Component, Edge, State};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system_declarations;
 use std::cell::Cell;
@@ -41,7 +42,7 @@ pub fn check_refinement(
 
     //Firstly we check the preconditions
 
-    let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
+    let mut initial_pair = StatePair::create(initial_states_1.clone(), initial_states_2.clone());
     initial_pair.init_dbm();
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
@@ -384,7 +385,7 @@ fn build_state_pair<'a>(
 ) -> bool {
     //Creates new state pair
     let mut new_sp: StatePair =
-        create_state_pair(curr_pair.states1.clone(), curr_pair.states2.clone());
+        StatePair::create(curr_pair.states1.clone(), curr_pair.states2.clone());
     //Creates DBM for that sate pair
     let mut new_sp_zone = curr_pair.get_dbm_clone();
     new_sp.set_dimensions(curr_pair.get_dimensions());
@@ -947,7 +948,7 @@ pub fn find_extra_input_output(
 }
 
 fn is_new_state<'a>(
-    state_pair: &mut component::StatePair<'a>,
+    state_pair: &mut StatePair<'a>,
     passed_list: &mut Vec<StatePair<'a>>,
 ) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
@@ -996,12 +997,4 @@ fn create_state(
     };
 }
 
-//Creates a new instance of a state pair
-fn create_state_pair<'a>(state1: Vec<State<'a>>, state2: Vec<State<'a>>) -> StatePair<'a> {
-    return StatePair {
-        states1: state1,
-        states2: state2,
-        zone: [0; 1000],
-        dimensions: 0,
-    };
-}
+

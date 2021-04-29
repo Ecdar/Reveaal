@@ -6,3 +6,4 @@ pub mod queries;
 pub mod representations;
 pub mod system_declarations;
 pub mod xml_parser;
+pub mod statepair;
