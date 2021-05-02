@@ -115,7 +115,7 @@ pub fn rs_dbm_satisfies_i_LT_j(
         } else if BOOL_FALSE == res {
             false
         } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
+            panic!("Could not convert bool value from library, found {:?}", res)
         };
     }
 }
@@ -319,7 +319,7 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
 /// let constraint = dbm_boundbool2raw_exposed(10, false);
 /// dbm_constrain1(dbm.as_mut_ptr(), 3, 1, 0, constraint);
 /// ```
-fn rs_dbm_constrain1(
+pub fn rs_dbm_constrain1(
     dbm: &mut [i32],
     dimension: u32,
     var_index_i: u32,

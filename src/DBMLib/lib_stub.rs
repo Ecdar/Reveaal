@@ -205,7 +205,7 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
 /// let constraint = dbm_boundbool2raw_exposed(10, false);
 /// dbm_constrain1(dbm.as_mut_ptr(), 3, 1, 0, constraint);
 /// ```
-fn rs_dbm_constrain1(
+pub fn rs_dbm_constrain1(
     _dbm: &mut [i32],
     _dimension: u32,
     _var_index_i: u32,
