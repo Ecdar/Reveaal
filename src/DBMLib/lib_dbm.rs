@@ -3,6 +3,7 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+use crate::DBMLib::dbm::{Federation, Zone};
 use crate::ModelObjects::representations;
 use std::ptr::slice_from_raw_parts;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
@@ -28,7 +29,7 @@ pub const DBM_INF: i32 = i32::MAX - 1;
 /// ```
 pub fn rs_dbm_is_valid(dbm: &mut [i32], dimension: u32) -> bool {
     println!("IN DBM IS VALID");
-    representations::print_DBM(dbm, dimension);
+    //representations::print_DBM(dbm, dimension);
     let first = dbm.get(0).unwrap();
     if first == &-1 {
         return false;
@@ -618,7 +619,7 @@ pub fn rs_dbm_update(dbm: &mut [i32], dimension: u32, var_index: u32, value: i32
  */
 pub fn rs_dbm_isSubsetEq(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -> bool {
     println!("printing from subseteq");
-    representations::print_DBM(dbm1, dimension);
+    //representations::print_DBM(dbm1, dimension);
     unsafe { return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension) }
 }
 
@@ -627,7 +628,7 @@ pub fn rs_dbm_fed_minus_fed(
     dbm_vec1: &mut Vec<*mut raw_t>,
     dbm_vec2: &mut Vec<*mut raw_t>,
     dim: u32,
-) -> Vec<*const i32> {
+) -> Federation {
     unsafe {
         let mut res = dbm_fed_t::new(dim);
         dbm_fed_minus_fed(
@@ -639,17 +640,40 @@ pub fn rs_dbm_fed_minus_fed(
             &mut res,
         );
 
-        let result = rs_fed_to_vec(&mut res);
-
-        return result;
+        return fed_to_federation(&mut res, dim);
     }
 }
 
+fn fed_to_federation(fed: &mut dbm_fed_t, dim: u32) -> Federation {
+    let result = rs_fed_to_vec(fed);
+
+    // zone: [i32; dim * dim]
+    let mut zones = Vec::with_capacity(result.len());
+    for dbm_ptr in result.iter() {
+        if *dbm_ptr == std::ptr::null() {
+            continue;
+        }
+
+        let mut zone_vec = Vec::with_capacity((dim * dim) as usize);
+        for i in 0..dim {
+            for j in 0..dim {
+                zone_vec.push(rs_dbm_get_constraint_from_dbm_ptr(*dbm_ptr, dim, i, j))
+            }
+        }
+        zones.push(Zone {
+            dimension: dim,
+            matrix: zone_vec,
+        })
+    }
+
+    return Federation::new(zones, dim);
+}
+
 /// currently unused
-pub fn rs_dbm_minus_dbm(dbm1: &mut [i32], dbm2: &mut [i32], dim: u32) -> Vec<*const i32> {
+pub fn rs_dbm_minus_dbm(dbm1: &mut [i32], dbm2: &mut [i32], dim: u32) -> Federation {
     unsafe {
         let mut res = dbm_subtract1_exposed(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dim);
-        return rs_fed_to_vec(&mut res);
+        return fed_to_federation(&mut res, dim);
     }
 }
 

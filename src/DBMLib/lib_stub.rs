@@ -3,6 +3,8 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+use crate::DBMLib::dbm::Federation;
+
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
 const LT: i32 = 0;
 const LTE: i32 = 1;
@@ -443,12 +445,12 @@ pub fn rs_dbm_fed_minus_fed(
     _dbm_vec1: &mut Vec<*mut raw_t>,
     _dbm_vec2: &mut Vec<*mut raw_t>,
     _dim: u32,
-) -> Vec<*const i32> {
+) -> Federation {
     unimplemented!()
 }
 
 /// currently unused
-pub fn rs_dbm_minus_dbm(_dbm1: &mut [i32], _dbm2: &mut [i32], _dim: u32) -> Vec<*const i32> {
+pub fn rs_dbm_minus_dbm(_dbm1: &mut [i32], _dbm2: &mut [i32], _dim: u32) -> Federation {
     unimplemented!()
 }
 
