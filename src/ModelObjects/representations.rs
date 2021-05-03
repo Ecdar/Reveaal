@@ -1,4 +1,4 @@
-use crate::DBMLib::lib;
+use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::Component;
 use serde::Deserialize;
 
@@ -55,15 +55,4 @@ pub enum SystemRepresentation {
     Conjunction(Box<SystemRepresentation>, Box<SystemRepresentation>),
     Parentheses(Box<SystemRepresentation>),
     Component(Component),
-}
-
-pub fn print_DBM(dbm: &mut [i32], dimension: u32) {
-    println!("DBM:");
-    for i in 0..dimension {
-        print!("( ");
-        for j in 0..dimension {
-            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, dimension, i, j));
-        }
-        print!(")\n");
-    }
 }
