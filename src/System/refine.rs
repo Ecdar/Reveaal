@@ -37,8 +37,6 @@ pub fn check_refinement(
         return Ok(false);
     }
 
-
-
     get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
     get_actions(
         &sys1,
