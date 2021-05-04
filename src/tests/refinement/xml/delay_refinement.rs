@@ -47,7 +47,7 @@ mod delay_refinement {
         assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
-    #[ignore]
+    
     #[test]
     fn T2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
@@ -286,7 +286,6 @@ mod delay_refinement {
         assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
-    #[ignore]
     #[test]
     fn T10RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
@@ -814,7 +813,6 @@ mod delay_refinement {
         assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
-    #[ignore]
     #[test]
     fn Z3RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
