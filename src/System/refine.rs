@@ -25,6 +25,13 @@ pub fn check_refinement(
     let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
 
+    INDEX1.with(|thread_index| {
+        thread_index.set(0);
+    });
+    INDEX2.with(|thread_index| {
+        thread_index.set(0);
+    });
+
     get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
     get_actions(
         &sys1,
@@ -33,7 +40,7 @@ pub fn check_refinement(
         &mut outputs1,
         &mut initial_states_1,
     );
-    
+
     //Firstly we check the preconditions
     if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), &outputs1, &inputs2, sys_decls) {
         println!("preconditions failed - refinement false");
