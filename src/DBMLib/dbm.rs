@@ -8,10 +8,20 @@ pub struct Zone {
 }
 
 impl Zone {
+    pub fn from(vec: Vec<i32>) -> Self {
+        let dim = (vec.len() as f64).sqrt() as u32;
+        assert_eq!((dim * dim) as usize, vec.len());
+
+        Self {
+            dimension: dim,
+            matrix: vec,
+        }
+    }
+
     pub fn new(dimension: u32) -> Self {
         Self {
             dimension,
-            matrix: Vec::with_capacity((dimension * dimension) as usize),
+            matrix: vec![0; (dimension * dimension) as usize],
         }
     }
 
@@ -22,7 +32,7 @@ impl Zone {
     pub fn init(dimension: u32) -> Self {
         let mut zone = Self {
             dimension,
-            matrix: Vec::with_capacity((dimension * dimension) as usize),
+            matrix: vec![0; (dimension * dimension) as usize],
         };
 
         lib::rs_dbm_init(zone.matrix.as_mut_slice(), zone.dimension);
