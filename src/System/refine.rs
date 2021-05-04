@@ -451,8 +451,13 @@ fn build_state_pair<'a>(
     if !inv_success1 || !inv_success2 {
         return false;
     }
+    let dim = invariant_test.dimension;
+    let mut inv_test_fed = Federation::new(vec![invariant_test], dim);
+    let mut sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
 
-    let fed_res = invariant_test.dbm_minus_dbm(&mut new_sp_zone);
+    let fed_res = inv_test_fed.minus_fed(&mut sp_zone_fed);
+
+    //let fed_res = invariant_test.dbm_minus_dbm(&mut new_sp_zone);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
