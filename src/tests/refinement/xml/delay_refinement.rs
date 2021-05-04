@@ -47,7 +47,6 @@ mod delay_refinement {
         assert!(refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap());
     }
 
-    
     #[test]
     fn T2RefinesSelf() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);

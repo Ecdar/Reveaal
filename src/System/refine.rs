@@ -42,7 +42,13 @@ pub fn check_refinement(
     );
 
     //Firstly we check the preconditions
-    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), &outputs1, &inputs2, sys_decls) {
+    if !check_preconditions(
+        &mut sys1.clone(),
+        &mut sys2.clone(),
+        &outputs1,
+        &inputs2,
+        sys_decls,
+    ) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
