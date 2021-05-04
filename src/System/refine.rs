@@ -32,11 +32,6 @@ pub fn check_refinement(
         thread_index.set(0);
     });
 
-    if !check_preconditions(&mut sys1, &mut sys2, &outputs1, &inputs2, sys_decls) {
-        println!("preconditions failed - refinement false");
-        return Ok(false);
-    }
-
     get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
     get_actions(
         &sys1,
@@ -47,6 +42,16 @@ pub fn check_refinement(
     );
 
     //Firstly we check the preconditions
+    if !check_preconditions(
+        &mut sys1.clone(),
+        &mut sys2.clone(),
+        &outputs1,
+        &inputs2,
+        sys_decls,
+    ) {
+        println!("preconditions failed - refinement false");
+        return Ok(false);
+    }
 
     let mut initial_pair = create_state_pair(initial_states_1.clone(), initial_states_2.clone());
     initial_pair.init_dbm();
