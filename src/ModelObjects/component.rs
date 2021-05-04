@@ -5,6 +5,7 @@ use crate::ModelObjects;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
 use crate::ModelObjects::representations;
+use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
@@ -468,15 +469,19 @@ impl Component {
                             create_state(loc, full_state.get_state().get_declarations().clone());
                         println!("Dim is: {:?}", full_state.zone.dimension);
                         let mut new_state = create_full_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
-
                         if let Some(guard) = edge.get_guard() {
-                            constraint_applyer::apply_constraints_to_state2(
-                                guard,
-                                &mut new_state,
-                                dimension,
-                            );
+                            if let BoolExpression::Bool(true) =
+                                constraint_applyer::apply_constraints_to_state2(
+                                    guard,
+                                    &mut new_state,
+                                    dimension,
+                                )
+                            {
+                            } else {
+                                //If the constraint cannot be applied, continue.
+                                continue;
+                            }
                         }
-
                         if let Some(updates) = edge.get_update() {
                             fullState_updater(updates, &mut new_state);
                         }
@@ -618,7 +623,6 @@ fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullSt
         if full_state.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
         }
-
         if full_state.zone.is_subset_eq(&mut passed_state_pair.zone) {
             return false;
         }
