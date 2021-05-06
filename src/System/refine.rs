@@ -1,6 +1,5 @@
 use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::component;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::component::{Component, Edge, State};
@@ -432,8 +431,7 @@ fn build_state_pair<'a>(
     for (_, edge, state_index) in transitions1 {
         let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
 
-        apply_update(
-            edge,
+        edge.apply_update(
             state,
             &mut new_sp_zone,
             dim
@@ -442,8 +440,7 @@ fn build_state_pair<'a>(
     for (_, edge, state_index) in transitions2 {
         let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
 
-        apply_update(
-            edge,
+        edge.apply_update(
             state,
             &mut new_sp_zone,
             dim
@@ -647,7 +644,7 @@ fn apply_syncs_to_comps<'a>(
                     return false;
                 }
                 
-                apply_update(edge, state, zone, dim);
+                edge.apply_update(state, zone, dim);
                 if !state.apply_invariant(zone, dim) {
                     *curr_index += 1;
                     return false;
@@ -679,22 +676,6 @@ fn apply_guard(
         true
     }
     
-}
-
-fn apply_update(
-    edge: &component::Edge,
-    state: &mut State,
-    zone: &mut [i32],
-    dim: u32,
-) {
-    if let Some(update) = edge.get_update() {
-        updater(
-            update,
-            state,
-            zone,
-            dim,
-        );
-    }
 }
 
 pub fn get_actions<'a>(

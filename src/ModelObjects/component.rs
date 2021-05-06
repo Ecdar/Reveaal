@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
+use crate::EdgeEval::updater::updater;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -757,6 +758,22 @@ pub struct Edge {
 }
 
 impl Edge {
+    pub fn apply_update(
+        &self,
+        state: &mut State,
+        zone: &mut [i32],
+        dim: u32,
+    ) {
+        if let Some(updates) = self.get_update() {
+            updater(
+                updates,
+                state,
+                zone,
+                dim,
+            );
+        }
+    }
+
     pub fn get_source_location(&self) -> &String {
         &self.source_location
     }
