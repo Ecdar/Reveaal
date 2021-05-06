@@ -774,6 +774,22 @@ impl Edge {
         }
     }
 
+    pub fn apply_guard(
+        &self,
+        state: &State,
+        zone: &mut [i32],
+        dim: u32
+    ) -> bool {
+        return if let Some(guards) = self.get_guard() {
+            let success =
+                apply_constraints_to_state(guards, state, zone, dim);
+            success
+        } else {
+            true
+        }
+        
+    }
+
     pub fn get_source_location(&self) -> &String {
         &self.source_location
     }

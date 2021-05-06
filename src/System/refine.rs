@@ -274,8 +274,7 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec1 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = apply_guard(
-                edge,
+            let g_success = edge.apply_guard(
                 state,
                 &mut zone[0..len as usize],
                 dim
@@ -298,8 +297,7 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec2 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = apply_guard(
-                edge,
+            let g_success = edge.apply_guard(
                 state,
                 &mut zone[0..len as usize],
                 dim
@@ -403,8 +401,7 @@ fn build_state_pair<'a>(
         let state = if is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
 
         g1_success = g1_success
-            && apply_guard(
-                edge,
+            && edge.apply_guard(
                 state,
                 &mut new_sp_zone,
                 dim
@@ -415,8 +412,7 @@ fn build_state_pair<'a>(
         let state = if !is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
 
         g2_success = g2_success
-            && apply_guard(
-                edge,
+            && edge.apply_guard(
                 state,
                 &mut new_sp_zone,
                 dim
@@ -639,7 +635,7 @@ fn apply_syncs_to_comps<'a>(
             for edge in next_edges {
                 let state = &mut states[*curr_index];
 
-                if !apply_guard(edge, state, zone, dim) {
+                if !edge.apply_guard(state, zone, dim) {
                     *curr_index += 1;
                     return false;
                 }
@@ -660,22 +656,6 @@ fn apply_syncs_to_comps<'a>(
             return true;
         }
     }
-}
-
-fn apply_guard(
-    edge: &component::Edge,
-    state: &State,
-    zone: &mut [i32],
-    dim: u32
-) -> bool {
-    return if let Some(guard) = edge.get_guard() {
-        let success =
-            apply_constraints_to_state(guard, state, zone, dim);
-        success
-    } else {
-        true
-    }
-    
 }
 
 pub fn get_actions<'a>(
