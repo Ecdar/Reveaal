@@ -7,9 +7,6 @@ use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system_declarations;
 use std::cell::Cell;
 
-thread_local!(static INDEX1: Cell<usize> = Cell::new(0));
-thread_local!(static INDEX2: Cell<usize> = Cell::new(0));
-
 //------------------ NEW IMPL ------------------
 pub fn check_refinement(
     mut sys1: SystemRepresentation,
@@ -24,13 +21,8 @@ pub fn check_refinement(
     let mut initial_states_2: Vec<State> = vec![];
     let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
-
-    INDEX1.with(|thread_index| {
-        thread_index.set(0);
-    });
-    INDEX2.with(|thread_index| {
-        thread_index.set(0);
-    });
+    let index1 = Cell::new(0);
+    let index2 = Cell::new(0);
 
     get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
     get_actions(
@@ -59,7 +51,7 @@ pub fn check_refinement(
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
-        let mut curr_pair = waiting_list.pop().unwrap();
+        let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
             combined_transitions1.clear();
@@ -67,9 +59,9 @@ pub fn check_refinement(
 
             if !collect_open_edges(
                 &sys1,
-                &curr_pair,
+                curr_pair.get_states1(),
+                &index1,
                 output,
-                true,
                 &mut combined_transitions1,
                 &component::SyncType::Output,
             ) {
@@ -77,9 +69,9 @@ pub fn check_refinement(
             }
             if !collect_open_edges(
                 &sys2,
-                &curr_pair,
+                curr_pair.get_states2(),
+                &index2,
                 output,
-                false,
                 &mut combined_transitions2,
                 &component::SyncType::Output,
             ) {
@@ -93,7 +85,7 @@ pub fn check_refinement(
                     if !create_new_state_pairs(
                         &combined_transitions1,
                         &combined_transitions2,
-                        &mut curr_pair,
+                        &curr_pair,
                         &mut waiting_list,
                         &mut passed_list,
                         &sys1,
@@ -109,12 +101,8 @@ pub fn check_refinement(
                 }
             }
 
-            INDEX1.with(|thread_index| {
-                thread_index.set(0);
-            });
-            INDEX2.with(|thread_index| {
-                thread_index.set(0);
-            });
+            index1.set(0);
+            index2.set(0);
         }
 
         for input in &inputs2 {
@@ -122,9 +110,9 @@ pub fn check_refinement(
             combined_transitions2.clear();
             if !collect_open_edges(
                 &sys1,
-                &curr_pair,
+                curr_pair.get_states1(),
+                &index1,
                 input,
-                true,
                 &mut combined_transitions1,
                 &component::SyncType::Input,
             ) {
@@ -132,9 +120,9 @@ pub fn check_refinement(
             }
             if !collect_open_edges(
                 &sys2,
-                &curr_pair,
+                curr_pair.get_states2(),
+                &index2,
                 input,
-                false,
                 &mut combined_transitions2,
                 &component::SyncType::Input,
             ) {
@@ -147,7 +135,7 @@ pub fn check_refinement(
                     if !create_new_state_pairs(
                         &combined_transitions2,
                         &combined_transitions1,
-                        &mut curr_pair,
+                        &curr_pair,
                         &mut waiting_list,
                         &mut passed_list,
                         &sys2,
@@ -163,12 +151,8 @@ pub fn check_refinement(
                 }
             }
 
-            INDEX1.with(|thread_index| {
-                thread_index.set(0);
-            });
-            INDEX2.with(|thread_index| {
-                thread_index.set(0);
-            });
+            index1.set(0);
+            index2.set(0);
         }
 
         passed_list.push(curr_pair.clone());
@@ -179,28 +163,28 @@ pub fn check_refinement(
 
 fn collect_open_edges<'a>(
     sys: &'a SystemRepresentation,
-    curr_pair: &StatePair<'a>,
+    states: &Vec<State<'a>>,
+    index: &Cell<usize>,
     action: &String,
-    is_state1: bool,
     open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
     sync_type: &component::SyncType,
 ) -> bool {
     match sys {
         SystemRepresentation::Composition(left_side, right_side) => {
             collect_open_edges(
-                left_side, curr_pair, action, is_state1, open_edges, sync_type,
+                left_side, states, index, action, open_edges, sync_type,
             ) || collect_open_edges(
-                right_side, curr_pair, action, is_state1, open_edges, sync_type,
+                right_side, states, index, action, open_edges, sync_type,
             )
         }
         SystemRepresentation::Conjunction(left_side, right_side) => {
             let open_edges_len = open_edges.len();
             if collect_open_edges(
-                left_side, curr_pair, action, is_state1, open_edges, sync_type,
+                left_side, states, index, action, open_edges, sync_type,
             ) {
                 let left_found_transitions = open_edges_len != open_edges.len();
                 if collect_open_edges(
-                    right_side, curr_pair, action, is_state1, open_edges, sync_type,
+                    right_side, states, index, action, open_edges, sync_type,
                 ) {
                     let right_found_transitions = open_edges_len != open_edges.len();
                     return left_found_transitions == right_found_transitions;
@@ -209,41 +193,21 @@ fn collect_open_edges<'a>(
             return false;
         }
         SystemRepresentation::Parentheses(rep) => {
-            collect_open_edges(rep, curr_pair, action, is_state1, open_edges, sync_type)
+            collect_open_edges(rep, states, index, action, open_edges, sync_type)
         }
         SystemRepresentation::Component(comp) => {
-            let mut next_edges = vec![];
-            let mut i = 0;
-            return if is_state1 {
-                INDEX1.with(|thread_index| {
-                    i = thread_index.get();
-                    next_edges = comp.get_next_edges(
-                        curr_pair.get_states1()[i].get_location(),
-                        action,
-                        *sync_type,
-                    );
-                    thread_index.set(i + 1);
-                });
+            let i = index.get();
+            let next_edges = comp.get_next_edges(
+                states[i].get_location(),
+                action,
+                *sync_type,
+            );
+            index.set(i + 1);
 
-                if next_edges.len() > 0 {
-                    open_edges.push((comp, next_edges, i));
-                }
-                true
-            } else {
-                INDEX2.with(|thread_index| {
-                    i = thread_index.get();
-                    next_edges = comp.get_next_edges(
-                        curr_pair.get_states2()[i].get_location(),
-                        action,
-                        *sync_type,
-                    );
-                    thread_index.set(i + 1);
-                });
-                if next_edges.len() > 0 {
-                    open_edges.push((comp, next_edges, i));
-                }
-                true
-            };
+            if next_edges.len() > 0 {
+                open_edges.push((comp, next_edges, i));
+            }
+            true
         }
     }
 }
@@ -251,7 +215,7 @@ fn collect_open_edges<'a>(
 fn create_new_state_pairs<'a>(
     transitions1: &Vec<(&'a Component, Vec<&'a Edge>, usize)>,
     transitions2: &Vec<(&'a Component, Vec<&'a Edge>, usize)>,
-    curr_pair: &mut StatePair<'a>,
+    curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,

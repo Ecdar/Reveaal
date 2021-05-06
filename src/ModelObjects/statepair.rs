@@ -19,11 +19,11 @@ impl<'b> StatePair<'b> {
         };
     }
 
-    pub fn get_states1(&self) -> &Vec<State> {
+    pub fn get_states1(&self) -> &Vec<State<'b>> {
         &self.states1
     }
 
-    pub fn get_states2(&self) -> &Vec<State> {
+    pub fn get_states2(&self) -> &Vec<State<'b>> {
         &self.states2
     }
 
