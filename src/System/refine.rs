@@ -475,7 +475,6 @@ fn build_state_pair<'a>(
         &mut test_zone1,
         action,
         dim,
-        &mut 0,
         adding_input,
     ) {
         new_sp_zone = test_zone1;
@@ -489,7 +488,6 @@ fn build_state_pair<'a>(
         &mut test_zone2,
         action,
         dim,
-        &mut 0,
         adding_input,
     ) {
         new_sp_zone = test_zone2;
@@ -510,117 +508,66 @@ fn apply_syncs_to_comps<'a>(
     zone: &mut [i32],
     action: &String,
     dim: u32,
-    curr_index: &mut usize,
     adding_input: bool,
 ) -> bool {
-    match sys {
-        SystemRepresentation::Composition(left_side, right_side) => {
-            //Should reflect that just one of them has to satisfy
-            apply_syncs_to_comps(
-                left_side,
-                states,
-                index_vec,
-                zone,
+    let curr_index = &mut 0;
+
+    // Recursively goes through system representation 
+    sys.any_composition(&mut |comp: &Component| -> bool {
+
+        let mut next_edges = vec![];
+        let mut should_break = false;
+        let sync_type = if adding_input {
+            component::SyncType::Output
+        } else {
+            component::SyncType::Input
+        };
+    
+        if !index_vec.contains(curr_index) {
+            next_edges = comp.get_next_edges(
+                states[*curr_index].get_location(),
                 action,
-                dim,
-                curr_index,
-                adding_input,
-            ) || apply_syncs_to_comps(
-                right_side,
-                states,
-                index_vec,
-                zone,
-                action,
-                dim,
-                curr_index,
-                adding_input,
-            )
+                sync_type,
+            );
+        } else {
+            should_break = true;
         }
-        SystemRepresentation::Conjunction(left_side, right_side) => {
-            //We do not care if both sides satisfy. The return value only indicates if at least
-            apply_syncs_to_comps(
-                left_side,
-                states,
-                index_vec,
-                zone,
-                action,
-                dim,
-                curr_index,
-                adding_input,
-            ) && apply_syncs_to_comps(
-                right_side,
-                states,
-                index_vec,
-                zone,
-                action,
-                dim,
-                curr_index,
-                adding_input,
-            )
-        }
-        SystemRepresentation::Parentheses(rep) => apply_syncs_to_comps(
-            rep,
-            states,
-            index_vec,
-            zone,
-            action,
-            dim,
-            curr_index,
-            adding_input,
-        ),
-        SystemRepresentation::Component(comp) => {
-            let mut next_edges = vec![];
-            let mut should_break = false;
-            let sync_type = if adding_input {
-                component::SyncType::Output
-            } else {
-                component::SyncType::Input
-            };
-
-            if !index_vec.contains(curr_index) {
-                next_edges = comp.get_next_edges(
-                    states[*curr_index].get_location(),
-                    action,
-                    sync_type,
-                );
-            } else {
-                should_break = true;
-            }
-
-            if should_break {
-                *curr_index += 1;
-                return true;
-            }
-            if next_edges.len() < 1 {
-                *curr_index += 1;
-                return false;
-            }
-
-            for edge in next_edges {
-                let state = &mut states[*curr_index];
-
-                if !edge.apply_guard(state, zone, dim) {
-                    *curr_index += 1;
-                    return false;
-                }
-                
-                edge.apply_update(state, zone, dim);
-                if !state.apply_invariant(zone, dim) {
-                    *curr_index += 1;
-                    return false;
-                }
-
-                // TODO: see below
-                // Declarations on the states should also be updated when variables are added to Reveaal
-                let target_loc = comp.get_location_by_name(edge.get_target_location());
-
-                states[*curr_index].set_location(target_loc);
-            }
+    
+        if should_break {
             *curr_index += 1;
             return true;
         }
-    }
+        if next_edges.len() < 1 {
+            *curr_index += 1;
+            return false;
+        }
+    
+        for edge in next_edges {
+            let state = &mut states[*curr_index];
+    
+            if !edge.apply_guard(state, zone, dim) {
+                *curr_index += 1;
+                return false;
+            }
+            
+            edge.apply_update(state, zone, dim);
+            if !state.apply_invariant(zone, dim) {
+                *curr_index += 1;
+                return false;
+            }
+    
+            // TODO: see below
+            // Declarations on the states should also be updated when variables are added to Reveaal
+            let target_loc = comp.get_location_by_name(edge.get_target_location());
+    
+            states[*curr_index].set_location(target_loc);
+        }
+    
+        *curr_index += 1;
+        return true;
+    })
 }
+
 
 pub fn get_actions<'a>(
     sys_rep: &'a SystemRepresentation,
