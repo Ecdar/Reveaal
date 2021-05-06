@@ -282,8 +282,7 @@ fn create_new_state_pairs<'a>(
                 dim
             );
             if g_success {
-                let inv_success = apply_invariant(
-                    state,
+                let inv_success = state.apply_invariant(
                     &mut zone[0..len as usize],
                     dim
                 );
@@ -307,8 +306,7 @@ fn create_new_state_pairs<'a>(
                 dim
             );
             if g_success {
-                let inv_success = apply_invariant(
-                    state,
+                let inv_success = state.apply_invariant(
                     &mut zone[0..len as usize],
                     dim
                 );
@@ -480,7 +478,7 @@ fn build_state_pair<'a>(
     for (_, _, state_index) in transitions1 {
         let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
         inv_success1 = inv_success1
-            && apply_invariant(state, &mut new_sp_zone, dim);
+            && state.apply_invariant(&mut new_sp_zone, dim);
         index_vec1.push(*state_index);
     }
 
@@ -491,7 +489,7 @@ fn build_state_pair<'a>(
     for (_, _, state_index) in transitions2 {
         let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
         inv_success2 = inv_success2
-            && apply_invariant(&state, &mut invariant_test, dim);
+            && state.apply_invariant(&mut invariant_test, dim);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
@@ -642,14 +640,15 @@ fn apply_syncs_to_comps<'a>(
             }
 
             for edge in next_edges {
+                let state = &mut states[*curr_index];
 
-                if !apply_guard(edge, &states[*curr_index], zone, dim) {
+                if !apply_guard(edge, state, zone, dim) {
                     *curr_index += 1;
                     return false;
                 }
                 
-                apply_update(edge, &mut states[*curr_index], zone, dim);
-                if !apply_invariant(&states[*curr_index], zone, dim) {
+                apply_update(edge, state, zone, dim);
+                if !state.apply_invariant(zone, dim) {
                     *curr_index += 1;
                     return false;
                 }
@@ -695,21 +694,6 @@ fn apply_update(
             zone,
             dim,
         );
-    }
-}
-
-fn apply_invariant(
-    state: &State,
-    zone: &mut [i32],
-    dim: u32,
-) -> bool {
-    if let Some(inv) = state
-        .get_location()
-        .get_invariant()
-    {
-        apply_constraints_to_state(&inv, state, zone, dim)
-    } else {
-        true
     }
 }
 

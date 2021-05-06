@@ -8,6 +8,7 @@ use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -810,6 +811,21 @@ pub struct State<'a> {
 
 #[allow(dead_code)]
 impl<'a> State<'a> {
+    pub fn apply_invariant(
+        &self,
+        zone: &mut [i32],
+        dim: u32,
+    ) -> bool {
+        if let Some(inv) = self
+            .get_location()
+            .get_invariant()
+        {
+            apply_constraints_to_state(&inv, self, zone, dim)
+        } else {
+            true
+        }
+    }
+
     pub fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }
