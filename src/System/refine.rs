@@ -1,9 +1,9 @@
 use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
-use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::component::{Component, Edge, State};
 use crate::ModelObjects::representations::SystemRepresentation;
+use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
 use std::cell::Cell;
 
@@ -171,21 +171,14 @@ fn collect_open_edges<'a>(
 ) -> bool {
     match sys {
         SystemRepresentation::Composition(left_side, right_side) => {
-            collect_open_edges(
-                left_side, states, index, action, open_edges, sync_type,
-            ) || collect_open_edges(
-                right_side, states, index, action, open_edges, sync_type,
-            )
+            collect_open_edges(left_side, states, index, action, open_edges, sync_type)
+                || collect_open_edges(right_side, states, index, action, open_edges, sync_type)
         }
         SystemRepresentation::Conjunction(left_side, right_side) => {
             let open_edges_len = open_edges.len();
-            if collect_open_edges(
-                left_side, states, index, action, open_edges, sync_type,
-            ) {
+            if collect_open_edges(left_side, states, index, action, open_edges, sync_type) {
                 let left_found_transitions = open_edges_len != open_edges.len();
-                if collect_open_edges(
-                    right_side, states, index, action, open_edges, sync_type,
-                ) {
+                if collect_open_edges(right_side, states, index, action, open_edges, sync_type) {
                     let right_found_transitions = open_edges_len != open_edges.len();
                     return left_found_transitions == right_found_transitions;
                 }
@@ -197,11 +190,7 @@ fn collect_open_edges<'a>(
         }
         SystemRepresentation::Component(comp) => {
             let i = index.get();
-            let next_edges = comp.get_next_edges(
-                states[i].get_location(),
-                action,
-                *sync_type,
-            );
+            let next_edges = comp.get_next_edges(states[i].get_location(), action, *sync_type);
             index.set(i + 1);
 
             if next_edges.len() > 0 {
@@ -238,16 +227,9 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec1 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = edge.apply_guard(
-                state,
-                &mut zone[0..len as usize],
-                dim
-            );
+            let g_success = edge.apply_guard(state, &mut zone[0..len as usize], dim);
             if g_success {
-                let inv_success = state.apply_invariant(
-                    &mut zone[0..len as usize],
-                    dim
-                );
+                let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
                 if inv_success {
                     zones_to_print1.push(zone.clone());
                     guard_zones_left.push(zone[0..len as usize].as_mut_ptr());
@@ -261,16 +243,9 @@ fn create_new_state_pairs<'a>(
         for edge in edge_vec2 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = edge.apply_guard(
-                state,
-                &mut zone[0..len as usize],
-                dim
-            );
+            let g_success = edge.apply_guard(state, &mut zone[0..len as usize], dim);
             if g_success {
-                let inv_success = state.apply_invariant(
-                    &mut zone[0..len as usize],
-                    dim
-                );
+                let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
                 if inv_success {
                     zones_to_print2.push(zone.clone());
                     guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
@@ -362,25 +337,23 @@ fn build_state_pair<'a>(
     let mut g2_success = true;
     //Applies the left side guards and checks if zone is valid
     for (_, edge, state_index) in transitions1 {
-        let state = if is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
+        let state = if is_state1 {
+            &new_sp.get_states1()[*state_index]
+        } else {
+            &new_sp.get_states2()[*state_index]
+        };
 
-        g1_success = g1_success
-            && edge.apply_guard(
-                state,
-                &mut new_sp_zone,
-                dim
-            );
+        g1_success = g1_success && edge.apply_guard(state, &mut new_sp_zone, dim);
     }
     //Applies the right side guards and checks if zone is valid
     for (_, edge, state_index) in transitions2 {
-        let state = if !is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
+        let state = if !is_state1 {
+            &new_sp.get_states1()[*state_index]
+        } else {
+            &new_sp.get_states2()[*state_index]
+        };
 
-        g2_success = g2_success
-            && edge.apply_guard(
-                state,
-                &mut new_sp_zone,
-                dim
-            );
+        g2_success = g2_success && edge.apply_guard(state, &mut new_sp_zone, dim);
     }
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -389,22 +362,22 @@ fn build_state_pair<'a>(
 
     //Apply updates on both sides
     for (_, edge, state_index) in transitions1 {
-        let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
+        let state = if is_state1 {
+            &mut new_sp.get_mut_states1()[*state_index]
+        } else {
+            &mut new_sp.get_mut_states2()[*state_index]
+        };
 
-        edge.apply_update(
-            state,
-            &mut new_sp_zone,
-            dim
-        );
+        edge.apply_update(state, &mut new_sp_zone, dim);
     }
     for (_, edge, state_index) in transitions2 {
-        let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
+        let state = if !is_state1 {
+            &mut new_sp.get_mut_states1()[*state_index]
+        } else {
+            &mut new_sp.get_mut_states2()[*state_index]
+        };
 
-        edge.apply_update(
-            state,
-            &mut new_sp_zone,
-            dim
-        );
+        edge.apply_update(state, &mut new_sp_zone, dim);
     }
 
     //Update locations in states
@@ -433,9 +406,12 @@ fn build_state_pair<'a>(
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
-        let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
-        inv_success1 = inv_success1
-            && state.apply_invariant(&mut new_sp_zone, dim);
+        let state = if is_state1 {
+            &mut new_sp.get_mut_states1()[*state_index]
+        } else {
+            &mut new_sp.get_mut_states2()[*state_index]
+        };
+        inv_success1 = inv_success1 && state.apply_invariant(&mut new_sp_zone, dim);
         index_vec1.push(*state_index);
     }
 
@@ -444,9 +420,12 @@ fn build_state_pair<'a>(
     let mut index_vec2: Vec<usize> = vec![];
     let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
-        let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
-        inv_success2 = inv_success2
-            && state.apply_invariant(&mut invariant_test, dim);
+        let state = if !is_state1 {
+            &mut new_sp.get_mut_states1()[*state_index]
+        } else {
+            &mut new_sp.get_mut_states2()[*state_index]
+        };
+        inv_success2 = inv_success2 && state.apply_invariant(&mut invariant_test, dim);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
@@ -467,7 +446,11 @@ fn build_state_pair<'a>(
 
     //Check all other comps for potential syncs
     let mut test_zone1 = new_sp_zone.clone();
-    let state_vec = if is_state1 {new_sp.get_mut_states1()} else {new_sp.get_mut_states2()};
+    let state_vec = if is_state1 {
+        new_sp.get_mut_states1()
+    } else {
+        new_sp.get_mut_states2()
+    };
     if apply_syncs_to_comps(
         sys1,
         state_vec,
@@ -480,7 +463,11 @@ fn build_state_pair<'a>(
         new_sp_zone = test_zone1;
     }
     let mut test_zone2 = new_sp_zone.clone();
-    let state_vec = if !is_state1 {new_sp.get_mut_states1()} else {new_sp.get_mut_states2()};
+    let state_vec = if !is_state1 {
+        new_sp.get_mut_states1()
+    } else {
+        new_sp.get_mut_states2()
+    };
     if apply_syncs_to_comps(
         sys2,
         state_vec,
@@ -512,9 +499,8 @@ fn apply_syncs_to_comps<'a>(
 ) -> bool {
     let curr_index = &mut 0;
 
-    // Recursively goes through system representation 
+    // Recursively goes through system representation
     sys.any_composition(&mut |comp: &Component| -> bool {
-
         let mut next_edges = vec![];
         let mut should_break = false;
         let sync_type = if adding_input {
@@ -522,17 +508,13 @@ fn apply_syncs_to_comps<'a>(
         } else {
             component::SyncType::Input
         };
-    
+
         if !index_vec.contains(curr_index) {
-            next_edges = comp.get_next_edges(
-                states[*curr_index].get_location(),
-                action,
-                sync_type,
-            );
+            next_edges = comp.get_next_edges(states[*curr_index].get_location(), action, sync_type);
         } else {
             should_break = true;
         }
-    
+
         if should_break {
             *curr_index += 1;
             return true;
@@ -541,33 +523,32 @@ fn apply_syncs_to_comps<'a>(
             *curr_index += 1;
             return false;
         }
-    
+
         for edge in next_edges {
             let state = &mut states[*curr_index];
-    
+
             if !edge.apply_guard(state, zone, dim) {
                 *curr_index += 1;
                 return false;
             }
-            
+
             edge.apply_update(state, zone, dim);
             if !state.apply_invariant(zone, dim) {
                 *curr_index += 1;
                 return false;
             }
-    
+
             // TODO: see below
             // Declarations on the states should also be updated when variables are added to Reveaal
             let target_loc = comp.get_location_by_name(edge.get_target_location());
-    
+
             states[*curr_index].set_location(target_loc);
         }
-    
+
         *curr_index += 1;
         return true;
     })
 }
-
 
 pub fn get_actions<'a>(
     sys_rep: &'a SystemRepresentation,
@@ -755,10 +736,7 @@ pub fn find_extra_input_output(
     return (extra_o, extra_i);
 }
 
-fn is_new_state<'a>(
-    state_pair: &mut StatePair<'a>,
-    passed_list: &mut Vec<StatePair<'a>>,
-) -> bool {
+fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
         if passed_state_pair.get_states1().len() != state_pair.get_states1().len() {
             panic!("states should always have same length")
@@ -804,5 +782,3 @@ fn create_state(
         declarations,
     };
 }
-
-

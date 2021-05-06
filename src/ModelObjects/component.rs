@@ -1,6 +1,8 @@
 use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
+use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
@@ -8,8 +10,6 @@ use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::EdgeEval::updater::updater;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -758,36 +758,19 @@ pub struct Edge {
 }
 
 impl Edge {
-    pub fn apply_update(
-        &self,
-        state: &mut State,
-        zone: &mut [i32],
-        dim: u32,
-    ) {
+    pub fn apply_update(&self, state: &mut State, zone: &mut [i32], dim: u32) {
         if let Some(updates) = self.get_update() {
-            updater(
-                updates,
-                state,
-                zone,
-                dim,
-            );
+            updater(updates, state, zone, dim);
         }
     }
 
-    pub fn apply_guard(
-        &self,
-        state: &State,
-        zone: &mut [i32],
-        dim: u32
-    ) -> bool {
+    pub fn apply_guard(&self, state: &State, zone: &mut [i32], dim: u32) -> bool {
         return if let Some(guards) = self.get_guard() {
-            let success =
-                apply_constraints_to_state(guards, state, zone, dim);
+            let success = apply_constraints_to_state(guards, state, zone, dim);
             success
         } else {
             true
-        }
-        
+        };
     }
 
     pub fn get_source_location(&self) -> &String {
@@ -844,15 +827,8 @@ pub struct State<'a> {
 
 #[allow(dead_code)]
 impl<'a> State<'a> {
-    pub fn apply_invariant(
-        &self,
-        zone: &mut [i32],
-        dim: u32,
-    ) -> bool {
-        if let Some(inv) = self
-            .get_location()
-            .get_invariant()
-        {
+    pub fn apply_invariant(&self, zone: &mut [i32], dim: u32) -> bool {
+        if let Some(inv) = self.get_location().get_invariant() {
             apply_constraints_to_state(&inv, self, zone, dim)
         } else {
             true

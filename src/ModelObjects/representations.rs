@@ -57,25 +57,20 @@ pub enum SystemRepresentation {
     Component(Component),
 }
 
-impl<'a> SystemRepresentation{
-    pub fn any_composition<F>(
-        &'a self,
-        predicate: &mut F
-    ) -> bool where
-    F: FnMut(&'a Component) -> bool{
-        match self{
+impl<'a> SystemRepresentation {
+    pub fn any_composition<F>(&'a self, predicate: &mut F) -> bool
+    where
+        F: FnMut(&'a Component) -> bool,
+    {
+        match self {
             SystemRepresentation::Composition(left_side, right_side) => {
                 left_side.any_composition(predicate) || right_side.any_composition(predicate)
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 left_side.any_composition(predicate) && right_side.any_composition(predicate)
             }
-            SystemRepresentation::Parentheses(rep) => {
-                rep.any_composition(predicate)
-            }
-            SystemRepresentation::Component(comp) => {
-                predicate(comp)
-            }
+            SystemRepresentation::Parentheses(rep) => rep.any_composition(predicate),
+            SystemRepresentation::Component(comp) => predicate(comp),
         }
     }
 }
