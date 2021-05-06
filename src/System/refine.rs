@@ -271,24 +271,21 @@ fn create_new_state_pairs<'a>(
 
     //create guard zones left
     for (_, edge_vec1, state_index) in transitions1 {
+        let state = &curr_pair.get_states1()[*state_index];
         for edge in edge_vec1 {
             let mut zone = curr_pair.get_dbm_clone();
 
             let g_success = apply_guard(
                 edge,
-                &curr_pair,
+                state,
                 &mut zone[0..len as usize],
-                dim,
-                *state_index,
-                true,
+                dim
             );
             if g_success {
                 let inv_success = apply_invariant(
-                    &curr_pair,
+                    state,
                     &mut zone[0..len as usize],
-                    dim,
-                    *state_index,
-                    true,
+                    dim
                 );
                 if inv_success {
                     zones_to_print1.push(zone.clone());
@@ -299,24 +296,21 @@ fn create_new_state_pairs<'a>(
     }
     //Create guard zones right
     for (_, edge_vec2, state_index) in transitions2 {
+        let state = &curr_pair.get_states2()[*state_index];
         for edge in edge_vec2 {
             let mut zone = curr_pair.get_dbm_clone();
 
             let g_success = apply_guard(
                 edge,
-                &curr_pair,
+                state,
                 &mut zone[0..len as usize],
-                dim,
-                *state_index,
-                false,
+                dim
             );
             if g_success {
                 let inv_success = apply_invariant(
-                    &curr_pair,
+                    state,
                     &mut zone[0..len as usize],
-                    dim,
-                    *state_index,
-                    false,
+                    dim
                 );
                 if inv_success {
                     zones_to_print2.push(zone.clone());
@@ -409,26 +403,26 @@ fn build_state_pair<'a>(
     let mut g2_success = true;
     //Applies the left side guards and checks if zone is valid
     for (_, edge, state_index) in transitions1 {
+        let state = if is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
+
         g1_success = g1_success
             && apply_guard(
                 edge,
-                &new_sp,
+                state,
                 &mut new_sp_zone,
-                dim,
-                *state_index,
-                is_state1,
+                dim
             );
     }
     //Applies the right side guards and checks if zone is valid
     for (_, edge, state_index) in transitions2 {
+        let state = if !is_state1 {&new_sp.get_states1()[*state_index]} else {&new_sp.get_states2()[*state_index]};
+
         g2_success = g2_success
             && apply_guard(
                 edge,
-                &new_sp,
+                state,
                 &mut new_sp_zone,
-                dim,
-                *state_index,
-                !is_state1,
+                dim
             );
     }
     //Fails the refinement if at any point the zone was invalid
@@ -438,23 +432,23 @@ fn build_state_pair<'a>(
 
     //Apply updates on both sides
     for (_, edge, state_index) in transitions1 {
+        let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
+
         apply_update(
             edge,
-            &mut new_sp,
+            state,
             &mut new_sp_zone,
-            dim,
-            *state_index,
-            is_state1,
+            dim
         );
     }
     for (_, edge, state_index) in transitions2 {
+        let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
+
         apply_update(
             edge,
-            &mut new_sp,
+            state,
             &mut new_sp_zone,
-            dim,
-            *state_index,
-            !is_state1,
+            dim
         );
     }
 
@@ -484,8 +478,9 @@ fn build_state_pair<'a>(
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
+        let state = if is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
         inv_success1 = inv_success1
-            && apply_invariant(&new_sp, &mut new_sp_zone, dim, *state_index, is_state1);
+            && apply_invariant(state, &mut new_sp_zone, dim);
         index_vec1.push(*state_index);
     }
 
@@ -494,8 +489,9 @@ fn build_state_pair<'a>(
     let mut index_vec2: Vec<usize> = vec![];
     let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
+        let state = if !is_state1 {&mut new_sp.get_mut_states1()[*state_index]} else {&mut new_sp.get_mut_states2()[*state_index]};
         inv_success2 = inv_success2
-            && apply_invariant(&new_sp, &mut invariant_test, dim, *state_index, !is_state1);
+            && apply_invariant(&state, &mut invariant_test, dim);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
@@ -663,12 +659,15 @@ fn apply_syncs_to_comps<'a>(
             }
 
             for edge in next_edges {
-                if !apply_guard(edge, new_sp, zone, dim, *curr_index, is_state1) {
+                let state = if is_state1 {&new_sp.get_states1()[*curr_index]} else {&new_sp.get_states2()[*curr_index]};
+
+                if !apply_guard(edge, state, zone, dim) {
                     *curr_index += 1;
                     return false;
                 }
-                apply_update(edge, new_sp, zone, dim, *curr_index, is_state1);
-                if !apply_invariant(new_sp, zone, dim, *curr_index, is_state1) {
+                let state = if is_state1 {&mut new_sp.get_mut_states1()[*curr_index]} else {&mut new_sp.get_mut_states2()[*curr_index]};
+                apply_update(edge, state, zone, dim);
+                if !apply_invariant(&state, zone, dim) {
                     *curr_index += 1;
                     return false;
                 }
@@ -690,87 +689,49 @@ fn apply_syncs_to_comps<'a>(
 
 fn apply_guard(
     edge: &component::Edge,
-    new_sp: &StatePair,
+    state: &State,
     zone: &mut [i32],
-    dim: u32,
-    state_index: usize,
-    is_state1: bool,
+    dim: u32
 ) -> bool {
-    return if is_state1 {
-        if let Some(guard) = edge.get_guard() {
-            let success =
-                apply_constraints_to_state(guard, &new_sp.get_states1()[state_index], zone, dim);
-            success
-        } else {
-            true
-        }
+    return if let Some(guard) = edge.get_guard() {
+        let success =
+            apply_constraints_to_state(guard, state, zone, dim);
+        success
     } else {
-        if let Some(guard) = edge.get_guard() {
-            let success =
-                apply_constraints_to_state(guard, &new_sp.get_states2()[state_index], zone, dim);
-            success
-        } else {
-            true
-        }
-    };
+        true
+    }
+    
 }
 
 fn apply_update(
     edge: &component::Edge,
-    new_sp: &mut StatePair,
+    state: &mut State,
     zone: &mut [i32],
     dim: u32,
-    state_index: usize,
-    is_state1: bool,
 ) {
-    if is_state1 {
-        if let Some(update) = edge.get_update() {
-            updater(
-                update,
-                &mut new_sp.get_mut_states1()[state_index],
-                zone,
-                dim,
-            );
-        }
-    } else {
-        if let Some(update) = edge.get_update() {
-            updater(
-                update,
-                &mut new_sp.get_mut_states2()[state_index],
-                zone,
-                dim,
-            );
-        }
+    if let Some(update) = edge.get_update() {
+        updater(
+            update,
+            state,
+            zone,
+            dim,
+        );
     }
 }
 
 fn apply_invariant(
-    new_sp: &StatePair,
+    state: &State,
     zone: &mut [i32],
     dim: u32,
-    state_index: usize,
-    is_state1: bool,
 ) -> bool {
-    return if is_state1 {
-        if let Some(inv) = new_sp.get_states1()[state_index]
-            .get_location()
-            .get_invariant()
-        {
-            apply_constraints_to_state(&inv, &new_sp.get_states1()[state_index], zone, dim)
-        } else {
-            true
-        }
+    if let Some(inv) = state
+        .get_location()
+        .get_invariant()
+    {
+        apply_constraints_to_state(&inv, state, zone, dim)
     } else {
-        if let Some(inv) = new_sp.get_states2()[state_index]
-            .get_location()
-            .get_invariant()
-        {
-            println!("applying invariant state2 {:?}", inv);
-            apply_constraints_to_state(&inv, &new_sp.get_states2()[state_index], zone, dim)
-        } else {
-            true
-        }
-    };
+        true
+    }
 }
 
 pub fn get_actions<'a>(
