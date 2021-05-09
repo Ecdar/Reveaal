@@ -632,27 +632,18 @@ fn prepare_init_state(
 }
 
 fn precheck_sys_rep(sys: &mut SystemRepresentation) -> bool {
-    return match sys {
-        SystemRepresentation::Composition(left, right) => {
-            precheck_sys_rep(left) && precheck_sys_rep(right)
-        }
-        SystemRepresentation::Conjunction(left, right) => {
-            precheck_sys_rep(left) && precheck_sys_rep(right)
-        }
-        SystemRepresentation::Parentheses(val) => precheck_sys_rep(val),
-        SystemRepresentation::Component(comp) => {
-            let clock_clone = comp.get_declarations().get_clocks().clone();
+    sys.all_components(&mut |comp: &mut Component| -> bool {
+        let clock_clone = comp.get_declarations().get_clocks().clone();
 
-            let len = comp.get_mut_declaration().get_clocks().len();
-            comp.get_mut_declaration().dimension = 1 + len as u32;
+        let len = comp.get_mut_declaration().get_clocks().len();
+        comp.get_mut_declaration().dimension = 1 + len as u32;
 
-            comp.get_mut_declaration().reset_clock_indices();
+        comp.get_mut_declaration().reset_clock_indices();
 
-            let res = comp.check_consistency(true);
-            comp.get_mut_declaration().clocks = clock_clone;
-            res
-        }
-    };
+        let res = comp.check_consistency(true);
+        comp.get_mut_declaration().clocks = clock_clone;
+        res
+    })
 }
 
 fn check_preconditions(

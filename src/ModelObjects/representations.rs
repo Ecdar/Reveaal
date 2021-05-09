@@ -73,6 +73,22 @@ impl<'a> SystemRepresentation {
             SystemRepresentation::Component(comp) => predicate(comp),
         }
     }
+
+    pub fn all_components<F>(&'a mut self, predicate: &mut F) -> bool
+    where
+        F: FnMut(&'a mut Component) -> bool,
+    {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.all_components(predicate) && right_side.all_components(predicate)
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                left_side.all_components(predicate) && right_side.all_components(predicate)
+            }
+            SystemRepresentation::Parentheses(rep) => rep.all_components(predicate),
+            SystemRepresentation::Component(comp) => predicate(comp),
+        }
+    }
 }
 
 pub fn print_DBM(dbm: &mut [i32], dimension: u32) {
