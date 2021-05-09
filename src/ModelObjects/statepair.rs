@@ -27,14 +27,6 @@ impl<'b> StatePair<'b> {
         &self.states2
     }
 
-    pub fn get_mut_states1(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states1
-    }
-
-    pub fn get_mut_states2(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states2
-    }
-
     //Used to allow borrowing both states as mutable
     pub fn get_mut_states(
         &mut self,

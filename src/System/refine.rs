@@ -5,12 +5,11 @@ use crate::ModelObjects::component::{Component, Edge, State};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
-use std::cell::Cell;
 
 //------------------ NEW IMPL ------------------
 pub fn check_refinement(
-    mut sys1: SystemRepresentation,
-    mut sys2: SystemRepresentation,
+    sys1: SystemRepresentation,
+    sys2: SystemRepresentation,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
