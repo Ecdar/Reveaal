@@ -13,25 +13,15 @@ pub fn check_refinement(
     mut sys2: SystemRepresentation,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
-    let mut inputs2: Vec<String> = vec![];
-    let mut outputs1: Vec<String> = vec![];
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut initial_states_1: Vec<State> = vec![];
-    let mut initial_states_2: Vec<State> = vec![];
     let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
     let index1 = Cell::new(0);
     let index2 = Cell::new(0);
 
-    get_actions(&sys2, sys_decls, true, &mut inputs2, &mut initial_states_2);
-    get_actions(
-        &sys1,
-        sys_decls,
-        false,
-        &mut outputs1,
-        &mut initial_states_1,
-    );
+    let inputs2 = sys2.get_input_actions(sys_decls);
+    let outputs1 = sys1.get_output_actions(sys_decls);
 
     //Firstly we check the preconditions
     if !check_preconditions(
@@ -44,6 +34,9 @@ pub fn check_refinement(
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
+
+    let initial_states_1: Vec<State> = sys1.get_initial_states();
+    let initial_states_2: Vec<State> = sys2.get_initial_states();
 
     let mut initial_pair = StatePair::create(initial_states_1.clone(), initial_states_2.clone());
     initial_pair.init_dbm();
@@ -550,55 +543,6 @@ fn apply_syncs_to_comps<'a>(
     })
 }
 
-pub fn get_actions<'a>(
-    sys_rep: &'a SystemRepresentation,
-    sys_decls: &system_declarations::SystemDeclarations,
-    is_input: bool,
-    actions: &mut Vec<String>,
-    states: &mut Vec<State<'a>>,
-) {
-    match sys_rep {
-        SystemRepresentation::Composition(left_side, right_side) => {
-            get_actions(&**left_side, sys_decls, is_input, actions, states);
-            get_actions(&**right_side, sys_decls, is_input, actions, states);
-        }
-        SystemRepresentation::Conjunction(left_side, right_side) => {
-            get_actions(&**left_side, sys_decls, is_input, actions, states);
-            get_actions(&**right_side, sys_decls, is_input, actions, states);
-        }
-        SystemRepresentation::Parentheses(rep) => {
-            get_actions(&**rep, sys_decls, is_input, actions, states);
-        }
-        SystemRepresentation::Component(comp) => {
-            if is_input {
-                if let Some(inputs_res) = sys_decls
-                    .get_declarations()
-                    .get_input_actions()
-                    .get(comp.get_name())
-                {
-                    actions.append(&mut inputs_res.clone());
-                }
-            } else {
-                if let Some(outputs_res) = sys_decls
-                    .get_declarations()
-                    .get_output_actions()
-                    .get(comp.get_name())
-                {
-                    actions.append(&mut outputs_res.clone());
-                }
-            }
-            let init_loc = comp
-                .get_locations()
-                .into_iter()
-                .find(|location| location.get_location_type() == &component::LocationType::Initial);
-            if let Some(init_loc) = init_loc {
-                let state = State::create(init_loc, comp.get_declarations().clone());
-                states.push(state);
-            }
-        }
-    }
-}
-
 fn prepare_init_state(
     initial_pair: &mut StatePair,
     initial_states_1: Vec<State>,
@@ -632,7 +576,7 @@ fn prepare_init_state(
 }
 
 fn precheck_sys_rep(sys: &mut SystemRepresentation) -> bool {
-    sys.all_components(&mut |comp: &mut Component| -> bool {
+    sys.all_mut_components(&mut |comp: &mut Component| -> bool {
         let clock_clone = comp.get_declarations().get_clocks().clone();
 
         let len = comp.get_mut_declaration().get_clocks().len();
@@ -653,16 +597,10 @@ fn check_preconditions(
     _inputs2: &Vec<String>,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> bool {
-    let mut outputs2: Vec<String> = vec![];
-    let mut inputs1: Vec<String> = vec![];
-    let mut disposable = vec![]; // Disposable vector need to be parsed to get_actions
-
     if !(precheck_sys_rep(sys2) && precheck_sys_rep(sys1)) {
         return false;
     }
-    get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
-    get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
-    drop(disposable); //Dropped from memory afterwards
+    let outputs2 = sys2.get_output_actions(&sys_decls);
 
     for o1 in outputs1 {
         let mut found_match = false;
@@ -691,13 +629,8 @@ pub fn find_extra_input_output(
     inputs2: &Vec<String>,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> (Vec<String>, Vec<String>) {
-    let mut outputs2: Vec<String> = vec![];
-    let mut inputs1: Vec<String> = vec![];
-    let mut disposable = vec![]; // Disposable vector need to be parsed to get_actions
-
-    get_actions(sys1, &sys_decls, true, &mut inputs1, &mut disposable);
-    get_actions(sys2, &sys_decls, false, &mut outputs2, &mut disposable);
-    drop(disposable); //Dropped from memory afterwards
+    let inputs1 = sys1.get_input_actions(&sys_decls);
+    let outputs2 = sys2.get_output_actions(&sys_decls);
 
     let mut extra_o: Vec<String> = vec![];
     for o1 in outputs1 {

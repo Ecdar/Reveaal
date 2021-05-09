@@ -1,5 +1,6 @@
 use crate::DBMLib::lib;
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::component::{Component, LocationType, State};
+use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
@@ -74,9 +75,9 @@ impl<'a> SystemRepresentation {
         }
     }
 
-    pub fn all_components<F>(&'a mut self, predicate: &mut F) -> bool
+    pub fn all_components<F>(&'a self, predicate: &mut F) -> bool
     where
-        F: FnMut(&'a mut Component) -> bool,
+        F: FnMut(&'a Component) -> bool,
     {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
@@ -88,6 +89,76 @@ impl<'a> SystemRepresentation {
             SystemRepresentation::Parentheses(rep) => rep.all_components(predicate),
             SystemRepresentation::Component(comp) => predicate(comp),
         }
+    }
+
+    pub fn all_mut_components<F>(&'a mut self, predicate: &mut F) -> bool
+    where
+        F: FnMut(&'a mut Component) -> bool,
+    {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Parentheses(rep) => rep.all_mut_components(predicate),
+            SystemRepresentation::Component(comp) => predicate(comp),
+        }
+    }
+
+    pub fn get_input_actions(&'a self, sys_decls: &SystemDeclarations) -> Vec<String> {
+        let mut actions = vec![];
+
+        self.all_components(&mut |comp: &Component| -> bool {
+            if let Some(inputs_res) = sys_decls
+                .get_declarations()
+                .get_input_actions()
+                .get(comp.get_name())
+            {
+                actions.append(&mut inputs_res.clone());
+            }
+
+            true
+        });
+
+        actions
+    }
+
+    pub fn get_output_actions(&'a self, sys_decls: &SystemDeclarations) -> Vec<String> {
+        let mut actions = vec![];
+
+        self.all_components(&mut |comp: &Component| -> bool {
+            if let Some(outputs_res) = sys_decls
+                .get_declarations()
+                .get_output_actions()
+                .get(comp.get_name())
+            {
+                actions.append(&mut outputs_res.clone());
+            }
+
+            true
+        });
+
+        return actions;
+    }
+
+    pub fn get_initial_states(&'a self) -> Vec<State<'a>> {
+        let mut states = vec![];
+        self.all_components(&mut |comp: &Component| -> bool {
+            let init_loc = comp
+                .get_locations()
+                .into_iter()
+                .find(|location| location.get_location_type() == &LocationType::Initial);
+            if let Some(init_loc) = init_loc {
+                let state = State::create(init_loc, comp.get_declarations().clone());
+                states.push(state);
+            }
+
+            true
+        });
+
+        states
     }
 }
 
