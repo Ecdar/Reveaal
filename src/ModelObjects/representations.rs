@@ -1,5 +1,5 @@
 use crate::DBMLib::lib;
-use crate::ModelObjects::component::{Component, LocationType, State};
+use crate::ModelObjects::component::{Component, Edge, LocationType, State, SyncType};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
@@ -104,6 +104,79 @@ impl<'a> SystemRepresentation {
             }
             SystemRepresentation::Parentheses(rep) => rep.all_mut_components(predicate),
             SystemRepresentation::Component(comp) => predicate(comp),
+        }
+    }
+
+    pub fn collect_open_inputs(
+        &'a self,
+        states: &Vec<State<'a>>,
+        action: &String,
+    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+        let mut edges = vec![];
+        let mut index = 0;
+
+        return if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input)
+        {
+            Ok(edges)
+        } else {
+            Err("Conjunction rules on output not satisfied".to_string())
+        };
+    }
+
+    pub fn collect_open_outputs(
+        &'a self,
+        states: &Vec<State<'a>>,
+        action: &String,
+    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+        let mut edges = vec![];
+        let mut index = 0;
+
+        return if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output)
+        {
+            Ok(edges)
+        } else {
+            Err("Conjunction rules on input not satisfied".to_string())
+        };
+    }
+
+    fn collect_open_edges(
+        &'a self,
+        states: &Vec<State<'a>>,
+        index: &mut usize,
+        action: &String,
+        open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
+        sync_type: &SyncType,
+    ) -> bool {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.collect_open_edges(states, index, action, open_edges, sync_type)
+                    || right_side.collect_open_edges(states, index, action, open_edges, sync_type)
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                let open_edges_len = open_edges.len();
+                if left_side.collect_open_edges(states, index, action, open_edges, sync_type) {
+                    let left_found_transitions = open_edges_len != open_edges.len();
+                    if right_side.collect_open_edges(states, index, action, open_edges, sync_type) {
+                        let right_found_transitions = open_edges_len != open_edges.len();
+                        return left_found_transitions == right_found_transitions;
+                    }
+                }
+                return false;
+            }
+            SystemRepresentation::Parentheses(rep) => {
+                rep.collect_open_edges(states, index, action, open_edges, sync_type)
+            }
+            SystemRepresentation::Component(comp) => {
+                let next_edges =
+                    comp.get_next_edges(states[*index].get_location(), action, *sync_type);
+
+                if next_edges.len() > 0 {
+                    open_edges.push((comp, next_edges, *index));
+                }
+
+                *index += 1;
+                true
+            }
         }
     }
 

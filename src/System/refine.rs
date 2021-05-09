@@ -15,10 +15,8 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
-    let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)> = vec![];
-    let index1 = Cell::new(0);
-    let index2 = Cell::new(0);
+    let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)>;
+    let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)>;
 
     let inputs2 = sys2.get_input_actions(sys_decls);
     let outputs1 = sys1.get_output_actions(sys_decls);
@@ -47,28 +45,13 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
-            combined_transitions1.clear();
-            combined_transitions2.clear();
-
-            if !collect_open_edges(
-                &sys1,
-                curr_pair.get_states1(),
-                &index1,
-                output,
-                &mut combined_transitions1,
-                &component::SyncType::Output,
-            ) {
-                return Err("Conjunction rules on output not satisfied on left side".to_string());
+            match sys1.collect_open_outputs(curr_pair.get_states1(), output) {
+                Ok(open_outputs) => combined_transitions1 = open_outputs,
+                Err(err) => return Err(err + " on left side"),
             }
-            if !collect_open_edges(
-                &sys2,
-                curr_pair.get_states2(),
-                &index2,
-                output,
-                &mut combined_transitions2,
-                &component::SyncType::Output,
-            ) {
-                return Err("Conjunction rules on output not satisfied on right side".to_string());
+            match sys2.collect_open_outputs(curr_pair.get_states2(), output) {
+                Ok(open_outputs) => combined_transitions2 = open_outputs,
+                Err(err) => return Err(err + " on right side"),
             }
 
             if combined_transitions1.len() > 0 {
@@ -93,33 +76,16 @@ pub fn check_refinement(
                     return Ok(false);
                 }
             }
-
-            index1.set(0);
-            index2.set(0);
         }
 
         for input in &inputs2 {
-            combined_transitions1.clear();
-            combined_transitions2.clear();
-            if !collect_open_edges(
-                &sys1,
-                curr_pair.get_states1(),
-                &index1,
-                input,
-                &mut combined_transitions1,
-                &component::SyncType::Input,
-            ) {
-                return Err("Conjunction rules on input not satisfied on left side".to_string());
+            match sys1.collect_open_inputs(curr_pair.get_states1(), input) {
+                Ok(open_outputs) => combined_transitions1 = open_outputs,
+                Err(err) => return Err(err + " on left side"),
             }
-            if !collect_open_edges(
-                &sys2,
-                curr_pair.get_states2(),
-                &index2,
-                input,
-                &mut combined_transitions2,
-                &component::SyncType::Input,
-            ) {
-                return Err("Conjunction rules on input not satisfied on right side".to_string());
+            match sys2.collect_open_inputs(curr_pair.get_states2(), input) {
+                Ok(open_outputs) => combined_transitions2 = open_outputs,
+                Err(err) => return Err(err + " on right side"),
             }
 
             if combined_transitions2.len() > 0 {
@@ -143,55 +109,12 @@ pub fn check_refinement(
                     return Ok(false);
                 }
             }
-
-            index1.set(0);
-            index2.set(0);
         }
 
         passed_list.push(curr_pair.clone());
     }
 
     return Ok(true);
-}
-
-fn collect_open_edges<'a>(
-    sys: &'a SystemRepresentation,
-    states: &Vec<State<'a>>,
-    index: &Cell<usize>,
-    action: &String,
-    open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
-    sync_type: &component::SyncType,
-) -> bool {
-    match sys {
-        SystemRepresentation::Composition(left_side, right_side) => {
-            collect_open_edges(left_side, states, index, action, open_edges, sync_type)
-                || collect_open_edges(right_side, states, index, action, open_edges, sync_type)
-        }
-        SystemRepresentation::Conjunction(left_side, right_side) => {
-            let open_edges_len = open_edges.len();
-            if collect_open_edges(left_side, states, index, action, open_edges, sync_type) {
-                let left_found_transitions = open_edges_len != open_edges.len();
-                if collect_open_edges(right_side, states, index, action, open_edges, sync_type) {
-                    let right_found_transitions = open_edges_len != open_edges.len();
-                    return left_found_transitions == right_found_transitions;
-                }
-            }
-            return false;
-        }
-        SystemRepresentation::Parentheses(rep) => {
-            collect_open_edges(rep, states, index, action, open_edges, sync_type)
-        }
-        SystemRepresentation::Component(comp) => {
-            let i = index.get();
-            let next_edges = comp.get_next_edges(states[i].get_location(), action, *sync_type);
-            index.set(i + 1);
-
-            if next_edges.len() > 0 {
-                open_edges.push((comp, next_edges, i));
-            }
-            true
-        }
-    }
 }
 
 fn create_new_state_pairs<'a>(
