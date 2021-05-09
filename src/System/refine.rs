@@ -592,7 +592,7 @@ pub fn get_actions<'a>(
                 .into_iter()
                 .find(|location| location.get_location_type() == &component::LocationType::Initial);
             if let Some(init_loc) = init_loc {
-                let state = create_state(init_loc, comp.get_declarations().clone());
+                let state = State::create(init_loc, comp.get_declarations().clone());
                 states.push(state);
             }
         }
@@ -761,15 +761,4 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
         }
     }
     return true;
-}
-
-//Creates a new instance of a state
-fn create_state(
-    location: &component::Location,
-    declarations: component::Declarations,
-) -> component::State {
-    return component::State {
-        location,
-        declarations,
-    };
 }

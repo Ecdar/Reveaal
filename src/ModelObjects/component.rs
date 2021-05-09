@@ -827,6 +827,13 @@ pub struct State<'a> {
 
 #[allow(dead_code)]
 impl<'a> State<'a> {
+    pub fn create(location: &Location, declarations: Declarations) -> State {
+        return State {
+            location,
+            declarations,
+        };
+    }
+
     pub fn apply_invariant(&self, zone: &mut [i32], dim: u32) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
             apply_constraints_to_state(&inv, self, zone, dim)
