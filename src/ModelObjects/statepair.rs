@@ -35,6 +35,18 @@ impl<'b> StatePair<'b> {
         &mut self.states2
     }
 
+    //Used to allow borrowing both states as mutable
+    pub fn get_mut_states(
+        &mut self,
+        is_states1: bool,
+    ) -> (&mut Vec<State<'b>>, &mut Vec<State<'b>>) {
+        return if is_states1 {
+            (&mut self.states1, &mut self.states2)
+        } else {
+            (&mut self.states2, &mut self.states1)
+        };
+    }
+
     pub fn get_dimensions(&self) -> u32 {
         self.dimensions.clone()
     }
