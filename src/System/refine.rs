@@ -133,9 +133,6 @@ fn create_new_state_pairs<'a>(
     let dim = curr_pair.get_dimensions();
     let len = dim * dim;
 
-    let mut zones_to_print1 = vec![];
-    let mut zones_to_print2 = vec![];
-
     //create guard zones left
     for (_, edge_vec1, state_index) in transitions1 {
         let state = &curr_pair.get_states1()[*state_index];
@@ -146,7 +143,6 @@ fn create_new_state_pairs<'a>(
             if g_success {
                 let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
                 if inv_success {
-                    zones_to_print1.push(zone.clone());
                     guard_zones_left.push(zone[0..len as usize].as_mut_ptr());
                 }
             }
@@ -162,7 +158,6 @@ fn create_new_state_pairs<'a>(
             if g_success {
                 let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
                 if inv_success {
-                    zones_to_print2.push(zone.clone());
                     guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
                 }
             }
