@@ -6,7 +6,6 @@ use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
 
-//------------------ NEW IMPL ------------------
 pub fn check_refinement(
     sys1: SystemRepresentation,
     sys2: SystemRepresentation,
@@ -364,24 +363,18 @@ fn apply_syncs_to_comps<'a>(
 
     // Recursively goes through system representation
     sys.any_composition(&mut |comp: &Component| -> bool {
-        let mut next_edges = vec![];
-        let mut should_break = false;
         let sync_type = if adding_input {
             component::SyncType::Output
         } else {
             component::SyncType::Input
         };
 
-        if !index_vec.contains(curr_index) {
-            next_edges = comp.get_next_edges(states[*curr_index].get_location(), action, sync_type);
-        } else {
-            should_break = true;
-        }
-
-        if should_break {
+        if index_vec.contains(curr_index) {
             *curr_index += 1;
             return true;
         }
+
+        let next_edges = comp.get_next_edges(states[*curr_index].get_location(), action, sync_type);
         if next_edges.len() < 1 {
             *curr_index += 1;
             return false;
