@@ -52,8 +52,8 @@ pub fn check_refinement(
                 Err(err) => return Err(err + " on right side"),
             }
 
-            if combined_transitions1.len() > 0 {
-                if combined_transitions2.len() > 0 {
+            if !combined_transitions1.is_empty() {
+                if !combined_transitions2.is_empty() {
                     //TODO: Check with alex or thomas to see if this comment is important
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(
@@ -86,8 +86,8 @@ pub fn check_refinement(
                 Err(err) => return Err(err + " on right side"),
             }
 
-            if combined_transitions2.len() > 0 {
-                if combined_transitions1.len() > 0 {
+            if !combined_transitions2.is_empty() {
+                if !combined_transitions1.is_empty() {
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(
                         &combined_transitions2,
@@ -112,18 +112,18 @@ pub fn check_refinement(
         passed_list.push(curr_pair.clone());
     }
 
-    return Ok(true);
+    Ok(true)
 }
 
 fn create_new_state_pairs<'a>(
-    transitions1: &Vec<(&'a Component, Vec<&'a Edge>, usize)>,
-    transitions2: &Vec<(&'a Component, Vec<&'a Edge>, usize)>,
+    transitions1: &[(&'a Component, Vec<&'a Edge>, usize)],
+    transitions2: &[(&'a Component, Vec<&'a Edge>, usize)],
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &String,
+    action: &str,
     adding_input: bool,
     is_state1: bool,
 ) -> bool {
@@ -165,7 +165,7 @@ fn create_new_state_pairs<'a>(
     let result_federation_vec =
         lib::rs_dbm_fed_minus_fed(&mut guard_zones_left, &mut guard_zones_right, dim);
 
-    if result_federation_vec.len() > 0 {
+    if !result_federation_vec.is_empty() {
         return false;
     }
 
@@ -190,25 +190,24 @@ fn create_new_state_pairs<'a>(
         }
     }
 
-    return true;
+    true
 }
 
 fn create_transition_combinations<'a>(
-    transitions: &Vec<(&'a Component, Vec<&'a Edge>, usize)>,
+    transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
 ) -> Vec<Vec<(&'a Component, &'a Edge, usize)>> {
     let mut combinations: Vec<Vec<(&Component, &Edge, usize)>> = vec![];
     for (comp, edge_vec, state_index) in transitions {
         let mut new_combs: Vec<Vec<(&Component, &Edge, usize)>> = vec![];
         for edge in edge_vec {
             if combinations.is_empty() {
-                let mut new_vec: Vec<(&Component, &Edge, usize)> = vec![];
-                new_vec.push((comp, edge, *state_index));
+                let mut new_vec: Vec<(&Component, &Edge, usize)> = vec![(comp, edge, *state_index)];
                 new_combs.push(new_vec);
             } else {
                 let mut temp_combs = combinations.clone();
 
-                for i in 0..temp_combs.len() {
-                    temp_combs[i].push((comp, edge, *state_index));
+                for temp_comb in &mut temp_combs {
+                    temp_comb.push((comp, edge, *state_index));
                 }
                 new_combs.append(&mut temp_combs);
             }
@@ -216,18 +215,18 @@ fn create_transition_combinations<'a>(
         combinations = new_combs;
     }
 
-    return combinations;
+    combinations
 }
 
 fn build_state_pair<'a>(
-    transitions1: &Vec<(&'a Component, &'a Edge, usize)>,
-    transitions2: &Vec<(&'a Component, &'a Edge, usize)>,
+    transitions1: &[(&'a Component, &'a Edge, usize)],
+    transitions2: &[(&'a Component, &'a Edge, usize)],
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &String,
+    action: &str,
     adding_input: bool,
     is_state1: bool,
 ) -> bool {
@@ -294,7 +293,7 @@ fn build_state_pair<'a>(
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut inv_success2 = true;
     let mut index_vec2: Vec<usize> = vec![];
-    let mut invariant_test = new_sp_zone.clone();
+    let mut invariant_test = new_sp_zone;
     for (_, _, state_index) in transitions2 {
         inv_success2 =
             inv_success2 && states2[*state_index].apply_invariant(&mut invariant_test, dim);
@@ -312,12 +311,12 @@ fn build_state_pair<'a>(
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
-    if fed_res.len() > 0 {
+    if !fed_res.is_empty() {
         return false;
     }
 
     //Check all other comps for potential syncs
-    let mut test_zone1 = new_sp_zone.clone();
+    let mut test_zone1 = new_sp_zone;
     if apply_syncs_to_comps(
         sys1,
         states1,
@@ -329,7 +328,7 @@ fn build_state_pair<'a>(
     ) {
         new_sp_zone = test_zone1;
     }
-    let mut test_zone2 = new_sp_zone.clone();
+    let mut test_zone2 = new_sp_zone;
     if apply_syncs_to_comps(
         sys2,
         states2,
@@ -347,15 +346,15 @@ fn build_state_pair<'a>(
         waiting_list.push(new_sp.clone());
     }
 
-    return true;
+    true
 }
 
 fn apply_syncs_to_comps<'a>(
     sys: &'a SystemRepresentation,
     states: &mut Vec<State<'a>>,
-    index_vec: &Vec<usize>,
+    index_vec: &[usize],
     zone: &mut [i32],
-    action: &String,
+    action: &str,
     dim: u32,
     adding_input: bool,
 ) -> bool {
@@ -375,7 +374,7 @@ fn apply_syncs_to_comps<'a>(
         }
 
         let next_edges = comp.get_next_edges(states[*curr_index].get_location(), action, sync_type);
-        if next_edges.len() < 1 {
+        if next_edges.is_empty() {
             *curr_index += 1;
             return false;
         }
@@ -402,7 +401,7 @@ fn apply_syncs_to_comps<'a>(
         }
 
         *curr_index += 1;
-        return true;
+        true
     })
 }
 
@@ -456,8 +455,8 @@ fn precheck_sys_rep(sys: &mut SystemRepresentation) -> bool {
 fn check_preconditions(
     sys1: &mut SystemRepresentation,
     sys2: &mut SystemRepresentation,
-    outputs1: &Vec<String>,
-    _inputs2: &Vec<String>,
+    outputs1: &[String],
+    _inputs2: &[String],
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> bool {
     if !(precheck_sys_rep(sys2) && precheck_sys_rep(sys1)) {
@@ -482,14 +481,14 @@ fn check_preconditions(
         }
     }
 
-    return true;
+    true
 }
 
 pub fn find_extra_input_output(
     sys1: &SystemRepresentation,
     sys2: &SystemRepresentation,
-    outputs1: &Vec<String>,
-    inputs2: &Vec<String>,
+    outputs1: &[String],
+    inputs2: &[String],
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> (Vec<String>, Vec<String>) {
     let inputs1 = sys1.get_input_actions(&sys_decls);
@@ -520,7 +519,7 @@ pub fn find_extra_input_output(
         }
     }
 
-    return (extra_o, extra_i);
+    (extra_o, extra_i)
 }
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
@@ -556,5 +555,5 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             return false;
         }
     }
-    return true;
+    true
 }

@@ -109,41 +109,39 @@ impl<'a> SystemRepresentation {
 
     pub fn collect_open_inputs(
         &'a self,
-        states: &Vec<State<'a>>,
-        action: &String,
+        states: &[State<'a>],
+        action: &str,
     ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
-        return if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input)
-        {
+        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input) {
             Ok(edges)
         } else {
             Err("Conjunction rules on output not satisfied".to_string())
-        };
+        }
     }
 
     pub fn collect_open_outputs(
         &'a self,
-        states: &Vec<State<'a>>,
-        action: &String,
+        states: &[State<'a>],
+        action: &str,
     ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
-        return if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output)
-        {
+        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output) {
             Ok(edges)
         } else {
             Err("Conjunction rules on input not satisfied".to_string())
-        };
+        }
     }
 
     fn collect_open_edges(
         &'a self,
-        states: &Vec<State<'a>>,
+        states: &[State<'a>],
         index: &mut usize,
-        action: &String,
+        action: &str,
         open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
         sync_type: &SyncType,
     ) -> bool {
@@ -161,7 +159,7 @@ impl<'a> SystemRepresentation {
                         return left_found_transitions == right_found_transitions;
                     }
                 }
-                return false;
+                false
             }
             SystemRepresentation::Parentheses(rep) => {
                 rep.collect_open_edges(states, index, action, open_edges, sync_type)
@@ -170,7 +168,7 @@ impl<'a> SystemRepresentation {
                 let next_edges =
                     comp.get_next_edges(states[*index].get_location(), action, *sync_type);
 
-                if next_edges.len() > 0 {
+                if !next_edges.is_empty() {
                     open_edges.push((comp, next_edges, *index));
                 }
 
@@ -213,7 +211,7 @@ impl<'a> SystemRepresentation {
             true
         });
 
-        return actions;
+        actions
     }
 
     pub fn get_initial_states(&'a self) -> Vec<State<'a>> {
@@ -221,7 +219,7 @@ impl<'a> SystemRepresentation {
         self.all_components(&mut |comp: &Component| -> bool {
             let init_loc = comp
                 .get_locations()
-                .into_iter()
+                .iter()
                 .find(|location| location.get_location_type() == &LocationType::Initial);
             if let Some(init_loc) = init_loc {
                 let state = State::create(init_loc, comp.get_declarations().clone());
@@ -242,6 +240,6 @@ pub fn print_DBM(dbm: &mut [i32], dimension: u32) {
         for j in 0..dimension {
             print!("{:?} ", lib::rs_dbm_get_constraint(dbm, dimension, i, j));
         }
-        print!(")\n");
+        println!(")");
     }
 }

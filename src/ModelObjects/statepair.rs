@@ -11,12 +11,12 @@ pub struct StatePair<'a> {
 
 impl<'b> StatePair<'b> {
     pub fn create<'a>(state1: Vec<State<'a>>, state2: Vec<State<'a>>) -> StatePair<'a> {
-        return StatePair {
+        StatePair {
             states1: state1,
             states2: state2,
             zone: [0; 1000],
             dimensions: 0,
-        };
+        }
     }
 
     pub fn get_states1(&self) -> &Vec<State<'b>> {
@@ -32,15 +32,15 @@ impl<'b> StatePair<'b> {
         &mut self,
         is_states1: bool,
     ) -> (&mut Vec<State<'b>>, &mut Vec<State<'b>>) {
-        return if is_states1 {
+        if is_states1 {
             (&mut self.states1, &mut self.states2)
         } else {
             (&mut self.states2, &mut self.states1)
-        };
+        }
     }
 
     pub fn get_dimensions(&self) -> u32 {
-        self.dimensions.clone()
+        self.dimensions
     }
 
     pub fn set_dimensions(&mut self, dim: u32) {
@@ -54,7 +54,7 @@ impl<'b> StatePair<'b> {
     }
 
     pub fn get_dbm_clone(&self) -> [i32; 1000] {
-        return self.zone.clone();
+        self.zone
     }
 
     pub fn set_dbm(&mut self, dbm: [i32; 1000]) {
