@@ -128,38 +128,37 @@ fn create_new_state_pairs<'a>(
     adding_input: bool,
     is_state1: bool,
 ) -> bool {
-    let mut guard_zones_left: Vec<*mut i32> = vec![];
-    let mut guard_zones_right: Vec<*mut i32> = vec![];
     let dim = curr_pair.get_dimensions();
     let len = dim * dim;
 
     //create guard zones left
+    let mut guard_zones_left: Vec<*mut i32> = vec![];
     for (_, edge_vec1, state_index) in transitions1 {
         let state = &curr_pair.get_states1()[*state_index];
         for edge in edge_vec1 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = edge.apply_guard(state, &mut zone[0..len as usize], dim);
-            if g_success {
-                let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
-                if inv_success {
-                    guard_zones_left.push(zone[0..len as usize].as_mut_ptr());
-                }
+            //Save if edge is open
+            if edge.apply_guard(state, &mut zone[0..len as usize], dim)
+                && state.apply_invariant(&mut zone[0..len as usize], dim)
+            {
+                guard_zones_left.push(zone[0..len as usize].as_mut_ptr());
             }
         }
     }
+
     //Create guard zones right
+    let mut guard_zones_right: Vec<*mut i32> = vec![];
     for (_, edge_vec2, state_index) in transitions2 {
         let state = &curr_pair.get_states2()[*state_index];
         for edge in edge_vec2 {
             let mut zone = curr_pair.get_dbm_clone();
 
-            let g_success = edge.apply_guard(state, &mut zone[0..len as usize], dim);
-            if g_success {
-                let inv_success = state.apply_invariant(&mut zone[0..len as usize], dim);
-                if inv_success {
-                    guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
-                }
+            //Save if edge is open
+            if edge.apply_guard(state, &mut zone[0..len as usize], dim)
+                && state.apply_invariant(&mut zone[0..len as usize], dim)
+            {
+                guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
             }
         }
     }
