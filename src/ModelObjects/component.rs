@@ -196,6 +196,7 @@ impl Component {
     /// method used to verify that the individual component is consistent e.i deterministic etc.
     pub fn check_consistency(&self, prune: bool) -> bool {
         if !self.is_deterministic() {
+            println!("NOT DETERMINISTIC");
             return false;
         }
 
@@ -213,8 +214,9 @@ impl Component {
         let zone_array = [0; 1000];
 
         let mut fullSt = create_full_state(initial_state, zone_array, dimension);
-        lib::rs_dbm_zero(fullSt.get_zone(), dimension);
-        lib::rs_dbm_up(fullSt.get_zone(), dimension);
+        lib::rs_dbm_init(fullSt.get_zone(), dimension);
+        //lib::rs_dbm_zero(fullSt.get_zone(), dimension);
+        //lib::rs_dbm_up(fullSt.get_zone(), dimension);
         if let Some(update_i) = fullSt.state.location.get_invariant() {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, dimension);
         }
@@ -425,6 +427,7 @@ impl Component {
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
     pub fn is_deterministic(&self) -> bool {
+        //return true;
         let mut passed_list: Vec<FullState> = vec![];
         let mut waiting_list: Vec<FullState> = vec![];
 
@@ -527,6 +530,10 @@ impl Component {
                         }
                     }
                 }
+
+                if edges[i].get_sync() != edges[j].get_sync() {
+                    continue;
+                }
                 let location_source = self
                     .get_locations()
                     .into_iter()
@@ -611,13 +618,20 @@ impl Component {
                         dimension,
                     );
                 }
-                println!("State_j DBM:");
-                representations::print_DBM(state_j.get_zone(), full_state.get_dimensions());
+                //println!("State_i DBM:");
+                //representations::print_DBM(state_i.get_zone(), full_state.get_dimensions());
+                //println!("State_j DBM:");
+                //representations::print_DBM(state_j.get_zone(), full_state.get_dimensions());
 
                 if lib::rs_dbm_is_valid(state_i.get_zone(), dimension)
                     && lib::rs_dbm_is_valid(state_j.get_zone(), dimension)
                 {
                     if lib::rs_dmb_intersection(state_i.get_zone(), state_j.get_zone(), dimension) {
+                        println!("State_i DBM: ");
+                        representations::print_DBM(state_i.get_zone(), full_state.get_dimensions());
+                        println!("intersects State_j DBM:");
+                        representations::print_DBM(state_j.get_zone(), full_state.get_dimensions());
+                        println!("for edges {:?} and {:?}", edges[i], edges[j]);
                         return true;
                     }
                 }

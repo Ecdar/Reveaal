@@ -13,7 +13,7 @@ pub fn make_input_enabled(
     let dimension = *(component.get_declarations().get_dimension()) + 1;
     let len = dimension * dimension;
     let mut new_edges: Vec<component::Edge> = vec![];
-
+    println!("Component name: {}", component.get_name());
     if let Some(inputs) = sys_decls
         .get_declarations()
         .get_input_actions()
@@ -26,8 +26,9 @@ pub fn make_input_enabled(
                 location,
             };
 
-            lib::rs_dbm_zero(&mut zone[0..len as usize], dimension);
-            lib::rs_dbm_up(&mut zone[0..len as usize], dimension);
+            lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
+            //lib::rs_dbm_zero(&mut zone[0..len as usize], dimension);
+            //lib::rs_dbm_up(&mut zone[0..len as usize], dimension);
 
             if let Some(invariant) = location.get_invariant() {
                 constraint_applyer::apply_constraints_to_state(
@@ -41,13 +42,39 @@ pub fn make_input_enabled(
             let mut full_federation_vec: Vec<*mut i32> = vec![];
             full_federation_vec.push(zone.as_mut_ptr());
 
-            'inputLoop: for input in inputs {
+            for input in inputs {
                 let input_edges =
                     component.get_next_edges(location, input, component::SyncType::Input);
                 let mut zones = vec![];
 
                 for edge in input_edges {
                     let mut guard_zone = zone.clone();
+                    let has_inv = if let Some(target_invariant) = component
+                        .get_location_by_name(edge.get_target_location())
+                        .get_invariant()
+                    {
+                        constraint_applyer::apply_constraints_to_state(
+                            target_invariant,
+                            &mut state,
+                            &mut guard_zone[0..len as usize],
+                            dimension,
+                        )
+                    } else {
+                        false
+                    };
+
+                    if let Some(_) = edge.get_update() {
+                        let update_clocks = edge.get_update_clocks();
+                        for clock in update_clocks {
+                            let clock_index =
+                                component.get_declarations().clocks.get(clock).unwrap();
+                            lib::rs_dbm_freeClock(
+                                &mut guard_zone[0..len as usize],
+                                dimension,
+                                *clock_index,
+                            );
+                        }
+                    }
 
                     let has_guard = if let Some(guard) = edge.get_guard() {
                         let res = constraint_applyer::apply_constraints_to_state(
@@ -61,50 +88,32 @@ pub fn make_input_enabled(
                         false
                     };
 
-                    let mut update_clocks = vec![];
-                    if let Some(_) = edge.get_update() {
-                        update_clocks = edge.get_update_clocks();
-                    }
-                    let has_inv = if let Some(target_invariant) = component
-                        .get_location_by_name(edge.get_target_location())
-                        .get_invariant()
-                    {
-                        let mut inv_clocks = vec![];
-                        get_inv_clocks(target_invariant, component, &mut inv_clocks);
-                        let mut should_apply_inv = false;
-                        for clock in &inv_clocks {
-                            if !update_clocks.contains(clock) {
-                                should_apply_inv = true
-                            }
-                        }
-                        let mut res = true;
-                        if should_apply_inv {
-                            res = constraint_applyer::apply_constraints_to_state(
-                                target_invariant,
-                                &mut state,
-                                &mut guard_zone[0..len as usize],
-                                dimension,
-                            );
-                        }
-                        res
-                    } else {
-                        false
-                    };
+                    //let mut update_clocks = vec![];
+                    //if let Some(_) = edge.get_update() {
+                    //    update_clocks = edge.get_update_clocks();
+                    //}
 
                     if !has_inv && !has_guard {
-                        continue 'inputLoop;
+                        zones.push(zone.clone());
+                    } else {
+                        zones.push(guard_zone);
                     }
-
-                    zones.push(guard_zone);
                 }
 
+                //println!("Found {} zones:", zones.len());
                 let mut federation_vec = vec![];
                 for zone in zones.iter_mut() {
+                    //representations::print_DBM(zone, dimension);
                     federation_vec.push(zone.as_mut_ptr());
                 }
-                let mut result_federation_vec: Vec<*const i32> = vec![];
+                //let mut result_federation_vec: Vec<*const i32> = vec![];
+                let result_federation_vec = lib::rs_dbm_fed_minus_fed(
+                    &mut full_federation_vec,
+                    &mut federation_vec,
+                    dimension,
+                );
 
-                if federation_vec.is_empty() {
+                /*if federation_vec.is_empty() {
                     for fed in full_federation_vec.clone() {
                         result_federation_vec.push(fed);
                     }
@@ -114,9 +123,12 @@ pub fn make_input_enabled(
                         &mut federation_vec,
                         dimension,
                     );
-                }
+                }*/
+
+                //println!("Found {} zones in fed", result_federation_vec.len());
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {
+                        //println!("Was null");
                         continue;
                     }
                     new_edges.push(component::Edge {
@@ -135,7 +147,17 @@ pub fn make_input_enabled(
             }
         }
     }
+    for edge in new_edges.iter() {
+        println!(
+            "{:?}->{:?}:: {:?} for {:?}",
+            edge.source_location, edge.target_location, edge.guard, edge.sync
+        );
+    }
     component.add_input_edges(&mut new_edges);
+    //println!("Adding {} new edges", new_edges.len());
+    //for edge in new_edges {
+    //    println!("{:?}", edge.guard);
+    //}
 }
 
 fn build_guard_from_zone(

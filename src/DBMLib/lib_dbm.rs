@@ -606,6 +606,20 @@ pub fn rs_dbm_update(dbm: &mut [i32], dimension: u32, var_index: u32, value: i32
     }
 }
 
+/// Free operation. Remove all constraints (lower and upper bounds) for a given clock, i.e., set them to infinity
+///
+/// # Arguments
+///
+/// * `dbm` - The DBM
+/// * `dimension` - The dimension of the dbm
+/// * `var_index` - The index of the clock to free
+///
+pub fn rs_dbm_freeClock(dbm: &mut [i32], dimension: u32, var_index: u32) {
+    unsafe {
+        dbm_freeClock(dbm.as_mut_ptr(), dimension, var_index);
+    }
+}
+
 /** Test only if dbm1 <= dbm2.
  * @param dbm1,dbm2: DBMs to be tested.
  * @param dim: dimension of the DBMs.
