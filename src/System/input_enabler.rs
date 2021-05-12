@@ -13,7 +13,7 @@ pub fn make_input_enabled(
     let dimension = *(component.get_declarations().get_dimension()) + 1;
     let len = dimension * dimension;
     let mut new_edges: Vec<component::Edge> = vec![];
-    println!("Component name: {}", component.get_name());
+    //println!("Component name: {}", component.get_name());
     if let Some(inputs) = sys_decls
         .get_declarations()
         .get_input_actions()
@@ -147,12 +147,12 @@ pub fn make_input_enabled(
             }
         }
     }
-    for edge in new_edges.iter() {
+    /*for edge in new_edges.iter() {
         println!(
             "{:?}->{:?}:: {:?} for {:?}",
             edge.source_location, edge.target_location, edge.guard, edge.sync
         );
-    }
+    }*/
     component.add_input_edges(&mut new_edges);
     //println!("Adding {} new edges", new_edges.len());
     //for edge in new_edges {
