@@ -14,7 +14,7 @@ jobs:
       - name: Checkout UDBM
         uses: actions/checkout@v2
         with:
-          repository: UPPAALModelChecker
+          repository: 'UPPAALModelChecker/UDBM'
           ref: '26482eb64e74d75be5ee647587a35549d453bf43'
           path: 'udbm'
       - name: Compile UDBM
@@ -25,6 +25,10 @@ jobs:
           make
           ./scripts/mergelibs.sh
           cp ./libs/libudbm.a ../dbm/libudbm.a
+      - name: Compile wrapper
+        run: |
+          cd dbm
+          ./recompile.sh
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
