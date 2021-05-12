@@ -24,7 +24,7 @@ jobs:
           ./configure
           make
           ./scripts/mergelibs.sh
-          cp ./libs/libudbm.a ../dbm/libudbm.a
+          cp ./lib/libudbm.a ../dbm/libudbm.a
       - name: Compile wrapper
         run: |
           cd dbm
