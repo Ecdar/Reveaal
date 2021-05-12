@@ -13,7 +13,6 @@ pub fn make_input_enabled(
     let dimension = *(component.get_declarations().get_dimension()) + 1;
     let len = dimension * dimension;
     let mut new_edges: Vec<component::Edge> = vec![];
-    //println!("Component name: {}", component.get_name());
     if let Some(inputs) = sys_decls
         .get_declarations()
         .get_input_actions()
@@ -27,9 +26,6 @@ pub fn make_input_enabled(
             };
 
             lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
-            //lib::rs_dbm_zero(&mut zone[0..len as usize], dimension);
-            //lib::rs_dbm_up(&mut zone[0..len as usize], dimension);
-
             if let Some(invariant) = location.get_invariant() {
                 constraint_applyer::apply_constraints_to_state(
                     invariant,
@@ -88,11 +84,6 @@ pub fn make_input_enabled(
                         false
                     };
 
-                    //let mut update_clocks = vec![];
-                    //if let Some(_) = edge.get_update() {
-                    //    update_clocks = edge.get_update_clocks();
-                    //}
-
                     if !has_inv && !has_guard {
                         zones.push(zone.clone());
                     } else {
@@ -100,35 +91,18 @@ pub fn make_input_enabled(
                     }
                 }
 
-                //println!("Found {} zones:", zones.len());
                 let mut federation_vec = vec![];
                 for zone in zones.iter_mut() {
-                    //representations::print_DBM(zone, dimension);
                     federation_vec.push(zone.as_mut_ptr());
                 }
-                //let mut result_federation_vec: Vec<*const i32> = vec![];
                 let result_federation_vec = lib::rs_dbm_fed_minus_fed(
                     &mut full_federation_vec,
                     &mut federation_vec,
                     dimension,
                 );
 
-                /*if federation_vec.is_empty() {
-                    for fed in full_federation_vec.clone() {
-                        result_federation_vec.push(fed);
-                    }
-                } else {
-                    result_federation_vec = lib::rs_dbm_fed_minus_fed(
-                        &mut full_federation_vec,
-                        &mut federation_vec,
-                        dimension,
-                    );
-                }*/
-
-                //println!("Found {} zones in fed", result_federation_vec.len());
                 for fed_zone in result_federation_vec {
                     if fed_zone == ptr::null() {
-                        //println!("Was null");
                         continue;
                     }
                     new_edges.push(component::Edge {
@@ -147,17 +121,7 @@ pub fn make_input_enabled(
             }
         }
     }
-    /*for edge in new_edges.iter() {
-        println!(
-            "{:?}->{:?}:: {:?} for {:?}",
-            edge.source_location, edge.target_location, edge.guard, edge.sync
-        );
-    }*/
     component.add_input_edges(&mut new_edges);
-    //println!("Adding {} new edges", new_edges.len());
-    //for edge in new_edges {
-    //    println!("{:?}", edge.guard);
-    //}
 }
 
 fn build_guard_from_zone(

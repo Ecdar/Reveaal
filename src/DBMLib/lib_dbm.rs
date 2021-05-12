@@ -27,8 +27,6 @@ pub const DBM_INF: i32 = i32::MAX - 1;
 /// dbm_init(dbm.as_mut_ptr(), 3);
 /// ```
 pub fn rs_dbm_is_valid(dbm: &mut [i32], dimension: u32) -> bool {
-    //println!("IN DBM IS VALID");
-    //representations::print_DBM(dbm, dimension);
     let first = dbm.get(0).unwrap();
     if first == &-1 {
         return false;
@@ -629,8 +627,6 @@ pub fn rs_dbm_freeClock(dbm: &mut [i32], dimension: u32, var_index: u32) {
  * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
  */
 pub fn rs_dbm_isSubsetEq(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -> bool {
-    //println!("printing from subseteq");
-    //representations::print_DBM(dbm1, dimension);
     unsafe { return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension) }
 }
 
