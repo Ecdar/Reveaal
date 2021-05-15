@@ -201,7 +201,7 @@ fn create_transition_combinations<'a>(
         let mut new_combs: Vec<Vec<(&Component, &Edge, usize)>> = vec![];
         for edge in edge_vec {
             if combinations.is_empty() {
-                let mut new_vec: Vec<(&Component, &Edge, usize)> = vec![(comp, edge, *state_index)];
+                let new_vec: Vec<(&Component, &Edge, usize)> = vec![(comp, edge, *state_index)];
                 new_combs.push(new_vec);
             } else {
                 let mut temp_combs = combinations.clone();
@@ -437,21 +437,6 @@ fn prepare_init_state(
     }
 }
 
-fn precheck_sys_rep(sys: &mut SystemRepresentation) -> bool {
-    sys.all_mut_components(&mut |comp: &mut Component| -> bool {
-        let clock_clone = comp.get_declarations().get_clocks().clone();
-
-        let len = comp.get_mut_declaration().get_clocks().len();
-        comp.get_mut_declaration().dimension = 1 + len as u32;
-
-        comp.get_mut_declaration().reset_clock_indices();
-
-        let res = comp.check_consistency(true);
-        comp.get_mut_declaration().clocks = clock_clone;
-        res
-    })
-}
-
 fn check_preconditions(
     sys1: &mut SystemRepresentation,
     sys2: &mut SystemRepresentation,
@@ -459,7 +444,7 @@ fn check_preconditions(
     _inputs2: &[String],
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> bool {
-    if !(precheck_sys_rep(sys2) && precheck_sys_rep(sys1)) {
+    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
         return false;
     }
     let outputs2 = sys2.get_output_actions(&sys_decls);
@@ -482,44 +467,6 @@ fn check_preconditions(
     }
 
     true
-}
-
-pub fn find_extra_input_output(
-    sys1: &SystemRepresentation,
-    sys2: &SystemRepresentation,
-    outputs1: &[String],
-    inputs2: &[String],
-    sys_decls: &system_declarations::SystemDeclarations,
-) -> (Vec<String>, Vec<String>) {
-    let inputs1 = sys1.get_input_actions(&sys_decls);
-    let outputs2 = sys2.get_output_actions(&sys_decls);
-
-    let mut extra_o: Vec<String> = vec![];
-    for o1 in outputs1 {
-        let mut found_match = false;
-        for o2 in &outputs2 {
-            if o1 == o2 {
-                found_match = true;
-            }
-        }
-        if !found_match {
-            extra_o.push(o1.clone());
-        }
-    }
-    let mut extra_i: Vec<String> = vec![];
-    for i2 in inputs2 {
-        let mut found_match = false;
-        for i1 in &inputs1 {
-            if i1 == i2 {
-                found_match = true;
-            }
-        }
-        if !found_match {
-            extra_i.push(i2.clone());
-        }
-    }
-
-    (extra_o, extra_i)
 }
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
