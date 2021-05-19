@@ -617,10 +617,6 @@ impl Component {
                         dimension,
                     );
                 }
-                //println!("State_i DBM:");
-                //representations::print_DBM(state_i.get_zone(), full_state.get_dimensions());
-                //println!("State_j DBM:");
-                //representations::print_DBM(state_j.get_zone(), full_state.get_dimensions());
 
                 if lib::rs_dbm_is_valid(state_i.get_zone(), dimension)
                     && lib::rs_dbm_is_valid(state_j.get_zone(), dimension)
