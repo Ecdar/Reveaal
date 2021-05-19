@@ -427,7 +427,6 @@ impl Component {
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
     pub fn is_deterministic(&self) -> bool {
-        //return true;
         let mut passed_list: Vec<FullState> = vec![];
         let mut waiting_list: Vec<FullState> = vec![];
 
