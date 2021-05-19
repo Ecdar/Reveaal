@@ -1,5 +1,4 @@
 on:
-  - push
   - pull_request
 
 name: Validation
@@ -20,7 +19,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features
+          args: -- --test-threads 1
 
   fmt:
     name: Check code is formatted
@@ -54,4 +53,3 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features

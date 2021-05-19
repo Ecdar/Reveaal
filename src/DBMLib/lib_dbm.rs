@@ -213,11 +213,10 @@ pub fn rs_dbm_satisfies_i_EQUAL_j(
         );
         return if BOOL_TRUE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
             true
-        } else if BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
-            false
-        } else if BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i {
-            false
-        } else if BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i {
+        } else if (BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i)
+            || (BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+            || (BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+        {
             false
         } else {
             panic!(
@@ -278,11 +277,10 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
         );
         return if BOOL_TRUE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
             true
-        } else if BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
-            false
-        } else if BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i {
-            false
-        } else if BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i {
+        } else if (BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i)
+            || (BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+            || (BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+        {
             false
         } else {
             panic!(
