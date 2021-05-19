@@ -626,11 +626,6 @@ impl Component {
                     && lib::rs_dbm_is_valid(state_j.get_zone(), dimension)
                 {
                     if lib::rs_dmb_intersection(state_i.get_zone(), state_j.get_zone(), dimension) {
-                        println!("State_i DBM: ");
-                        representations::print_DBM(state_i.get_zone(), full_state.get_dimensions());
-                        println!("intersects State_j DBM:");
-                        representations::print_DBM(state_j.get_zone(), full_state.get_dimensions());
-                        println!("for edges {:?} and {:?}", edges[i], edges[j]);
                         return true;
                     }
                 }
