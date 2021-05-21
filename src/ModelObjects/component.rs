@@ -1,6 +1,8 @@
 use crate::DBMLib::lib;
 use crate::EdgeEval::constraint_applyer;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
+use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
@@ -756,6 +758,20 @@ pub struct Edge {
 }
 
 impl Edge {
+    pub fn apply_update(&self, state: &mut State, zone: &mut [i32], dim: u32) {
+        if let Some(updates) = self.get_update() {
+            updater(updates, state, zone, dim);
+        }
+    }
+
+    pub fn apply_guard(&self, state: &State, zone: &mut [i32], dim: u32) -> bool {
+        return if let Some(guards) = self.get_guard() {
+            apply_constraints_to_state(guards, state, zone, dim)
+        } else {
+            true
+        };
+    }
+
     pub fn get_source_location(&self) -> &String {
         &self.source_location
     }
@@ -802,68 +818,6 @@ impl Channel {
     }
 }
 
-#[derive(Clone)]
-pub struct StatePair<'a> {
-    pub states1: Vec<State<'a>>,
-    pub states2: Vec<State<'a>>,
-    pub zone: [i32; 1000],
-    pub dimensions: u32,
-}
-
-impl<'b> StatePair<'b> {
-    pub fn get_states1(&self) -> &Vec<State> {
-        &self.states1
-    }
-
-    pub fn get_states2(&self) -> &Vec<State> {
-        &self.states2
-    }
-
-    pub fn get_mut_states1(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states1
-    }
-
-    pub fn get_mut_states2(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states2
-    }
-
-    pub fn get_dimensions(&self) -> u32 {
-        self.dimensions.clone()
-    }
-
-    pub fn set_dimensions(&mut self, dim: u32) {
-        self.dimensions = dim;
-    }
-
-    pub fn get_zone(&mut self) -> &mut [i32] {
-        let dim = self.get_dimensions();
-        let len = dim * dim;
-        &mut self.zone[0..len as usize]
-    }
-
-    pub fn get_dbm_clone(&self) -> [i32; 1000] {
-        return self.zone.clone();
-    }
-
-    pub fn set_dbm(&mut self, dbm: [i32; 1000]) {
-        self.zone = dbm;
-    }
-
-    pub fn init_dbm(&mut self) {
-        let mut dimensions = 1;
-        for state in self.get_states1() {
-            dimensions += state.get_dimensions();
-        }
-
-        for state in self.get_states2() {
-            dimensions += state.get_dimensions();
-        }
-        self.dimensions = dimensions;
-        lib::rs_dbm_zero(self.get_zone(), dimensions);
-        lib::rs_dbm_up(self.get_zone(), dimensions);
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct State<'a> {
     pub location: &'a Location,
@@ -872,6 +826,21 @@ pub struct State<'a> {
 
 #[allow(dead_code)]
 impl<'a> State<'a> {
+    pub fn create(location: &Location, declarations: Declarations) -> State {
+        State {
+            location,
+            declarations,
+        }
+    }
+
+    pub fn apply_invariant(&self, zone: &mut [i32], dim: u32) -> bool {
+        if let Some(inv) = self.get_location().get_invariant() {
+            apply_constraints_to_state(&inv, self, zone, dim)
+        } else {
+            true
+        }
+    }
+
     pub fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }
