@@ -12,8 +12,8 @@ mod Big_refinement {
         // should fail because left side has more inputs
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Ref1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Comp1").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -23,8 +23,8 @@ mod Big_refinement {
     fn testComp1NotRefinesRef1() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Comp1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Ref1").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -34,8 +34,8 @@ mod Big_refinement {
     fn testRef1RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Ref1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Ref1").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -45,8 +45,8 @@ mod Big_refinement {
     fn testComp1RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Comp1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Comp1").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());

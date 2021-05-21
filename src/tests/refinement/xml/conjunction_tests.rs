@@ -13,6 +13,11 @@ mod conjunction_tests {
         //passes the test but for wrong reasons ?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
+        
+        assert_eq!(optimized_components.get(0).unwrap().get_name(), "P0");
+        assert_eq!(optimized_components.get(1).unwrap().get_name(), "P1");
+        assert_eq!(optimized_components.get(2).unwrap().get_name(), "P2");
+
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
                 Box::from(SystemRepresentation::Component(
@@ -34,6 +39,12 @@ mod conjunction_tests {
         //right side could not match a output from left side o1: ["o", "o1", "o2", "k", "o", "o1", "o2", "k", "go"], o2 ["o", "o1", "o2", "go"]
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
+
+        assert_eq!(optimized_components.get(3).unwrap().get_name(), "P3");
+        assert_eq!(optimized_components.get(4).unwrap().get_name(), "P4");
+        assert_eq!(optimized_components.get(5).unwrap().get_name(), "P5");
+        assert_eq!(optimized_components.get(6).unwrap().get_name(), "P6");
+
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
                 Box::from(SystemRepresentation::Composition(
@@ -59,6 +70,12 @@ mod conjunction_tests {
         //tests fails with weird DBM's, Parsing error ?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
+
+        assert_eq!(optimized_components.get(7).unwrap().get_name(), "P7");
+        assert_eq!(optimized_components.get(8).unwrap().get_name(), "P8");
+        assert_eq!(optimized_components.get(9).unwrap().get_name(), "P9");
+        assert_eq!(optimized_components.get(10).unwrap().get_name(), "P10");
+
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
                 Box::from(SystemRepresentation::Conjunction(
@@ -84,6 +101,11 @@ mod conjunction_tests {
         //passes the test but for wrong reasons ?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
+
+        assert_eq!(optimized_components.get(11).unwrap().get_name(), "P11");
+        assert_eq!(optimized_components.get(12).unwrap().get_name(), "P12");
+        assert_eq!(optimized_components.get(13).unwrap().get_name(), "P13");
+
         assert!(!refine::check_refinement(
             SystemRepresentation::Conjunction(
                 Box::from(SystemRepresentation::Component(
