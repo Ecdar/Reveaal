@@ -13,7 +13,7 @@ mod conjunction_tests {
         //passes the test but for wrong reasons ?
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        
+
         assert_eq!(optimized_components.get(0).unwrap().get_name(), "P0");
         assert_eq!(optimized_components.get(1).unwrap().get_name(), "P1");
         assert_eq!(optimized_components.get(2).unwrap().get_name(), "P2");

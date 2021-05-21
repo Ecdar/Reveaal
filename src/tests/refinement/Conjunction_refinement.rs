@@ -202,7 +202,6 @@ mod Conjunction_refinement {
         .unwrap());
     }
 
-    
     #[test]
     fn test1NestedConjRefinesT12() {
         let (automataList, decl) = setup(PATH.to_string());
