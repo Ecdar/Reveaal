@@ -39,6 +39,14 @@ impl<'b> StatePair<'b> {
         }
     }
 
+    pub fn get_states(&self, is_states1: bool) -> (&Vec<State<'b>>, &Vec<State<'b>>) {
+        if is_states1 {
+            (&self.states1, &self.states2)
+        } else {
+            (&self.states2, &self.states1)
+        }
+    }
+
     pub fn get_dimensions(&self) -> u32 {
         self.dimensions
     }
