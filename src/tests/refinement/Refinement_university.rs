@@ -63,6 +63,7 @@ mod Refinement_university {
         .unwrap());
     }
 
+    #[ignore]
     #[test]
     fn testResRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
