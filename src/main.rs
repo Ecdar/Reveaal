@@ -53,13 +53,11 @@ pub fn main() {
                     let inputs2 = sys2.get_input_actions(&system_declarations);
                     let outputs1 = system_rep_tuple.0.get_output_actions(&system_declarations);
 
-                    let (extra_o, extra_i) = refine::find_extra_input_output(
-                        &system_rep_tuple.0,
-                        &sys2,
-                        &outputs1,
-                        &inputs2,
-                        &system_declarations,
-                    );
+                    let extra_i = system_rep_tuple
+                        .0
+                        .find_matching_input(&system_declarations, &inputs2);
+                    let extra_o = sys2.find_matching_output(&system_declarations, &outputs1);
+
                     println!("extra outputs {:?}", extra_o);
                     println!("extra inputs {:?}", extra_i);
                 }

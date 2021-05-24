@@ -214,6 +214,53 @@ impl<'a> SystemRepresentation {
         actions
     }
 
+
+    pub fn find_matching_input(
+        &self,
+        sys_decls: &SystemDeclarations,
+        inputs2: &[String],
+    ) -> Vec<String> {
+        let inputs1 = self.get_input_actions(&sys_decls);
+
+        let mut matching_i: Vec<String> = vec![];
+        for i2 in inputs2 {
+            let mut found_match = false;
+            for i1 in &inputs1 {
+                if i1 == i2 {
+                    found_match = true;
+                }
+            }
+            if !found_match {
+                matching_i.push(i2.clone());
+            }
+        }
+
+        matching_i
+    }
+
+    pub fn find_matching_output(
+        &self,
+        sys_decls: &SystemDeclarations,
+        outputs1: &[String],
+    ) -> Vec<String> {
+        let outputs2 = self.get_output_actions(&sys_decls);
+
+        let mut matching_o: Vec<String> = vec![];
+        for o1 in outputs1 {
+            let mut found_match = false;
+            for o2 in &outputs2 {
+                if o1 == o2 {
+                    found_match = true;
+                }
+            }
+            if !found_match {
+                matching_o.push(o1.clone());
+            }
+        }
+
+        matching_o
+    }
+
     pub fn get_initial_states(&'a self) -> Vec<State<'a>> {
         let mut states = vec![];
         self.all_components(&mut |comp: &Component| -> bool {
@@ -230,6 +277,21 @@ impl<'a> SystemRepresentation {
         });
 
         states
+    }
+
+    pub fn precheck_sys_rep(&mut self) -> bool {
+        self.all_mut_components(&mut |comp: &mut Component| -> bool {
+            let clock_clone = comp.get_declarations().get_clocks().clone();
+
+            let len = comp.get_mut_declaration().get_clocks().len();
+            comp.get_mut_declaration().dimension = 1 + len as u32;
+
+            comp.get_mut_declaration().reset_clock_indices();
+
+            let res = comp.check_consistency(true);
+            comp.get_mut_declaration().clocks = clock_clone;
+            res
+        })
     }
 }
 

@@ -770,8 +770,7 @@ impl Edge {
 
     pub fn apply_guard(&self, state: &State, zone: &mut [i32], dim: u32) -> bool {
         return if let Some(guards) = self.get_guard() {
-            let success = apply_constraints_to_state(guards, state, zone, dim);
-            success
+            apply_constraints_to_state(guards, state, zone, dim)
         } else {
             true
         };
@@ -832,10 +831,10 @@ pub struct State<'a> {
 #[allow(dead_code)]
 impl<'a> State<'a> {
     pub fn create(location: &Location, declarations: Declarations) -> State {
-        return State {
+        State {
             location,
             declarations,
-        };
+        }
     }
 
     pub fn apply_invariant(&self, zone: &mut [i32], dim: u32) -> bool {
