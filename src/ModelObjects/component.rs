@@ -1,6 +1,8 @@
 use crate::DBMLib::dbm::Zone;
 use crate::EdgeEval::constraint_applyer;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
+use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
@@ -194,6 +196,7 @@ impl Component {
     /// method used to verify that the individual component is consistent e.i deterministic etc.
     pub fn check_consistency(&self, prune: bool) -> bool {
         if !self.is_deterministic() {
+            println!("NOT DETERMINISTIC");
             return false;
         }
 
@@ -208,15 +211,12 @@ impl Component {
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let zone = Zone::new(dimension);
+        let zone = Zone::init(dimension);
 
         let mut fullSt = create_full_state(initial_state, zone);
-        fullSt.zone.zero();
-        fullSt.zone.up();
         if let Some(update_i) = fullSt.state.location.get_invariant() {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, dimension);
         }
-        println!("start Dim is: {:?}", fullSt.zone.dimension);
         return self.consistency_helper(fullSt, prune, &mut passed_list);
     }
 
@@ -519,6 +519,10 @@ impl Component {
                         }
                     }
                 }
+
+                if edges[i].get_sync() != edges[j].get_sync() {
+                    continue;
+                }
                 let location_source = self
                     .get_locations()
                     .into_iter()
@@ -598,7 +602,6 @@ impl Component {
                         dimension,
                     );
                 }
-                println!("State_j DBM: {}", state_j.zone);
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
                     if state_i.zone.intersects(&mut state_j.zone) {
@@ -721,6 +724,20 @@ pub struct Edge {
 }
 
 impl Edge {
+    pub fn apply_update(&self, state: &mut State, zone: &mut Zone) {
+        if let Some(updates) = self.get_update() {
+            updater(updates, state, zone);
+        }
+    }
+
+    pub fn apply_guard(&self, state: &State, zone: &mut Zone) -> bool {
+        return if let Some(guards) = self.get_guard() {
+            apply_constraints_to_state(guards, state, zone)
+        } else {
+            true
+        };
+    }
+
     pub fn get_source_location(&self) -> &String {
         &self.source_location
     }
@@ -767,47 +784,6 @@ impl Channel {
     }
 }
 
-#[derive(Clone)]
-pub struct StatePair<'a> {
-    pub states1: Vec<State<'a>>,
-    pub states2: Vec<State<'a>>,
-    pub zone: Zone,
-}
-
-impl<'b> StatePair<'b> {
-    pub fn get_states1(&self) -> &Vec<State> {
-        &self.states1
-    }
-
-    pub fn get_states2(&self) -> &Vec<State> {
-        &self.states2
-    }
-
-    pub fn get_mut_states1(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states1
-    }
-
-    pub fn get_mut_states2(&mut self) -> &mut Vec<State<'b>> {
-        &mut self.states2
-    }
-
-    pub fn init_dbm(&mut self) {
-        let mut dimensions = 1;
-        for state in self.get_states1() {
-            dimensions += state.get_dimensions();
-        }
-
-        for state in self.get_states2() {
-            dimensions += state.get_dimensions();
-        }
-
-        self.zone = Zone::new(dimensions);
-
-        self.zone.zero();
-        self.zone.up();
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct State<'a> {
     pub location: &'a Location,
@@ -816,6 +792,21 @@ pub struct State<'a> {
 
 #[allow(dead_code)]
 impl<'a> State<'a> {
+    pub fn create(location: &Location, declarations: Declarations) -> State {
+        State {
+            location,
+            declarations,
+        }
+    }
+
+    pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
+        if let Some(inv) = self.get_location().get_invariant() {
+            apply_constraints_to_state(&inv, self, zone)
+        } else {
+            true
+        }
+    }
+
     pub fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }

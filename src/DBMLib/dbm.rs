@@ -177,6 +177,10 @@ impl Zone {
         lib::rs_dbm_update(self.matrix.as_mut_slice(), self.dimension, var_index, value)
     }
 
+    pub fn free_clock(&mut self, clock_index: u32) {
+        lib::rs_dbm_freeClock(self.matrix.as_mut_slice(), self.dimension, clock_index);
+    }
+
     pub fn is_subset_eq(&mut self, other: &mut Self) -> bool {
         assert_eq!(
             self.dimension, other.dimension,
