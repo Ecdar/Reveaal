@@ -445,9 +445,9 @@ fn check_preconditions(
     let outputs1 = sys1.get_output_actions(&sys_decls);
     let outputs2 = sys2.get_output_actions(&sys_decls);
 
-    for o1 in &outputs1 {
+    for o2 in &outputs2 {
         let mut found_match = false;
-        for o2 in &outputs2 {
+        for o1 in &outputs1 {
             if o1 == o2 {
                 found_match = true;
                 break;
