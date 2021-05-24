@@ -214,7 +214,6 @@ impl<'a> SystemRepresentation {
         actions
     }
 
-
     pub fn find_matching_input(
         &self,
         sys_decls: &SystemDeclarations,
