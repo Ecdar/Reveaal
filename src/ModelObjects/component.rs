@@ -155,7 +155,8 @@ impl Component {
                     .into_iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
-                            && (e.get_sync() == (channel_name.to_string()).as_str())
+                            && (e.get_sync() == (channel_name.to_string()).as_str()
+                                || e.get_sync() == "*")
                     })
                     .collect();
                 result
@@ -166,7 +167,8 @@ impl Component {
                     .into_iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
-                            && (e.get_sync() == (channel_name.to_string()).as_str())
+                            && (e.get_sync() == (channel_name.to_string()).as_str()
+                                || e.get_sync() == "*")
                     })
                     .collect();
                 result
