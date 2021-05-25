@@ -5,17 +5,17 @@ mod test {
 
     #[test]
     fn testZoneValid1() {
-        assert!(Zone::from(vec![1, 1, lib::DBM_INF, 1]).is_valid());
+        assert!(Zone::from(vec![1, 1, lib::DBM_INF, 1], 2).is_valid());
     }
 
     #[test]
     fn testZoneValid2() {
-        assert!(Zone::from(vec![1, 1, 1, 1]).is_valid());
+        assert!(Zone::from(vec![1, 1, 1, 1], 2).is_valid());
     }
 
     #[test]
     fn testZoneValid3() {
-        assert!(Zone::from(vec![1, -3, 11, 1]).is_valid());
+        assert!(Zone::from(vec![1, -3, 11, 1], 2).is_valid());
     }
 
     #[test]
@@ -30,7 +30,7 @@ mod test {
 
     #[test]
     fn testZoneGetConstraint1() {
-        let mut zone = Zone::from(vec![1, -3, 11, 1]).clone();
+        let mut zone = Zone::from(vec![1, -3, 11, 1], 2).clone();
         assert_eq!(zone.get_constraint(0, 0), (false, 0));
         assert_eq!(zone.get_constraint(0, 1), (false, -2));
         assert_eq!(zone.get_constraint(1, 0), (false, 5));

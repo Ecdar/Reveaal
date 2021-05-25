@@ -8,8 +8,7 @@ pub struct Zone {
 }
 
 impl Zone {
-    pub fn from(vec: Vec<i32>) -> Self {
-        let dim = (vec.len() as f64).sqrt() as u32;
+    pub fn from(vec: Vec<i32>, dim: u32) -> Self {
         assert_eq!((dim * dim) as usize, vec.len());
 
         Self {
