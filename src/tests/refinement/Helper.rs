@@ -2,9 +2,10 @@ use crate::read_input;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
+use std::collections::HashMap;
 use std::{fs, io};
 
-pub fn setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
+pub fn setup(mut folder_path: String) -> (HashMap<String, Component>, SystemDeclarations) {
     println!("refTest()");
     //let mut folder_path: String = "../samples/xml/delayRefinement.xml".to_string();
     //let mut folder_path: String = "samples/json/AG".to_string();
@@ -29,26 +30,16 @@ pub fn setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
 
     let (comps, system_declarations, _queries) = read_input(paths, components).unwrap();
 
-    //let mut optimized_components = vec![];
+    let optimized_comps = optimize_components(comps, &system_declarations);
 
-    // for comp in comps {
-    //     let mut optimized_comp = comp.create_edge_io_split();
-    //     println!("COMPONENT: {:?}", optimized_comp.name);
-    //     println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
-    //     input_enabler::make_input_enabled(&mut optimized_comp, system_declarations.borrow());
-    //     println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
-    //     println!("-------------------");
-    //     optimized_components.push(optimized_comp);
-    // }
+    let mut comp_map = HashMap::new();
+    for comp in optimized_comps {
+        comp_map.insert(comp.get_name().clone(), comp);
+    }
 
-    // refine::check_refinement(ModelObjects::representations::SystemRepresentation::Component(optimized_components.get(0).unwrap().clone()),
-    //                          ModelObjects::representations::SystemRepresentation::Component(optimized_components.get(0).unwrap().clone()),
-    //                          system_declarations.borrow());
-    (
-        optimize_components(comps, &system_declarations),
-        system_declarations.clone(),
-    )
+    (comp_map, system_declarations.clone())
 }
+
 pub fn optimize_components(
     automataList: Vec<Component>,
     decl: &SystemDeclarations,

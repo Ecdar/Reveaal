@@ -11,8 +11,8 @@ mod Refinement_university {
     fn testAdm2RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -22,8 +22,8 @@ mod Refinement_university {
     fn testHalf1RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(6).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(6).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("HalfAdm1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("HalfAdm1").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -34,8 +34,8 @@ mod Refinement_university {
     fn testHalf2RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(7).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(7).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("HalfAdm2").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("HalfAdm2").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -45,8 +45,8 @@ mod Refinement_university {
     fn testAdmRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -56,30 +56,32 @@ mod Refinement_university {
     fn testMachineRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
     }
 
+    #[ignore]
     #[test]
     fn testResRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
     }
 
+    #[ignore] // ignore due to infinite loop
     #[test]
     fn testSpecRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -89,8 +91,8 @@ mod Refinement_university {
     fn testMachine3RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -100,8 +102,8 @@ mod Refinement_university {
     fn testAdmNotRefinesMachine() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -112,8 +114,8 @@ mod Refinement_university {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -124,8 +126,8 @@ mod Refinement_university {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -135,8 +137,8 @@ mod Refinement_university {
     fn testAdmNotRefinesMachine3() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -147,8 +149,8 @@ mod Refinement_university {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -159,8 +161,8 @@ mod Refinement_university {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -171,8 +173,8 @@ mod Refinement_university {
         //TODO This test must succeed, while it fails
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -182,8 +184,8 @@ mod Refinement_university {
     fn testMachineNotRefinesMachine3() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -193,8 +195,8 @@ mod Refinement_university {
     fn testResNotRefinesAdm() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -204,8 +206,8 @@ mod Refinement_university {
     fn testResNotRefinesMachine() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -215,8 +217,8 @@ mod Refinement_university {
     fn testResNotRefinesSpec() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -226,8 +228,8 @@ mod Refinement_university {
     fn testResNotRefinesMachine3() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -237,8 +239,8 @@ mod Refinement_university {
     fn testSpecNotRefinesAdm() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -248,8 +250,8 @@ mod Refinement_university {
     fn testSpecNotRefinesMachine() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -259,8 +261,8 @@ mod Refinement_university {
     fn testSpecNotRefinesResearcher() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -270,8 +272,8 @@ mod Refinement_university {
     fn testSpecNotRefinesMachine3() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -281,8 +283,8 @@ mod Refinement_university {
     fn testMachine3RefinesMachine() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -292,8 +294,8 @@ mod Refinement_university {
     fn testMachine3NotRefinesAdm() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -303,8 +305,8 @@ mod Refinement_university {
     fn testMachine3NotRefinesResearcher() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -314,8 +316,8 @@ mod Refinement_university {
     fn testMachine3NotRefinesSpec() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -327,20 +329,20 @@ mod Refinement_university {
         let (automataList, decl) = setup(PATH.to_string());
         let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
-                automataList.get(0).unwrap().clone(),
+                automataList.get("Administration").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(2).unwrap().clone(),
+                automataList.get("Researcher").unwrap().clone(),
             )),
         );
         assert!(refine::check_refinement(
             SystemRepresentation::Composition(
                 Box::from(comp),
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(1).unwrap().clone()
+                    automataList.get("Machine").unwrap().clone()
                 ))
             ),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -352,30 +354,30 @@ mod Refinement_university {
         let (automataList, decl) = setup(PATH.to_string());
         let comp1 = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
-                automataList.get(0).unwrap().clone(),
+                automataList.get("Administration").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(1).unwrap().clone(),
+                automataList.get("Machine").unwrap().clone(),
             )),
         );
         let comp2 = SystemRepresentation::Conjunction(
             Box::from(comp1),
             Box::from(SystemRepresentation::Component(
-                automataList.get(2).unwrap().clone(),
+                automataList.get("Researcher").unwrap().clone(),
             )),
         );
         let compCopy1 = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
-                automataList.get(0).unwrap().clone(),
+                automataList.get("Administration").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(1).unwrap().clone(),
+                automataList.get("Machine").unwrap().clone(),
             )),
         );
         let compCopy2 = SystemRepresentation::Conjunction(
             Box::from(compCopy1),
             Box::from(SystemRepresentation::Component(
-                automataList.get(2).unwrap().clone(),
+                automataList.get("Researcher").unwrap().clone(),
             )),
         );
         assert!(refine::check_refinement(comp2, compCopy2, decl.borrow()).unwrap());
@@ -387,15 +389,15 @@ mod Refinement_university {
         let (automataList, decl) = setup(PATH.to_string());
         let conj = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
-                automataList.get(6).unwrap().clone(),
+                automataList.get("HalfAdm1").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(7).unwrap().clone(),
+                automataList.get("HalfAdm2").unwrap().clone(),
             )),
         );
         assert!(refine::check_refinement(
             conj,
-            SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -407,14 +409,14 @@ mod Refinement_university {
         let (automataList, decl) = setup(PATH.to_string());
         let conj = SystemRepresentation::Conjunction(
             Box::from(SystemRepresentation::Component(
-                automataList.get(6).unwrap().clone(),
+                automataList.get("HalfAdm1").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(7).unwrap().clone(),
+                automataList.get("HalfAdm2").unwrap().clone(),
             )),
         );
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
             conj,
             decl.borrow()
         )

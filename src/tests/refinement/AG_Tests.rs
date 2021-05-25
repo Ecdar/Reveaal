@@ -11,8 +11,8 @@ mod AG_Tests {
     fn ARefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A_Good").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A_Good").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -22,8 +22,8 @@ mod AG_Tests {
     fn GRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -33,8 +33,8 @@ mod AG_Tests {
     fn QRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -44,8 +44,8 @@ mod AG_Tests {
     fn ImpRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -55,8 +55,8 @@ mod AG_Tests {
     fn AaRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -69,18 +69,18 @@ mod AG_Tests {
         assert!(!refine::check_refinement(
             SystemRepresentation::Composition(
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(0).unwrap().clone()
+                    automataList.get("A").unwrap().clone()
                 )),
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(1).unwrap().clone()
+                    automataList.get("G").unwrap().clone()
                 ))
             ),
             SystemRepresentation::Composition(
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(0).unwrap().clone()
+                    automataList.get("A").unwrap().clone()
                 )),
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(3).unwrap().clone()
+                    automataList.get("Imp").unwrap().clone()
                 ))
             ),
             decl.borrow()
@@ -95,18 +95,18 @@ mod AG_Tests {
         assert!(!refine::check_refinement(
             SystemRepresentation::Composition(
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(0).unwrap().clone()
+                    automataList.get("A").unwrap().clone()
                 )),
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(3).unwrap().clone()
+                    automataList.get("Imp").unwrap().clone()
                 ))
             ),
             SystemRepresentation::Composition(
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(0).unwrap().clone()
+                    automataList.get("A").unwrap().clone()
                 )),
                 Box::from(SystemRepresentation::Component(
-                    automataList.get(1).unwrap().clone()
+                    automataList.get("G").unwrap().clone()
                 ))
             ),
             decl.borrow()
@@ -119,8 +119,8 @@ mod AG_Tests {
         // should fail because right side has more outputs
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -130,8 +130,8 @@ mod AG_Tests {
     fn ImpRefinesG() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -141,8 +141,8 @@ mod AG_Tests {
     fn GRefinesQ() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -152,8 +152,8 @@ mod AG_Tests {
     fn QRefinesG() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -164,8 +164,8 @@ mod AG_Tests {
         // should fail because right side has more outputs
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -175,8 +175,8 @@ mod AG_Tests {
     fn ImpRefinesQ() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -187,8 +187,8 @@ mod AG_Tests {
         // should fail because right side has more inputs
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());

@@ -12,15 +12,15 @@ mod Refinement_delay_add {
         let (automataList, decl) = setup(PATH.to_string());
         let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
-                automataList.get(0).unwrap().clone(),
+                automataList.get("A1").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(1).unwrap().clone(),
+                automataList.get("A2").unwrap().clone(),
             )),
         );
         assert!(!refine::check_refinement(
             comp,
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("B").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -30,8 +30,8 @@ mod Refinement_delay_add {
     fn C1NotRefinesC2() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(3).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(4).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("C1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("C2").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -42,8 +42,8 @@ mod Refinement_delay_add {
         // should fail because outputs are different
         let (automataList, decl) = setup(PATH.to_string());
         assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(5).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(6).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("D1").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("D2").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());

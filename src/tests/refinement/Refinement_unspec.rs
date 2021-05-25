@@ -11,8 +11,8 @@ mod Refinement_unspec {
     fn testARefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(0).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -22,8 +22,8 @@ mod Refinement_unspec {
     fn testAaRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(1).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -33,8 +33,8 @@ mod Refinement_unspec {
     fn testBRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("B").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("B").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
@@ -46,15 +46,15 @@ mod Refinement_unspec {
         let (automataList, decl) = setup(PATH.to_string());
         let comp = SystemRepresentation::Composition(
             Box::from(SystemRepresentation::Component(
-                automataList.get(0).unwrap().clone(),
+                automataList.get("A").unwrap().clone(),
             )),
             Box::from(SystemRepresentation::Component(
-                automataList.get(1).unwrap().clone(),
+                automataList.get("AA").unwrap().clone(),
             )),
         );
         assert!(!refine::check_refinement(
             comp,
-            SystemRepresentation::Component(automataList.get(2).unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("B").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());

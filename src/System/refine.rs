@@ -128,10 +128,12 @@ fn create_new_state_pairs<'a>(
 ) -> bool {
     let dim = curr_pair.zone.dimension;
 
+    let (states1, states2) = curr_pair.get_states(is_state1);
+
     //create guard zones left
     let mut guard_zones_left = vec![];
     for (_, edge_vec1, state_index) in transitions1 {
-        let state = &curr_pair.get_states1()[*state_index];
+        let state = &states1[*state_index];
         for edge in edge_vec1 {
             let mut zone = curr_pair.zone.clone();
 
@@ -145,7 +147,7 @@ fn create_new_state_pairs<'a>(
     //Create guard zones right
     let mut guard_zones_right = vec![];
     for (_, edge_vec2, state_index) in transitions2 {
-        let state = &curr_pair.get_states2()[*state_index];
+        let state = &states2[*state_index];
         for edge in edge_vec2 {
             let mut zone = curr_pair.zone.clone();
 
@@ -474,7 +476,7 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             }
         }
 
-        for i in 0..passed_state_pair.get_states1().len() {
+        for i in 0..passed_state_pair.get_states2().len() {
             if passed_state_pair.get_states2()[i].get_location().get_id()
                 != state_pair.get_states2()[i].get_location().get_id()
             {
