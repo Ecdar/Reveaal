@@ -110,7 +110,7 @@ fn build_guard_from_zone(
         let (raw_lower_rel, raw_lower_val) = zone.get_constraint(0, *index);
 
         // lower bound must be different from 1 (==0)
-        if !(raw_lower_rel && raw_lower_val == 0) {
+        if !(!raw_lower_rel && raw_lower_val == 0) {
             if raw_lower_rel {
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Int((-1) * raw_lower_val)),
