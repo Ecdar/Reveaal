@@ -1,7 +1,7 @@
 use crate::DBMLib::lib;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Zone {
     pub(crate) dimension: u32,
     pub(in crate::DBMLib) matrix: Vec<i32>,
@@ -89,8 +89,8 @@ impl Zone {
         lib::rs_dbm_constrain1(
             self.matrix.as_mut_slice(),
             self.dimension,
-            var_index_j,
             var_index_i,
+            var_index_j,
             constraint,
         )
     }
@@ -99,8 +99,8 @@ impl Zone {
         lib::rs_dbm_add_LTE_constraint(
             self.matrix.as_mut_slice(),
             self.dimension,
-            var_index_j,
             var_index_i,
+            var_index_j,
             bound,
         )
     }
@@ -109,8 +109,8 @@ impl Zone {
         lib::rs_dbm_add_LT_constraint(
             self.matrix.as_mut_slice(),
             self.dimension,
-            var_index_j,
             var_index_i,
+            var_index_j,
             bound,
         )
     }
@@ -119,8 +119,8 @@ impl Zone {
         lib::rs_dbm_add_EQ_constraint(
             self.matrix.as_mut_slice(),
             self.dimension,
-            var_index_j,
             var_index_i,
+            var_index_j,
         )
     }
 
@@ -259,7 +259,7 @@ impl Display for Zone {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Federation {
     zones: Vec<Zone>,
     dimension: u32,
