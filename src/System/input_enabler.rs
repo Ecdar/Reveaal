@@ -17,18 +17,18 @@ pub fn make_input_enabled(
         .get(component.get_name())
     {
         for location in component.get_locations() {
-            let mut zone = Zone::init(dimension);
+            let mut location_inv_zone = Zone::init(dimension);
             let mut state = component::State {
                 declarations: component.get_declarations().clone(),
                 location,
             };
 
             if let Some(invariant) = location.get_invariant() {
-                constraint_applyer::apply_constraints_to_state(invariant, &mut state, &mut zone);
+                constraint_applyer::apply_constraints_to_state(invariant, &mut state, &mut location_inv_zone);
             }
 
             // No constraints on any clocks
-            let mut full_federation = Federation::new(vec![zone.clone()], zone.dimension);
+            let mut full_federation = Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {
                 let input_edges =
@@ -36,7 +36,7 @@ pub fn make_input_enabled(
                 let mut zones = vec![];
 
                 for edge in input_edges {
-                    let mut guard_zone = zone.clone();
+                    let mut guard_zone = location_inv_zone.clone();
                     let has_inv = if let Some(target_invariant) = component
                         .get_location_by_name(edge.get_target_location())
                         .get_invariant()
@@ -44,7 +44,7 @@ pub fn make_input_enabled(
                         constraint_applyer::apply_constraints_to_state(
                             target_invariant,
                             &mut state,
-                            &mut zone,
+                            &mut guard_zone,
                         )
                     } else {
                         false
@@ -71,13 +71,13 @@ pub fn make_input_enabled(
                     };
 
                     if !has_inv && !has_guard {
-                        zones.push(zone.clone());
+                        zones.push(location_inv_zone.clone());
                     } else {
                         zones.push(guard_zone);
                     }
                 }
 
-                let mut zones_federation = Federation::new(zones, zone.dimension);
+                let mut zones_federation = Federation::new(zones, location_inv_zone.dimension);
                 let result_federation = full_federation.minus_fed(&mut zones_federation);
 
                 for mut fed_zone in result_federation.iter_zones() {
