@@ -2,3 +2,6 @@
 target/
 .idea/*
 .vscode/
+*.o
+*.a
+Cargo.lock 

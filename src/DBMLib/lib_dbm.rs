@@ -99,9 +99,9 @@ pub fn rs_dbm_satisfies_i_LT_j(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(bound, true);
+        let constraint = dbm_boundbool2raw(bound, true);
 
-        let res = dbm_satisfies_exposed(
+        let res = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_i,
@@ -147,9 +147,9 @@ pub fn rs_dbm_satisfies_i_LTE_j(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(bound, false);
+        let constraint = dbm_boundbool2raw(bound, false);
 
-        let res = dbm_satisfies_exposed(
+        let res = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_i,
@@ -193,16 +193,16 @@ pub fn rs_dbm_satisfies_i_EQUAL_j(
     var_index_j: u32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(0, false);
+        let constraint = dbm_boundbool2raw(0, false);
 
-        let res_i_minus_j = dbm_satisfies_exposed(
+        let res_i_minus_j = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
         );
-        let res_j_minus_i = dbm_satisfies_exposed(
+        let res_j_minus_i = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_j,
@@ -256,17 +256,17 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
     bound_j: i32,
 ) -> bool {
     unsafe {
-        let constraint_i_minus_j = dbm_boundbool2raw_exposed(bound_j - bound_i, false);
-        let constraint_j_minus_i = dbm_boundbool2raw_exposed(bound_i - bound_j, false);
+        let constraint_i_minus_j = dbm_boundbool2raw(bound_j - bound_i, false);
+        let constraint_j_minus_i = dbm_boundbool2raw(bound_i - bound_j, false);
 
-        let res_i_minus_j = dbm_satisfies_exposed(
+        let res_i_minus_j = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint_i_minus_j,
         );
-        let res_j_minus_i = dbm_satisfies_exposed(
+        let res_j_minus_i = dbm_satisfies(
             dbm.as_mut_ptr(),
             dimension,
             var_index_j,
@@ -312,7 +312,7 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
 /// ```
 /// let mut dbm : [i32; 9] = [0; 9];
 /// dbm_init(dbm.as_mut_ptr(), 3);
-/// let constraint = dbm_boundbool2raw_exposed(10, false);
+/// let constraint = dbm_boundbool2raw(10, false);
 /// dbm_constrain1(dbm.as_mut_ptr(), 3, 1, 0, constraint);
 /// ```
 fn rs_dbm_constrain1(
@@ -374,7 +374,7 @@ pub fn rs_dbm_add_LTE_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(bound, false);
+        let constraint = dbm_boundbool2raw(bound, false);
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
 }
@@ -412,7 +412,7 @@ pub fn rs_dbm_add_LT_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(bound, true);
+        let constraint = dbm_boundbool2raw(bound, true);
 
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
@@ -451,7 +451,7 @@ pub fn rs_dbm_add_EQ_constraint(
     var_index_j: u32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw_exposed(0, false);
+        let constraint = dbm_boundbool2raw(0, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint);
         let res2 = rs_dbm_constrain1(dbm, dimension, var_index_j, var_index_i, constraint);
@@ -484,8 +484,8 @@ pub fn rs_dbm_add_EQ_const_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint1 = dbm_boundbool2raw_exposed(bound, false);
-        let constraint2 = dbm_boundbool2raw_exposed(-bound, false);
+        let constraint1 = dbm_boundbool2raw(bound, false);
+        let constraint2 = dbm_boundbool2raw(-bound, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index, 0, constraint1);
         let res2 = rs_dbm_constrain1(dbm, dimension, 0, var_index, constraint2);
@@ -517,8 +517,8 @@ pub fn rs_dbm_add_EQ_const_constraint(
 /// ```
 /// let mut dbm : [i32; 9] = [0; 9];
 /// dbm_init(dbm.as_mut_ptr(), 3);
-/// let constraint1 = dbm_boundbool2raw_exposed(10, false);
-/// let constraint2 = dbm_boundbool2raw_exposed(15, true);
+/// let constraint1 = dbm_boundbool2raw(10, false);
+/// let constraint2 = dbm_boundbool2raw(15, true);
 /// rs_dbm_add_and_constraint(dbm.as_mut_ptr(), 3, 1, 2, constraint1, constraint2);
 /// ```
 pub fn rs_dbm_add_and_constraint(
@@ -691,12 +691,12 @@ pub fn rs_dbm_get_constraint_from_dbm_ptr(
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: raw_t) -> bool {
-    unsafe { return BOOL_TRUE == dbm_rawIsStrict_exposed(raw) }
+    unsafe { return BOOL_TRUE == dbm_rawIsStrict(raw) }
 }
 
 ///converts the bound from c++ to an usable rust type - used when input enabling
 pub fn rs_raw_to_bound(raw: raw_t) -> i32 {
-    unsafe { dbm_raw2bound_exposed(raw) }
+    unsafe { dbm_raw2bound(raw) }
 }
 
 pub fn rs_vec_to_fed(dbm_vec: &mut Vec<*mut raw_t>, dim: u32) -> dbm_fed_t {
@@ -732,7 +732,7 @@ pub fn rs_dbm_up(dbm: &mut [i32], dimension: u32) {
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm: &mut [i32], dimension: u32) {
     unsafe {
-        dbm_zero_exposed(dbm.as_mut_ptr(), dimension);
+        dbm_zero(dbm.as_mut_ptr(), dimension);
     }
 }
 
@@ -765,15 +765,15 @@ pub fn libtest() {
 
         let raw = 3;
 
-        let bound = dbm_raw2bound_exposed(raw);
+        let bound = dbm_raw2bound(raw);
         println!("raw: {:?}, bound: {:?}", raw, bound);
 
-        dbm_zero_exposed(arr2.as_mut_ptr(), 2);
+        dbm_zero(arr2.as_mut_ptr(), 2);
         println!("{:?}", arr2);
 
         println!("dbm before constraint: {:?}", dbm);
 
-        let constraint = dbm_boundbool2raw_exposed(0, true);
+        let constraint = dbm_boundbool2raw(0, true);
 
         rs_dbm_constrain1(dbm, 3, 1, 2, constraint);
 
