@@ -106,34 +106,34 @@ fn build_guard_from_zone(
     let mut guards: Vec<representations::BoolExpression> = vec![];
 
     for (_, index) in clocks {
-        let (raw_upper_rel, raw_upper_val) = zone.get_constraint(*index, 0);
-        let (raw_lower_rel, raw_lower_val) = zone.get_constraint(0, *index);
+        let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
+        let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
 
         // lower bound must be different from 1 (==0)
-        if !(!raw_lower_rel && raw_lower_val == 0) {
-            if raw_lower_rel {
+        if lower_is_strict || lower_val != 0 {
+            if lower_is_strict {
                 guards.push(representations::BoolExpression::LessT(
-                    Box::new(representations::BoolExpression::Int((-1) * raw_lower_val)),
+                    Box::new(representations::BoolExpression::Int(-lower_val)),
                     Box::new(representations::BoolExpression::Clock(*index)),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
-                    Box::new(representations::BoolExpression::Int((-1) * raw_lower_val)),
+                    Box::new(representations::BoolExpression::Int(-lower_val)),
                     Box::new(representations::BoolExpression::Clock(*index)),
                 ));
             }
         }
 
-        if zone.is_constraint_infinity(*index, 0) {
-            if raw_upper_rel {
+        if !zone.is_constraint_infinity(*index, 0) {
+            if upper_is_strict {
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Clock(*index)),
-                    Box::new(representations::BoolExpression::Int(raw_upper_val)),
+                    Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
                     Box::new(representations::BoolExpression::Clock(*index)),
-                    Box::new(representations::BoolExpression::Int(raw_upper_val)),
+                    Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             }
         }
