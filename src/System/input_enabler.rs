@@ -24,11 +24,16 @@ pub fn make_input_enabled(
             };
 
             if let Some(invariant) = location.get_invariant() {
-                constraint_applyer::apply_constraints_to_state(invariant, &mut state, &mut location_inv_zone);
+                constraint_applyer::apply_constraints_to_state(
+                    invariant,
+                    &mut state,
+                    &mut location_inv_zone,
+                );
             }
 
             // No constraints on any clocks
-            let mut full_federation = Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
+            let mut full_federation =
+                Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {
                 let input_edges =
