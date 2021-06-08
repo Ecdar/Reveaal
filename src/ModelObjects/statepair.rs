@@ -19,7 +19,9 @@ impl<'b> StatePair<'b> {
             dimensions += state.get_dimensions();
         }
 
-        let zone = Zone::init(dimensions);
+        let mut zone = Zone::new(dimensions);
+        zone.zero();
+        zone.up();
 
         StatePair {
             states1,
