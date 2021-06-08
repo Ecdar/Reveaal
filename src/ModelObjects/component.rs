@@ -407,7 +407,7 @@ impl Component {
     }
     pub fn canDelayIndefinitely(currState: &mut FullState) -> bool {
         for i in 1..currState.zone.dimension {
-            if !currState.zone.is_constraint_infinity(0, i) {
+            if !currState.zone.is_constraint_infinity(i, 0) {
                 return false;
             }
         }
