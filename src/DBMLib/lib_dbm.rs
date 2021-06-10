@@ -12,6 +12,8 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 const LT: i32 = 0;
 const LTE: i32 = 1;
 pub const DBM_INF: i32 = i32::MAX - 1;
+const BOOL_TRUE: i32 = 1;
+const BOOL_FALSE: i32 = 0;
 
 /// Checks DBMS validity
 /// returns true or false
@@ -33,7 +35,8 @@ pub fn rs_dbm_is_valid(dbm: &mut [i32], dimension: u32) -> bool {
         return false;
     }
     unsafe {
-        let res = dbm_check_validity(dbm.as_mut_ptr(), dimension);
+        //let res = dbm_check_validity(dbm.as_mut_ptr(), dimension);
+        let res = dbm_isValid(dbm.as_mut_ptr(), dimension);
 
         return if 1 == res {
             true
@@ -375,7 +378,7 @@ pub fn rs_dbm_add_LTE_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, false);
+        let constraint = dbm_boundbool2raw_exposed(bound, false);
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
 }
@@ -413,7 +416,7 @@ pub fn rs_dbm_add_LT_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, true);
+        let constraint = dbm_boundbool2raw_exposed(bound, true);
 
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
@@ -452,7 +455,7 @@ pub fn rs_dbm_add_EQ_constraint(
     var_index_j: u32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(0, false);
+        let constraint = dbm_boundbool2raw_exposed(0, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint);
         let res2 = rs_dbm_constrain1(dbm, dimension, var_index_j, var_index_i, constraint);
@@ -485,8 +488,8 @@ pub fn rs_dbm_add_EQ_const_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint1 = dbm_boundbool2raw(bound, false);
-        let constraint2 = dbm_boundbool2raw(-bound, false);
+        let constraint1 = dbm_boundbool2raw_exposed(bound, false);
+        let constraint2 = dbm_boundbool2raw_exposed(-bound, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index, 0, constraint1);
         let res2 = rs_dbm_constrain1(dbm, dimension, 0, var_index, constraint2);
@@ -715,12 +718,12 @@ pub fn rs_dbm_get_constraint_from_dbm_ptr(
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: raw_t) -> bool {
-    unsafe { return BOOL_TRUE == dbm_rawIsStrict(raw) }
+    unsafe { dbm_rawIsStrict_exposed(raw) }
 }
 
 ///converts the bound from c++ to an usable rust type - used when input enabling
 pub fn rs_raw_to_bound(raw: raw_t) -> i32 {
-    unsafe { dbm_raw2bound(raw) }
+    unsafe { dbm_raw2bound_exposed(raw) }
 }
 
 pub fn rs_vec_to_fed(dbm_vec: &mut Vec<*mut raw_t>, dim: u32) -> dbm_fed_t {
@@ -756,7 +759,7 @@ pub fn rs_dbm_up(dbm: &mut [i32], dimension: u32) {
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm: &mut [i32], dimension: u32) {
     unsafe {
-        dbm_zero(dbm.as_mut_ptr(), dimension);
+        dbm_zero_exposed(dbm.as_mut_ptr(), dimension);
     }
 }
 

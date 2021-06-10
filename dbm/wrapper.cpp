@@ -19,16 +19,12 @@ extern "C" {
         return dbm::fed_t::subtract(arg1, arg2);
     }
 
-    int dbm_check_validity(const raw_t *dbm, cindex_t dim)
+    bool dbm_check_validity(const raw_t *dbm, cindex_t dim)
     {
         try {
-            if (dbm_isValid(dbm, dim) == BOOL::TRUE) {
-                return 1;
-            } else {
-                return 0;
-            }
+            return dbm_isValid(dbm, dim);
         } catch (...) {
-            return 0;
+            return false;
         }
     }
 
@@ -118,6 +114,31 @@ extern "C" {
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j) {
         return dbm[i*dim + j];
+    }
+
+    raw_t dbm_boundbool2raw_exposed(int32_t bound, bool isStrict)
+    {
+        return dbm_boundbool2raw(bound, isStrict);
+    }
+
+    bool dbm_rawIsStrict_exposed(raw_t raw)
+    {
+        return dbm_rawIsStrict(raw);
+    }
+
+    int32_t dbm_raw2bound_exposed(raw_t raw)
+    {
+        return dbm_raw2bound(raw);
+    }
+
+    void dbm_zero_exposed(raw_t *dbm, cindex_t dim)
+    {
+        return dbm_zero(dbm, dim);
+    }
+
+    dbm::fed_t* dbm_new_fed(cindex_t dim)
+    {
+        return new dbm::fed_t(dim);
     }
 }
 

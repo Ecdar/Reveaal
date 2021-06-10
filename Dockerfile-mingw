@@ -1,0 +1,65 @@
+FROM debian:bullseye-slim
+
+RUN apt-get update && \
+	apt-get install -y flex bison autotools-dev libboost-all-dev build-essential mingw-w64-x86-64-dev mingw-w64-tools g++-mingw-w64-x86-64 git wget
+
+ENV HOST=x86_64-w64-mingw32
+ENV CC=x86_64-w64-mingw32-gcc
+ENV CXX=x86_64-w64-mingw32-g++
+
+WORKDIR /usr/src
+
+## Build boost
+RUN mkdir boost prefix
+RUN wget --output-document="./boost/boost.tar.bz2" "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
+
+WORKDIR ./boost
+RUN tar xvf ./boost.tar.bz2
+WORKDIR boost_1_76_0
+
+# Clear CC and CXX because we are compiling b2 to the host architecture
+RUN CC= CXX= ./bootstrap.sh --prefix="/usr/src/prefix" --without-icu
+
+ADD mingw/user-config.jam ./
+RUN ./b2 \
+	toolset=gcc-m \
+	target-os=windows \
+	cxxstd=17 \
+	address-model="64" \
+	binary-format="pe" \
+	abi="ms" \
+	threading="multi" \
+	threadapi="win32" \
+	variant=release \
+	--user-config=user-config.jam \
+	--without-mpi \
+	--without-python \
+	--without-coroutine \
+	--without-graph_parallel \
+	--without-wave \
+	--without-context \
+	-sNO_BZIP2=1 \
+	-j$(nproc) \
+	install
+
+## Build 
+WORKDIR /usr/src/
+RUN git clone https://github.com/UPPAALModelChecker/UDBM.git udbm
+WORKDIR ./udbm
+RUN ./autogen.sh
+RUN CPPFLAGS="-I/usr/src/prefix/include" ./configure --host "x86_64-w64-mingw32"
+RUN make
+RUN ./scripts/mergelibs.sh
+
+## Compile Reveaal's UDBM wrapper
+WORKDIR /usr/src
+RUN mkdir ./reveaal
+RUN cp /usr/src/udbm/lib/libudbm.a /usr/src/reveaal/
+RUN cp -R /usr/src/udbm/include /usr/src/reveaal/
+WORKDIR ./reveaal
+ADD dbm/wrapper.cpp dbm/wrapper.h dbm/recompile.sh ./
+RUN ./recompile.sh
+
+WORKDIR /usr/src/
+ADD mingw/copy-output.sh ./
+CMD ./copy-output.sh

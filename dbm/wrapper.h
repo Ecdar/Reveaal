@@ -29,7 +29,17 @@ extern "C" {
     const raw_t * dbm_get_ith_element_in_fed(dbm::fed_t * fed, int element_num);
     int dbm_get_fed_size_2(dbm::fed_t fed);
 
-    int dbm_check_validity(const raw_t *dbm, cindex_t dim);
+    bool dbm_check_validity(const raw_t *dbm, cindex_t dim);
+
+    raw_t dbm_boundbool2raw_exposed(int32_t bound, bool isStrict);
+
+    bool dbm_rawIsStrict_exposed(raw_t raw);
+
+    int32_t dbm_raw2bound_exposed(raw_t raw);
+
+    void dbm_zero_exposed(raw_t *dbm, cindex_t dim);
+
+    dbm::fed_t* dbm_new_fed(cindex_t dim);
 }
 
 #endif // WRAPPER_H

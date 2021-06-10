@@ -12,10 +12,12 @@ fn main() {
     // Tell cargo to tell rustc to link the DBM
     // shared library.
     println!("cargo:rustc-link-search=native=dbm/");
+    //println!("cargo:rustc-link-lib=udbm");
     println!("cargo:rustc-link-lib=udbmwrapper");
     println!("cargo:rustc-link-lib=stdc++");
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=dbm/wrapper.h");
+    println!("cargo:rerun-if-changed=dbm/include/");
 
     // cc::Build::new()
     //     .cpp(true)

@@ -1,6 +1,8 @@
 #!/bin/sh
 set -xe
 
+export CXX=${CXX:-g++}
+
 mkdir objectFiles || true
 rm objectFiles/*.o libudbmwrapper.a || true
 
@@ -16,7 +18,7 @@ fi
 )
 
 # Compile wrapper
-g++ -c wrapper.cpp -I include/ -o objectFiles/wrapper.o
+$CXX -c wrapper.cpp -I include/ -o objectFiles/wrapper.o
 
 # Join wrapper and libudbm.a into a library archive
 ar rvs libudbmwrapper.a objectFiles/*.o
