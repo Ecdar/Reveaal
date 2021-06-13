@@ -215,7 +215,7 @@ impl Component {
 
         let mut fullSt = create_full_state(initial_state, zone);
         if let Some(update_i) = fullSt.state.location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, dimension);
+            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt);
         }
         return self.consistency_helper(fullSt, prune, &mut passed_list);
     }
@@ -273,7 +273,6 @@ impl Component {
                 constraint_applyer::apply_constraints_to_state2(
                     source_inv,
                     &mut new_state,
-                    currState.zone.dimension,
                 );
             }
 
@@ -281,7 +280,6 @@ impl Component {
                 constraint_applyer::apply_constraints_to_state2(
                     guard,
                     &mut new_state,
-                    currState.zone.dimension,
                 );
             }
 
@@ -302,7 +300,6 @@ impl Component {
                 constraint_applyer::apply_constraints_to_state2(
                     target_inv,
                     &mut new_state,
-                    currState.zone.dimension,
                 );
             }
 
@@ -347,7 +344,6 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         source_inv,
                         &mut new_state,
-                        currState.zone.dimension,
                     );
                 }
 
@@ -355,7 +351,6 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         guard,
                         &mut new_state,
-                        currState.zone.dimension,
                     );
                 }
                 if !new_state.zone.is_valid() {
@@ -374,7 +369,6 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         target_inv,
                         &mut new_state,
-                        currState.zone.dimension,
                     );
                 }
 
@@ -474,7 +468,6 @@ impl Component {
                                 constraint_applyer::apply_constraints_to_state2(
                                     guard,
                                     &mut new_state,
-                                    dimension,
                                 )
                             {
                             } else {
@@ -554,21 +547,18 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         inv_source,
                         &mut state_i,
-                        dimension,
                     );
                 }
                 if let Some(update_i) = &edges[i].guard {
                     constraint_applyer::apply_constraints_to_state2(
                         update_i,
                         &mut state_i,
-                        dimension,
                     );
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(
                         inv_target,
                         &mut state_i,
-                        dimension,
                     );
                 }
 
@@ -584,7 +574,6 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         update_j,
                         &mut state_j,
-                        dimension,
                     );
                 }
 
@@ -592,14 +581,12 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(
                         update_j,
                         &mut state_j,
-                        dimension,
                     );
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(
                         inv_target,
                         &mut state_j,
-                        dimension,
                     );
                 }
 

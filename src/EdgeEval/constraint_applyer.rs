@@ -311,17 +311,16 @@ pub fn apply_constraints_to_state_helper(
 pub fn apply_constraints_to_state2(
     guard: &BoolExpression,
     full_state: &mut component::FullState,
-    dimensions: u32,
 ) -> BoolExpression {
     match guard {
         BoolExpression::AndOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, full_state, dimensions);
+            let left = apply_constraints_to_state2(&**left, full_state);
             if let BoolExpression::Bool(val) = left {
                 if !val {
                     return BoolExpression::Bool(false);
                 }
             }
-            let right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let right = apply_constraints_to_state2(&**right, full_state);
 
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -338,8 +337,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::OrOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let left = apply_constraints_to_state2(&**left, full_state);
+            let right = apply_constraints_to_state2(&**right, full_state);
 
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -356,8 +355,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::LessEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let computed_left = apply_constraints_to_state2(&**left, full_state);
+            let computed_right = apply_constraints_to_state2(&**right, full_state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
@@ -396,8 +395,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::GreatEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let computed_left = apply_constraints_to_state2(&**left, full_state);
+            let computed_right = apply_constraints_to_state2(&**right, full_state);
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
@@ -435,8 +434,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::LessT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let computed_left = apply_constraints_to_state2(&**left, full_state);
+            let computed_right = apply_constraints_to_state2(&**right, full_state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
@@ -475,8 +474,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::GreatT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let computed_left = apply_constraints_to_state2(&**left, full_state);
+            let computed_right = apply_constraints_to_state2(&**right, full_state);
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
@@ -514,7 +513,7 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::Parentheses(_expr) => {
-            return apply_constraints_to_state2(guard, full_state, dimensions)
+            return apply_constraints_to_state2(guard, full_state)
         }
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = full_state
@@ -540,13 +539,11 @@ pub fn apply_constraints_to_state2(
         BoolExpression::Clock(index) => return BoolExpression::Clock(*index),
         //_ => {}
         BoolExpression::EQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state, dimensions);
-            let computed_right = apply_constraints_to_state2(&**right, full_state, dimensions);
+            let computed_left = apply_constraints_to_state2(&**left, full_state);
+            let computed_right = apply_constraints_to_state2(&**right, full_state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => {
-                    //println!("CLOCK INDEX {:?}", left_index);
-                    //println!("dimn: {:?}", dimensions);
                     match computed_right {
                         BoolExpression::Clock(right_index) => {
                             let result = full_state.zone.add_eq_constraint(right_index, left_index);
