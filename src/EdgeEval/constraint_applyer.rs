@@ -543,23 +543,21 @@ pub fn apply_constraints_to_state2(
             let computed_right = apply_constraints_to_state2(&**right, full_state);
 
             match computed_left {
-                BoolExpression::Clock(left_index) => {
-                    match computed_right {
-                        BoolExpression::Clock(right_index) => {
-                            let result = full_state.zone.add_eq_constraint(right_index, left_index);
-                            return BoolExpression::Bool(result);
-                        }
-                        BoolExpression::Int(right_val) => {
-                            let result = full_state
-                                .zone
-                                .add_eq_const_constraint(left_index, right_val);
-                            return BoolExpression::Bool(result);
-                        }
-                        _ => {
-                            panic!("invalid type in EQ expression in guard")
-                        }
+                BoolExpression::Clock(left_index) => match computed_right {
+                    BoolExpression::Clock(right_index) => {
+                        let result = full_state.zone.add_eq_constraint(right_index, left_index);
+                        return BoolExpression::Bool(result);
                     }
-                }
+                    BoolExpression::Int(right_val) => {
+                        let result = full_state
+                            .zone
+                            .add_eq_const_constraint(left_index, right_val);
+                        return BoolExpression::Bool(result);
+                    }
+                    _ => {
+                        panic!("invalid type in EQ expression in guard")
+                    }
+                },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
                         let result = full_state

@@ -270,17 +270,11 @@ impl Component {
                 .get_location_by_name(edge.get_source_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(
-                    source_inv,
-                    &mut new_state,
-                );
+                constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
             }
 
             if let Some(guard) = edge.get_guard() {
-                constraint_applyer::apply_constraints_to_state2(
-                    guard,
-                    &mut new_state,
-                );
+                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
             }
 
             if !new_state.zone.is_valid() {
@@ -297,10 +291,7 @@ impl Component {
                 .get_location_by_name(edge.get_target_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(
-                    target_inv,
-                    &mut new_state,
-                );
+                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
             }
 
             if !new_state.zone.is_valid() {
@@ -341,17 +332,11 @@ impl Component {
                     .get_location_by_name(edge.get_source_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(
-                        source_inv,
-                        &mut new_state,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
                 }
 
                 if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        guard,
-                        &mut new_state,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
                 }
                 if !new_state.zone.is_valid() {
                     continue;
@@ -366,10 +351,7 @@ impl Component {
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(
-                        target_inv,
-                        &mut new_state,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
                 }
 
                 if !new_state.zone.is_valid() {
@@ -544,22 +526,13 @@ impl Component {
                     zone: full_state.zone.clone(),
                 };
                 if let Some(inv_source) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_source,
-                        &mut state_i,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
                 }
                 if let Some(update_i) = &edges[i].guard {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_i,
-                        &mut state_i,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i);
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_target,
-                        &mut state_i,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
                 }
 
                 let state = create_state(
@@ -571,23 +544,14 @@ impl Component {
                     zone: full_state.zone.clone(),
                 };
                 if let Some(update_j) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_j,
-                        &mut state_j,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
 
                 if let Some(update_j) = &edges[j].guard {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_j,
-                        &mut state_j,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_target,
-                        &mut state_j,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
                 }
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
