@@ -3,6 +3,8 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+use crate::DBMLib::dbm::Federation;
+
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds
 const LT: i32 = 0;
 const LTE: i32 = 1;
@@ -205,7 +207,7 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
 /// let constraint = dbm_boundbool2raw_exposed(10, false);
 /// dbm_constrain1(dbm.as_mut_ptr(), 3, 1, 0, constraint);
 /// ```
-fn rs_dbm_constrain1(
+pub fn rs_dbm_constrain1(
     _dbm: &mut [i32],
     _dimension: u32,
     _var_index_i: u32,
@@ -426,6 +428,18 @@ pub fn rs_dbm_update(_dbm: &mut [i32], _dimension: u32, _var_index: u32, _value:
     unimplemented!()
 }
 
+/// Free operation. Remove all constraints (lower and upper bounds) for a given clock, i.e., set them to infinity
+///
+/// # Arguments
+///
+/// * `dbm` - The DBM
+/// * `dimension` - The dimension of the dbm
+/// * `var_index` - The index of the clock to free
+///
+pub fn rs_dbm_freeClock(_dbm: &mut [i32], _dimension: u32, _var_index: u32) {
+    unimplemented!()
+}
+
 /** Test only if dbm1 <= dbm2.
  * @param dbm1,dbm2: DBMs to be tested.
  * @param dim: dimension of the DBMs.
@@ -443,12 +457,12 @@ pub fn rs_dbm_fed_minus_fed(
     _dbm_vec1: &mut Vec<*mut raw_t>,
     _dbm_vec2: &mut Vec<*mut raw_t>,
     _dim: u32,
-) -> Vec<*const i32> {
+) -> Federation {
     unimplemented!()
 }
 
 /// currently unused
-pub fn rs_dbm_minus_dbm(_dbm1: &mut [i32], _dbm2: &mut [i32], _dim: u32) -> Vec<*const i32> {
+pub fn rs_dbm_minus_dbm(_dbm1: &mut [i32], _dbm2: &mut [i32], _dim: u32) -> Federation {
     unimplemented!()
 }
 

@@ -1,4 +1,4 @@
-use crate::DBMLib::lib;
+use crate::DBMLib::dbm::Zone;
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
@@ -7,9 +7,9 @@ use crate::ModelObjects;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
 use crate::ModelObjects::representations;
+use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
-use std::convert::TryFrom;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -211,16 +211,12 @@ impl Component {
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let zone_array = [0; 1000];
+        let zone = Zone::init(dimension);
 
-        let mut fullSt = create_full_state(initial_state, zone_array, dimension);
-        lib::rs_dbm_init(fullSt.get_zone(), dimension);
-        //lib::rs_dbm_zero(fullSt.get_zone(), dimension);
-        //lib::rs_dbm_up(fullSt.get_zone(), dimension);
+        let mut fullSt = create_full_state(initial_state, zone);
         if let Some(update_i) = fullSt.state.location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt, dimension);
+            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt);
         }
-        println!("start Dim is: {:?}", fullSt.get_dimensions());
         return self.consistency_helper(fullSt, prune, &mut passed_list);
     }
 
@@ -230,12 +226,9 @@ impl Component {
         currState: &mut FullState,
         passed_list: &mut Vec<FullState>,
     ) -> bool {
-        let dim = currState.get_dimensions();
-
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
         for state in passed_list {
             if state.state.location.id == currState.state.location.id {
-                if lib::rs_dbm_isSubsetEq(currState.get_zone(), state.get_zone(), dimension) {
+                if currState.zone.is_subset_eq(&mut state.zone) {
                     return true;
                 }
             }
@@ -267,53 +260,41 @@ impl Component {
         }
         for edge in edges {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-            let full_new_zone = currState.get_zoneclone();
+            let full_new_zone = currState.zone.clone();
             let loc = self.get_location_by_name(&edge.target_location);
             let state = create_state(loc, currState.get_state().get_declarations().clone());
 
-            let mut new_state = create_full_state(state, full_new_zone, currState.get_dimensions());
+            let mut new_state = create_full_state(state, full_new_zone);
 
             if let Some(source_inv) = self
                 .get_location_by_name(edge.get_source_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(
-                    source_inv,
-                    &mut new_state,
-                    currState.get_dimensions(),
-                );
+                constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
             }
 
             if let Some(guard) = edge.get_guard() {
-                constraint_applyer::apply_constraints_to_state2(
-                    guard,
-                    &mut new_state,
-                    currState.get_dimensions(),
-                );
+                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
             }
 
-            if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+            if !new_state.zone.is_valid() {
                 continue;
             }
 
             if let Some(update) = edge.get_update() {
-                fullState_updater(update, &mut new_state, currState.get_dimensions());
+                fullState_updater(update, &mut new_state);
             }
 
-            lib::rs_dbm_up(new_state.get_zone(), currState.get_dimensions());
+            new_state.zone.up();
 
             if let Some(target_inv) = self
                 .get_location_by_name(edge.get_target_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(
-                    target_inv,
-                    &mut new_state,
-                    currState.get_dimensions(),
-                );
+                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
             }
 
-            if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+            if !new_state.zone.is_valid() {
                 continue;
             }
 
@@ -340,53 +321,40 @@ impl Component {
                     outputExisted = true;
                 }
                 //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                let full_new_zone = currState.get_zoneclone();
+                let full_new_zone = currState.zone.clone();
 
                 let loc = self.get_location_by_name(&edge.target_location);
                 let state = create_state(loc, currState.get_state().get_declarations().clone());
 
-                let mut new_state =
-                    create_full_state(state, full_new_zone, currState.get_dimensions());
+                let mut new_state = create_full_state(state, full_new_zone);
 
                 if let Some(source_inv) = self
                     .get_location_by_name(edge.get_source_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(
-                        source_inv,
-                        &mut new_state,
-                        currState.get_dimensions(),
-                    );
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
                 }
 
                 if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        guard,
-                        &mut new_state,
-                        currState.get_dimensions(),
-                    );
+                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
                 }
-                if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                if !new_state.zone.is_valid() {
                     continue;
                 }
 
                 if let Some(update) = edge.get_update() {
-                    fullState_updater(update, &mut new_state, currState.get_dimensions());
+                    fullState_updater(update, &mut new_state);
                 }
-                lib::rs_dbm_up(new_state.get_zone(), currState.get_dimensions());
+                new_state.zone.up();
 
                 if let Some(target_inv) = self
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(
-                        target_inv,
-                        &mut new_state,
-                        currState.get_dimensions(),
-                    );
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
                 }
 
-                if !lib::rs_dbm_is_valid(new_state.get_zone(), currState.get_dimensions()) {
+                if !new_state.zone.is_valid() {
                     continue;
                 }
 
@@ -414,11 +382,8 @@ impl Component {
         // we must check for being able to output and satisfy independent progress
     }
     pub fn canDelayIndefinitely(currState: &mut FullState) -> bool {
-        for i in 1..currState.dimensions {
-            let n_us = usize::try_from(currState.dimensions * i).unwrap();
-            let curr = currState.get_zone().get(n_us).unwrap();
-
-            if curr < &lib::DBM_INF {
+        for i in 1..currState.zone.dimension {
+            if !currState.zone.is_constraint_infinity(i, 0) {
                 return false;
             }
         }
@@ -439,12 +404,10 @@ impl Component {
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let zone_array = [0; 1000];
+        let mut fullSt = create_full_state(initial_state, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
-        let mut fullSt: FullState = create_full_state(initial_state, zone_array, dimension); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
-
-        lib::rs_dbm_zero(fullSt.get_zone(), dimension);
-        lib::rs_dbm_up(fullSt.get_zone(), dimension);
+        fullSt.zone.zero();
+        fullSt.zone.up();
         add_state_to_wl(&mut waiting_list, fullSt);
 
         while !waiting_list.is_empty() {
@@ -475,25 +438,27 @@ impl Component {
                 } else {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                        let full_new_zone = full_state.get_zoneclone();
+                        let full_new_zone = full_state.zone.clone();
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
                         let state =
                             create_state(loc, full_state.get_state().get_declarations().clone());
-                        println!("Dim is: {:?}", full_state.get_dimensions());
-                        let mut new_state =
-                            create_full_state(state, full_new_zone, full_state.get_dimensions()); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
-
+                        println!("Dim is: {:?}", full_state.zone.dimension);
+                        let mut new_state = create_full_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
-                            constraint_applyer::apply_constraints_to_state2(
-                                guard,
-                                &mut new_state,
-                                dimension,
-                            );
+                            if let BoolExpression::Bool(true) =
+                                constraint_applyer::apply_constraints_to_state2(
+                                    guard,
+                                    &mut new_state,
+                                )
+                            {
+                            } else {
+                                //If the constraint cannot be applied, continue.
+                                continue;
+                            }
                         }
-
                         if let Some(updates) = edge.get_update() {
-                            fullState_updater(updates, &mut new_state, dimension);
+                            fullState_updater(updates, &mut new_state);
                         }
 
                         if is_new_state(&mut new_state, &mut passed_list)
@@ -552,76 +517,45 @@ impl Component {
                     .nth(0)
                     .unwrap();
 
-                let zone_i = full_state.get_zoneclone();
-
                 let state = create_state(
                     full_state.get_state().get_location(),
                     full_state.get_state().get_declarations().clone(),
                 );
                 let mut state_i = FullState {
                     state,
-                    zone: zone_i,
-                    dimensions: dimension,
+                    zone: full_state.zone.clone(),
                 };
                 if let Some(inv_source) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_source,
-                        &mut state_i,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
                 }
                 if let Some(update_i) = &edges[i].guard {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_i,
-                        &mut state_i,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i);
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_target,
-                        &mut state_i,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
                 }
 
-                let zone_j = full_state.get_zoneclone();
                 let state = create_state(
                     full_state.get_state().get_location(),
                     full_state.get_state().get_declarations().clone(),
                 );
                 let mut state_j = FullState {
-                    state: state,
-                    zone: zone_j,
-                    dimensions: dimension,
+                    state,
+                    zone: full_state.zone.clone(),
                 };
                 if let Some(update_j) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_j,
-                        &mut state_j,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
 
                 if let Some(update_j) = &edges[j].guard {
-                    constraint_applyer::apply_constraints_to_state2(
-                        update_j,
-                        &mut state_j,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(
-                        inv_target,
-                        &mut state_j,
-                        dimension,
-                    );
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
                 }
 
-                if lib::rs_dbm_is_valid(state_i.get_zone(), dimension)
-                    && lib::rs_dbm_is_valid(state_j.get_zone(), dimension)
-                {
-                    if lib::rs_dmb_intersection(state_i.get_zone(), state_j.get_zone(), dimension) {
+                if state_i.zone.is_valid() && state_j.zone.is_valid() {
+                    if state_i.zone.intersects(&mut state_j.zone) {
                         return true;
                     }
                 }
@@ -640,12 +574,10 @@ fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullSt
         {
             continue;
         }
-        if full_state.get_dimensions() != passed_state_pair.get_dimensions() {
+        if full_state.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
         }
-
-        let dim = full_state.get_dimensions();
-        if lib::rs_dbm_isSubsetEq(full_state.get_zone(), passed_state_pair.get_zone(), dim) {
+        if full_state.zone.is_subset_eq(&mut passed_state_pair.zone) {
             return false;
         }
     }
@@ -668,12 +600,8 @@ fn create_state(location: &Location, declarations: Declarations) -> State {
     };
 }
 
-fn create_full_state(state: State, zone: [i32; 1000], dim: u32) -> FullState {
-    FullState {
-        state: state,
-        zone: zone,
-        dimensions: dim,
-    }
+fn create_full_state(state: State, zone: Zone) -> FullState {
+    FullState { state, zone }
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
@@ -682,27 +610,12 @@ fn create_full_state(state: State, zone: [i32; 1000], dim: u32) -> FullState {
 #[derive(Clone)]
 pub struct FullState<'a> {
     pub state: State<'a>,
-    pub zone: [i32; 1000],
-    pub dimensions: u32,
+    pub zone: Zone,
 }
 
 impl FullState<'_> {
     pub fn get_state(&self) -> &State {
         &self.state
-    }
-
-    pub fn get_zoneclone(&self) -> [i32; 1000] {
-        self.zone.clone()
-    }
-
-    pub fn get_zone(&mut self) -> &mut [i32] {
-        let dim = self.get_dimensions();
-        let len = dim * dim;
-        &mut self.zone[0..len as usize]
-    }
-
-    pub fn get_dimensions(&self) -> u32 {
-        self.dimensions.clone()
     }
 }
 
@@ -762,15 +675,15 @@ pub struct Edge {
 }
 
 impl Edge {
-    pub fn apply_update(&self, state: &mut State, zone: &mut [i32], dim: u32) {
+    pub fn apply_update(&self, state: &mut State, zone: &mut Zone) {
         if let Some(updates) = self.get_update() {
-            updater(updates, state, zone, dim);
+            updater(updates, state, zone);
         }
     }
 
-    pub fn apply_guard(&self, state: &State, zone: &mut [i32], dim: u32) -> bool {
+    pub fn apply_guard(&self, state: &State, zone: &mut Zone) -> bool {
         return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, state, zone, dim)
+            apply_constraints_to_state(guards, state, zone)
         } else {
             true
         };
@@ -837,9 +750,9 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn apply_invariant(&self, zone: &mut [i32], dim: u32) -> bool {
+    pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
-            apply_constraints_to_state(&inv, self, zone, dim)
+            apply_constraints_to_state(&inv, self, zone)
         } else {
             true
         }

@@ -1,17 +1,15 @@
-use crate::DBMLib::lib;
+use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations;
 use std::collections::HashMap;
-use std::ptr;
 
 pub fn make_input_enabled(
     component: &mut component::Component,
     sys_decls: &system_declarations::SystemDeclarations,
 ) {
     let dimension = *(component.get_declarations().get_dimension()) + 1;
-    let len = dimension * dimension;
     let mut new_edges: Vec<component::Edge> = vec![];
     if let Some(inputs) = sys_decls
         .get_declarations()
@@ -19,24 +17,23 @@ pub fn make_input_enabled(
         .get(component.get_name())
     {
         for location in component.get_locations() {
-            let mut zone = [0; 1000];
+            let mut location_inv_zone = Zone::init(dimension);
             let mut state = component::State {
                 declarations: component.get_declarations().clone(),
                 location,
             };
 
-            lib::rs_dbm_init(&mut zone[0..len as usize], dimension);
             if let Some(invariant) = location.get_invariant() {
                 constraint_applyer::apply_constraints_to_state(
                     invariant,
                     &mut state,
-                    &mut zone[0..len as usize],
-                    dimension,
+                    &mut location_inv_zone,
                 );
             }
 
-            let mut full_federation_vec: Vec<*mut i32> = vec![];
-            full_federation_vec.push(zone.as_mut_ptr());
+            // No constraints on any clocks
+            let mut full_federation =
+                Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {
                 let input_edges =
@@ -44,7 +41,7 @@ pub fn make_input_enabled(
                 let mut zones = vec![];
 
                 for edge in input_edges {
-                    let mut guard_zone = zone.clone();
+                    let mut guard_zone = location_inv_zone.clone();
                     let has_inv = if let Some(target_invariant) = component
                         .get_location_by_name(edge.get_target_location())
                         .get_invariant()
@@ -52,8 +49,7 @@ pub fn make_input_enabled(
                         constraint_applyer::apply_constraints_to_state(
                             target_invariant,
                             &mut state,
-                            &mut guard_zone[0..len as usize],
-                            dimension,
+                            &mut guard_zone,
                         )
                     } else {
                         false
@@ -64,11 +60,7 @@ pub fn make_input_enabled(
                         for clock in update_clocks {
                             let clock_index =
                                 component.get_declarations().clocks.get(clock).unwrap();
-                            lib::rs_dbm_freeClock(
-                                &mut guard_zone[0..len as usize],
-                                dimension,
-                                *clock_index,
-                            );
+                            guard_zone.free_clock(*clock_index);
                         }
                     }
 
@@ -76,8 +68,7 @@ pub fn make_input_enabled(
                         let res = constraint_applyer::apply_constraints_to_state(
                             guard,
                             &mut state,
-                            &mut guard_zone[0..len as usize],
-                            dimension,
+                            &mut guard_zone,
                         );
                         res
                     } else {
@@ -85,33 +76,22 @@ pub fn make_input_enabled(
                     };
 
                     if !has_inv && !has_guard {
-                        zones.push(zone.clone());
+                        zones.push(location_inv_zone.clone());
                     } else {
                         zones.push(guard_zone);
                     }
                 }
 
-                let mut federation_vec = vec![];
-                for zone in zones.iter_mut() {
-                    federation_vec.push(zone.as_mut_ptr());
-                }
-                let result_federation_vec = lib::rs_dbm_fed_minus_fed(
-                    &mut full_federation_vec,
-                    &mut federation_vec,
-                    dimension,
-                );
+                let mut zones_federation = Federation::new(zones, location_inv_zone.dimension);
+                let result_federation = full_federation.minus_fed(&mut zones_federation);
 
-                for fed_zone in result_federation_vec {
-                    if fed_zone == ptr::null() {
-                        continue;
-                    }
+                for mut fed_zone in result_federation.iter_zones() {
                     new_edges.push(component::Edge {
                         source_location: location.get_id().to_string(),
                         target_location: location.get_id().to_string(),
                         sync_type: component::SyncType::Input,
                         guard: build_guard_from_zone(
-                            fed_zone,
-                            dimension,
+                            &mut fed_zone,
                             component.get_declarations().get_clocks(),
                         ),
                         update: None,
@@ -125,49 +105,40 @@ pub fn make_input_enabled(
 }
 
 fn build_guard_from_zone(
-    zone: *const i32,
-    dimension: u32,
+    zone: &mut Zone,
     clocks: &HashMap<String, u32>,
 ) -> Option<representations::BoolExpression> {
     let mut guards: Vec<representations::BoolExpression> = vec![];
 
     for (_, index) in clocks {
-        let raw_upper = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, *index, 0);
-        let raw_lower = lib::rs_dbm_get_constraint_from_dbm_ptr(zone, dimension, 0, *index);
+        let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
+        let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
 
         // lower bound must be different from 1 (==0)
-        if raw_lower != 1 {
-            if lib::rs_raw_is_strict(raw_lower) {
+        if lower_is_strict || lower_val != 0 {
+            if lower_is_strict {
                 guards.push(representations::BoolExpression::LessT(
-                    Box::new(representations::BoolExpression::Int(
-                        (-1) * lib::rs_raw_to_bound(raw_lower),
-                    )),
+                    Box::new(representations::BoolExpression::Int(-lower_val)),
                     Box::new(representations::BoolExpression::Clock(*index)),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
-                    Box::new(representations::BoolExpression::Int(
-                        (-1) * lib::rs_raw_to_bound(raw_lower),
-                    )),
+                    Box::new(representations::BoolExpression::Int(-lower_val)),
                     Box::new(representations::BoolExpression::Clock(*index)),
                 ));
             }
         }
 
-        if raw_upper != lib::DBM_INF {
-            if lib::rs_raw_is_strict(raw_upper) {
+        if !zone.is_constraint_infinity(*index, 0) {
+            if upper_is_strict {
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Clock(*index)),
-                    Box::new(representations::BoolExpression::Int(lib::rs_raw_to_bound(
-                        raw_upper,
-                    ))),
+                    Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
                     Box::new(representations::BoolExpression::Clock(*index)),
-                    Box::new(representations::BoolExpression::Int(lib::rs_raw_to_bound(
-                        raw_upper,
-                    ))),
+                    Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             }
         }

@@ -2,7 +2,6 @@ extern crate pest;
 use crate::ModelObjects::representations::QueryExpression;
 use pest::error::Error;
 use pest::Parser;
-use serde::export::Option::Some;
 
 #[derive(Parser)]
 #[grammar = "ModelObjects/grammars/query_grammar.pest"]

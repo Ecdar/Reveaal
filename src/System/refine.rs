@@ -1,4 +1,4 @@
-use crate::DBMLib::lib;
+use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::{Component, Edge, State};
@@ -35,7 +35,6 @@ pub fn check_refinement(
     let initial_states_2: Vec<State> = sys2.get_initial_states();
 
     let mut initial_pair = StatePair::create(initial_states_1.clone(), initial_states_2.clone());
-    initial_pair.init_dbm();
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
@@ -127,47 +126,42 @@ fn create_new_state_pairs<'a>(
     adding_input: bool,
     is_state1: bool,
 ) -> bool {
-    let dim = curr_pair.get_dimensions();
-    let len = dim * dim;
+    let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_states(is_state1);
 
     //create guard zones left
-    let mut guard_zones_left: Vec<*mut i32> = vec![];
+    let mut guard_zones_left = vec![];
     for (_, edge_vec1, state_index) in transitions1 {
         let state = &states1[*state_index];
         for edge in edge_vec1 {
-            let mut zone = curr_pair.get_dbm_clone();
+            let mut zone = curr_pair.zone.clone();
 
             //Save if edge is open
-            if edge.apply_guard(state, &mut zone[0..len as usize], dim)
-                && state.apply_invariant(&mut zone[0..len as usize], dim)
-            {
-                guard_zones_left.push(zone[0..len as usize].as_mut_ptr());
+            if edge.apply_guard(state, &mut zone) && state.apply_invariant(&mut zone) {
+                guard_zones_left.push(zone);
             }
         }
     }
 
     //Create guard zones right
-    let mut guard_zones_right: Vec<*mut i32> = vec![];
+    let mut guard_zones_right = vec![];
     for (_, edge_vec2, state_index) in transitions2 {
         let state = &states2[*state_index];
         for edge in edge_vec2 {
-            let mut zone = curr_pair.get_dbm_clone();
+            let mut zone = curr_pair.zone.clone();
 
             //Save if edge is open
-            if edge.apply_guard(state, &mut zone[0..len as usize], dim)
-                && state.apply_invariant(&mut zone[0..len as usize], dim)
-            {
-                guard_zones_right.push(zone[0..len as usize].as_mut_ptr());
+            if edge.apply_guard(state, &mut zone) && state.apply_invariant(&mut zone) {
+                guard_zones_right.push(zone);
             }
         }
     }
 
-    let result_federation_vec =
-        lib::rs_dbm_fed_minus_fed(&mut guard_zones_left, &mut guard_zones_right, dim);
+    let result_federation = Federation::new(guard_zones_left, dim)
+        .minus_fed(&mut Federation::new(guard_zones_right, dim));
 
-    if !result_federation_vec.is_empty() {
+    if !result_federation.is_empty() {
         return false;
     }
 
@@ -235,10 +229,8 @@ fn build_state_pair<'a>(
     //Creates new state pair
     let mut new_sp: StatePair =
         StatePair::create(curr_pair.states1.clone(), curr_pair.states2.clone());
-    //Creates DBM for that sate pair
-    let mut new_sp_zone = curr_pair.get_dbm_clone();
-    new_sp.set_dimensions(curr_pair.get_dimensions());
-    let dim = new_sp.get_dimensions();
+    //Creates DBM for that state pair
+    let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
     //Boolean for the left side guards
     let mut g1_success = true;
@@ -249,11 +241,11 @@ fn build_state_pair<'a>(
     let (states1, states2) = new_sp.get_mut_states(is_state1);
 
     for (_, edge, state_index) in transitions1 {
-        g1_success = g1_success && edge.apply_guard(&states1[*state_index], &mut new_sp_zone, dim);
+        g1_success = g1_success && edge.apply_guard(&states1[*state_index], &mut new_sp_zone);
     }
     //Applies the right side guards and checks if zone is valid
     for (_, edge, state_index) in transitions2 {
-        g2_success = g2_success && edge.apply_guard(&states2[*state_index], &mut new_sp_zone, dim);
+        g2_success = g2_success && edge.apply_guard(&states2[*state_index], &mut new_sp_zone);
     }
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -262,10 +254,10 @@ fn build_state_pair<'a>(
 
     //Apply updates on both sides
     for (_, edge, state_index) in transitions1 {
-        edge.apply_update(&mut states1[*state_index], &mut new_sp_zone, dim);
+        edge.apply_update(&mut states1[*state_index], &mut new_sp_zone);
     }
     for (_, edge, state_index) in transitions2 {
-        edge.apply_update(&mut states2[*state_index], &mut new_sp_zone, dim);
+        edge.apply_update(&mut states2[*state_index], &mut new_sp_zone);
     }
 
     //Update locations in states
@@ -282,34 +274,35 @@ fn build_state_pair<'a>(
         states2[*state_index].set_location(next_location);
     }
     //Perform a delay on the zone after the updates were applied
-    lib::rs_dbm_up(&mut new_sp_zone, dim);
+    new_sp_zone.up();
 
     // Apply invariants on the left side of relation
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
-        inv_success1 = inv_success1 && states1[*state_index].apply_invariant(&mut new_sp_zone, dim);
+        inv_success1 = inv_success1 && states1[*state_index].apply_invariant(&mut new_sp_zone);
         index_vec1.push(*state_index);
     }
 
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut inv_success2 = true;
     let mut index_vec2: Vec<usize> = vec![];
-    let mut invariant_test = new_sp_zone;
+    let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
-        inv_success2 =
-            inv_success2 && states2[*state_index].apply_invariant(&mut invariant_test, dim);
+        inv_success2 = inv_success2 && states2[*state_index].apply_invariant(&mut invariant_test);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
         return false;
     }
+    let dim = invariant_test.dimension;
+    let mut inv_test_fed = Federation::new(vec![invariant_test], dim);
+    let mut sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
 
-    let mut inv_test_vec = vec![invariant_test.as_mut_ptr()];
-    let mut sp_zone_vec = vec![new_sp_zone.as_mut_ptr()];
+    let fed_res = inv_test_fed.minus_fed(&mut sp_zone_fed);
 
-    let fed_res = lib::rs_dbm_fed_minus_fed(&mut inv_test_vec, &mut sp_zone_vec, dim);
+    //let fed_res = invariant_test.dbm_minus_dbm(&mut new_sp_zone);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
@@ -318,31 +311,29 @@ fn build_state_pair<'a>(
     }
 
     //Check all other comps for potential syncs
-    let mut test_zone1 = new_sp_zone;
+    let mut test_zone1 = new_sp_zone.clone();
     if apply_syncs_to_comps(
         sys1,
         states1,
         &index_vec1,
         &mut test_zone1,
         action,
-        dim,
         adding_input,
     ) {
         new_sp_zone = test_zone1;
     }
-    let mut test_zone2 = new_sp_zone;
+    let mut test_zone2 = new_sp_zone.clone();
     if apply_syncs_to_comps(
         sys2,
         states2,
         &index_vec2,
         &mut test_zone2,
         action,
-        dim,
         adding_input,
     ) {
         new_sp_zone = test_zone2;
     }
-    new_sp.set_dbm(new_sp_zone);
+    new_sp.zone = new_sp_zone;
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());
@@ -354,10 +345,9 @@ fn build_state_pair<'a>(
 fn apply_syncs_to_comps<'a>(
     sys: &'a SystemRepresentation,
     states: &mut Vec<State<'a>>,
-    index_vec: &[usize],
-    zone: &mut [i32],
+    index_vec: &Vec<usize>,
+    zone: &mut Zone,
     action: &str,
-    dim: u32,
     adding_input: bool,
 ) -> bool {
     let curr_index = &mut 0;
@@ -384,13 +374,13 @@ fn apply_syncs_to_comps<'a>(
         for edge in next_edges {
             let state = &mut states[*curr_index];
 
-            if !edge.apply_guard(state, zone, dim) {
+            if !edge.apply_guard(state, zone) {
                 *curr_index += 1;
                 return false;
             }
 
-            edge.apply_update(state, zone, dim);
-            if !state.apply_invariant(zone, dim) {
+            edge.apply_update(state, zone);
+            if !state.apply_invariant(zone) {
                 *curr_index += 1;
                 return false;
             }
@@ -415,8 +405,7 @@ fn prepare_init_state(
     for state in initial_states_1 {
         let init_inv1 = state.get_location().get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            let dim = initial_pair.get_dimensions();
-            apply_constraints_to_state(&inv1, &state, initial_pair.get_zone(), dim)
+            apply_constraints_to_state(&inv1, &state, &mut initial_pair.zone)
         } else {
             true
         };
@@ -428,8 +417,7 @@ fn prepare_init_state(
     for state in initial_states_2 {
         let init_inv2 = state.get_location().get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            let dim = initial_pair.get_dimensions();
-            apply_constraints_to_state(&inv2, &state, initial_pair.get_zone(), dim)
+            apply_constraints_to_state(&inv2, &state, &mut initial_pair.zone)
         } else {
             true
         };
@@ -495,12 +483,11 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
                 continue 'OuterFor;
             }
         }
-        if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
+        if state_pair.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
         }
 
-        let dim = state_pair.get_dimensions();
-        if lib::rs_dbm_isSubsetEq(state_pair.get_zone(), passed_state_pair.get_zone(), dim) {
+        if state_pair.zone.is_subset_eq(&mut passed_state_pair.zone) {
             return false;
         }
     }

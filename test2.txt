@@ -1,3 +1,0 @@
-fed dim is: 2
-fed 1 len before is: 1
-fed_out len after is: 1
