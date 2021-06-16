@@ -1,4 +1,3 @@
-use crate::DBMLib::lib;
 use crate::ModelObjects::component::{Component, Edge, LocationType, State, SyncType};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
@@ -291,16 +290,5 @@ impl<'a> SystemRepresentation {
             comp.get_mut_declaration().clocks = clock_clone;
             res
         })
-    }
-}
-
-pub fn print_DBM(dbm: &mut [i32], dimension: u32) {
-    println!("DBM:");
-    for i in 0..dimension {
-        print!("( ");
-        for j in 0..dimension {
-            print!("{:?} ", lib::rs_dbm_get_constraint(dbm, dimension, i, j));
-        }
-        println!(")");
     }
 }

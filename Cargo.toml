@@ -23,7 +23,7 @@ serde-xml-rs = "0.4.0"
 elementtree = "0"
 
 [build-dependencies]
-bindgen = "0.54.0"
+bindgen = "0.58.1"
 cc = "1.0.56"
 
 

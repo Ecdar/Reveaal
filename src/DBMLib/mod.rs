@@ -7,3 +7,5 @@ pub mod lib_stub;
 pub use lib_dbm as lib;
 #[cfg(feature = "dbm-stub")]
 pub use lib_stub as lib;
+
+pub mod dbm;
