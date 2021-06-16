@@ -11,9 +11,8 @@ fn main() {
 
     // Tell cargo to tell rustc to link the DBM
     // shared library.
-    //C/Users/Tomas/Documents/Code/Ecdar/HMKAAL/hmkaal/dbm/
     println!("cargo:rustc-link-search=native=dbm/");
-    println!("cargo:rustc-link-lib=dbmfull");
+    println!("cargo:rustc-link-lib=udbmwrapper");
     println!("cargo:rustc-link-lib=stdc++");
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=dbm/wrapper.h");
@@ -28,10 +27,19 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
+        .header("dbm/include/dbm/constraints.h")
+        .header("dbm/include/dbm/dbm.h")
+        .header("dbm/include/dbm/fed.h")
         .header("dbm/wrapper.h")
         .trust_clang_mangling(true)
-        .clang_args(&["-x", "c++", "-std=c++14", "-fno-inline-functions"])
-        .whitelist_recursively(true)
+        .clang_args(&[
+            "-x",
+            "c++",
+            "-std=c++14",
+            "-fno-inline-functions",
+            "-Idbm/include/",
+        ])
+        .allowlist_recursively(true)
         .generate_inline_functions(true)
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
@@ -40,12 +48,13 @@ fn main() {
         .opaque_type("namespace")
         .opaque_type("std::.*")
         //whitelist only relevant functions
-        .whitelist_function("dbm_.*")
-        .whitelist_function("constraint_t")
-        .whitelist_function("constrain")
-        .whitelist_function("subtractDown")
+        .allowlist_function("dbm_.*")
+        .allowlist_function("constraint_t")
+        .allowlist_function("constrain")
+        .allowlist_function("subtractDown")
         // Enable comments for generated bindings
         .generate_comments(true)
+        .detect_include_paths(true)
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.

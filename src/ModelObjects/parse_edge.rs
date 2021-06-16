@@ -2,7 +2,6 @@ extern crate pest;
 use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
-use serde::export::Option::Some;
 use serde::Deserialize;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder

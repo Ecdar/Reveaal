@@ -2,7 +2,6 @@ extern crate pest;
 use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
-use serde::export::Option::Some;
 
 /// This file handles parsing the invariants based on the abstract syntax described in the .pest files in the grammar folder
 /// For clarification see documentation on pest crate
