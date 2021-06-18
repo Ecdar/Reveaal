@@ -5,6 +5,7 @@ use crate::ModelObjects::component::{Component, Edge, State};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
+use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
     sys1: SystemRepresentation,
@@ -20,13 +21,7 @@ pub fn check_refinement(
     let outputs1 = sys1.get_output_actions(sys_decls);
 
     //Firstly we check the preconditions
-    if !check_preconditions(
-        &mut sys1.clone(),
-        &mut sys2.clone(),
-        &outputs1,
-        &inputs2,
-        sys_decls,
-    ) {
+    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), sys_decls) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
@@ -430,18 +425,17 @@ fn prepare_init_state(
 fn check_preconditions(
     sys1: &mut SystemRepresentation,
     sys2: &mut SystemRepresentation,
-    outputs1: &[String],
-    _inputs2: &[String],
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> bool {
     if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
         return false;
     }
+    let outputs1 = sys1.get_output_actions(&sys_decls);
     let outputs2 = sys2.get_output_actions(&sys_decls);
 
-    for o1 in outputs1 {
+    for o2 in &outputs2 {
         let mut found_match = false;
-        for o2 in &outputs2 {
+        for o1 in &outputs1 {
             if o1 == o2 {
                 found_match = true;
                 break;
@@ -456,6 +450,16 @@ fn check_preconditions(
         }
     }
 
+    let inputs1 = sys1.get_input_actions(&sys_decls);
+    let inputs2 = sys2.get_input_actions(&sys_decls);
+
+    if !hashset_equal(&inputs1, &inputs2) {
+        println!(
+            "input of left side is not equal to input of right side i1: {:?}, i2 {:?}",
+            inputs1, inputs2
+        );
+        return false;
+    }
     true
 }
 
@@ -492,4 +496,14 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
         }
     }
     true
+}
+
+fn hashset_equal<T>(a: &[T], b: &[T]) -> bool
+where
+    T: Eq + Hash,
+{
+    let a: HashSet<_> = a.iter().collect();
+    let b: HashSet<_> = b.iter().collect();
+
+    a == b
 }

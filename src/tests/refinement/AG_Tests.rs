@@ -11,8 +11,8 @@ mod AG_Tests {
     fn ARefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
         assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("A_Good").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("A_Good").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
+            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
             decl.borrow()
         )
         .unwrap());
