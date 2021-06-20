@@ -7,6 +7,31 @@ mod conjunction_tests {
     use std::borrow::Borrow;
 
     static PATH: &str = "samples/xml/conjun.xml";
+    static COUNTER_PATH: &str = "samples/xml/counter_conjun.xml";
+
+    #[test]
+    fn PA1ConjPA2NotRefPA3() {
+        let (automataList, decl, _) = xml_parser::parse_xml(COUNTER_PATH);
+        let optimized_components = optimize_components(automataList, &decl);
+
+        assert_eq!(optimized_components.get(0).unwrap().get_name(), "PA1");
+        assert_eq!(optimized_components.get(1).unwrap().get_name(), "PA2");
+        assert_eq!(optimized_components.get(2).unwrap().get_name(), "PA3");
+
+        assert!(!refine::check_refinement(
+            SystemRepresentation::Conjunction(
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(0).unwrap().clone()
+                )),
+                Box::from(SystemRepresentation::Component(
+                    optimized_components.get(1).unwrap().clone()
+                ))
+            ),
+            SystemRepresentation::Component(optimized_components.get(2).unwrap().clone()),
+            decl.borrow()
+        )
+        .unwrap());
+    }
 
     #[test]
     fn P0ConjP1RefP2() {

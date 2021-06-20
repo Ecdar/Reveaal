@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+broadcast chan i, o;</declaration>
+	<template>
+		<name x="5" y="5">PA1</name>
+		<declaration>// Place local declarations here.
+clock x;</declaration>
+		<location id="id0" x="0" y="0">
+		</location>
+		<location id="id1" x="0" y="-119">
+		</location>
+		<location id="id2" x="0" y="-246">
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="0" y="-199">i?</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="34" y="-85">x&lt;10</label>
+			<label kind="synchronisation" x="8" y="-76">o!</label>
+		</transition>
+	</template>
+	<template>
+		<name>PA2</name>
+		<declaration>// Place local declarations here.
+clock x;</declaration>
+		<location id="id3" x="-8" y="25">
+		</location>
+		<location id="id4" x="-8" y="-94">
+		</location>
+		<location id="id5" x="-8" y="-195">
+		</location>
+		<init ref="id3"/>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="8" y="-161">i?</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="guard" x="34" y="-68">x&gt;15</label>
+			<label kind="synchronisation" x="8" y="-51">o!</label>
+		</transition>
+	</template>
+	<template>
+		<name>PA3</name>
+		<location id="id6" x="-8" y="76">
+		</location>
+		<location id="id7" x="-8" y="-17">
+		</location>
+		<location id="id8" x="-8" y="-119">
+		</location>
+		<init ref="id6"/>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-8" y="-85">i?</label>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="-8" y="12">o!</label>
+		</transition>
+	</template>
+	<system>system PA1, PA2, PA3;
+
+IO PA1 { i?, o! }
+IO PA2 { i?, o! }
+IO PA3 { i?, o! }
+</system>
+	<queries>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
