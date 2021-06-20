@@ -15,8 +15,8 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
 
-    let inputs2 = sys2.get_input_actions(sys_decls);
-    let outputs1 = sys1.get_output_actions(sys_decls);
+    let input_actions = sys2.get_input_actions(sys_decls);
+    let output_actions = sys1.get_output_actions(sys_decls);
 
     //Firstly we check the preconditions
     if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), sys_decls) {
@@ -31,62 +31,69 @@ pub fn check_refinement(
     prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
     waiting_list.push(initial_pair);
 
+    //Iterate through entire statespace
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in &outputs1 {
-            let combined_transitions1 = sys1.collect_open_outputs(curr_pair.get_states1(), output);
-            let combined_transitions2 = sys2.collect_open_outputs(curr_pair.get_states2(), output);
+        for output in &output_actions {
+            let base_transitions = sys1.collect_open_outputs(curr_pair.get_states1(), output);
+            let refining_transitions = sys2.collect_open_outputs(curr_pair.get_states2(), output);
 
-            if !combined_transitions1.is_empty() {
-                if !combined_transitions2.is_empty() {
-                    //TODO: Check with alex or thomas to see if this comment is important
-                    //If this returns false we should continue after resetting global indexes
-                    if !create_new_state_pairs(
-                        &combined_transitions1,
-                        &combined_transitions2,
-                        &curr_pair,
-                        &mut waiting_list,
-                        &mut passed_list,
-                        &sys1,
-                        &sys2,
-                        output,
-                        false,
-                        true,
-                    ) {
-                        return Ok(false);
-                    }
-                } else {
-                    return Ok(false);
-                }
+            if base_transitions.is_empty() {
+                //No base output transition so there is nothing to refine
+                continue;
+            } else if !base_transitions.is_empty() && refining_transitions.is_empty() {
+                //A base output transition exists but no refining transition exists so it fails refinement
+                return Ok(false);
+            } else if !is_output_refining(&base_transitions, &refining_transitions, &curr_pair) {
+                //The base output transition has a larger federation space than the refining transition so it fails refinement
+                return Ok(false);
             }
+
+            //TODO: Check with alex or thomas to see if this comment is important
+            //If this returns false we should continue after resetting global indexes
+            create_new_state_pairs(
+                &base_transitions,
+                &refining_transitions,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &sys1,
+                &sys2,
+                output,
+                false,
+                true,
+            )
         }
 
-        for input in &inputs2 {
-            let combined_transitions1 = sys1.collect_open_inputs(curr_pair.get_states1(), input);
-            let combined_transitions2 = sys2.collect_open_inputs(curr_pair.get_states2(), input);
+        for input in &input_actions {
+            let base_transitions = sys2.collect_open_inputs(curr_pair.get_states2(), input);
+            let refining_transitions = sys1.collect_open_inputs(curr_pair.get_states1(), input);
 
-            if !combined_transitions2.is_empty() {
-                if !combined_transitions1.is_empty() {
-                    //If this returns false we should continue after resetting global indexes
-                    if !create_new_state_pairs(
-                        &combined_transitions2,
-                        &combined_transitions1,
-                        &curr_pair,
-                        &mut waiting_list,
-                        &mut passed_list,
-                        &sys2,
-                        &sys1,
-                        input,
-                        true,
-                        false,
-                    ) {
-                        return Ok(false);
-                    }
-                } else {
-                    return Ok(false);
-                }
+            if base_transitions.is_empty() {
+                //No base input transition so there is nothing to refine
+                continue;
+            } else if !base_transitions.is_empty() && refining_transitions.is_empty() {
+                //A base input transition exist but no refining transition exist so it fails refinement
+                return Ok(false);
+            } else if !is_input_refining(&base_transitions, &refining_transitions, &curr_pair) {
+                //The base input transition has a larger federation space than the refining transition so it fails refinement
+                return Ok(false);
             }
+
+            //If this returns false we should continue after resetting global indexes
+            create_new_state_pairs(
+                &base_transitions,
+                &refining_transitions,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &sys2,
+                &sys1,
+                input,
+                true,
+                false,
+            )
         }
 
         passed_list.push(curr_pair.clone());
@@ -95,16 +102,26 @@ pub fn check_refinement(
     Ok(true)
 }
 
-fn create_new_state_pairs<'a>(
+fn is_output_refining<'a>(
+    base_transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
+    refining_transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
+    curr_pair: &StatePair<'a>,
+) -> bool {
+    is_transition_refining(base_transitions, refining_transitions, curr_pair, true)
+}
+
+fn is_input_refining<'a>(
+    base_transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
+    refining_transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
+    curr_pair: &StatePair<'a>,
+) -> bool {
+    is_transition_refining(base_transitions, refining_transitions, curr_pair, false)
+}
+
+fn is_transition_refining<'a>(
     transitions1: &[(&'a Component, Vec<&'a Edge>, usize)],
     transitions2: &[(&'a Component, Vec<&'a Edge>, usize)],
     curr_pair: &StatePair<'a>,
-    waiting_list: &mut Vec<StatePair<'a>>,
-    passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &'a SystemRepresentation,
-    sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
     is_state1: bool,
 ) -> bool {
     let dim = curr_pair.zone.dimension;
@@ -142,10 +159,21 @@ fn create_new_state_pairs<'a>(
     let result_federation = Federation::new(guard_zones_left, dim)
         .minus_fed(&mut Federation::new(guard_zones_right, dim));
 
-    if !result_federation.is_empty() {
-        return false;
-    }
+    result_federation.is_empty()
+}
 
+fn create_new_state_pairs<'a>(
+    transitions1: &[(&'a Component, Vec<&'a Edge>, usize)],
+    transitions2: &[(&'a Component, Vec<&'a Edge>, usize)],
+    curr_pair: &StatePair<'a>,
+    waiting_list: &mut Vec<StatePair<'a>>,
+    passed_list: &mut Vec<StatePair<'a>>,
+    sys1: &'a SystemRepresentation,
+    sys2: &'a SystemRepresentation,
+    action: &str,
+    adding_input: bool,
+    is_state1: bool,
+) {
     let combinations1 = create_transition_combinations(transitions1);
     let combinations2 = create_transition_combinations(transitions2);
 
@@ -166,8 +194,6 @@ fn create_new_state_pairs<'a>(
             );
         }
     }
-
-    true
 }
 
 fn create_transition_combinations<'a>(
