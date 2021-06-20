@@ -110,30 +110,26 @@ impl<'a> SystemRepresentation {
         &'a self,
         states: &[State<'a>],
         action: &str,
-    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+    ) -> Vec<(&'a Component, Vec<&'a Edge>, usize)> {
         let mut edges = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input) {
-            Ok(edges)
-        } else {
-            Err("Conjunction rules on output not satisfied".to_string())
-        }
+        self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input);
+
+        edges
     }
 
     pub fn collect_open_outputs(
         &'a self,
         states: &[State<'a>],
         action: &str,
-    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+    ) -> Vec<(&'a Component, Vec<&'a Edge>, usize)> {
         let mut edges = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output) {
-            Ok(edges)
-        } else {
-            Err("Conjunction rules on input not satisfied".to_string())
-        }
+        self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output);
+
+        edges
     }
 
     fn collect_open_edges(
@@ -143,25 +139,26 @@ impl<'a> SystemRepresentation {
         action: &str,
         open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
         sync_type: &SyncType,
-    ) -> bool {
+    ) {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.collect_open_edges(states, index, action, open_edges, sync_type)
-                    || right_side.collect_open_edges(states, index, action, open_edges, sync_type)
+                left_side.collect_open_edges(states, index, action, open_edges, sync_type);
+                right_side.collect_open_edges(states, index, action, open_edges, sync_type);
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                let open_edges_len = open_edges.len();
-                if left_side.collect_open_edges(states, index, action, open_edges, sync_type) {
-                    let left_found_transitions = open_edges_len != open_edges.len();
-                    if right_side.collect_open_edges(states, index, action, open_edges, sync_type) {
-                        let right_found_transitions = open_edges_len != open_edges.len();
-                        return left_found_transitions == right_found_transitions;
-                    }
+                let mut left = vec![];
+                let mut right = vec![];
+
+                left_side.collect_open_edges(states, index, action, &mut left, sync_type);
+                right_side.collect_open_edges(states, index, action, &mut right, sync_type);
+
+                if !(left.is_empty() || right.is_empty()) {
+                    open_edges.append(&mut left);
+                    open_edges.append(&mut right);
                 }
-                false
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_open_edges(states, index, action, open_edges, sync_type)
+                rep.collect_open_edges(states, index, action, open_edges, sync_type);
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =
@@ -172,7 +169,6 @@ impl<'a> SystemRepresentation {
                 }
 
                 *index += 1;
-                true
             }
         }
     }

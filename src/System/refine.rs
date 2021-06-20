@@ -14,8 +14,6 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)>;
-    let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)>;
 
     let inputs2 = sys2.get_input_actions(sys_decls);
     let outputs1 = sys1.get_output_actions(sys_decls);
@@ -37,14 +35,8 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
-            match sys1.collect_open_outputs(curr_pair.get_states1(), output) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_open_outputs(curr_pair.get_states2(), output) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+            let combined_transitions1 = sys1.collect_open_outputs(curr_pair.get_states1(), output);
+            let combined_transitions2 = sys2.collect_open_outputs(curr_pair.get_states2(), output);
 
             if !combined_transitions1.is_empty() {
                 if !combined_transitions2.is_empty() {
@@ -71,14 +63,8 @@ pub fn check_refinement(
         }
 
         for input in &inputs2 {
-            match sys1.collect_open_inputs(curr_pair.get_states1(), input) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_open_inputs(curr_pair.get_states2(), input) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+            let combined_transitions1 = sys1.collect_open_inputs(curr_pair.get_states1(), input);
+            let combined_transitions2 = sys2.collect_open_inputs(curr_pair.get_states2(), input);
 
             if !combined_transitions2.is_empty() {
                 if !combined_transitions1.is_empty() {
