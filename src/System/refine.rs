@@ -38,14 +38,8 @@ pub fn check_refinement(
 
         for output in &outputs1 {
             println!("output: {}", output);
-            match sys1.collect_open_outputs(curr_pair.get_states1(), output) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_open_outputs(curr_pair.get_states2(), output) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+            combined_transitions1 = sys1.collect_outputs_edges(curr_pair.get_states1(), output);
+            combined_transitions2 = sys2.collect_outputs_edges(curr_pair.get_states2(), output);
 
             for (_, edges, _) in &combined_transitions1 {
                 for edge in edges {
@@ -86,14 +80,8 @@ pub fn check_refinement(
         }
 
         for input in &inputs2 {
-            match sys1.collect_open_inputs(curr_pair.get_states1(), input) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_open_inputs(curr_pair.get_states2(), input) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+            combined_transitions1 = sys1.collect_inputs_edges(curr_pair.get_states1(), input);
+            combined_transitions2 = sys2.collect_inputs_edges(curr_pair.get_states2(), input);
 
             if !combined_transitions2.is_empty() {
                 if !combined_transitions1.is_empty() {
