@@ -37,23 +37,8 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
-            println!("output: {}", output);
             combined_transitions1 = sys1.collect_outputs_edges(curr_pair.get_states1(), output);
             combined_transitions2 = sys2.collect_outputs_edges(curr_pair.get_states2(), output);
-
-            for (_, edges, _) in &combined_transitions1 {
-                for edge in edges {
-                    println!("{} -> {}", edge.source_location, edge.target_location);
-                }
-            }
-
-            println!("------");
-            for (_, edges, _) in &combined_transitions2 {
-                for edge in edges {
-                    println!("{} -> {}", edge.source_location, edge.target_location);
-                }
-            }
-            println!("#######");
 
             if !combined_transitions1.is_empty() {
                 if !combined_transitions2.is_empty() {
