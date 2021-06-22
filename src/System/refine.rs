@@ -37,6 +37,7 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
+            println!("output: {}", output);
             match sys1.collect_open_outputs(curr_pair.get_states1(), output) {
                 Ok(open_outputs) => combined_transitions1 = open_outputs,
                 Err(err) => return Err(err + " on left side"),
@@ -45,6 +46,20 @@ pub fn check_refinement(
                 Ok(open_outputs) => combined_transitions2 = open_outputs,
                 Err(err) => return Err(err + " on right side"),
             }
+
+            for (_, edges, _) in &combined_transitions1 {
+                for edge in edges {
+                    println!("{} -> {}", edge.source_location, edge.target_location);
+                }
+            }
+
+            println!("------");
+            for (_, edges, _) in &combined_transitions2 {
+                for edge in edges {
+                    println!("{} -> {}", edge.source_location, edge.target_location);
+                }
+            }
+            println!("#######");
 
             if !combined_transitions1.is_empty() {
                 if !combined_transitions2.is_empty() {
@@ -164,20 +179,26 @@ fn create_new_state_pairs<'a>(
     let combinations2 = create_transition_combinations(transitions2);
 
     for comb_vec1 in &combinations1 {
+        let mut refinement_exists = false;
         for comb_vec2 in &combinations2 {
             //We currently don't use the bool returned here for anything
-            build_state_pair(
-                comb_vec1,
-                comb_vec2,
-                curr_pair,
-                waiting_list,
-                passed_list,
-                sys1,
-                sys2,
-                action,
-                adding_input,
-                is_state1,
-            );
+            refinement_exists = refinement_exists
+                | build_state_pair(
+                    comb_vec1,
+                    comb_vec2,
+                    curr_pair,
+                    waiting_list,
+                    passed_list,
+                    sys1,
+                    sys2,
+                    action,
+                    adding_input,
+                    is_state1,
+                );
+        }
+
+        if !refinement_exists {
+            //return false;
         }
     }
 

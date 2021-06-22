@@ -150,15 +150,18 @@ impl<'a> SystemRepresentation {
                     || right_side.collect_open_edges(states, index, action, open_edges, sync_type)
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                let open_edges_len = open_edges.len();
-                if left_side.collect_open_edges(states, index, action, open_edges, sync_type) {
-                    let left_found_transitions = open_edges_len != open_edges.len();
-                    if right_side.collect_open_edges(states, index, action, open_edges, sync_type) {
-                        let right_found_transitions = open_edges_len != open_edges.len();
-                        return left_found_transitions == right_found_transitions;
-                    }
+                let mut left = vec![];
+                let mut right = vec![];
+
+                left_side.collect_open_edges(states, index, action, &mut left, sync_type);
+                right_side.collect_open_edges(states, index, action, &mut right, sync_type);
+
+                if !(left.is_empty() || right.is_empty()) {
+                    open_edges.append(&mut left);
+                    open_edges.append(&mut right);
                 }
-                false
+
+                true
             }
             SystemRepresentation::Parentheses(rep) => {
                 rep.collect_open_edges(states, index, action, open_edges, sync_type)
