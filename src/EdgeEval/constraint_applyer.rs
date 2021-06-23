@@ -311,17 +311,17 @@ pub fn apply_constraints_to_state_helper(
 }
 pub fn apply_constraints_to_state2(
     guard: &BoolExpression,
-    full_state: &mut component::FullState,
+    state: &mut component::State,
 ) -> BoolExpression {
     match guard {
         BoolExpression::AndOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, full_state);
+            let left = apply_constraints_to_state2(&**left, state);
             if let BoolExpression::Bool(val) = left {
                 if !val {
                     return BoolExpression::Bool(false);
                 }
             }
-            let right = apply_constraints_to_state2(&**right, full_state);
+            let right = apply_constraints_to_state2(&**right, state);
 
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -338,8 +338,8 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::OrOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, full_state);
-            let right = apply_constraints_to_state2(&**right, full_state);
+            let left = apply_constraints_to_state2(&**left, state);
+            let right = apply_constraints_to_state2(&**right, state);
 
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -356,19 +356,17 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::LessEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state);
-            let computed_right = apply_constraints_to_state2(&**right, full_state);
+            let computed_left = apply_constraints_to_state2(&**left, state);
+            let computed_right = apply_constraints_to_state2(&**right, state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state
-                            .zone
-                            .add_lte_constraint(left_index, right_index, 0);
+                        let result = state.zone.add_lte_constraint(left_index, right_index, 0);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
-                        let result = full_state.zone.add_lte_constraint(left_index, 0, right_val);
+                        let result = state.zone.add_lte_constraint(left_index, 0, right_val);
                         return BoolExpression::Bool(result);
                     }
                     _ => {
@@ -377,10 +375,7 @@ pub fn apply_constraints_to_state2(
                 },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result =
-                            full_state
-                                .zone
-                                .add_lte_constraint(0, right_index, -1 * left_val);
+                        let result = state.zone.add_lte_constraint(0, right_index, -1 * left_val);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
@@ -396,21 +391,16 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::GreatEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state);
-            let computed_right = apply_constraints_to_state2(&**right, full_state);
+            let computed_left = apply_constraints_to_state2(&**left, state);
+            let computed_right = apply_constraints_to_state2(&**right, state);
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state
-                            .zone
-                            .add_lte_constraint(right_index, left_index, 0);
+                        let result = state.zone.add_lte_constraint(right_index, left_index, 0);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
-                        let result =
-                            full_state
-                                .zone
-                                .add_lte_constraint(0, left_index, -1 * right_val);
+                        let result = state.zone.add_lte_constraint(0, left_index, -1 * right_val);
                         return BoolExpression::Bool(result);
                     }
                     _ => {
@@ -419,7 +409,7 @@ pub fn apply_constraints_to_state2(
                 },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state.zone.add_lte_constraint(right_index, 0, left_val);
+                        let result = state.zone.add_lte_constraint(right_index, 0, left_val);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
@@ -435,19 +425,17 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::LessT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state);
-            let computed_right = apply_constraints_to_state2(&**right, full_state);
+            let computed_left = apply_constraints_to_state2(&**left, state);
+            let computed_right = apply_constraints_to_state2(&**right, state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state
-                            .zone
-                            .add_lt_constraint(left_index, right_index, 0);
+                        let result = state.zone.add_lt_constraint(left_index, right_index, 0);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
-                        let result = full_state.zone.add_lt_constraint(left_index, 0, right_val);
+                        let result = state.zone.add_lt_constraint(left_index, 0, right_val);
                         return BoolExpression::Bool(result);
                     }
                     _ => {
@@ -456,10 +444,7 @@ pub fn apply_constraints_to_state2(
                 },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result =
-                            full_state
-                                .zone
-                                .add_lt_constraint(0, right_index, -1 * left_val);
+                        let result = state.zone.add_lt_constraint(0, right_index, -1 * left_val);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
@@ -475,21 +460,16 @@ pub fn apply_constraints_to_state2(
             }
         }
         BoolExpression::GreatT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state);
-            let computed_right = apply_constraints_to_state2(&**right, full_state);
+            let computed_left = apply_constraints_to_state2(&**left, state);
+            let computed_right = apply_constraints_to_state2(&**right, state);
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state
-                            .zone
-                            .add_lt_constraint(right_index, left_index, 0);
+                        let result = state.zone.add_lt_constraint(right_index, left_index, 0);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
-                        let result =
-                            full_state
-                                .zone
-                                .add_lt_constraint(0, left_index, -1 * right_val);
+                        let result = state.zone.add_lt_constraint(0, left_index, -1 * right_val);
                         return BoolExpression::Bool(result);
                     }
                     _ => {
@@ -498,7 +478,7 @@ pub fn apply_constraints_to_state2(
                 },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state.zone.add_lt_constraint(right_index, 0, left_val);
+                        let result = state.zone.add_lt_constraint(right_index, 0, left_val);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
@@ -513,17 +493,11 @@ pub fn apply_constraints_to_state2(
                 }
             }
         }
-        BoolExpression::Parentheses(_expr) => {
-            return apply_constraints_to_state2(guard, full_state)
-        }
+        BoolExpression::Parentheses(_expr) => return apply_constraints_to_state2(guard, state),
         BoolExpression::VarName(name) => {
-            if let Some(clock_index) = full_state
-                .get_declarations()
-                .get_clocks()
-                .get(name.as_str())
-            {
+            if let Some(clock_index) = state.get_declarations().get_clocks().get(name.as_str()) {
                 return BoolExpression::Clock(*clock_index);
-            } else if let Some(val) = full_state.get_declarations().get_ints().get(name.as_str()) {
+            } else if let Some(val) = state.get_declarations().get_ints().get(name.as_str()) {
                 return BoolExpression::Int(*val);
             } else {
                 panic!("no variable or clock named {:?}", name)
@@ -534,19 +508,17 @@ pub fn apply_constraints_to_state2(
         BoolExpression::Clock(index) => return BoolExpression::Clock(*index),
         //_ => {}
         BoolExpression::EQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, full_state);
-            let computed_right = apply_constraints_to_state2(&**right, full_state);
+            let computed_left = apply_constraints_to_state2(&**left, state);
+            let computed_right = apply_constraints_to_state2(&**right, state);
 
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state.zone.add_eq_constraint(right_index, left_index);
+                        let result = state.zone.add_eq_constraint(right_index, left_index);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {
-                        let result = full_state
-                            .zone
-                            .add_eq_const_constraint(left_index, right_val);
+                        let result = state.zone.add_eq_const_constraint(left_index, right_val);
                         return BoolExpression::Bool(result);
                     }
                     _ => {
@@ -555,9 +527,7 @@ pub fn apply_constraints_to_state2(
                 },
                 BoolExpression::Int(left_val) => match computed_right {
                     BoolExpression::Clock(right_index) => {
-                        let result = full_state
-                            .zone
-                            .add_eq_const_constraint(right_index, left_val);
+                        let result = state.zone.add_eq_const_constraint(right_index, left_val);
                         return BoolExpression::Bool(result);
                     }
                     BoolExpression::Int(right_val) => {

@@ -202,7 +202,7 @@ impl Component {
             return false;
         }
 
-        let mut passed_list: Vec<FullState> = vec![];
+        let mut passed_list: Vec<State> = vec![];
 
         let initial_loc = self.get_initial_location();
 
@@ -215,7 +215,7 @@ impl Component {
 
         let zone = Zone::init(dimension);
 
-        let mut fullSt = create_full_state(initial_location, zone);
+        let mut fullSt = create_state(initial_location, zone);
         if let Some(update_i) = fullSt.decorated_location.location.get_invariant() {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt);
         }
@@ -225,8 +225,8 @@ impl Component {
     /// Method used to check if a state is contained in the passed list
     pub fn passed_contains_state(
         &self,
-        currState: &mut FullState,
-        passed_list: &mut Vec<FullState>,
+        currState: &mut State,
+        passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
             if state.get_location().id == currState.get_location().id {
@@ -242,9 +242,9 @@ impl Component {
     /// helper method to check consistency
     pub fn consistency_helper<'a>(
         &'a self,
-        mut currState: FullState<'a>,
+        mut currState: State<'a>,
         prune: bool,
-        passed_list: &mut Vec<FullState<'a>>,
+        passed_list: &mut Vec<State<'a>>,
     ) -> bool {
         if self.passed_contains_state(&mut currState, passed_list) {
             return true;
@@ -266,7 +266,7 @@ impl Component {
             let loc = self.get_location_by_name(&edge.target_location);
             let location = create_decorated_location(loc, currState.get_declarations().clone());
 
-            let mut new_state = create_full_state(location, full_new_zone);
+            let mut new_state = create_state(location, full_new_zone);
 
             if let Some(source_inv) = self
                 .get_location_by_name(edge.get_source_location())
@@ -328,7 +328,7 @@ impl Component {
                 let loc = self.get_location_by_name(&edge.target_location);
                 let location = create_decorated_location(loc, currState.get_declarations().clone());
 
-                let mut new_state = create_full_state(location, full_new_zone);
+                let mut new_state = create_state(location, full_new_zone);
 
                 if let Some(source_inv) = self
                     .get_location_by_name(edge.get_source_location())
@@ -383,7 +383,7 @@ impl Component {
         // Else if independent progress does not hold through delaying indefinitely,
         // we must check for being able to output and satisfy independent progress
     }
-    pub fn canDelayIndefinitely(currState: &mut FullState) -> bool {
+    pub fn canDelayIndefinitely(currState: &mut State) -> bool {
         for i in 1..currState.zone.dimension {
             if !currState.zone.is_constraint_infinity(i, 0) {
                 return false;
@@ -394,8 +394,8 @@ impl Component {
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
     pub fn is_deterministic(&self) -> bool {
-        let mut passed_list: Vec<FullState> = vec![];
-        let mut waiting_list: Vec<FullState> = vec![];
+        let mut passed_list: Vec<State> = vec![];
+        let mut waiting_list: Vec<State> = vec![];
 
         let initial_loc = self.get_initial_location();
 
@@ -406,7 +406,7 @@ impl Component {
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let mut fullSt = create_full_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
+        let mut fullSt = create_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
         fullSt.zone.zero();
         fullSt.zone.up();
@@ -446,7 +446,7 @@ impl Component {
                         let state =
                             create_decorated_location(loc, full_state.get_declarations().clone());
                         println!("Dim is: {:?}", full_state.zone.dimension);
-                        let mut new_state = create_full_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
+                        let mut new_state = create_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
                                 constraint_applyer::apply_constraints_to_state2(
@@ -479,7 +479,7 @@ impl Component {
     }
 
     /// Method to check if moves are overlapping to for instance to verify that component is deterministic
-    fn check_moves_overlap(&self, edges: &Vec<&Edge>, full_state: &mut FullState) -> bool {
+    fn check_moves_overlap(&self, edges: &Vec<&Edge>, state: &mut State) -> bool {
         if edges.len() < 2 {
             return false;
         }
@@ -520,10 +520,10 @@ impl Component {
                     .unwrap();
 
                 let location = create_decorated_location(
-                    full_state.get_location(),
-                    full_state.get_declarations().clone(),
+                    state.get_location(),
+                    state.get_declarations().clone(),
                 );
-                let mut state_i = create_full_state(location, full_state.zone.clone());
+                let mut state_i = create_state(location, state.zone.clone());
                 if let Some(inv_source) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
                 }
@@ -535,10 +535,10 @@ impl Component {
                 }
 
                 let location = create_decorated_location(
-                    full_state.get_location(),
-                    full_state.get_declarations().clone(),
+                    state.get_location(),
+                    state.get_declarations().clone(),
                 );
-                let mut state_j = create_full_state(location, full_state.zone.clone());
+                let mut state_j = create_state(location, state.zone.clone());
                 if let Some(update_j) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
@@ -563,15 +563,15 @@ impl Component {
 }
 
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
-fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullState<'a>>) -> bool {
+fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> bool {
     for passed_state_pair in passed_list {
-        if full_state.get_location().get_id() != passed_state_pair.get_location().get_id() {
+        if state.get_location().get_id() != passed_state_pair.get_location().get_id() {
             continue;
         }
-        if full_state.zone.dimension != passed_state_pair.zone.dimension {
+        if state.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
         }
-        if full_state.zone.is_subset_eq(&mut passed_state_pair.zone) {
+        if state.zone.is_subset_eq(&mut passed_state_pair.zone) {
             return false;
         }
     }
@@ -594,8 +594,8 @@ fn create_decorated_location(location: &Location, declarations: Declarations) ->
     };
 }
 
-fn create_full_state(decorated_location: DecoratedLocation, zone: Zone) -> FullState {
-    FullState {
+fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
+    State {
         decorated_location,
         zone,
     }
@@ -605,12 +605,12 @@ fn create_full_state(decorated_location: DecoratedLocation, zone: Zone) -> FullS
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone)]
-pub struct FullState<'a> {
+pub struct State<'a> {
     pub decorated_location: DecoratedLocation<'a>,
     pub zone: Zone,
 }
 
-impl FullState<'_> {
+impl State<'_> {
     pub fn get_location(&self) -> &Location {
         &self.decorated_location.get_location()
     }
@@ -973,12 +973,12 @@ where
     }
 }
 
-fn add_state_to_wl<'a>(wl: &mut Vec<FullState<'a>>, full_state: FullState<'a>) {
-    wl.push(full_state)
+fn add_state_to_wl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
+    wl.push(state)
 }
 
-fn add_state_to_pl<'a>(wl: &mut Vec<FullState<'a>>, full_state: FullState<'a>) {
-    wl.push(full_state)
+fn add_state_to_pl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
+    wl.push(state)
 }
 
 // Function used for deserializing location types
