@@ -206,7 +206,7 @@ impl Component {
 
         let initial_loc = self.get_initial_location();
 
-        let initial_state = State {
+        let initial_location = DecoratedLocation {
             location: initial_loc,
             declarations: self.get_declarations().clone(),
         };
@@ -215,8 +215,8 @@ impl Component {
 
         let zone = Zone::init(dimension);
 
-        let mut fullSt = create_full_state(initial_state, zone);
-        if let Some(update_i) = fullSt.state.location.get_invariant() {
+        let mut fullSt = create_full_state(initial_location, zone);
+        if let Some(update_i) = fullSt.decorated_location.location.get_invariant() {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt);
         }
         return self.consistency_helper(fullSt, prune, &mut passed_list);
@@ -229,7 +229,7 @@ impl Component {
         passed_list: &mut Vec<FullState>,
     ) -> bool {
         for state in passed_list {
-            if state.state.location.id == currState.state.location.id {
+            if state.get_location().id == currState.get_location().id {
                 if currState.zone.is_subset_eq(&mut state.zone) {
                     return true;
                 }
@@ -255,7 +255,7 @@ impl Component {
         let mut edges: Vec<&Edge> = vec![];
         for input_action in self.get_input_actions() {
             edges.append(&mut self.get_next_edges(
-                &currState.get_state().location,
+                currState.get_location(),
                 input_action.get_name(),
                 SyncType::Input,
             ));
@@ -264,9 +264,9 @@ impl Component {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.zone.clone();
             let loc = self.get_location_by_name(&edge.target_location);
-            let state = create_state(loc, currState.get_state().get_declarations().clone());
+            let location = create_decorated_location(loc, currState.get_declarations().clone());
 
-            let mut new_state = create_full_state(state, full_new_zone);
+            let mut new_state = create_full_state(location, full_new_zone);
 
             if let Some(source_inv) = self
                 .get_location_by_name(edge.get_source_location())
@@ -313,7 +313,7 @@ impl Component {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
                 edges.append(&mut self.get_next_edges(
-                    &currState.get_state().location,
+                    currState.get_location(),
                     output_action.get_name(),
                     SyncType::Output,
                 ));
@@ -326,9 +326,9 @@ impl Component {
                 let full_new_zone = currState.zone.clone();
 
                 let loc = self.get_location_by_name(&edge.target_location);
-                let state = create_state(loc, currState.get_state().get_declarations().clone());
+                let location = create_decorated_location(loc, currState.get_declarations().clone());
 
-                let mut new_state = create_full_state(state, full_new_zone);
+                let mut new_state = create_full_state(location, full_new_zone);
 
                 if let Some(source_inv) = self
                     .get_location_by_name(edge.get_source_location())
@@ -399,14 +399,14 @@ impl Component {
 
         let initial_loc = self.get_initial_location();
 
-        let initial_state = State {
+        let initial_location = DecoratedLocation {
             location: initial_loc,
             declarations: self.get_declarations().clone(),
         };
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let mut fullSt = create_full_state(initial_state, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
+        let mut fullSt = create_full_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
         fullSt.zone.zero();
         fullSt.zone.up();
@@ -418,7 +418,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
                     edges.append(&mut self.get_next_edges(
-                        &full_state.get_state().location,
+                        full_state.get_location(),
                         input_action.get_name(),
                         SyncType::Input,
                     ));
@@ -429,7 +429,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions() {
                     edges.append(&mut self.get_next_edges(
-                        &full_state.get_state().location,
+                        full_state.get_location(),
                         output_action.get_name(),
                         SyncType::Output,
                     ));
@@ -444,7 +444,7 @@ impl Component {
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
                         let state =
-                            create_state(loc, full_state.get_state().get_declarations().clone());
+                            create_decorated_location(loc, full_state.get_declarations().clone());
                         println!("Dim is: {:?}", full_state.zone.dimension);
                         let mut new_state = create_full_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
@@ -519,14 +519,11 @@ impl Component {
                     .nth(0)
                     .unwrap();
 
-                let state = create_state(
-                    full_state.get_state().get_location(),
-                    full_state.get_state().get_declarations().clone(),
+                let location = create_decorated_location(
+                    full_state.get_location(),
+                    full_state.get_declarations().clone(),
                 );
-                let mut state_i = FullState {
-                    state,
-                    zone: full_state.zone.clone(),
-                };
+                let mut state_i = create_full_state(location, full_state.zone.clone());
                 if let Some(inv_source) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
                 }
@@ -537,14 +534,11 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
                 }
 
-                let state = create_state(
-                    full_state.get_state().get_location(),
-                    full_state.get_state().get_declarations().clone(),
+                let location = create_decorated_location(
+                    full_state.get_location(),
+                    full_state.get_declarations().clone(),
                 );
-                let mut state_j = FullState {
-                    state,
-                    zone: full_state.zone.clone(),
-                };
+                let mut state_j = create_full_state(location, full_state.zone.clone());
                 if let Some(update_j) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
                 }
@@ -571,9 +565,7 @@ impl Component {
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
 fn is_new_state<'a>(full_state: &mut FullState<'a>, passed_list: &mut Vec<FullState<'a>>) -> bool {
     for passed_state_pair in passed_list {
-        if full_state.get_state().get_location().get_id()
-            != passed_state_pair.get_state().get_location().get_id()
-        {
+        if full_state.get_location().get_id() != passed_state_pair.get_location().get_id() {
             continue;
         }
         if full_state.zone.dimension != passed_state_pair.zone.dimension {
@@ -595,15 +587,18 @@ pub fn contain(channels: &Vec<Channel>, channel: &str) -> bool {
     return false;
 }
 
-fn create_state(location: &Location, declarations: Declarations) -> State {
-    return State {
+fn create_decorated_location(location: &Location, declarations: Declarations) -> DecoratedLocation {
+    return DecoratedLocation {
         location,
         declarations,
     };
 }
 
-fn create_full_state(state: State, zone: Zone) -> FullState {
-    FullState { state, zone }
+fn create_full_state(decorated_location: DecoratedLocation, zone: Zone) -> FullState {
+    FullState {
+        decorated_location,
+        zone,
+    }
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
@@ -611,13 +606,17 @@ fn create_full_state(state: State, zone: Zone) -> FullState {
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone)]
 pub struct FullState<'a> {
-    pub state: State<'a>,
+    pub decorated_location: DecoratedLocation<'a>,
     pub zone: Zone,
 }
 
 impl FullState<'_> {
-    pub fn get_state(&self) -> &State {
-        &self.state
+    pub fn get_location(&self) -> &Location {
+        &self.decorated_location.get_location()
+    }
+
+    pub fn get_declarations(&self) -> &Declarations {
+        &self.decorated_location.get_declarations()
     }
 }
 
@@ -677,15 +676,15 @@ pub struct Edge {
 }
 
 impl Edge {
-    pub fn apply_update(&self, state: &mut State, zone: &mut Zone) {
+    pub fn apply_update(&self, location: &mut DecoratedLocation, zone: &mut Zone) {
         if let Some(updates) = self.get_update() {
-            updater(updates, state, zone);
+            updater(updates, location, zone);
         }
     }
 
-    pub fn apply_guard(&self, state: &State, zone: &mut Zone) -> bool {
+    pub fn apply_guard(&self, location: &DecoratedLocation, zone: &mut Zone) -> bool {
         return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, state, zone)
+            apply_constraints_to_state(guards, location, zone)
         } else {
             true
         };
@@ -738,15 +737,15 @@ impl Channel {
 }
 
 #[derive(Clone, Debug)]
-pub struct State<'a> {
+pub struct DecoratedLocation<'a> {
     pub location: &'a Location,
     pub declarations: Declarations,
 }
 
 #[allow(dead_code)]
-impl<'a> State<'a> {
-    pub fn create(location: &Location, declarations: Declarations) -> State {
-        State {
+impl<'a> DecoratedLocation<'a> {
+    pub fn create(location: &Location, declarations: Declarations) -> DecoratedLocation {
+        DecoratedLocation {
             location,
             declarations,
         }

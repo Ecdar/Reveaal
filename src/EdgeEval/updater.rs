@@ -4,7 +4,11 @@ use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::representations::BoolExpression;
 
 /// Used to handle update expressions on edges
-pub fn updater(updates: &Vec<parse_edge::Update>, state: &mut component::State, zone: &mut Zone) {
+pub fn updater(
+    updates: &Vec<parse_edge::Update>,
+    state: &mut component::DecoratedLocation,
+    zone: &mut Zone,
+) {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
@@ -30,7 +34,6 @@ pub fn fullState_updater(updates: &Vec<parse_edge::Update>, full_state: &mut com
         match update.get_expression() {
             BoolExpression::Int(val) => {
                 if let Some(&clock_index) = full_state
-                    .get_state()
                     .get_declarations()
                     .get_clock_index_by_name(update.get_variable_name())
                 {

@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::{Component, Edge, LocationType, State, SyncType};
+use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
@@ -108,13 +108,13 @@ impl<'a> SystemRepresentation {
 
     pub fn collect_open_inputs(
         &'a self,
-        states: &[State<'a>],
+        locations: &[DecoratedLocation<'a>],
         action: &str,
     ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Input) {
+        if self.collect_open_edges(locations, &mut index, action, &mut edges, &SyncType::Input) {
             Ok(edges)
         } else {
             Err("Conjunction rules on output not satisfied".to_string())
@@ -123,13 +123,13 @@ impl<'a> SystemRepresentation {
 
     pub fn collect_open_outputs(
         &'a self,
-        states: &[State<'a>],
+        locations: &[DecoratedLocation<'a>],
         action: &str,
     ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(states, &mut index, action, &mut edges, &SyncType::Output) {
+        if self.collect_open_edges(locations, &mut index, action, &mut edges, &SyncType::Output) {
             Ok(edges)
         } else {
             Err("Conjunction rules on input not satisfied".to_string())
@@ -138,7 +138,7 @@ impl<'a> SystemRepresentation {
 
     fn collect_open_edges(
         &'a self,
-        states: &[State<'a>],
+        locations: &[DecoratedLocation<'a>],
         index: &mut usize,
         action: &str,
         open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
@@ -146,14 +146,17 @@ impl<'a> SystemRepresentation {
     ) -> bool {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.collect_open_edges(states, index, action, open_edges, sync_type)
-                    || right_side.collect_open_edges(states, index, action, open_edges, sync_type)
+                left_side.collect_open_edges(locations, index, action, open_edges, sync_type)
+                    || right_side
+                        .collect_open_edges(locations, index, action, open_edges, sync_type)
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 let open_edges_len = open_edges.len();
-                if left_side.collect_open_edges(states, index, action, open_edges, sync_type) {
+                if left_side.collect_open_edges(locations, index, action, open_edges, sync_type) {
                     let left_found_transitions = open_edges_len != open_edges.len();
-                    if right_side.collect_open_edges(states, index, action, open_edges, sync_type) {
+                    if right_side
+                        .collect_open_edges(locations, index, action, open_edges, sync_type)
+                    {
                         let right_found_transitions = open_edges_len != open_edges.len();
                         return left_found_transitions == right_found_transitions;
                     }
@@ -161,11 +164,11 @@ impl<'a> SystemRepresentation {
                 false
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_open_edges(states, index, action, open_edges, sync_type)
+                rep.collect_open_edges(locations, index, action, open_edges, sync_type)
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =
-                    comp.get_next_edges(states[*index].get_location(), action, *sync_type);
+                    comp.get_next_edges(locations[*index].get_location(), action, *sync_type);
 
                 if !next_edges.is_empty() {
                     open_edges.push((comp, next_edges, *index));
@@ -259,7 +262,7 @@ impl<'a> SystemRepresentation {
         matching_o
     }
 
-    pub fn get_initial_states(&'a self) -> Vec<State<'a>> {
+    pub fn get_initial_locations(&'a self) -> Vec<DecoratedLocation<'a>> {
         let mut states = vec![];
         self.all_components(&mut |comp: &Component| -> bool {
             let init_loc = comp
@@ -267,7 +270,7 @@ impl<'a> SystemRepresentation {
                 .iter()
                 .find(|location| location.get_location_type() == &LocationType::Initial);
             if let Some(init_loc) = init_loc {
-                let state = State::create(init_loc, comp.get_declarations().clone());
+                let state = DecoratedLocation::create(init_loc, comp.get_declarations().clone());
                 states.push(state);
             }
 
