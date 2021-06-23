@@ -215,11 +215,11 @@ impl Component {
 
         let zone = Zone::init(dimension);
 
-        let mut fullSt = create_state(initial_location, zone);
-        if let Some(update_i) = fullSt.decorated_location.location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(update_i, &mut fullSt);
+        let mut state = create_state(initial_location, zone);
+        if let Some(update_i) = state.decorated_location.location.get_invariant() {
+            constraint_applyer::apply_constraints_to_state2(update_i, &mut state);
         }
-        return self.consistency_helper(fullSt, prune, &mut passed_list);
+        return self.consistency_helper(state, prune, &mut passed_list);
     }
 
     /// Method used to check if a state is contained in the passed list
@@ -406,11 +406,11 @@ impl Component {
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
-        let mut fullSt = create_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
+        let mut state = create_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
-        fullSt.zone.zero();
-        fullSt.zone.up();
-        add_state_to_wl(&mut waiting_list, fullSt);
+        state.zone.zero();
+        state.zone.up();
+        add_state_to_wl(&mut waiting_list, state);
 
         while !waiting_list.is_empty() {
             if let Some(state) = waiting_list.pop() {
