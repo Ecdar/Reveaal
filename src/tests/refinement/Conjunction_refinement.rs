@@ -183,7 +183,6 @@ mod Conjunction_refinement {
         .unwrap());
     }
 
-    #[ignore] //Ignored because it crashses test framework
     #[test]
     fn T6ConjT7RefinesT8() {
         let (automataList, decl) = setup(PATH.to_string());

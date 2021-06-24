@@ -29,7 +29,6 @@ mod Refinement_university {
         .unwrap());
     }
 
-    #[ignore]
     #[test]
     fn testHalf2RefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
@@ -63,7 +62,7 @@ mod Refinement_university {
         .unwrap());
     }
 
-    #[ignore]
+    #[ignore] // infinite loop
     #[test]
     fn testResRefinesSelf() {
         let (automataList, decl) = setup(PATH.to_string());
