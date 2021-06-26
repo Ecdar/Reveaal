@@ -1,21 +1,24 @@
 use crate::DBMLib::dbm::Zone;
-use crate::ModelObjects::component::State;
+use crate::ModelObjects::component::DecoratedLocation;
 
 #[derive(Clone)]
 pub struct StatePair<'a> {
-    pub states1: Vec<State<'a>>,
-    pub states2: Vec<State<'a>>,
+    pub locations1: Vec<DecoratedLocation<'a>>,
+    pub locations2: Vec<DecoratedLocation<'a>>,
     pub zone: Zone,
 }
 
 impl<'b> StatePair<'b> {
-    pub fn create<'a>(states1: Vec<State<'a>>, states2: Vec<State<'a>>) -> StatePair<'a> {
+    pub fn create<'a>(
+        locations1: Vec<DecoratedLocation<'a>>,
+        locations2: Vec<DecoratedLocation<'a>>,
+    ) -> StatePair<'a> {
         let mut dimensions = 1;
-        for state in &states1 {
+        for state in &locations1 {
             dimensions += state.get_dimensions();
         }
 
-        for state in &states2 {
+        for state in &locations2 {
             dimensions += state.get_dimensions();
         }
 
@@ -24,37 +27,43 @@ impl<'b> StatePair<'b> {
         zone.up();
 
         StatePair {
-            states1,
-            states2,
+            locations1,
+            locations2,
             zone,
         }
     }
 
-    pub fn get_states1(&self) -> &Vec<State<'b>> {
-        &self.states1
+    pub fn get_locations1(&self) -> &Vec<DecoratedLocation<'b>> {
+        &self.locations1
     }
 
-    pub fn get_states2(&self) -> &Vec<State<'b>> {
-        &self.states2
+    pub fn get_locations2(&self) -> &Vec<DecoratedLocation<'b>> {
+        &self.locations2
     }
 
     //Used to allow borrowing both states as mutable
     pub fn get_mut_states(
         &mut self,
         is_states1: bool,
-    ) -> (&mut Vec<State<'b>>, &mut Vec<State<'b>>) {
+    ) -> (
+        &mut Vec<DecoratedLocation<'b>>,
+        &mut Vec<DecoratedLocation<'b>>,
+    ) {
         if is_states1 {
-            (&mut self.states1, &mut self.states2)
+            (&mut self.locations1, &mut self.locations2)
         } else {
-            (&mut self.states2, &mut self.states1)
+            (&mut self.locations2, &mut self.locations1)
         }
     }
 
-    pub fn get_states(&self, is_states1: bool) -> (&Vec<State<'b>>, &Vec<State<'b>>) {
+    pub fn get_states(
+        &self,
+        is_states1: bool,
+    ) -> (&Vec<DecoratedLocation<'b>>, &Vec<DecoratedLocation<'b>>) {
         if is_states1 {
-            (&self.states1, &self.states2)
+            (&self.locations1, &self.locations2)
         } else {
-            (&self.states2, &self.states1)
+            (&self.locations2, &self.locations1)
         }
     }
 }

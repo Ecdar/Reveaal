@@ -18,7 +18,7 @@ pub fn make_input_enabled(
     {
         for location in component.get_locations() {
             let mut location_inv_zone = Zone::init(dimension);
-            let mut state = component::State {
+            let mut decorated_location = component::DecoratedLocation {
                 declarations: component.get_declarations().clone(),
                 location,
             };
@@ -26,7 +26,7 @@ pub fn make_input_enabled(
             if let Some(invariant) = location.get_invariant() {
                 constraint_applyer::apply_constraints_to_state(
                     invariant,
-                    &mut state,
+                    &mut decorated_location,
                     &mut location_inv_zone,
                 );
             }
@@ -48,7 +48,7 @@ pub fn make_input_enabled(
                     {
                         constraint_applyer::apply_constraints_to_state(
                             target_invariant,
-                            &mut state,
+                            &mut decorated_location,
                             &mut guard_zone,
                         )
                     } else {
@@ -67,7 +67,7 @@ pub fn make_input_enabled(
                     let has_guard = if let Some(guard) = edge.get_guard() {
                         let res = constraint_applyer::apply_constraints_to_state(
                             guard,
-                            &mut state,
+                            &mut decorated_location,
                             &mut guard_zone,
                         );
                         res

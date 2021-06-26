@@ -1,7 +1,7 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
-use crate::ModelObjects::component::{Component, Edge, State};
+use crate::ModelObjects::component::{Component, DecoratedLocation, Edge};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
@@ -26,22 +26,23 @@ pub fn check_refinement(
         return Ok(false);
     }
 
-    let initial_states_1: Vec<State> = sys1.get_initial_states();
-    let initial_states_2: Vec<State> = sys2.get_initial_states();
+    let initial_locations_1: Vec<DecoratedLocation> = sys1.get_initial_locations();
+    let initial_locations_2: Vec<DecoratedLocation> = sys2.get_initial_locations();
 
-    let mut initial_pair = StatePair::create(initial_states_1.clone(), initial_states_2.clone());
-    prepare_init_state(&mut initial_pair, initial_states_1, initial_states_2);
+    let mut initial_pair =
+        StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
+    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
-            match sys1.collect_open_outputs(curr_pair.get_states1(), output) {
+            match sys1.collect_open_outputs(curr_pair.get_locations1(), output) {
                 Ok(open_outputs) => combined_transitions1 = open_outputs,
                 Err(err) => return Err(err + " on left side"),
             }
-            match sys2.collect_open_outputs(curr_pair.get_states2(), output) {
+            match sys2.collect_open_outputs(curr_pair.get_locations2(), output) {
                 Ok(open_outputs) => combined_transitions2 = open_outputs,
                 Err(err) => return Err(err + " on right side"),
             }
@@ -71,11 +72,11 @@ pub fn check_refinement(
         }
 
         for input in &inputs2 {
-            match sys1.collect_open_inputs(curr_pair.get_states1(), input) {
+            match sys1.collect_open_inputs(curr_pair.get_locations1(), input) {
                 Ok(open_outputs) => combined_transitions1 = open_outputs,
                 Err(err) => return Err(err + " on left side"),
             }
-            match sys2.collect_open_inputs(curr_pair.get_states2(), input) {
+            match sys2.collect_open_inputs(curr_pair.get_locations2(), input) {
                 Ok(open_outputs) => combined_transitions2 = open_outputs,
                 Err(err) => return Err(err + " on right side"),
             }
@@ -223,7 +224,7 @@ fn build_state_pair<'a>(
 ) -> bool {
     //Creates new state pair
     let mut new_sp: StatePair =
-        StatePair::create(curr_pair.states1.clone(), curr_pair.states2.clone());
+        StatePair::create(curr_pair.locations1.clone(), curr_pair.locations2.clone());
     //Creates DBM for that state pair
     let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
@@ -233,14 +234,14 @@ fn build_state_pair<'a>(
     let mut g2_success = true;
     //Applies the left side guards and checks if zone is valid
 
-    let (states1, states2) = new_sp.get_mut_states(is_state1);
+    let (locations1, locations2) = new_sp.get_mut_states(is_state1);
 
     for (_, edge, state_index) in transitions1 {
-        g1_success = g1_success && edge.apply_guard(&states1[*state_index], &mut new_sp_zone);
+        g1_success = g1_success && edge.apply_guard(&locations1[*state_index], &mut new_sp_zone);
     }
     //Applies the right side guards and checks if zone is valid
     for (_, edge, state_index) in transitions2 {
-        g2_success = g2_success && edge.apply_guard(&states2[*state_index], &mut new_sp_zone);
+        g2_success = g2_success && edge.apply_guard(&locations2[*state_index], &mut new_sp_zone);
     }
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -249,10 +250,10 @@ fn build_state_pair<'a>(
 
     //Apply updates on both sides
     for (_, edge, state_index) in transitions1 {
-        edge.apply_update(&mut states1[*state_index], &mut new_sp_zone);
+        edge.apply_update(&mut locations1[*state_index], &mut new_sp_zone);
     }
     for (_, edge, state_index) in transitions2 {
-        edge.apply_update(&mut states2[*state_index], &mut new_sp_zone);
+        edge.apply_update(&mut locations2[*state_index], &mut new_sp_zone);
     }
 
     //Update locations in states
@@ -260,13 +261,13 @@ fn build_state_pair<'a>(
         let new_loc_name = edge.get_target_location();
         let next_location = comp.get_location_by_name(new_loc_name);
 
-        states1[*state_index].set_location(next_location);
+        locations1[*state_index].set_location(next_location);
     }
     for (comp, edge, state_index) in transitions2 {
         let new_loc_name = edge.get_target_location();
         let next_location = comp.get_location_by_name(new_loc_name);
 
-        states2[*state_index].set_location(next_location);
+        locations2[*state_index].set_location(next_location);
     }
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
@@ -275,7 +276,7 @@ fn build_state_pair<'a>(
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
     for (_, _, state_index) in transitions1 {
-        inv_success1 = inv_success1 && states1[*state_index].apply_invariant(&mut new_sp_zone);
+        inv_success1 = inv_success1 && locations1[*state_index].apply_invariant(&mut new_sp_zone);
         index_vec1.push(*state_index);
     }
 
@@ -284,7 +285,8 @@ fn build_state_pair<'a>(
     let mut index_vec2: Vec<usize> = vec![];
     let mut invariant_test = new_sp_zone.clone();
     for (_, _, state_index) in transitions2 {
-        inv_success2 = inv_success2 && states2[*state_index].apply_invariant(&mut invariant_test);
+        inv_success2 =
+            inv_success2 && locations2[*state_index].apply_invariant(&mut invariant_test);
         index_vec2.push(*state_index);
     }
     // check if newly built zones are valid
@@ -309,7 +311,7 @@ fn build_state_pair<'a>(
     let mut test_zone1 = new_sp_zone.clone();
     if apply_syncs_to_comps(
         sys1,
-        states1,
+        locations1,
         &index_vec1,
         &mut test_zone1,
         action,
@@ -320,7 +322,7 @@ fn build_state_pair<'a>(
     let mut test_zone2 = new_sp_zone.clone();
     if apply_syncs_to_comps(
         sys2,
-        states2,
+        locations2,
         &index_vec2,
         &mut test_zone2,
         action,
@@ -339,7 +341,7 @@ fn build_state_pair<'a>(
 
 fn apply_syncs_to_comps<'a>(
     sys: &'a SystemRepresentation,
-    states: &mut Vec<State<'a>>,
+    locations: &mut Vec<DecoratedLocation<'a>>,
     index_vec: &Vec<usize>,
     zone: &mut Zone,
     action: &str,
@@ -360,14 +362,15 @@ fn apply_syncs_to_comps<'a>(
             return true;
         }
 
-        let next_edges = comp.get_next_edges(states[*curr_index].get_location(), action, sync_type);
+        let next_edges =
+            comp.get_next_edges(locations[*curr_index].get_location(), action, sync_type);
         if next_edges.is_empty() {
             *curr_index += 1;
             return false;
         }
 
         for edge in next_edges {
-            let state = &mut states[*curr_index];
+            let state = &mut locations[*curr_index];
 
             if !edge.apply_guard(state, zone) {
                 *curr_index += 1;
@@ -384,7 +387,7 @@ fn apply_syncs_to_comps<'a>(
             // Declarations on the states should also be updated when variables are added to Reveaal
             let target_loc = comp.get_location_by_name(edge.get_target_location());
 
-            states[*curr_index].set_location(target_loc);
+            locations[*curr_index].set_location(target_loc);
         }
 
         *curr_index += 1;
@@ -394,13 +397,13 @@ fn apply_syncs_to_comps<'a>(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_states_1: Vec<State>,
-    initial_states_2: Vec<State>,
+    initial_locations_1: Vec<DecoratedLocation>,
+    initial_locations_2: Vec<DecoratedLocation>,
 ) {
-    for state in initial_states_1 {
-        let init_inv1 = state.get_location().get_invariant();
+    for location in initial_locations_1 {
+        let init_inv1 = location.get_location().get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, &state, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv1, &location, &mut initial_pair.zone)
         } else {
             true
         };
@@ -409,10 +412,10 @@ fn prepare_init_state(
         }
     }
 
-    for state in initial_states_2 {
-        let init_inv2 = state.get_location().get_invariant();
+    for location in initial_locations_2 {
+        let init_inv2 = location.get_location().get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, &state, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv2, &location, &mut initial_pair.zone)
         } else {
             true
         };
@@ -465,24 +468,28 @@ fn check_preconditions(
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
-        if passed_state_pair.get_states1().len() != state_pair.get_states1().len() {
+        if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")
         }
-        if passed_state_pair.get_states2().len() != state_pair.get_states2().len() {
+        if passed_state_pair.get_locations2().len() != state_pair.get_locations2().len() {
             panic!("state vectors should always have same length")
         }
 
-        for i in 0..passed_state_pair.get_states1().len() {
-            if passed_state_pair.get_states1()[i].get_location().get_id()
-                != state_pair.get_states1()[i].get_location().get_id()
+        for i in 0..passed_state_pair.get_locations1().len() {
+            if passed_state_pair.get_locations1()[i]
+                .get_location()
+                .get_id()
+                != state_pair.get_locations1()[i].get_location().get_id()
             {
                 continue 'OuterFor;
             }
         }
 
-        for i in 0..passed_state_pair.get_states2().len() {
-            if passed_state_pair.get_states2()[i].get_location().get_id()
-                != state_pair.get_states2()[i].get_location().get_id()
+        for i in 0..passed_state_pair.get_locations2().len() {
+            if passed_state_pair.get_locations2()[i]
+                .get_location()
+                .get_id()
+                != state_pair.get_locations2()[i].get_location().get_id()
             {
                 continue 'OuterFor;
             }
