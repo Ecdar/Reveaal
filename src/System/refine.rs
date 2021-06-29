@@ -151,26 +151,20 @@ fn create_new_state_pairs<'a>(
     let combinations2 = create_transition_combinations(transitions2);
 
     for comb_vec1 in &combinations1 {
-        let mut refinement_exists = false;
         for comb_vec2 in &combinations2 {
             //We currently don't use the bool returned here for anything
-            refinement_exists = refinement_exists
-                | build_state_pair(
-                    comb_vec1,
-                    comb_vec2,
-                    curr_pair,
-                    waiting_list,
-                    passed_list,
-                    sys1,
-                    sys2,
-                    action,
-                    adding_input,
-                    is_state1,
-                );
-        }
-
-        if !refinement_exists {
-            //return false;
+            build_state_pair(
+                comb_vec1,
+                comb_vec2,
+                curr_pair,
+                waiting_list,
+                passed_list,
+                sys1,
+                sys2,
+                action,
+                adding_input,
+                is_state1,
+            );
         }
     }
 
