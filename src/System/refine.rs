@@ -14,11 +14,9 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)>;
-    let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)>;
 
-    let inputs2 = sys2.get_input_actions(sys_decls);
-    let outputs1 = sys1.get_output_actions(sys_decls);
+    let inputs = sys2.get_input_actions(sys_decls);
+    let outputs = sys1.get_output_actions(sys_decls);
 
     //Firstly we check the preconditions
     if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), sys_decls) {
@@ -37,17 +35,17 @@ pub fn check_refinement(
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in &outputs1 {
-            combined_transitions1 = sys1.collect_outputs_edges(curr_pair.get_locations1(), output);
-            combined_transitions2 = sys2.collect_outputs_edges(curr_pair.get_locations2(), output);
+        for output in &outputs {
+            let output_edges1 = sys1.collect_outputs_edges(curr_pair.get_locations1(), output);
+            let output_edges2 = sys2.collect_outputs_edges(curr_pair.get_locations2(), output);
 
-            if !combined_transitions1.is_empty() {
-                if !combined_transitions2.is_empty() {
+            if !output_edges1.is_empty() {
+                if !output_edges2.is_empty() {
                     //TODO: Check with alex or thomas to see if this comment is important
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(
-                        &combined_transitions1,
-                        &combined_transitions2,
+                        &output_edges1,
+                        &output_edges2,
                         &curr_pair,
                         &mut waiting_list,
                         &mut passed_list,
@@ -65,16 +63,16 @@ pub fn check_refinement(
             }
         }
 
-        for input in &inputs2 {
-            combined_transitions1 = sys1.collect_inputs_edges(curr_pair.get_locations1(), input);
-            combined_transitions2 = sys2.collect_inputs_edges(curr_pair.get_locations2(), input);
+        for input in &inputs {
+            let input_edges1 = sys1.collect_inputs_edges(curr_pair.get_locations1(), input);
+            let input_edges2 = sys2.collect_inputs_edges(curr_pair.get_locations2(), input);
 
-            if !combined_transitions2.is_empty() {
-                if !combined_transitions1.is_empty() {
+            if !input_edges2.is_empty() {
+                if !input_edges1.is_empty() {
                     //If this returns false we should continue after resetting global indexes
                     if !create_new_state_pairs(
-                        &combined_transitions2,
-                        &combined_transitions1,
+                        &input_edges2,
+                        &input_edges1,
                         &curr_pair,
                         &mut waiting_list,
                         &mut passed_list,
