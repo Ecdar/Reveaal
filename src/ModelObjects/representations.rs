@@ -191,11 +191,6 @@ impl<'a> SystemRepresentation {
                     && right_side
                         .collect_open_transitions(locations, index, action, &mut right, sync_type);
 
-                // If one side is empty and the other is not there is an error in the conjunction
-                if left.is_empty() ^ right.is_empty() {
-                    return false;
-                }
-
                 open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
 
                 success
