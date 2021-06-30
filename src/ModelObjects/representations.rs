@@ -1,5 +1,5 @@
 use crate::ModelObjects::component::{
-    Component, DecoratedLocation, Edge, LocationType, SyncType, Transition,
+    Component, DecoratedLocation, LocationType, SyncType, Transition,
 };
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
@@ -113,11 +113,17 @@ impl<'a> SystemRepresentation {
         locations: &[DecoratedLocation<'a>],
         action: &str,
     ) -> Result<Vec<Transition<'a>>, String> {
-        let mut edges = vec![];
+        let mut transitions = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(locations, &mut index, action, &mut edges, &SyncType::Input) {
-            Ok(edges)
+        if self.collect_open_transitions(
+            locations,
+            &mut index,
+            action,
+            &mut transitions,
+            &SyncType::Input,
+        ) {
+            Ok(transitions)
         } else {
             Err("Conjunction rules on output not satisfied".to_string())
         }
@@ -128,43 +134,49 @@ impl<'a> SystemRepresentation {
         locations: &[DecoratedLocation<'a>],
         action: &str,
     ) -> Result<Vec<Transition<'a>>, String> {
-        let mut edges = vec![];
+        let mut transitions = vec![];
         let mut index = 0;
 
-        if self.collect_open_edges(locations, &mut index, action, &mut edges, &SyncType::Output) {
-            Ok(edges)
+        if self.collect_open_transitions(
+            locations,
+            &mut index,
+            action,
+            &mut transitions,
+            &SyncType::Output,
+        ) {
+            Ok(transitions)
         } else {
             Err("Conjunction rules on input not satisfied".to_string())
         }
     }
 
-    fn collect_open_edges(
+    fn collect_open_transitions(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
         action: &str,
-        open_edges: &mut Vec<Transition<'a>>,
+        open_transitions: &mut Vec<Transition<'a>>,
         sync_type: &SyncType,
     ) -> bool {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
-                let mut success =
-                    left_side.collect_open_edges(locations, index, action, &mut left, sync_type);
+                let mut success = left_side
+                    .collect_open_transitions(locations, index, action, &mut left, sync_type);
 
                 success = success
                     || right_side
-                        .collect_open_edges(locations, index, action, &mut right, sync_type);
+                        .collect_open_transitions(locations, index, action, &mut right, sync_type);
 
                 // Independent actions
                 if left.is_empty() || right.is_empty() {
-                    open_edges.append(&mut left);
-                    open_edges.append(&mut right);
+                    open_transitions.append(&mut left);
+                    open_transitions.append(&mut right);
                 }
                 // Synchronized actions
                 else {
-                    open_edges.append(&mut Transition::combinations(&mut left, &mut right));
+                    open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
                 }
 
                 success
@@ -172,30 +184,30 @@ impl<'a> SystemRepresentation {
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
-                let mut success =
-                    left_side.collect_open_edges(locations, index, action, &mut left, sync_type);
+                let mut success = left_side
+                    .collect_open_transitions(locations, index, action, &mut left, sync_type);
 
                 success = success
                     && right_side
-                        .collect_open_edges(locations, index, action, &mut right, sync_type);
+                        .collect_open_transitions(locations, index, action, &mut right, sync_type);
 
                 // If one side is empty and the other is not there is an error in the conjunction
                 if left.is_empty() ^ right.is_empty() {
                     return false;
                 }
 
-                open_edges.append(&mut Transition::combinations(&mut left, &mut right));
+                open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
 
                 success
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_open_edges(locations, index, action, open_edges, sync_type)
+                rep.collect_open_transitions(locations, index, action, open_transitions, sync_type)
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =
                     comp.get_next_edges(locations[*index].get_location(), action, *sync_type);
                 for e in next_edges {
-                    open_edges.push(Transition {
+                    open_transitions.push(Transition {
                         edges: vec![(comp, e, *index)],
                     });
                 }
