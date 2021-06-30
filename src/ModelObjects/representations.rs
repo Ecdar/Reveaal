@@ -1,4 +1,6 @@
-use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, LocationType, SyncType};
+use crate::ModelObjects::component::{
+    Component, DecoratedLocation, Edge, LocationType, SyncType, Transition,
+};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
@@ -110,7 +112,7 @@ impl<'a> SystemRepresentation {
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &str,
-    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+    ) -> Result<Vec<Transition<'a>>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
@@ -125,7 +127,7 @@ impl<'a> SystemRepresentation {
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &str,
-    ) -> Result<Vec<(&'a Component, Vec<&'a Edge>, usize)>, String> {
+    ) -> Result<Vec<Transition<'a>>, String> {
         let mut edges = vec![];
         let mut index = 0;
 
@@ -141,27 +143,50 @@ impl<'a> SystemRepresentation {
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
         action: &str,
-        open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
+        open_edges: &mut Vec<Transition<'a>>,
         sync_type: &SyncType,
     ) -> bool {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.collect_open_edges(locations, index, action, open_edges, sync_type)
+                let mut left = vec![];
+                let mut right = vec![];
+                let mut success =
+                    left_side.collect_open_edges(locations, index, action, &mut left, sync_type);
+
+                success = success
                     || right_side
-                        .collect_open_edges(locations, index, action, open_edges, sync_type)
+                        .collect_open_edges(locations, index, action, &mut right, sync_type);
+
+                // Independent actions
+                if left.is_empty() || right.is_empty() {
+                    open_edges.append(&mut left);
+                    open_edges.append(&mut right);
+                }
+                // Synchronized actions
+                else {
+                    open_edges.append(&mut Transition::combinations(&mut left, &mut right));
+                }
+
+                success
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                let open_edges_len = open_edges.len();
-                if left_side.collect_open_edges(locations, index, action, open_edges, sync_type) {
-                    let left_found_transitions = open_edges_len != open_edges.len();
-                    if right_side
-                        .collect_open_edges(locations, index, action, open_edges, sync_type)
-                    {
-                        let right_found_transitions = open_edges_len != open_edges.len();
-                        return left_found_transitions == right_found_transitions;
-                    }
+                let mut left = vec![];
+                let mut right = vec![];
+                let mut success =
+                    left_side.collect_open_edges(locations, index, action, &mut left, sync_type);
+
+                success = success
+                    && right_side
+                        .collect_open_edges(locations, index, action, &mut right, sync_type);
+
+                // If one side is empty and the other is not there is an error in the conjunction
+                if left.is_empty() ^ right.is_empty() {
+                    return false;
                 }
-                false
+
+                open_edges.append(&mut Transition::combinations(&mut left, &mut right));
+
+                success
             }
             SystemRepresentation::Parentheses(rep) => {
                 rep.collect_open_edges(locations, index, action, open_edges, sync_type)
@@ -169,9 +194,10 @@ impl<'a> SystemRepresentation {
             SystemRepresentation::Component(comp) => {
                 let next_edges =
                     comp.get_next_edges(locations[*index].get_location(), action, *sync_type);
-
-                if !next_edges.is_empty() {
-                    open_edges.push((comp, next_edges, *index));
+                for e in next_edges {
+                    open_edges.push(Transition {
+                        edges: vec![(comp, e, *index)],
+                    });
                 }
 
                 *index += 1;

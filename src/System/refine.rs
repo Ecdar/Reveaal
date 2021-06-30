@@ -1,7 +1,7 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
-use crate::ModelObjects::component::{Component, DecoratedLocation, Edge};
+use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, Transition};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
@@ -14,8 +14,8 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut combined_transitions1: Vec<(&Component, Vec<&Edge>, usize)>;
-    let mut combined_transitions2: Vec<(&Component, Vec<&Edge>, usize)>;
+    let mut combined_transitions1: Vec<Transition>;
+    let mut combined_transitions2: Vec<Transition>;
 
     let inputs2 = sys2.get_input_actions(sys_decls);
     let outputs1 = sys1.get_output_actions(sys_decls);
@@ -111,8 +111,8 @@ pub fn check_refinement(
 }
 
 fn create_new_state_pairs<'a>(
-    transitions1: &[(&'a Component, Vec<&'a Edge>, usize)],
-    transitions2: &[(&'a Component, Vec<&'a Edge>, usize)],
+    transitions1: &Vec<Transition<'a>>,
+    transitions2: &Vec<Transition<'a>>,
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
@@ -128,29 +128,21 @@ fn create_new_state_pairs<'a>(
 
     //create guard zones left
     let mut guard_zones_left = vec![];
-    for (_, edge_vec1, state_index) in transitions1 {
-        let state = &states1[*state_index];
-        for edge in edge_vec1 {
-            let mut zone = curr_pair.zone.clone();
-
-            //Save if edge is open
-            if edge.apply_guard(state, &mut zone) && state.apply_invariant(&mut zone) {
-                guard_zones_left.push(zone);
-            }
+    for transition in transitions1 {
+        let mut zone = curr_pair.zone.clone();
+        //Save if edge is open
+        if transition.apply_guards_after_invariants(&states1, &mut zone) {
+            guard_zones_left.push(zone);
         }
     }
 
     //Create guard zones right
     let mut guard_zones_right = vec![];
-    for (_, edge_vec2, state_index) in transitions2 {
-        let state = &states2[*state_index];
-        for edge in edge_vec2 {
-            let mut zone = curr_pair.zone.clone();
-
-            //Save if edge is open
-            if edge.apply_guard(state, &mut zone) && state.apply_invariant(&mut zone) {
-                guard_zones_right.push(zone);
-            }
+    for transition in transitions2 {
+        let mut zone = curr_pair.zone.clone();
+        //Save if edge is open
+        if transition.apply_guards_after_invariants(&states2, &mut zone) {
+            guard_zones_right.push(zone);
         }
     }
 
@@ -161,15 +153,12 @@ fn create_new_state_pairs<'a>(
         return false;
     }
 
-    let combinations1 = create_transition_combinations(transitions1);
-    let combinations2 = create_transition_combinations(transitions2);
-
-    for comb_vec1 in &combinations1 {
-        for comb_vec2 in &combinations2 {
+    for transition1 in transitions1 {
+        for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
             build_state_pair(
-                comb_vec1,
-                comb_vec2,
+                transition1,
+                transition2,
                 curr_pair,
                 waiting_list,
                 passed_list,
@@ -185,34 +174,9 @@ fn create_new_state_pairs<'a>(
     true
 }
 
-fn create_transition_combinations<'a>(
-    transitions: &[(&'a Component, Vec<&'a Edge>, usize)],
-) -> Vec<Vec<(&'a Component, &'a Edge, usize)>> {
-    let mut combinations: Vec<Vec<(&Component, &Edge, usize)>> = vec![];
-    for (comp, edge_vec, state_index) in transitions {
-        let mut new_combs: Vec<Vec<(&Component, &Edge, usize)>> = vec![];
-        for edge in edge_vec {
-            if combinations.is_empty() {
-                let new_vec: Vec<(&Component, &Edge, usize)> = vec![(comp, edge, *state_index)];
-                new_combs.push(new_vec);
-            } else {
-                let mut temp_combs = combinations.clone();
-
-                for temp_comb in &mut temp_combs {
-                    temp_comb.push((comp, edge, *state_index));
-                }
-                new_combs.append(&mut temp_combs);
-            }
-        }
-        combinations = new_combs;
-    }
-
-    combinations
-}
-
 fn build_state_pair<'a>(
-    transitions1: &[(&'a Component, &'a Edge, usize)],
-    transitions2: &[(&'a Component, &'a Edge, usize)],
+    transition1: &Transition<'a>,
+    transition2: &Transition<'a>,
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
@@ -228,54 +192,34 @@ fn build_state_pair<'a>(
     //Creates DBM for that state pair
     let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
-    //Boolean for the left side guards
-    let mut g1_success = true;
-    //Boolean for the right side guards
-    let mut g2_success = true;
-    //Applies the left side guards and checks if zone is valid
-
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
+    //Applies the left side guards and checks if zone is valid
+    let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone);
 
-    for (_, edge, state_index) in transitions1 {
-        g1_success = g1_success && edge.apply_guard(&locations1[*state_index], &mut new_sp_zone);
-    }
     //Applies the right side guards and checks if zone is valid
-    for (_, edge, state_index) in transitions2 {
-        g2_success = g2_success && edge.apply_guard(&locations2[*state_index], &mut new_sp_zone);
-    }
+    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone);
+
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
         return false;
     }
 
     //Apply updates on both sides
-    for (_, edge, state_index) in transitions1 {
-        edge.apply_update(&mut locations1[*state_index], &mut new_sp_zone);
-    }
-    for (_, edge, state_index) in transitions2 {
-        edge.apply_update(&mut locations2[*state_index], &mut new_sp_zone);
-    }
+    transition1.apply_updates(locations1, &mut new_sp_zone);
+    transition2.apply_updates(locations2, &mut new_sp_zone);
 
     //Update locations in states
-    for (comp, edge, state_index) in transitions1 {
-        let new_loc_name = edge.get_target_location();
-        let next_location = comp.get_location_by_name(new_loc_name);
 
-        locations1[*state_index].set_location(next_location);
-    }
-    for (comp, edge, state_index) in transitions2 {
-        let new_loc_name = edge.get_target_location();
-        let next_location = comp.get_location_by_name(new_loc_name);
+    transition1.move_locations(locations1);
+    transition2.move_locations(locations2);
 
-        locations2[*state_index].set_location(next_location);
-    }
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
     let mut inv_success1 = true;
     let mut index_vec1: Vec<usize> = vec![];
-    for (_, _, state_index) in transitions1 {
+    for (_, _, state_index) in &transition1.edges {
         inv_success1 = inv_success1 && locations1[*state_index].apply_invariant(&mut new_sp_zone);
         index_vec1.push(*state_index);
     }
@@ -284,7 +228,7 @@ fn build_state_pair<'a>(
     let mut inv_success2 = true;
     let mut index_vec2: Vec<usize> = vec![];
     let mut invariant_test = new_sp_zone.clone();
-    for (_, _, state_index) in transitions2 {
+    for (_, _, state_index) in &transition2.edges {
         inv_success2 =
             inv_success2 && locations2[*state_index].apply_invariant(&mut invariant_test);
         index_vec2.push(*state_index);

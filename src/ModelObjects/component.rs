@@ -659,6 +659,69 @@ pub enum SyncType {
     Output,
 }
 
+pub type DecoratedLocationTuple<'a> = Vec<DecoratedLocation<'a>>;
+
+//Represents a single transition from taking edges in multiple components
+#[derive(Debug, Clone)]
+pub struct Transition<'a> {
+    pub edges: Vec<(&'a Component, &'a Edge, usize)>,
+}
+impl<'a> Transition<'a> {
+    pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
+        let mut out = vec![];
+        for l in left {
+            for r in &*right {
+                let temp: Vec<(&'a Component, &'a Edge, usize)> = l
+                    .edges
+                    .iter()
+                    .cloned()
+                    .chain(r.edges.iter().cloned())
+                    .collect();
+                out.push(Transition { edges: temp });
+            }
+        }
+
+        out
+    }
+
+    pub fn apply_updates(&self, locations: &mut DecoratedLocationTuple, zone: &mut Zone) {
+        for (comp, edge, index) in &self.edges {
+            edge.apply_update(&mut locations[*index], zone);
+        }
+    }
+
+    pub fn apply_guards(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
+        let mut success = true;
+        for (comp, edge, index) in &self.edges {
+            success = success && edge.apply_guard(&locations[*index], zone);
+        }
+        success
+    }
+
+    pub fn apply_guards_after_invariants(
+        &self,
+        locations: &DecoratedLocationTuple,
+        zone: &mut Zone,
+    ) -> bool {
+        let mut success = true;
+        for (comp, edge, index) in &self.edges {
+            success = success
+                && locations[*index].apply_invariant(zone)
+                && edge.apply_guard(&locations[*index], zone);
+        }
+        success
+    }
+
+    pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
+        for (comp, edge, index) in &self.edges {
+            let new_loc_name = edge.get_target_location();
+            let next_location = comp.get_location_by_name(new_loc_name);
+
+            locations[*index].set_location(next_location);
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Edge {
     #[serde(alias = "sourceLocation")]

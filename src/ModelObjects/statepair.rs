@@ -1,17 +1,17 @@
 use crate::DBMLib::dbm::Zone;
-use crate::ModelObjects::component::DecoratedLocation;
+use crate::ModelObjects::component::DecoratedLocationTuple;
 
 #[derive(Clone)]
 pub struct StatePair<'a> {
-    pub locations1: Vec<DecoratedLocation<'a>>,
-    pub locations2: Vec<DecoratedLocation<'a>>,
+    pub locations1: DecoratedLocationTuple<'a>,
+    pub locations2: DecoratedLocationTuple<'a>,
     pub zone: Zone,
 }
 
 impl<'b> StatePair<'b> {
     pub fn create<'a>(
-        locations1: Vec<DecoratedLocation<'a>>,
-        locations2: Vec<DecoratedLocation<'a>>,
+        locations1: DecoratedLocationTuple<'a>,
+        locations2: DecoratedLocationTuple<'a>,
     ) -> StatePair<'a> {
         let mut dimensions = 1;
         for state in &locations1 {
@@ -33,11 +33,11 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn get_locations1(&self) -> &Vec<DecoratedLocation<'b>> {
+    pub fn get_locations1(&self) -> &DecoratedLocationTuple<'b> {
         &self.locations1
     }
 
-    pub fn get_locations2(&self) -> &Vec<DecoratedLocation<'b>> {
+    pub fn get_locations2(&self) -> &DecoratedLocationTuple<'b> {
         &self.locations2
     }
 
@@ -46,8 +46,8 @@ impl<'b> StatePair<'b> {
         &mut self,
         is_states1: bool,
     ) -> (
-        &mut Vec<DecoratedLocation<'b>>,
-        &mut Vec<DecoratedLocation<'b>>,
+        &mut DecoratedLocationTuple<'b>,
+        &mut DecoratedLocationTuple<'b>,
     ) {
         if is_states1 {
             (&mut self.locations1, &mut self.locations2)
@@ -59,7 +59,7 @@ impl<'b> StatePair<'b> {
     pub fn get_states(
         &self,
         is_states1: bool,
-    ) -> (&Vec<DecoratedLocation<'b>>, &Vec<DecoratedLocation<'b>>) {
+    ) -> (&DecoratedLocationTuple<'b>, &DecoratedLocationTuple<'b>) {
         if is_states1 {
             (&self.locations1, &self.locations2)
         } else {
