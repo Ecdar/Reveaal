@@ -1,425 +1,247 @@
 #[cfg(test)]
 mod Refinement_university {
-    use crate::tests::refinement::Helper::setup;
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::System::refine;
-    use std::borrow::Borrow;
+    use crate::tests::refinement::Helper::json_refinement_check;
 
     static PATH: &str = "samples/json/EcdarUniversity";
 
     #[test]
     fn testAdm2RefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Adm2 <= Adm2"));
     }
 
     #[test]
     fn testHalf1RefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("HalfAdm1").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("HalfAdm1").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: HalfAdm1 <= HalfAdm1"
+        ));
     }
 
     #[ignore]
     #[test]
     fn testHalf2RefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("HalfAdm2").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("HalfAdm2").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: HalfAdm2 <= HalfAdm2"
+        ));
     }
 
     #[test]
     fn testAdmRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration <= Administration"
+        ));
     }
 
     #[test]
     fn testMachineRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine <= Machine"
+        ));
     }
 
     #[ignore]
     #[test]
     fn testResRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Researcher"
+        ));
     }
 
     #[ignore] // ignore due to infinite loop
     #[test]
     fn testSpecRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Spec <= Spec"));
     }
 
     #[test]
     fn testMachine3RefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine3 <= Machine3"
+        ));
     }
 
     #[test]
     fn testAdmNotRefinesMachine() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Administration <= Machine"
+        ));
     }
 
     #[test]
     fn testAdmNotRefinesResearcher() {
-        //TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Administration <= Researcher"
+        ));
     }
 
     #[test]
     fn testAdmNotRefinesSpec() {
-        //TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Administration <= Spec"
+        ));
     }
 
     #[test]
     fn testAdmNotRefinesMachine3() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Administration <= Machine3"
+        ));
     }
 
     #[test]
     fn testMachineNotRefinesAdm() {
-        //TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine <= Administration"
+        ));
     }
 
     #[test]
     fn testMachineNotRefinesResearcher() {
-        //TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine <= Researcher"
+        ));
     }
 
     #[test]
     fn testMachineNotRefinesSpec() {
-        //TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(PATH, "refinement: Machine <= Spec"));
     }
 
     #[test]
     fn testMachineNotRefinesMachine3() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine <= Machine3"
+        ));
     }
 
     #[test]
     fn testResNotRefinesAdm() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Administration"
+        ));
     }
 
     #[test]
     fn testResNotRefinesMachine() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Machine"
+        ));
     }
 
     #[test]
     fn testResNotRefinesSpec() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Spec"
+        ));
     }
 
     #[test]
     fn testResNotRefinesMachine3() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Machine3"
+        ));
     }
 
     #[test]
     fn testSpecNotRefinesAdm() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Spec <= Administration"
+        ));
     }
 
     #[test]
     fn testSpecNotRefinesMachine() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(PATH, "refinement: Spec <= Machine"));
     }
 
     #[test]
     fn testSpecNotRefinesResearcher() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Spec <= Researcher"
+        ));
     }
 
     #[test]
     fn testSpecNotRefinesMachine3() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(PATH, "refinement: Spec <= Machine3"));
     }
 
     #[test]
     fn testMachine3RefinesMachine() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Machine").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine3 <= Machine"
+        ));
     }
 
     #[test]
     fn testMachine3NotRefinesAdm() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Administration").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine3 <= Administration"
+        ));
     }
 
     #[test]
     fn testMachine3NotRefinesResearcher() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Researcher").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine3 <= Researcher"
+        ));
     }
 
     #[test]
     fn testMachine3NotRefinesSpec() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Machine3").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(PATH, "refinement: Machine3 <= Spec"));
     }
 
     #[test]
     fn testCompRefinesSpec() {
-        // TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        let comp = SystemRepresentation::Composition(
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Administration").unwrap().clone(),
-            )),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Researcher").unwrap().clone(),
-            )),
-        );
-        assert!(refine::check_refinement(
-            SystemRepresentation::Composition(
-                Box::from(comp),
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("Machine").unwrap().clone()
-                ))
-            ),
-            SystemRepresentation::Component(automataList.get("Spec").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration || Researcher || Machine <= Spec"
+        ));
     }
 
     #[test]
     fn testCompRefinesSelf() {
-        // TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        let comp1 = SystemRepresentation::Composition(
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Administration").unwrap().clone(),
-            )),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Machine").unwrap().clone(),
-            )),
-        );
-        let comp2 = SystemRepresentation::Conjunction(
-            Box::from(comp1),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Researcher").unwrap().clone(),
-            )),
-        );
-        let compCopy1 = SystemRepresentation::Composition(
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Administration").unwrap().clone(),
-            )),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Machine").unwrap().clone(),
-            )),
-        );
-        let compCopy2 = SystemRepresentation::Conjunction(
-            Box::from(compCopy1),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("Researcher").unwrap().clone(),
-            )),
-        );
-        assert!(refine::check_refinement(comp2, compCopy2, decl.borrow()).unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement:  Administration || Researcher || Machine <=  Administration || Researcher || Machine"
+        ));
     }
 
     #[test]
     fn testHalf1AndHalf2RefinesAdm2() {
-        // TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        let conj = SystemRepresentation::Conjunction(
-            Box::from(SystemRepresentation::Component(
-                automataList.get("HalfAdm1").unwrap().clone(),
-            )),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("HalfAdm2").unwrap().clone(),
-            )),
-        );
-        assert!(refine::check_refinement(
-            conj,
-            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: HalfAdm1 && HalfAdm2 <= Adm2"
+        ));
     }
 
     #[test]
     fn testAdm2RefinesHalf1AndHalf2() {
-        // TODO This test must succeed, while it fails
-        let (automataList, decl) = setup(PATH.to_string());
-        let conj = SystemRepresentation::Conjunction(
-            Box::from(SystemRepresentation::Component(
-                automataList.get("HalfAdm1").unwrap().clone(),
-            )),
-            Box::from(SystemRepresentation::Component(
-                automataList.get("HalfAdm2").unwrap().clone(),
-            )),
-        );
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Adm2").unwrap().clone()),
-            conj,
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Adm2 <= HalfAdm1 && HalfAdm2"
+        ));
     }
 }

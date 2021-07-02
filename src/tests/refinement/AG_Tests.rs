@@ -1,196 +1,81 @@
 #[cfg(test)]
 mod AG_Tests {
-    use crate::tests::refinement::Helper::setup;
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::System::refine;
-    use std::borrow::Borrow;
+    use crate::tests::refinement::Helper::json_refinement_check;
 
     static PATH: &str = "samples/json/AG";
 
     #[test]
     fn ARefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: A <= A"));
     }
 
     #[test]
     fn GRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: G <= G"));
     }
 
     #[test]
     fn QRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Q <= Q"));
     }
 
     #[test]
     fn ImpRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Imp <= Imp"));
     }
 
     #[test]
     fn AaRefinesSelf() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: AA <= AA"));
     }
 
     #[test]
     fn AGNotRefinesAImp() {
+        assert!(!json_refinement_check(PATH, "refinement: A||G <= A||Imp"));
         // should fail because left side has more inputs
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Composition(
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("A").unwrap().clone()
-                )),
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("G").unwrap().clone()
-                ))
-            ),
-            SystemRepresentation::Composition(
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("A").unwrap().clone()
-                )),
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("Imp").unwrap().clone()
-                ))
-            ),
-            decl.borrow()
-        )
-        .unwrap());
     }
 
     #[test]
     fn AImpNotRefinesAG() {
+        assert!(!json_refinement_check(PATH, "refinement: A||Imp <= A||G"));
         // should fail because the right side has more inputs
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Composition(
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("A").unwrap().clone()
-                )),
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("Imp").unwrap().clone()
-                ))
-            ),
-            SystemRepresentation::Composition(
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("A").unwrap().clone()
-                )),
-                Box::from(SystemRepresentation::Component(
-                    automataList.get("G").unwrap().clone()
-                ))
-            ),
-            decl.borrow()
-        )
-        .unwrap());
     }
 
     #[test]
     fn GNotRefinesImp() {
+        assert!(!json_refinement_check(PATH, "refinement: G <= Imp"));
         // should fail because right side has more outputs
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
     }
 
     #[test]
     fn ImpRefinesG() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Imp <= G"));
     }
 
     #[test]
     fn GRefinesQ() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: G <= Q"));
     }
 
     #[test]
     fn QRefinesG() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("G").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Q <= G"));
     }
 
     #[test]
     fn QNotRefinesImp() {
         // should fail because right side has more outputs
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(!json_refinement_check(PATH, "refinement: Q <= Imp"));
     }
 
     #[test]
     fn ImpRefinesQ() {
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("Imp").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("Q").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
+        assert!(json_refinement_check(PATH, "refinement: Imp <= Q"));
     }
 
     #[test]
     fn ANotRefinesAA() {
+        assert!(!json_refinement_check(PATH, "refinement: A <= AA"));
         // should fail because right side has more inputs
-        let (automataList, decl) = setup(PATH.to_string());
-        assert!(!refine::check_refinement(
-            SystemRepresentation::Component(automataList.get("A").unwrap().clone()),
-            SystemRepresentation::Component(automataList.get("AA").unwrap().clone()),
-            decl.borrow()
-        )
-        .unwrap());
     }
 }
