@@ -698,6 +698,14 @@ impl<'a> Transition<'a> {
         success
     }
 
+    pub fn apply_invariants(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
+        let mut success = true;
+        for (_, _, index) in &self.edges {
+            success = success && locations[*index].apply_invariant(zone);
+        }
+        success
+    }
+
     pub fn apply_guards_after_invariants(
         &self,
         locations: &DecoratedLocationTuple,
