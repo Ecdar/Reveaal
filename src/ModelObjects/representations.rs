@@ -108,7 +108,7 @@ impl<'a> SystemRepresentation {
         }
     }
 
-    pub fn collect_open_inputs(
+    pub fn collect_next_inputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
@@ -116,7 +116,7 @@ impl<'a> SystemRepresentation {
         let mut transitions = vec![];
         let mut index = 0;
 
-        self.collect_open_transitions(
+        self.collect_next_transitions(
             locations,
             &mut index,
             action,
@@ -126,7 +126,7 @@ impl<'a> SystemRepresentation {
         Ok(transitions)
     }
 
-    pub fn collect_open_outputs(
+    pub fn collect_next_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
@@ -134,7 +134,7 @@ impl<'a> SystemRepresentation {
         let mut transitions = vec![];
         let mut index = 0;
 
-        self.collect_open_transitions(
+        self.collect_next_transitions(
             locations,
             &mut index,
             action,
@@ -144,7 +144,7 @@ impl<'a> SystemRepresentation {
         Ok(transitions)
     }
 
-    fn collect_open_transitions(
+    fn collect_next_transitions(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
@@ -157,10 +157,10 @@ impl<'a> SystemRepresentation {
                 let mut left = vec![];
                 let mut right = vec![];
 
-                left_side.collect_open_transitions(locations, index, action, &mut left, sync_type);
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
 
                 right_side
-                    .collect_open_transitions(locations, index, action, &mut right, sync_type);
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
                 // Independent actions
                 if left.is_empty() || right.is_empty() {
                     open_transitions.append(&mut left);
@@ -174,15 +174,15 @@ impl<'a> SystemRepresentation {
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
-                left_side.collect_open_transitions(locations, index, action, &mut left, sync_type);
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
 
                 right_side
-                    .collect_open_transitions(locations, index, action, &mut right, sync_type);
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
 
                 open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_open_transitions(locations, index, action, open_transitions, sync_type);
+                rep.collect_next_transitions(locations, index, action, open_transitions, sync_type);
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =

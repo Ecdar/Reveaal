@@ -38,11 +38,11 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs1 {
-            match sys1.collect_open_outputs(curr_pair.get_locations1(), output) {
+            match sys1.collect_next_outputs(curr_pair.get_locations1(), output) {
                 Ok(open_outputs) => combined_transitions1 = open_outputs,
                 Err(err) => return Err(err + " on left side"),
             }
-            match sys2.collect_open_outputs(curr_pair.get_locations2(), output) {
+            match sys2.collect_next_outputs(curr_pair.get_locations2(), output) {
                 Ok(open_outputs) => combined_transitions2 = open_outputs,
                 Err(err) => return Err(err + " on right side"),
             }
@@ -72,11 +72,11 @@ pub fn check_refinement(
         }
 
         for input in &inputs2 {
-            match sys1.collect_open_inputs(curr_pair.get_locations1(), input) {
+            match sys1.collect_next_inputs(curr_pair.get_locations1(), input) {
                 Ok(open_outputs) => combined_transitions1 = open_outputs,
                 Err(err) => return Err(err + " on left side"),
             }
-            match sys2.collect_open_inputs(curr_pair.get_locations2(), input) {
+            match sys2.collect_next_inputs(curr_pair.get_locations2(), input) {
                 Ok(open_outputs) => combined_transitions2 = open_outputs,
                 Err(err) => return Err(err + " on right side"),
             }
