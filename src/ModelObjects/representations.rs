@@ -1,6 +1,7 @@
 use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -19,6 +20,76 @@ pub enum BoolExpression {
     VarName(String),
     Bool(bool),
     Int(i32),
+}
+
+impl BoolExpression {
+    pub fn get_higest_constraint(&self) -> HashMap<u32, i32> {
+        let mut max_bounds: HashMap<u32, i32> = HashMap::new();
+
+        self.iterate_constraints(&mut |left, right, op| {
+            let clock: u32;
+            let constant: i32;
+
+            //Start by matching left and right operands as clock and constant, this might fail if it does we skip constraint
+            if let BoolExpression::Clock(clock_ref) = left {
+                if let BoolExpression::Int(constant_ref) = right {
+                    constant = *constant_ref;
+                    clock = *clock_ref;
+                } else {
+                    return;
+                }
+            } else if let BoolExpression::Clock(clock_ref) = right {
+                if let BoolExpression::Int(constant_ref) = left {
+                    constant = *constant_ref;
+                    clock = *clock_ref;
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            let mut new_constraint = -1;
+            if op(constant - 1, constant) {
+                new_constraint = constant - 1
+            } else if op(constant, constant) {
+                new_constraint = constant
+            } else if op(constant + 1, constant) {
+                new_constraint = constant + 1
+            }
+
+            if !max_bounds.contains_key(&clock) {
+                max_bounds.insert(clock, new_constraint);
+            } else if new_constraint > max_bounds[&clock] {
+                *max_bounds.get_mut(&clock).unwrap() = new_constraint;
+            }
+        });
+
+        max_bounds
+    }
+
+    pub fn iterate_constraints<F>(&self, function: &mut F)
+    where
+        F: FnMut(&BoolExpression, &BoolExpression, &mut Fn(i32, i32) -> bool),
+    {
+        match self {
+            BoolExpression::AndOp(left, right) => {
+                left.iterate_constraints(function);
+                right.iterate_constraints(function);
+            }
+            BoolExpression::OrOp(left, right) => {
+                left.iterate_constraints(function);
+                right.iterate_constraints(function);
+            }
+            BoolExpression::Parentheses(expr) => expr.iterate_constraints(function),
+            BoolExpression::GreatEQ(left, right) => function(left, right, &mut |x, y| x >= y),
+            BoolExpression::LessEQ(left, right) => function(left, right, &mut |x, y| x <= y),
+            BoolExpression::LessT(left, right) => function(left, right, &mut |x, y| x < y),
+            BoolExpression::GreatT(left, right) => function(left, right, &mut |x, y| x > y),
+            BoolExpression::EQ(left, right) => function(left, right, &mut |x, y| x == y),
+            _ => (),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
