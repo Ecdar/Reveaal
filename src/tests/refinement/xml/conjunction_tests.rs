@@ -6,12 +6,12 @@ mod conjunction_tests {
 
     #[test]
     fn P0ConjP1RefP2() {
-        assert!(xml_refinement_check(PATH, "refinement: P0 && P1 <= P2"));
+        assert!(!xml_refinement_check(PATH, "refinement: P0 && P1 <= P2"));
     }
 
     #[test]
     fn P3ConjP4CompP5RefP6() {
-        assert!(xml_refinement_check(
+        assert!(!xml_refinement_check(
             PATH,
             "refinement: (P3 && P4) || P5 <= P6"
         ));
@@ -19,7 +19,7 @@ mod conjunction_tests {
 
     #[test]
     fn P7ConjP8ConjP9RefP10() {
-        assert!(xml_refinement_check(
+        assert!(!xml_refinement_check(
             PATH,
             "refinement: P7 && P8 && P9 <= P10"
         ));
@@ -27,6 +27,6 @@ mod conjunction_tests {
 
     #[test]
     fn P11ConjP12RefP13() {
-        assert!(xml_refinement_check(PATH, "refinement: P11 && P12 <= P13"));
+        assert!(!xml_refinement_check(PATH, "refinement: P11 && P12 <= P13"));
     }
 }
