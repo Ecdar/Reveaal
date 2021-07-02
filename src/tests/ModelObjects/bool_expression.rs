@@ -7,7 +7,7 @@ mod bool_expression {
     fn empty_constraint() {
         let max_bounds = BoolExpression::Int(5).get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 0);
+        assert_eq!(max_bounds.clock_count(), 0);
     }
 
     #[test]
@@ -18,8 +18,8 @@ mod bool_expression {
         )
         .get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&1], 5);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(1), 5);
     }
 
     #[test]
@@ -30,8 +30,8 @@ mod bool_expression {
         )
         .get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&4], 3);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(4), 3);
     }
 
     #[test]
@@ -42,8 +42,8 @@ mod bool_expression {
         )
         .get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&9], 7);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(9), 7);
     }
 
     #[test]
@@ -60,8 +60,8 @@ mod bool_expression {
         );
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&3], 7);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(3), 7);
     }
 
     #[test]
@@ -78,8 +78,8 @@ mod bool_expression {
         );
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&5], 12);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(5), 12);
     }
 
     #[test]
@@ -96,9 +96,9 @@ mod bool_expression {
         );
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 2);
-        assert_eq!(max_bounds[&2], 20);
-        assert_eq!(max_bounds[&4], 2);
+        assert_eq!(max_bounds.clock_count(), 2);
+        assert_eq!(max_bounds.get(2), 20);
+        assert_eq!(max_bounds.get(4), 2);
     }
 
     #[test]
@@ -109,8 +109,8 @@ mod bool_expression {
         )));
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&2], 20);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(2), 20);
     }
 
     #[test]
@@ -121,7 +121,7 @@ mod bool_expression {
         )));
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 0);
+        assert_eq!(max_bounds.clock_count(), 0);
     }
 
     #[test]
@@ -138,7 +138,7 @@ mod bool_expression {
         );
         let max_bounds = expr.get_higest_constraint();
 
-        assert_eq!(max_bounds.len(), 1);
-        assert_eq!(max_bounds[&4], 2);
+        assert_eq!(max_bounds.clock_count(), 1);
+        assert_eq!(max_bounds.get(4), 2);
     }
 }

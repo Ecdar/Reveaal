@@ -1,4 +1,5 @@
 pub mod component;
+pub mod max_bounds;
 pub mod parse_edge;
 pub mod parse_invariant;
 pub mod parse_queries;

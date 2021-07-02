@@ -1,4 +1,5 @@
 use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, LocationType, SyncType};
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -23,8 +24,8 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
-    pub fn get_higest_constraint(&self) -> HashMap<u32, i32> {
-        let mut max_bounds: HashMap<u32, i32> = HashMap::new();
+    pub fn get_higest_constraint(&self) -> MaxBounds {
+        let mut max_bounds = MaxBounds::create();
 
         self.iterate_constraints(&mut |left, right, op| {
             let clock: u32;
@@ -58,11 +59,7 @@ impl BoolExpression {
                 new_constraint = constant + 1
             }
 
-            if !max_bounds.contains_key(&clock) {
-                max_bounds.insert(clock, new_constraint);
-            } else if new_constraint > max_bounds[&clock] {
-                *max_bounds.get_mut(&clock).unwrap() = new_constraint;
-            }
+            max_bounds.add_bound(clock, new_constraint);
         });
 
         max_bounds
