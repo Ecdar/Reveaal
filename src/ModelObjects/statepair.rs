@@ -71,10 +71,6 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn get_bounds_mut(&mut self) -> &mut MaxBounds {
-        &mut self.max_bounds
-    }
-
     pub fn has_exceeded_max_bounds(&mut self) -> bool {
         !self.max_bounds.is_zone_within_bounds(&mut self.zone)
     }
@@ -91,7 +87,7 @@ impl<'b> StatePair<'b> {
         let mut comp_index = 0;
         sys1.all_components(&mut |comp| {
             let loc = locations1[comp_index].get_location();
-            bounds.add_bounds(&mut comp.get_max_bounds(loc));
+            bounds.add_bounds(&comp.get_max_bounds(loc));
 
             comp_index += 1;
             comp_index < locations1.len() // stop iteration when there are no more locations
@@ -100,7 +96,7 @@ impl<'b> StatePair<'b> {
         comp_index = 0;
         sys2.all_components(&mut |comp| {
             let loc = locations2[comp_index].get_location();
-            bounds.add_bounds(&mut comp.get_max_bounds(loc));
+            bounds.add_bounds(&comp.get_max_bounds(loc));
 
             comp_index += 1;
             comp_index < locations2.len() // stop iteration when there are no more locations

@@ -2,7 +2,6 @@ use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::{Component, DecoratedLocation, Edge};
-use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
@@ -38,12 +37,6 @@ pub fn check_refinement(
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-
-        println!(
-            "{} <= {}",
-            curr_pair.locations1[0].get_location().get_id(),
-            curr_pair.locations2[0].get_location().get_id()
-        );
 
         for output in &outputs1 {
             match sys1.collect_open_outputs(curr_pair.get_locations1(), output) {
@@ -339,9 +332,9 @@ fn build_state_pair<'a>(
         new_sp_zone = test_zone2;
     }
 
+    new_sp.zone = new_sp_zone;
     new_sp.calculate_max_bound(sys1, sys2, is_state1);
 
-    new_sp.zone = new_sp_zone;
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());
     }
