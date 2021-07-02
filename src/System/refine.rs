@@ -2,6 +2,7 @@ use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::{Component, DecoratedLocation, Edge};
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
@@ -32,10 +33,17 @@ pub fn check_refinement(
     let mut initial_pair =
         StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
     prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    initial_pair.calculate_max_bound(&sys1, &sys2, true);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
+
+        println!(
+            "{} <= {}",
+            curr_pair.locations1[0].get_location().get_id(),
+            curr_pair.locations2[0].get_location().get_id()
+        );
 
         for output in &outputs1 {
             match sys1.collect_open_outputs(curr_pair.get_locations1(), output) {
@@ -330,8 +338,10 @@ fn build_state_pair<'a>(
     ) {
         new_sp_zone = test_zone2;
     }
-    new_sp.zone = new_sp_zone;
 
+    new_sp.calculate_max_bound(sys1, sys2, is_state1);
+
+    new_sp.zone = new_sp_zone;
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());
     }
@@ -496,6 +506,10 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
         }
         if state_pair.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
+        }
+
+        if state_pair.has_exceeded_max_bounds() && passed_state_pair.has_exceeded_max_bounds() {
+            return false;
         }
 
         if state_pair.zone.is_subset_eq(&mut passed_state_pair.zone) {

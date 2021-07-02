@@ -11,7 +11,6 @@ mod delay_refinement {
     static PATH_2: &str = "samples/xml/loop.xml";
 
     // Self Refinements
-    #[ignore] //ignore due to infinite loop
     #[test]
     fn LoopTest() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH_2);

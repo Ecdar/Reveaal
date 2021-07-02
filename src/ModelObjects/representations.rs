@@ -24,7 +24,7 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
-    pub fn get_higest_constraint(&self) -> MaxBounds {
+    pub fn get_highest_constraints(&self) -> MaxBounds {
         let mut max_bounds = MaxBounds::create();
 
         self.iterate_constraints(&mut |left, right, op| {

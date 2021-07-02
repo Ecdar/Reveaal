@@ -4,6 +4,7 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::parse_invariant;
 use crate::ModelObjects::representations;
@@ -174,6 +175,36 @@ impl Component {
                 result
             }
         };
+    }
+
+    pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
+        let result: Vec<&Edge> = self
+            .get_output_edges()
+            .into_iter()
+            .filter(|e| e.get_source_location() == location.get_id())
+            .collect();
+        result
+    }
+
+    pub fn get_max_bounds(&self, location: &Location) -> MaxBounds {
+        let mut max_bounds = MaxBounds::create();
+        if let Some(inv) = location.get_invariant() {
+            //Should invariants be considered during max bound extrapolation?
+            //max_bounds.combine(&mut inv.get_highest_constraints());
+        }
+
+        for edge in &self.get_all_edges_from(location) {
+            if let Some(guard) = edge.get_guard() {
+                max_bounds.add_bounds(&mut guard.get_highest_constraints());
+            }
+
+            let target_loc = self.get_location_by_name(edge.get_target_location());
+            if let Some(inv) = target_loc.get_invariant() {
+                max_bounds.add_bounds(&mut inv.get_highest_constraints())
+            }
+        }
+
+        max_bounds
     }
 
     /// Used in initial setup to split edges based on their sync type

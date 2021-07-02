@@ -5,7 +5,7 @@ mod bool_expression {
 
     #[test]
     fn empty_constraint() {
-        let max_bounds = BoolExpression::Int(5).get_higest_constraint();
+        let max_bounds = BoolExpression::Int(5).get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 0);
     }
@@ -16,7 +16,7 @@ mod bool_expression {
             Box::new(BoolExpression::Clock(1)),
             Box::new(BoolExpression::Int(5)),
         )
-        .get_higest_constraint();
+        .get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(1), 5);
@@ -28,7 +28,7 @@ mod bool_expression {
             Box::new(BoolExpression::Clock(4)),
             Box::new(BoolExpression::Int(3)),
         )
-        .get_higest_constraint();
+        .get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(4), 3);
@@ -40,7 +40,7 @@ mod bool_expression {
             Box::new(BoolExpression::Clock(9)),
             Box::new(BoolExpression::Int(8)),
         )
-        .get_higest_constraint();
+        .get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(9), 7);
@@ -58,7 +58,7 @@ mod bool_expression {
                 Box::new(BoolExpression::Int(4)),
             )),
         );
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(3), 7);
@@ -76,7 +76,7 @@ mod bool_expression {
                 Box::new(BoolExpression::Int(7)),
             )),
         );
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(5), 12);
@@ -94,7 +94,7 @@ mod bool_expression {
                 Box::new(BoolExpression::Int(1)),
             )),
         );
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 2);
         assert_eq!(max_bounds.get(2), 20);
@@ -107,7 +107,7 @@ mod bool_expression {
             Box::new(BoolExpression::Clock(2)),
             Box::new(BoolExpression::Int(19)),
         )));
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(2), 20);
@@ -119,7 +119,7 @@ mod bool_expression {
             Box::new(BoolExpression::VarName(String::from("A"))),
             Box::new(BoolExpression::Int(19)),
         )));
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 0);
     }
@@ -136,7 +136,7 @@ mod bool_expression {
                 Box::new(BoolExpression::Int(1)),
             )),
         );
-        let max_bounds = expr.get_higest_constraint();
+        let max_bounds = expr.get_highest_constraints();
 
         assert_eq!(max_bounds.clock_count(), 1);
         assert_eq!(max_bounds.get(4), 2);
