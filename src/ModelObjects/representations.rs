@@ -111,64 +111,56 @@ impl<'a> SystemRepresentation {
     pub fn collect_open_inputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &str,
+        action: &String,
     ) -> Result<Vec<Transition<'a>>, String> {
         let mut transitions = vec![];
         let mut index = 0;
 
-        if self.collect_open_transitions(
+        self.collect_open_transitions(
             locations,
             &mut index,
             action,
             &mut transitions,
             &SyncType::Input,
-        ) {
-            Ok(transitions)
-        } else {
-            Err("Conjunction rules on output not satisfied".to_string())
-        }
+        );
+        Ok(transitions)
     }
 
     pub fn collect_open_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &str,
+        action: &String,
     ) -> Result<Vec<Transition<'a>>, String> {
         let mut transitions = vec![];
         let mut index = 0;
 
-        if self.collect_open_transitions(
+        self.collect_open_transitions(
             locations,
             &mut index,
             action,
             &mut transitions,
             &SyncType::Output,
-        ) {
-            Ok(transitions)
-        } else {
-            Err("Conjunction rules on input not satisfied".to_string())
-        }
+        );
+        Ok(transitions)
     }
 
     fn collect_open_transitions(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
-        action: &str,
+        action: &String,
         open_transitions: &mut Vec<Transition<'a>>,
         sync_type: &SyncType,
-    ) -> bool {
+    ) {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
-                let mut success = left_side
-                    .collect_open_transitions(locations, index, action, &mut left, sync_type);
 
-                success = success
-                    || right_side
-                        .collect_open_transitions(locations, index, action, &mut right, sync_type);
+                left_side.collect_open_transitions(locations, index, action, &mut left, sync_type);
 
+                right_side
+                    .collect_open_transitions(locations, index, action, &mut right, sync_type);
                 // Independent actions
                 if left.is_empty() || right.is_empty() {
                     open_transitions.append(&mut left);
@@ -178,25 +170,19 @@ impl<'a> SystemRepresentation {
                 else {
                     open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
                 }
-
-                success
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
-                let mut success = left_side
-                    .collect_open_transitions(locations, index, action, &mut left, sync_type);
+                left_side.collect_open_transitions(locations, index, action, &mut left, sync_type);
 
-                success = success
-                    && right_side
-                        .collect_open_transitions(locations, index, action, &mut right, sync_type);
+                right_side
+                    .collect_open_transitions(locations, index, action, &mut right, sync_type);
 
                 open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
-
-                success
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_open_transitions(locations, index, action, open_transitions, sync_type)
+                rep.collect_open_transitions(locations, index, action, open_transitions, sync_type);
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =
@@ -208,7 +194,6 @@ impl<'a> SystemRepresentation {
                 }
 
                 *index += 1;
-                true
             }
         }
     }
