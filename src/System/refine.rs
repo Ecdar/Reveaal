@@ -47,27 +47,32 @@ pub fn check_refinement(
                 Err(err) => return Err(err + " on right side"),
             }
 
-            if !combined_transitions1.is_empty() {
-                if !combined_transitions2.is_empty() {
-                    //TODO: Check with alex or thomas to see if this comment is important
-                    //If this returns false we should continue after resetting global indexes
-                    if !create_new_state_pairs(
-                        &combined_transitions1,
-                        &combined_transitions2,
-                        &curr_pair,
-                        &mut waiting_list,
-                        &mut passed_list,
-                        &sys1,
-                        &sys2,
-                        output,
-                        false,
-                        true,
-                    ) {
-                        return Ok(false);
-                    }
-                } else {
-                    return Ok(false);
+            //TODO: Check with alex or thomas to see if this comment is important
+            //If this returns false we should continue after resetting global indexes
+            if !create_new_state_pairs(
+                &combined_transitions1,
+                &combined_transitions2,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &sys1,
+                &sys2,
+                output,
+                false,
+                true,
+            ) {
+                println!(
+                    "Refinement check failed for Output {:?} Zone: {} \n transitions:",
+                    output, curr_pair.zone
+                );
+                for trans in combined_transitions1 {
+                    println!("{}", trans);
                 }
+                println!("--");
+                for trans in combined_transitions2 {
+                    println!("{}", trans);
+                }
+                return Ok(false);
             }
         }
 
@@ -81,26 +86,31 @@ pub fn check_refinement(
                 Err(err) => return Err(err + " on right side"),
             }
 
-            if !combined_transitions2.is_empty() {
-                if !combined_transitions1.is_empty() {
-                    //If this returns false we should continue after resetting global indexes
-                    if !create_new_state_pairs(
-                        &combined_transitions2,
-                        &combined_transitions1,
-                        &curr_pair,
-                        &mut waiting_list,
-                        &mut passed_list,
-                        &sys2,
-                        &sys1,
-                        input,
-                        true,
-                        false,
-                    ) {
-                        return Ok(false);
-                    }
-                } else {
-                    return Ok(false);
+            //If this returns false we should continue after resetting global indexes
+            if !create_new_state_pairs(
+                &combined_transitions2,
+                &combined_transitions1,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &sys2,
+                &sys1,
+                input,
+                true,
+                false,
+            ) {
+                println!(
+                    "Refinement check failed for Input {:?} Zone: {} \n transitions:",
+                    input, curr_pair.zone
+                );
+                for trans in combined_transitions1 {
+                    println!("{}", trans);
                 }
+                println!("--");
+                for trans in combined_transitions2 {
+                    println!("{}", trans);
+                }
+                return Ok(false);
             }
         }
 
