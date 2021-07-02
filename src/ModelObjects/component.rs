@@ -10,6 +10,7 @@ use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -445,7 +446,6 @@ impl Component {
                         let loc = self.get_location_by_name(&edge.target_location);
                         let state =
                             create_decorated_location(loc, full_state.get_declarations().clone());
-                        println!("Dim is: {:?}", full_state.zone.dimension);
                         let mut new_state = create_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
@@ -719,6 +719,15 @@ impl<'a> Transition<'a> {
 
             locations[*index].set_location(next_location);
         }
+    }
+}
+
+impl fmt::Display for Transition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (_, edge, _) in &self.edges {
+            f.write_fmt(format_args!("{:?}, ", edge))?;
+        }
+        Ok(())
     }
 }
 
