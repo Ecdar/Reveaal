@@ -217,22 +217,11 @@ fn build_state_pair<'a>(
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
-    let mut inv_success1 = true;
-    let mut index_vec1: Vec<usize> = vec![];
-    for (_, _, state_index) in &transition1.edges {
-        inv_success1 = inv_success1 && locations1[*state_index].apply_invariant(&mut new_sp_zone);
-        index_vec1.push(*state_index);
-    }
-
+    let inv_success1 = transition1.apply_invariants(locations1, &mut new_sp_zone);
     // Perform a copy of the zone and apply right side invariants on the copied zone
-    let mut inv_success2 = true;
-    let mut index_vec2: Vec<usize> = vec![];
     let mut invariant_test = new_sp_zone.clone();
-    for (_, _, state_index) in &transition2.edges {
-        inv_success2 =
-            inv_success2 && locations2[*state_index].apply_invariant(&mut invariant_test);
-        index_vec2.push(*state_index);
-    }
+    let inv_success2 = transition2.apply_invariants(locations2, &mut invariant_test);
+
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
         return false;
@@ -251,29 +240,6 @@ fn build_state_pair<'a>(
         return false;
     }
 
-    //Check all other comps for potential syncs
-    let mut test_zone1 = new_sp_zone.clone();
-    if apply_syncs_to_comps(
-        sys1,
-        locations1,
-        &index_vec1,
-        &mut test_zone1,
-        action,
-        adding_input,
-    ) {
-        new_sp_zone = test_zone1;
-    }
-    let mut test_zone2 = new_sp_zone.clone();
-    if apply_syncs_to_comps(
-        sys2,
-        locations2,
-        &index_vec2,
-        &mut test_zone2,
-        action,
-        adding_input,
-    ) {
-        new_sp_zone = test_zone2;
-    }
     new_sp.zone = new_sp_zone;
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
@@ -281,62 +247,6 @@ fn build_state_pair<'a>(
     }
 
     true
-}
-
-fn apply_syncs_to_comps<'a>(
-    sys: &'a SystemRepresentation,
-    locations: &mut Vec<DecoratedLocation<'a>>,
-    index_vec: &Vec<usize>,
-    zone: &mut Zone,
-    action: &str,
-    adding_input: bool,
-) -> bool {
-    let curr_index = &mut 0;
-
-    // Recursively goes through system representation
-    sys.any_composition(&mut |comp: &Component| -> bool {
-        let sync_type = if adding_input {
-            component::SyncType::Output
-        } else {
-            component::SyncType::Input
-        };
-
-        if index_vec.contains(curr_index) {
-            *curr_index += 1;
-            return true;
-        }
-
-        let next_edges =
-            comp.get_next_edges(locations[*curr_index].get_location(), action, sync_type);
-        if next_edges.is_empty() {
-            *curr_index += 1;
-            return false;
-        }
-
-        for edge in next_edges {
-            let state = &mut locations[*curr_index];
-
-            if !edge.apply_guard(state, zone) {
-                *curr_index += 1;
-                return false;
-            }
-
-            edge.apply_update(state, zone);
-            if !state.apply_invariant(zone) {
-                *curr_index += 1;
-                return false;
-            }
-
-            // TODO: see below
-            // Declarations on the states should also be updated when variables are added to Reveaal
-            let target_loc = comp.get_location_by_name(edge.get_target_location());
-
-            locations[*curr_index].set_location(target_loc);
-        }
-
-        *curr_index += 1;
-        true
-    })
 }
 
 fn prepare_init_state(
