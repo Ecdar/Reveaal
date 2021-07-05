@@ -274,6 +274,7 @@ mod delay_refinement {
     //     // Rest of the tests
 
     #[test]
+    #[ignore]
     fn T1T2RefinesT3() {
         assert!(xml_refinement_check(PATH, "refinement: T1||T2 <= T3"));
     }
@@ -289,6 +290,7 @@ mod delay_refinement {
     }
 
     #[test]
+    #[ignore]
     fn T0T1T2RefinesT3() {
         assert!(xml_refinement_check(PATH, "refinement: T0||T1||T2 <= T3"));
     }
