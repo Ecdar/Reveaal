@@ -706,20 +706,6 @@ impl<'a> Transition<'a> {
         success
     }
 
-    pub fn apply_guards_after_invariants(
-        &self,
-        locations: &DecoratedLocationTuple,
-        zone: &mut Zone,
-    ) -> bool {
-        let mut success = true;
-        for (comp, edge, index) in &self.edges {
-            success = success
-                && locations[*index].apply_invariant(zone)
-                && edge.apply_guard(&locations[*index], zone);
-        }
-        success
-    }
-
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();

@@ -149,7 +149,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions1 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states1, &mut zone) {
+        if transition.apply_guards(&states1, &mut zone) {
             guard_zones_left.push(zone);
         }
     }
@@ -159,7 +159,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions2 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states2, &mut zone) {
+        if transition.apply_guards(&states2, &mut zone) {
             guard_zones_right.push(zone);
         }
     }
