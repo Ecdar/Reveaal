@@ -11,6 +11,7 @@ use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Clone)]
@@ -483,7 +484,6 @@ impl Component {
                         let loc = self.get_location_by_name(&edge.target_location);
                         let state =
                             create_decorated_location(loc, full_state.get_declarations().clone());
-                        println!("Dim is: {:?}", full_state.zone.dimension);
                         let mut new_state = create_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
@@ -695,6 +695,86 @@ impl Location {
 pub enum SyncType {
     Input,
     Output,
+}
+
+pub type DecoratedLocationTuple<'a> = Vec<DecoratedLocation<'a>>;
+
+//Represents a single transition from taking edges in multiple components
+#[derive(Debug, Clone)]
+pub struct Transition<'a> {
+    pub edges: Vec<(&'a Component, &'a Edge, usize)>,
+}
+impl<'a> Transition<'a> {
+    pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
+        let mut out = vec![];
+        for l in left {
+            for r in &*right {
+                let temp: Vec<(&'a Component, &'a Edge, usize)> = l
+                    .edges
+                    .iter()
+                    .cloned()
+                    .chain(r.edges.iter().cloned())
+                    .collect();
+                out.push(Transition { edges: temp });
+            }
+        }
+
+        out
+    }
+
+    pub fn apply_updates(&self, locations: &mut DecoratedLocationTuple, zone: &mut Zone) {
+        for (comp, edge, index) in &self.edges {
+            edge.apply_update(&mut locations[*index], zone);
+        }
+    }
+
+    pub fn apply_guards(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
+        let mut success = true;
+        for (comp, edge, index) in &self.edges {
+            success = success && edge.apply_guard(&locations[*index], zone);
+        }
+        success
+    }
+
+    pub fn apply_invariants(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
+        let mut success = true;
+        for (_, _, index) in &self.edges {
+            success = success && locations[*index].apply_invariant(zone);
+        }
+        success
+    }
+
+    pub fn apply_guards_after_invariants(
+        &self,
+        locations: &DecoratedLocationTuple,
+        zone: &mut Zone,
+    ) -> bool {
+        let mut success = true;
+        for (comp, edge, index) in &self.edges {
+            success = success
+                && locations[*index].apply_invariant(zone)
+                && edge.apply_guard(&locations[*index], zone);
+        }
+        success
+    }
+
+    pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
+        for (comp, edge, index) in &self.edges {
+            let new_loc_name = edge.get_target_location();
+            let next_location = comp.get_location_by_name(new_loc_name);
+
+            locations[*index].set_location(next_location);
+        }
+    }
+}
+
+impl fmt::Display for Transition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (_, edge, _) in &self.edges {
+            f.write_fmt(format_args!("{:?}, ", edge))?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
