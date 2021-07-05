@@ -1,11 +1,13 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component;
-use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, Transition};
+use crate::ModelObjects::component::{
+    Component, Declarations, DecoratedLocation, Edge, Location, LocationType, SyncType, Transition,
+};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::HashMap, collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
     sys1: SystemRepresentation,
@@ -16,6 +18,10 @@ pub fn check_refinement(
     let mut waiting_list: Vec<StatePair> = vec![];
     let mut combined_transitions1: Vec<Transition>;
     let mut combined_transitions2: Vec<Transition>;
+
+    // Add extra inputs/outputs
+    let (sys1, sys2, decl) = add_extra_inputs_outputs(sys1, sys2, sys_decls);
+    let sys_decls = &decl;
 
     let inputs2 = sys2.get_input_actions(sys_decls);
     let outputs1 = sys1.get_output_actions(sys_decls);
@@ -394,4 +400,135 @@ where
     let b: HashSet<_> = b.iter().collect();
 
     a == b
+}
+
+fn add_extra_inputs_outputs(
+    sys1: SystemRepresentation,
+    sys2: SystemRepresentation,
+    sys_decls: &system_declarations::SystemDeclarations,
+) -> (
+    SystemRepresentation,
+    SystemRepresentation,
+    system_declarations::SystemDeclarations,
+) {
+    let inputs1 = get_extra(&sys1, &sys2, sys_decls, true);
+    //let outputs1 = get_extra(&sys1, &sys2, sys_decls, false);
+
+    //let inputs2 = get_extra(&sys2, &sys1, sys_decls, true);
+    let outputs2 = get_extra(&sys2, &sys1, sys_decls, false);
+
+    let mut new_decl = sys_decls.clone();
+    let mut decls = new_decl.get_mut_declarations();
+
+    let (name1, name2) = (
+        "EXTRA_INPUT_OUTPUTS1".to_string(),
+        "EXTRA_INPUT_OUTPUTS2".to_string(),
+    );
+
+    let comp1 = get_dummy_component(name1.clone(), &inputs1, &vec![]);
+    let comp2 = get_dummy_component(name2.clone(), &vec![], &outputs2);
+
+    decls.get_mut_components().push(name1.clone());
+    decls.get_mut_components().push(name2.clone());
+
+    //decls.get_mut_output_actions().insert(name1.clone(), vec![]);
+    decls.get_mut_input_actions().insert(name1, inputs1);
+
+    //decls.get_mut_input_actions().insert(name2.clone(), vec![]);
+    decls.get_mut_output_actions().insert(name2, outputs2);
+
+    let new_sys1 = SystemRepresentation::Composition(
+        Box::new(sys1),
+        Box::new(SystemRepresentation::Component(comp1)),
+    );
+    let new_sys2 = SystemRepresentation::Composition(
+        Box::new(sys2),
+        Box::new(SystemRepresentation::Component(comp2)),
+    );
+
+    (new_sys1, new_sys2, new_decl)
+}
+
+fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+    let location = Location {
+        id: "EXTRA".to_string(),
+        invariant: None,
+        location_type: LocationType::Initial,
+        urgency: "".to_string(),
+    };
+
+    let mut input_edges = vec![];
+
+    for input in inputs {
+        input_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: input.clone(),
+            sync_type: SyncType::Input,
+            update: None,
+        })
+    }
+
+    let mut output_edges = vec![];
+
+    for output in outputs {
+        output_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: output.clone(),
+            sync_type: SyncType::Output,
+            update: None,
+        })
+    }
+
+    let edges: Vec<Edge> = input_edges
+        .iter()
+        .cloned()
+        .chain(output_edges.iter().cloned())
+        .collect();
+
+    Component {
+        name,
+        declarations: Declarations {
+            ints: HashMap::new(),
+            clocks: HashMap::new(),
+            dimension: 0,
+        },
+        locations: vec![location],
+        edges,
+        input_edges: Some(input_edges),
+        output_edges: Some(output_edges),
+    }
+}
+
+fn get_extra(
+    sys1: &SystemRepresentation,
+    sys2: &SystemRepresentation,
+    sys_decls: &system_declarations::SystemDeclarations,
+    is_input: bool,
+) -> Vec<String> {
+    let actions1 = if is_input {
+        sys1.get_input_actions(sys_decls)
+    } else {
+        sys1.get_output_actions(sys_decls)
+    };
+    let actions2 = if is_input {
+        sys2.get_input_actions(sys_decls)
+    } else {
+        sys2.get_output_actions(sys_decls)
+    };
+
+    let result = actions2
+        .into_iter()
+        .filter(|action| !actions1.contains(action))
+        .collect();
+    println!(
+        "Adding extra {}: {:?}",
+        if is_input { "Inputs" } else { "Outputs" },
+        result
+    );
+
+    result
 }
