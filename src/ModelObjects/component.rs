@@ -186,17 +186,29 @@ impl Component {
         result
     }
 
-    pub fn get_max_bounds(&self, location: &Location) -> MaxBounds {
-        let mut max_bounds = MaxBounds::create();
-        for edge in &self.get_all_edges_from(location) {
-            if let Some(guard) = edge.get_guard() {
-                max_bounds.add_bounds(&guard.get_highest_constraints());
+    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
+        let mut max_bounds = MaxBounds::create(dimensions);
+        for (_, clock) in &self.declarations.clocks {
+            let mut max_bound = 0;
+            for edge in &self.edges {
+                if let Some(guard) = edge.get_guard() {
+                    let new_bound = guard.get_max_constant(*clock);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
             }
 
-            let target_loc = self.get_location_by_name(edge.get_target_location());
-            if let Some(inv) = target_loc.get_invariant() {
-                max_bounds.add_bounds(&inv.get_highest_constraints())
+            for location in &self.locations {
+                if let Some(inv) = location.get_invariant() {
+                    let new_bound = inv.get_max_constant(*clock);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
             }
+
+            max_bounds.add_bound(*clock, max_bound);
         }
 
         max_bounds

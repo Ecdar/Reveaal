@@ -8,7 +8,6 @@ pub struct StatePair<'a> {
     pub locations1: Vec<DecoratedLocation<'a>>,
     pub locations2: Vec<DecoratedLocation<'a>>,
     pub zone: Zone,
-    pub max_bounds: MaxBounds,
 }
 
 impl<'b> StatePair<'b> {
@@ -33,7 +32,6 @@ impl<'b> StatePair<'b> {
             locations1,
             locations2,
             zone,
-            max_bounds: MaxBounds::create(),
         }
     }
 
@@ -71,37 +69,16 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn has_exceeded_max_bounds(&mut self) -> bool {
-        !self.max_bounds.is_zone_within_bounds(&mut self.zone)
-    }
-
     pub fn calculate_max_bound(
         &mut self,
         sys1: &SystemRepresentation,
         sys2: &SystemRepresentation,
-        is_state1: bool,
-    ) {
-        let (locations1, locations2) = self.get_mut_states(is_state1);
-        let mut bounds = MaxBounds::create();
+    ) -> MaxBounds {
+        let mut bounds = MaxBounds::create(self.zone.dimension);
 
-        let mut comp_index = 0;
-        sys1.all_components(&mut |comp| {
-            let loc = locations1[comp_index].get_location();
-            bounds.add_bounds(&comp.get_max_bounds(loc));
+        bounds.add_bounds(&sys1.get_max_bounds(self.zone.dimension));
+        bounds.add_bounds(&sys2.get_max_bounds(self.zone.dimension));
 
-            comp_index += 1;
-            comp_index < locations1.len() // stop iteration when there are no more locations
-        });
-
-        comp_index = 0;
-        sys2.all_components(&mut |comp| {
-            let loc = locations2[comp_index].get_location();
-            bounds.add_bounds(&comp.get_max_bounds(loc));
-
-            comp_index += 1;
-            comp_index < locations2.len() // stop iteration when there are no more locations
-        });
-
-        self.max_bounds = bounds;
+        bounds
     }
 }

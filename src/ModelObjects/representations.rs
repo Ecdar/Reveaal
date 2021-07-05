@@ -24,25 +24,30 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
-    pub fn get_highest_constraints(&self) -> MaxBounds {
-        let mut max_bounds = MaxBounds::create();
+    pub fn get_max_constant(&self, clock: u32) -> i32 {
+        let mut new_constraint = 0;
 
-        self.iterate_constraints(&mut |left, right, op| {
-            let clock: u32;
+        self.iterate_constraints(&mut |left, right| {
             let constant: i32;
 
             //Start by matching left and right operands as clock and constant, this might fail if it does we skip constraint
             if let BoolExpression::Clock(clock_ref) = left {
+                if *clock_ref != clock {
+                    return;
+                }
+
                 if let BoolExpression::Int(constant_ref) = right {
                     constant = *constant_ref;
-                    clock = *clock_ref;
                 } else {
                     return;
                 }
             } else if let BoolExpression::Clock(clock_ref) = right {
+                if *clock_ref != clock {
+                    return;
+                }
+
                 if let BoolExpression::Int(constant_ref) = left {
                     constant = *constant_ref;
-                    clock = *clock_ref;
                 } else {
                     return;
                 }
@@ -50,24 +55,18 @@ impl BoolExpression {
                 return;
             }
 
-            let mut new_constraint = -1;
-            if op(constant - 1, constant) {
-                new_constraint = constant - 1
-            } else if op(constant, constant) {
-                new_constraint = constant
-            } else if op(constant + 1, constant) {
-                new_constraint = constant + 1
+            if new_constraint < constant {
+                new_constraint = constant;
             }
-
-            max_bounds.add_bound(clock, new_constraint);
         });
 
-        max_bounds
+        //Should this be strict or not? I have set it to be strict as it has a smaller solution space
+        new_constraint * 2 + 1
     }
 
     pub fn iterate_constraints<F>(&self, function: &mut F)
     where
-        F: FnMut(&BoolExpression, &BoolExpression, &mut Fn(i32, i32) -> bool),
+        F: FnMut(&BoolExpression, &BoolExpression),
     {
         match self {
             BoolExpression::AndOp(left, right) => {
@@ -79,11 +78,11 @@ impl BoolExpression {
                 right.iterate_constraints(function);
             }
             BoolExpression::Parentheses(expr) => expr.iterate_constraints(function),
-            BoolExpression::GreatEQ(left, right) => function(left, right, &mut |x, y| x >= y),
-            BoolExpression::LessEQ(left, right) => function(left, right, &mut |x, y| x <= y),
-            BoolExpression::LessT(left, right) => function(left, right, &mut |x, y| x < y),
-            BoolExpression::GreatT(left, right) => function(left, right, &mut |x, y| x > y),
-            BoolExpression::EQ(left, right) => function(left, right, &mut |x, y| x == y),
+            BoolExpression::GreatEQ(left, right) => function(left, right),
+            BoolExpression::LessEQ(left, right) => function(left, right),
+            BoolExpression::LessT(left, right) => function(left, right),
+            BoolExpression::GreatT(left, right) => function(left, right),
+            BoolExpression::EQ(left, right) => function(left, right),
             _ => (),
         }
     }
@@ -126,6 +125,32 @@ pub enum SystemRepresentation {
 }
 
 impl<'a> SystemRepresentation {
+    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
+        let mut bounds = MaxBounds::create(dimensions);
+
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+            }
+            SystemRepresentation::Parentheses(rep) => {
+                bounds.add_bounds(&mut rep.get_max_bounds(dimensions))
+            }
+            SystemRepresentation::Component(comp) => {
+                let mut comp_bounds = comp.get_max_bounds(dimensions);
+                //Im not sure why this transformation is needed
+                comp_bounds.set_zeroes_as_strict();
+                bounds.add_bounds(&comp_bounds);
+            }
+        }
+
+        bounds
+    }
+
     pub fn any_composition<F>(&'a self, predicate: &mut F) -> bool
     where
         F: FnMut(&'a Component) -> bool,
