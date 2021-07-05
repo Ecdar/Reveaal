@@ -49,18 +49,25 @@ pub fn check_refinement(
 
             //TODO: Check with alex or thomas to see if this comment is important
             //If this returns false we should continue after resetting global indexes
-            if !create_new_state_pairs(
+            if has_valid_state_pair(
                 &combined_transitions1,
                 &combined_transitions2,
                 &curr_pair,
-                &mut waiting_list,
-                &mut passed_list,
-                &sys1,
-                &sys2,
-                output,
-                false,
                 true,
             ) {
+                create_new_state_pairs(
+                    &combined_transitions1,
+                    &combined_transitions2,
+                    &curr_pair,
+                    &mut waiting_list,
+                    &mut passed_list,
+                    &sys1,
+                    &sys2,
+                    output,
+                    false,
+                    true,
+                )
+            } else {
                 println!(
                     "Refinement check failed for Output {:?} Zone: {} \n transitions:",
                     output, curr_pair.zone
@@ -87,18 +94,25 @@ pub fn check_refinement(
             }
 
             //If this returns false we should continue after resetting global indexes
-            if !create_new_state_pairs(
+            if has_valid_state_pair(
                 &combined_transitions2,
                 &combined_transitions1,
                 &curr_pair,
-                &mut waiting_list,
-                &mut passed_list,
-                &sys2,
-                &sys1,
-                input,
-                true,
                 false,
             ) {
+                create_new_state_pairs(
+                    &combined_transitions2,
+                    &combined_transitions1,
+                    &curr_pair,
+                    &mut waiting_list,
+                    &mut passed_list,
+                    &sys2,
+                    &sys1,
+                    input,
+                    true,
+                    false,
+                )
+            } else {
                 println!(
                     "Refinement check failed for Input {:?} Zone: {} \n transitions:",
                     input, curr_pair.zone
@@ -120,16 +134,10 @@ pub fn check_refinement(
     Ok(true)
 }
 
-fn create_new_state_pairs<'a>(
+fn has_valid_state_pair<'a>(
     transitions1: &Vec<Transition<'a>>,
     transitions2: &Vec<Transition<'a>>,
     curr_pair: &StatePair<'a>,
-    waiting_list: &mut Vec<StatePair<'a>>,
-    passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &'a SystemRepresentation,
-    sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
     is_state1: bool,
 ) -> bool {
     let dim = curr_pair.zone.dimension;
@@ -159,10 +167,21 @@ fn create_new_state_pairs<'a>(
     let result_federation = Federation::new(guard_zones_left, dim)
         .minus_fed(&mut Federation::new(guard_zones_right, dim));
 
-    if !result_federation.is_empty() {
-        return false;
-    }
+    result_federation.is_empty()
+}
 
+fn create_new_state_pairs<'a>(
+    transitions1: &Vec<Transition<'a>>,
+    transitions2: &Vec<Transition<'a>>,
+    curr_pair: &StatePair<'a>,
+    waiting_list: &mut Vec<StatePair<'a>>,
+    passed_list: &mut Vec<StatePair<'a>>,
+    sys1: &'a SystemRepresentation,
+    sys2: &'a SystemRepresentation,
+    action: &str,
+    adding_input: bool,
+    is_state1: bool,
+) {
     for transition1 in transitions1 {
         for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
@@ -180,8 +199,6 @@ fn create_new_state_pairs<'a>(
             );
         }
     }
-
-    true
 }
 
 fn build_state_pair<'a>(
