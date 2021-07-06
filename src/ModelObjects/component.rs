@@ -1,11 +1,11 @@
 use crate::DBMLib::dbm::Zone;
+use crate::DataReader::parse_edge;
+use crate::DataReader::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
-use crate::ModelObjects::parse_edge;
-use crate::ModelObjects::parse_invariant;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
