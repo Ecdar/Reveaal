@@ -25,36 +25,12 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
-    pub fn get_max_constant(&self, clock: u32) -> i32 {
+    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
-            let constant: i32;
-
-            //Start by matching left and right operands as clock and constant, this might fail if it does we skip constraint
-            if let BoolExpression::Clock(clock_ref) = left {
-                if *clock_ref != clock {
-                    return;
-                }
-
-                if let BoolExpression::Int(constant_ref) = right {
-                    constant = *constant_ref;
-                } else {
-                    return;
-                }
-            } else if let BoolExpression::Clock(clock_ref) = right {
-                if *clock_ref != clock {
-                    return;
-                }
-
-                if let BoolExpression::Int(constant_ref) = left {
-                    constant = *constant_ref;
-                } else {
-                    return;
-                }
-            } else {
-                return;
-            }
+            //Start by matching left and right operands to get constant, this might fail if it does we skip constraint defaulting to 0
+            let constant = BoolExpression::get_constant(left, right, clock, clock_name);
 
             if new_constraint < constant {
                 new_constraint = constant;
@@ -63,6 +39,41 @@ impl BoolExpression {
 
         //Should this be strict or not? I have set it to be strict as it has a smaller solution space
         new_constraint * 2 + 1
+    }
+
+    fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
+        match left {
+            BoolExpression::Clock(clock_id) => {
+                if *clock_id == clock {
+                    if let BoolExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            BoolExpression::VarName(name) => {
+                if name.eq(clock_name) {
+                    if let BoolExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            BoolExpression::Int(constant) => match right {
+                BoolExpression::Clock(clock_id) => {
+                    if *clock_id == clock {
+                        return *constant;
+                    }
+                }
+                BoolExpression::VarName(name) => {
+                    if name.eq(clock_name) {
+                        return *constant;
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        return 0;
     }
 
     pub fn iterate_constraints<F>(&self, function: &mut F)
