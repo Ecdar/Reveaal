@@ -1,6 +1,7 @@
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{DecoratedLocation, Transition};
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
@@ -64,8 +65,7 @@ pub fn check_refinement(
                     &mut passed_list,
                     &sys1,
                     &sys2,
-                    output,
-                    false,
+                    &mut max_bounds,
                     true,
                 )
             } else {
@@ -109,8 +109,7 @@ pub fn check_refinement(
                     &mut passed_list,
                     &sys2,
                     &sys1,
-                    input,
-                    true,
+                    &mut max_bounds,
                     false,
                 )
             } else {
@@ -179,8 +178,7 @@ fn create_new_state_pairs<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
+    max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
@@ -194,8 +192,7 @@ fn create_new_state_pairs<'a>(
                 passed_list,
                 sys1,
                 sys2,
-                action,
-                adding_input,
+                max_bounds,
                 is_state1,
             );
         }
@@ -210,8 +207,7 @@ fn build_state_pair<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
+    max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) -> bool {
     //Creates new state pair
@@ -269,9 +265,7 @@ fn build_state_pair<'a>(
     }
 
     new_sp.zone = new_sp_zone;
-
-    let mut max_bounds = new_sp.calculate_max_bound(sys1, sys2);
-    new_sp.zone.extrapolate_max_bounds(&mut max_bounds);
+    new_sp.zone.extrapolate_max_bounds(max_bounds);
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());
