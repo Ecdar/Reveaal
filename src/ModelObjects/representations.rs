@@ -1,4 +1,6 @@
-use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, LocationType, SyncType};
+use crate::ModelObjects::component::{
+    Component, DecoratedLocation, LocationType, SyncType, Transition,
+};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
@@ -106,66 +108,91 @@ impl<'a> SystemRepresentation {
         }
     }
 
-    pub fn collect_inputs_edges(
+    pub fn collect_next_inputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &str,
-    ) -> Vec<(&'a Component, Vec<&'a Edge>, usize)> {
-        let mut edges = vec![];
+        action: &String,
+    ) -> Vec<Transition<'a>> {
+        let mut transitions = vec![];
         let mut index = 0;
 
-        self.collect_edges(locations, &mut index, action, &mut edges, &SyncType::Input);
+        self.collect_next_transitions(
+            locations,
+            &mut index,
+            action,
+            &mut transitions,
+            &SyncType::Input,
+        );
 
-        edges
+        transitions
     }
 
-    pub fn collect_outputs_edges(
+    pub fn collect_next_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &str,
-    ) -> Vec<(&'a Component, Vec<&'a Edge>, usize)> {
-        let mut edges = vec![];
+        action: &String,
+    ) -> Vec<Transition<'a>> {
+        let mut transitions = vec![];
         let mut index = 0;
 
-        self.collect_edges(locations, &mut index, action, &mut edges, &SyncType::Output);
+        self.collect_next_transitions(
+            locations,
+            &mut index,
+            action,
+            &mut transitions,
+            &SyncType::Output,
+        );
 
-        edges
+        transitions
     }
 
-    fn collect_edges(
+    fn collect_next_transitions(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
-        action: &str,
-        open_edges: &mut Vec<(&'a Component, Vec<&'a Edge>, usize)>,
+        action: &String,
+        open_transitions: &mut Vec<Transition<'a>>,
         sync_type: &SyncType,
     ) {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.collect_edges(locations, index, action, open_edges, sync_type);
-                right_side.collect_edges(locations, index, action, open_edges, sync_type);
+                let mut left = vec![];
+                let mut right = vec![];
+
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
+
+                right_side
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
+                // Independent actions
+                if left.is_empty() || right.is_empty() {
+                    open_transitions.append(&mut left);
+                    open_transitions.append(&mut right);
+                }
+                // Synchronized actions
+                else {
+                    open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
+                }
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
                 let mut left = vec![];
                 let mut right = vec![];
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
 
-                left_side.collect_edges(locations, index, action, &mut left, sync_type);
-                right_side.collect_edges(locations, index, action, &mut right, sync_type);
+                right_side
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
 
-                if !(left.is_empty() || right.is_empty()) {
-                    open_edges.append(&mut left);
-                    open_edges.append(&mut right);
-                }
+                open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_edges(locations, index, action, open_edges, sync_type);
+                rep.collect_next_transitions(locations, index, action, open_transitions, sync_type);
             }
             SystemRepresentation::Component(comp) => {
                 let next_edges =
                     comp.get_next_edges(locations[*index].get_location(), action, *sync_type);
-
-                if !next_edges.is_empty() {
-                    open_edges.push((comp, next_edges, *index));
+                for e in next_edges {
+                    open_transitions.push(Transition {
+                        edges: vec![(comp, e, *index)],
+                    });
                 }
 
                 *index += 1;
@@ -175,20 +202,48 @@ impl<'a> SystemRepresentation {
 
     pub fn get_input_actions(&'a self, sys_decls: &SystemDeclarations) -> Vec<String> {
         let mut actions = vec![];
-
-        self.all_components(&mut |comp: &Component| -> bool {
-            if let Some(inputs_res) = sys_decls
-                .get_declarations()
-                .get_input_actions()
-                .get(comp.get_name())
-            {
-                actions.append(&mut inputs_res.clone());
-            }
-
-            true
-        });
-
+        // Consider compositions as they may remove input actions
+        self.collect_input_actions(sys_decls, &mut actions);
         actions
+    }
+
+    fn collect_input_actions(&'a self, sys_decls: &SystemDeclarations, vec: &mut Vec<String>) {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                let mut left_in = vec![];
+                left_side.collect_input_actions(sys_decls, &mut left_in);
+                let mut right_in = vec![];
+                right_side.collect_input_actions(sys_decls, &mut right_in);
+                let left_out = left_side.get_output_actions(sys_decls);
+                let right_out = right_side.get_output_actions(sys_decls);
+                for a in &left_in {
+                    if !right_out.contains(a) {
+                        vec.push(a.clone());
+                    }
+                }
+                for a in &right_in {
+                    if !left_out.contains(a) {
+                        vec.push(a.clone());
+                    }
+                }
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                left_side.collect_input_actions(sys_decls, vec);
+                right_side.collect_input_actions(sys_decls, vec);
+            }
+            SystemRepresentation::Parentheses(rep) => {
+                rep.collect_input_actions(sys_decls, vec);
+            }
+            SystemRepresentation::Component(comp) => {
+                if let Some(inputs_res) = sys_decls
+                    .get_declarations()
+                    .get_input_actions()
+                    .get(comp.get_name())
+                {
+                    vec.append(&mut inputs_res.clone());
+                }
+            }
+        }
     }
 
     pub fn get_output_actions(&'a self, sys_decls: &SystemDeclarations) -> Vec<String> {
