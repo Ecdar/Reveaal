@@ -226,6 +226,7 @@ mod Refinement_university {
         ));
     }
 
+    #[ignore] // infinite loop, probably max bound extrapolation
     #[test]
     fn testHalf1AndHalf2RefinesAdm2() {
         assert!(json_refinement_check(

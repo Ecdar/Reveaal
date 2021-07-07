@@ -30,15 +30,6 @@ impl MaxBounds {
         }
     }
 
-    pub fn set_zeroes_as_strict(&mut self) {
-        self.clock_bounds = self
-            .clock_bounds
-            .iter()
-            .map(|x| return if *x == 0 { 1 } else { *x })
-            .collect();
-        self.clock_bounds[0] = 0;
-    }
-
     fn get(&self, clock: usize) -> i32 {
         self.clock_bounds[clock]
     }

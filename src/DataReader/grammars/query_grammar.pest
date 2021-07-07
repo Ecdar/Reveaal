@@ -11,9 +11,9 @@ determinism = {"determinism:" ~ expr}
 
 specification = {"specification:" ~ expr}
 
-expr = {parenthesizedExp | specificationFeature}
+expr = { specificationFeature}
 
-specificationFeature = { term ~ featureOperator ~ expr | term}
+specificationFeature = { terms ~ featureOperator ~ expr | terms }
 
 logicFormulas = {possibly | invariantly | eventuallyAlways | potentially}
 

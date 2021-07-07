@@ -154,8 +154,6 @@ impl<'a> SystemRepresentation {
             }
             SystemRepresentation::Component(comp) => {
                 let mut comp_bounds = comp.get_max_bounds(dimensions);
-                //Im not sure why this transformation is needed
-                comp_bounds.set_zeroes_as_strict();
                 bounds.add_bounds(&comp_bounds);
             }
         }
