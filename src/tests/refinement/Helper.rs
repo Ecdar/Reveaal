@@ -1,8 +1,8 @@
 use crate::read_input;
-use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::ModelObjects::{parse_queries, xml_parser};
 use crate::System::extract_system_rep::create_system_rep_from_query;
 use crate::System::input_enabler;
 use crate::System::refine;

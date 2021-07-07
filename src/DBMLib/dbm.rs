@@ -1,5 +1,4 @@
 use crate::DBMLib::lib;
-use crate::ModelObjects::max_bounds::MaxBounds;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug)]
@@ -240,14 +239,6 @@ impl Zone {
             &mut other.matrix.as_mut_slice(),
             self.dimension,
         )
-    }
-
-    pub fn extrapolate_max_bounds(&mut self, max_bounds: &mut MaxBounds) {
-        lib::rs_dbm_extrapolateMaxBounds(
-            &mut self.matrix.as_mut_slice(),
-            self.dimension,
-            max_bounds.clock_bounds.as_mut_ptr(),
-        );
     }
 }
 

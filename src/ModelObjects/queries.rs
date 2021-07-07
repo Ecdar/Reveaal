@@ -1,4 +1,4 @@
-use crate::DataReader::parse_queries;
+use crate::ModelObjects::parse_queries;
 use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer};
 

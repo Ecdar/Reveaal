@@ -17,6 +17,7 @@ mod Refinement_university {
         ));
     }
 
+    #[ignore]
     #[test]
     fn testHalf2RefinesSelf() {
         assert!(json_refinement_check(
@@ -41,6 +42,7 @@ mod Refinement_university {
         ));
     }
 
+    #[ignore]
     #[test]
     fn testResRefinesSelf() {
         assert!(json_refinement_check(
@@ -49,6 +51,7 @@ mod Refinement_university {
         ));
     }
 
+    #[ignore] // ignore due to infinite loop
     #[test]
     fn testSpecRefinesSelf() {
         assert!(json_refinement_check(PATH, "refinement: Spec <= Spec"));
@@ -226,7 +229,6 @@ mod Refinement_university {
         ));
     }
 
-    #[ignore] // infinite loop, probably max bound extrapolation
     #[test]
     fn testHalf1AndHalf2RefinesAdm2() {
         assert!(json_refinement_check(

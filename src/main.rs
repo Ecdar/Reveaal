@@ -7,8 +7,9 @@ mod ModelObjects;
 mod System;
 mod tests;
 
-use crate::DataReader::{parse_queries, xml_parser};
+use crate::ModelObjects::parse_queries;
 use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::xml_parser;
 use crate::System::{extract_system_rep, input_enabler, refine};
 use clap::{load_yaml, App};
 use std::path::PathBuf;

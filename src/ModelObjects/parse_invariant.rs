@@ -6,7 +6,7 @@ use pest::Parser;
 /// This file handles parsing the invariants based on the abstract syntax described in the .pest files in the grammar folder
 /// For clarification see documentation on pest crate
 #[derive(Parser)]
-#[grammar = "DataReader/grammars/invariant_grammar.pest"]
+#[grammar = "ModelObjects/grammars/invariant_grammar.pest"]
 pub struct InvariantParser;
 
 pub fn parse(edge_attribute_str: &str) -> Result<BoolExpression, Error<Rule>> {

@@ -7,7 +7,7 @@ use serde::Deserialize;
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
 #[derive(Parser)]
-#[grammar = "DataReader/grammars/edge_grammar.pest"]
+#[grammar = "ModelObjects/grammars/edge_grammar.pest"]
 pub struct EdgeParser;
 
 #[derive(Debug, Clone, Deserialize)]
