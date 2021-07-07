@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 
 use crate::DBMLib::dbm::{Federation, Zone};
-use crate::ModelObjects::representations;
 use std::ptr::slice_from_raw_parts;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 

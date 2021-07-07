@@ -28,7 +28,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**left, location, zone, true);
             if let BoolExpression::Bool(val) = left {
                 if !val {
-                    (BoolExpression::Bool(false), false)
+                    return (BoolExpression::Bool(false), false);
                 }
             }
             let (right, _contains_clock_right) =
@@ -84,7 +84,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**right, location, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
-                (BoolExpression::LessEQ(left.clone(), right.clone()), true)
+                return (BoolExpression::LessEQ(left.clone(), right.clone()), true);
             }
             match computed_left {
                 BoolExpression::Clock(left_index) => {
@@ -129,7 +129,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**right, location, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
-                (BoolExpression::GreatEQ(left.clone(), right.clone()), true)
+                return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
             }
             match computed_left {
                 BoolExpression::Clock(left_index) => {
@@ -174,7 +174,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**right, location, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
-                (BoolExpression::GreatEQ(left.clone(), right.clone()), true)
+                return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
             }
             match computed_left {
                 BoolExpression::Clock(left_index) => {
@@ -218,7 +218,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**right, location, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
-                (BoolExpression::LessT(left.clone(), right.clone()), true)
+                return (BoolExpression::LessT(left.clone(), right.clone()), true);
             }
 
             match computed_left {
@@ -259,7 +259,7 @@ pub fn apply_constraints_to_state_helper(
                 apply_constraints_to_state_helper(&**right, location, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
-                (BoolExpression::GreatT(left.clone(), right.clone()), true)
+                return (BoolExpression::GreatT(left.clone(), right.clone()), true);
             }
             match computed_left {
                 BoolExpression::Clock(left_index) => match computed_right {

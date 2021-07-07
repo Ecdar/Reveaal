@@ -227,10 +227,10 @@ impl Component {
         passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
-            if state.get_location().id == currState.get_location().id {
-                if currState.zone.is_subset_eq(&mut state.zone) {
-                    return true;
-                }
+            if state.get_location().id == currState.get_location().id
+                && currState.zone.is_subset_eq(&mut state.zone)
+            {
+                return true;
             }
         }
 
