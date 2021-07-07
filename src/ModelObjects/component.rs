@@ -1060,3 +1060,57 @@ where
         _ => panic!("Unknown sync type in status {:?}", s),
     }
 }
+
+pub fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+    let location = Location {
+        id: "EXTRA".to_string(),
+        invariant: None,
+        location_type: LocationType::Initial,
+        urgency: "".to_string(),
+    };
+
+    let mut input_edges = vec![];
+
+    for input in inputs {
+        input_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: input.clone(),
+            sync_type: SyncType::Input,
+            update: None,
+        })
+    }
+
+    let mut output_edges = vec![];
+
+    for output in outputs {
+        output_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: output.clone(),
+            sync_type: SyncType::Output,
+            update: None,
+        })
+    }
+
+    let edges: Vec<Edge> = input_edges
+        .iter()
+        .cloned()
+        .chain(output_edges.iter().cloned())
+        .collect();
+
+    Component {
+        name,
+        declarations: Declarations {
+            ints: HashMap::new(),
+            clocks: HashMap::new(),
+            dimension: 0,
+        },
+        locations: vec![location],
+        edges,
+        input_edges: Some(input_edges),
+        output_edges: Some(output_edges),
+    }
+}
