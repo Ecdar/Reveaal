@@ -242,6 +242,10 @@ fn build_state_pair<'a>(
         return false;
     }
 
+    if !transition2.apply_invariants(locations2, &mut new_sp_zone) {
+        return false;
+    }
+
     new_sp.zone = new_sp_zone;
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {

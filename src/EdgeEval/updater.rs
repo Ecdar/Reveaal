@@ -1,6 +1,6 @@
 use crate::DBMLib::dbm::Zone;
+use crate::DataReader::parse_edge;
 use crate::ModelObjects::component;
-use crate::ModelObjects::parse_edge;
 use crate::ModelObjects::representations::BoolExpression;
 
 /// Used to handle update expressions on edges
