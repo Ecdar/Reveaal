@@ -112,7 +112,7 @@ impl<'a> SystemRepresentation {
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
-    ) -> Result<Vec<Transition<'a>>, String> {
+    ) -> Vec<Transition<'a>> {
         let mut transitions = vec![];
         let mut index = 0;
 
@@ -123,14 +123,15 @@ impl<'a> SystemRepresentation {
             &mut transitions,
             &SyncType::Input,
         );
-        Ok(transitions)
+
+        transitions
     }
 
     pub fn collect_next_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
-    ) -> Result<Vec<Transition<'a>>, String> {
+    ) -> Vec<Transition<'a>> {
         let mut transitions = vec![];
         let mut index = 0;
 
@@ -141,7 +142,8 @@ impl<'a> SystemRepresentation {
             &mut transitions,
             &SyncType::Output,
         );
-        Ok(transitions)
+
+        transitions
     }
 
     fn collect_next_transitions(

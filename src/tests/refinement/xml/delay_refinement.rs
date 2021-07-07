@@ -6,7 +6,6 @@ mod delay_refinement {
     static PATH_2: &str = "samples/xml/loop.xml";
 
     // Self Refinements
-    #[ignore] //ignore due to infinite loop
     #[test]
     fn LoopTest() {
         assert!(xml_refinement_check(
