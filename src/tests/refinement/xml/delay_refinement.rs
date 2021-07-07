@@ -404,7 +404,6 @@ mod delay_refinement {
         assert!(xml_refinement_check(PATH, "refinement: Z1 <= Z2"));
     }
 
-    #[ignore]
     #[test]
     fn Z3RefinesZ4() {
         assert!(xml_refinement_check(PATH, "refinement: Z3 <= Z4"));

@@ -1,5 +1,7 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::DecoratedLocationTuple;
+use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::representations::SystemRepresentation;
 
 #[derive(Clone)]
 pub struct StatePair<'a> {
@@ -65,5 +67,18 @@ impl<'b> StatePair<'b> {
         } else {
             (&self.locations2, &self.locations1)
         }
+    }
+
+    pub fn calculate_max_bound(
+        &mut self,
+        sys1: &SystemRepresentation,
+        sys2: &SystemRepresentation,
+    ) -> MaxBounds {
+        let mut bounds = MaxBounds::create(self.zone.dimension);
+
+        bounds.add_bounds(&sys1.get_max_bounds(self.zone.dimension));
+        bounds.add_bounds(&sys2.get_max_bounds(self.zone.dimension));
+
+        bounds
     }
 }

@@ -6,6 +6,7 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -175,6 +176,43 @@ impl Component {
                 result
             }
         };
+    }
+
+    pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
+        let result: Vec<&Edge> = self
+            .get_output_edges()
+            .iter()
+            .filter(|e| e.get_source_location() == location.get_id())
+            .collect();
+        result
+    }
+
+    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
+        let mut max_bounds = MaxBounds::create(dimensions);
+        for (clock_name, clock_id) in &self.declarations.clocks {
+            let mut max_bound = 0;
+            for edge in &self.edges {
+                if let Some(guard) = edge.get_guard() {
+                    let new_bound = guard.get_max_constant(*clock_id, clock_name);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
+            }
+
+            for location in &self.locations {
+                if let Some(inv) = location.get_invariant() {
+                    let new_bound = inv.get_max_constant(*clock_id, clock_name);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
+            }
+
+            max_bounds.add_bound(*clock_id, max_bound);
+        }
+
+        max_bounds
     }
 
     /// Used in initial setup to split edges based on their sync type

@@ -1,6 +1,7 @@
 use crate::ModelObjects::component::{
     Component, DecoratedLocation, LocationType, SyncType, Transition,
 };
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
 
@@ -21,6 +22,82 @@ pub enum BoolExpression {
     VarName(String),
     Bool(bool),
     Int(i32),
+}
+
+impl BoolExpression {
+    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+        let mut new_constraint = 0;
+
+        self.iterate_constraints(&mut |left, right| {
+            //Start by matching left and right operands to get constant, this might fail if it does we skip constraint defaulting to 0
+            let constant = BoolExpression::get_constant(left, right, clock, clock_name);
+
+            if new_constraint < constant {
+                new_constraint = constant;
+            }
+        });
+
+        //Should this be strict or not? I have set it to be strict as it has a smaller solution space
+        new_constraint * 2 + 1
+    }
+
+    fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
+        match left {
+            BoolExpression::Clock(clock_id) => {
+                if *clock_id == clock {
+                    if let BoolExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            BoolExpression::VarName(name) => {
+                if name.eq(clock_name) {
+                    if let BoolExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            BoolExpression::Int(constant) => match right {
+                BoolExpression::Clock(clock_id) => {
+                    if *clock_id == clock {
+                        return *constant;
+                    }
+                }
+                BoolExpression::VarName(name) => {
+                    if name.eq(clock_name) {
+                        return *constant;
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        return 0;
+    }
+
+    pub fn iterate_constraints<F>(&self, function: &mut F)
+    where
+        F: FnMut(&BoolExpression, &BoolExpression),
+    {
+        match self {
+            BoolExpression::AndOp(left, right) => {
+                left.iterate_constraints(function);
+                right.iterate_constraints(function);
+            }
+            BoolExpression::OrOp(left, right) => {
+                left.iterate_constraints(function);
+                right.iterate_constraints(function);
+            }
+            BoolExpression::Parentheses(expr) => expr.iterate_constraints(function),
+            BoolExpression::GreatEQ(left, right) => function(left, right),
+            BoolExpression::LessEQ(left, right) => function(left, right),
+            BoolExpression::LessT(left, right) => function(left, right),
+            BoolExpression::GreatT(left, right) => function(left, right),
+            BoolExpression::EQ(left, right) => function(left, right),
+            _ => (),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -60,6 +137,30 @@ pub enum SystemRepresentation {
 }
 
 impl<'a> SystemRepresentation {
+    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
+        let mut bounds = MaxBounds::create(dimensions);
+
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+            }
+            SystemRepresentation::Parentheses(rep) => {
+                bounds.add_bounds(&mut rep.get_max_bounds(dimensions))
+            }
+            SystemRepresentation::Component(comp) => {
+                let mut comp_bounds = comp.get_max_bounds(dimensions);
+                bounds.add_bounds(&comp_bounds);
+            }
+        }
+
+        bounds
+    }
+
     pub fn any_composition<F>(&'a self, predicate: &mut F) -> bool
     where
         F: FnMut(&'a Component) -> bool,
@@ -112,7 +213,7 @@ impl<'a> SystemRepresentation {
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
-    ) -> Vec<Transition<'a>> {
+    ) -> Result<Vec<Transition<'a>>, String> {
         let mut transitions = vec![];
         let mut index = 0;
 
@@ -123,15 +224,14 @@ impl<'a> SystemRepresentation {
             &mut transitions,
             &SyncType::Input,
         );
-
-        transitions
+        Ok(transitions)
     }
 
     pub fn collect_next_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
         action: &String,
-    ) -> Vec<Transition<'a>> {
+    ) -> Result<Vec<Transition<'a>>, String> {
         let mut transitions = vec![];
         let mut index = 0;
 
@@ -142,8 +242,7 @@ impl<'a> SystemRepresentation {
             &mut transitions,
             &SyncType::Output,
         );
-
-        transitions
+        Ok(transitions)
     }
 
     fn collect_next_transitions(
