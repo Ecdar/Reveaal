@@ -5,9 +5,9 @@ use crate::ModelObjects::representations::SystemRepresentation;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
-pub fn create_system_rep_from_query<'system>(
+pub fn create_system_rep_from_query(
     full_query: &Query,
-    components: &Vec<component::Component>,
+    components: &[component::Component],
 ) -> (SystemRepresentation, Option<SystemRepresentation>, String) {
     let mut clock_index: u32 = 0;
 
@@ -48,7 +48,7 @@ pub fn create_system_rep_from_query<'system>(
 
 fn extract_side(
     side: &QueryExpression,
-    components: &Vec<component::Component>,
+    components: &[component::Component],
     clock_index: &mut u32,
 ) -> SystemRepresentation {
     match side {

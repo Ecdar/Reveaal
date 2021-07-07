@@ -35,7 +35,7 @@ pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpre
             let mut inner_pairs = pair.into_inner();
             let inner_pair = inner_pairs.next().unwrap();
 
-            return build_expression_from_pair(inner_pair);
+            build_expression_from_pair(inner_pair)
         }
         _ => panic!("Unable to match: {:?} as rule, guard", pair),
     }

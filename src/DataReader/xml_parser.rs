@@ -85,7 +85,8 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
         };
         locations.push(location);
     }
-    return locations;
+
+    locations
 }
 
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
@@ -97,22 +98,22 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
         for label in e.find_all("label") {
             match label.get_attr("kind").unwrap() {
                 "guard" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => match edgeAttribute {
-                        parse_edge::EdgeAttribute::Guard(guard_res) => guard = Some(guard_res),
-                        _ => {}
-                    },
+                    Ok(edgeAttribute) => {
+                        if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
+                            guard = Some(guard_res);
+                        }
+                    }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
                 "assignment" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => match edgeAttribute {
-                        parse_edge::EdgeAttribute::Updates(update_vec) => {
+                    Ok(edgeAttribute) => {
+                        if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
                             updates = Some(update_vec)
                         }
-                        _ => {}
-                    },
+                    }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 _ => {}
@@ -131,7 +132,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                 .get_attr("ref")
                 .expect("no target edge ID")
                 .to_string(),
-            sync_type: match sync.contains("?") {
+            sync_type: match sync.contains('?') {
                 true => SyncType::Input,
                 false => SyncType::Output,
             },
@@ -141,42 +142,43 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
         };
         edges.push(edge);
     }
-    return edges;
+
+    edges
 }
 
 fn parse_declarations(variables: &str) -> Declarations {
     //Split string into vector of strings
-    let decls: Vec<String> = variables.split("\n").map(|s| s.into()).collect();
+    let decls: Vec<String> = variables.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
     let mut clocks: HashMap<String, u32> = HashMap::new();
     let mut counter: u32 = 1;
     for string in decls {
         //skip comments
-        if string.starts_with("//") || string == "" {
+        if string.starts_with("//") || string.is_empty() {
             continue;
         }
-        let sub_decls: Vec<String> = string.split(";").map(|s| s.into()).collect();
+        let sub_decls: Vec<String> = string.split(';').map(|s| s.into()).collect();
 
         for sub_decl in sub_decls {
-            if sub_decl.len() != 0 {
-                let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
+            if !sub_decl.is_empty() {
+                let split_string: Vec<String> = sub_decl.split(' ').map(|s| s.into()).collect();
                 let variable_type = split_string[0].as_str();
 
                 if variable_type == "clock" {
-                    for i in 1..split_string.len() {
+                    for split_str in split_string.iter().skip(1) {
                         let comma_split: Vec<String> =
-                            split_string[i].split(",").map(|s| s.into()).collect();
+                            split_str.split(',').map(|s| s.into()).collect();
                         for var in comma_split {
-                            if !(var == "") {
+                            if !var.is_empty() {
                                 clocks.insert(var, counter);
                                 counter += 1;
                             }
                         }
                     }
                 } else if variable_type == "int" {
-                    for i in 1..split_string.len() {
+                    for split_str in split_string.iter().skip(1) {
                         let comma_split: Vec<String> =
-                            split_string[i].split(",").map(|s| s.into()).collect();
+                            split_str.split(',').map(|s| s.into()).collect();
                         for var in comma_split {
                             ints.insert(var, 0);
                         }
@@ -200,31 +202,31 @@ fn parse_declarations(variables: &str) -> Declarations {
 
 fn decode_sync_type(global_decl: &str) -> SystemSpecification {
     let mut first_run = true;
-    let decls: Vec<String> = global_decl.split("\n").map(|s| s.into()).collect();
+    let decls: Vec<String> = global_decl.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut output_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut components: Vec<String> = vec![];
 
     let mut component_names: Vec<String> = vec![];
 
-    for i in 0..decls.len() {
+    for declaration in &decls {
         //skip comments
-        if decls[i].starts_with("//") || decls[i] == "" {
+        if declaration.starts_with("//") || declaration.is_empty() {
             continue;
         }
 
-        if decls[i].len() != 0 {
+        if !declaration.is_empty() {
             if first_run {
-                let component_decls = &decls[i];
+                let component_decls = declaration;
 
-                component_names = component_decls.split(" ").map(|s| s.into()).collect();
+                component_names = component_decls.split(' ').map(|s| s.into()).collect();
 
                 if component_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
-                    for j in 1..component_names.len() {
-                        let s = component_names[j].replace(",", "");
+                    for name in component_names.iter_mut().skip(1) {
+                        let s = name.replace(",", "");
                         let s_cleaned = s.replace(";", "");
-                        component_names[j] = s_cleaned.clone();
+                        *name = s_cleaned.clone();
                         components.push(s_cleaned);
                     }
                     first_run = false;
@@ -233,35 +235,33 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                 }
             }
 
-            let split_string: Vec<String> = decls[i].split(" ").map(|s| s.into()).collect();
+            let split_string: Vec<String> = declaration.split(' ').map(|s| s.into()).collect();
             if split_string[0].as_str() == "IO" {
                 let component_name = split_string[1].clone();
 
                 if component_names.contains(&component_name) {
-                    for i in 2..split_string.len() {
-                        let s = split_string[i].replace("{", "");
+                    for split_str in split_string.iter().skip(2) {
+                        let s = split_str.replace("{", "");
                         let p = s.replace("}", "");
-                        let comp_actions: Vec<String> = p.split(",").map(|s| s.into()).collect();
+                        let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {
-                            if action.len() == 0 {
+                            if action.is_empty() {
                                 continue;
                             }
-                            if action.ends_with("?") {
+                            if action.ends_with('?') {
                                 let r = action.replace("?", "");
                                 if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
                                     Channel_vec.push(r)
                                 } else {
-                                    let mut Channel_vec = vec![];
-                                    Channel_vec.push(r);
+                                    let Channel_vec = vec![r];
                                     input_actions.insert(component_name.clone(), Channel_vec);
                                 }
-                            } else if action.ends_with("!") {
+                            } else if action.ends_with('!') {
                                 let r = action.replace("!", "");
                                 if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
                                     Channel_vec.push(r.clone())
                                 } else {
-                                    let mut Channel_vec = vec![];
-                                    Channel_vec.push(r.clone());
+                                    let Channel_vec = vec![r.clone()];
                                     output_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else {

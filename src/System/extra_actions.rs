@@ -19,7 +19,7 @@ pub fn add_extra_inputs_outputs(
     let outputs2 = get_extra(&sys2, &sys1, sys_decls, false);
 
     let mut new_decl = sys_decls.clone();
-    let mut decls = new_decl.get_mut_declarations();
+    let decls = new_decl.get_mut_declarations();
 
     let (name1, name2) = (
         "EXTRA_INPUT_OUTPUTS1".to_string(),

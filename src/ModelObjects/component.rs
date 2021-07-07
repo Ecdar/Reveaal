@@ -46,7 +46,7 @@ impl Component {
             .collect::<Vec<&Location>>();
 
         if loc_vec.len() == 1 {
-            return loc_vec[0];
+            loc_vec[0]
         } else {
             panic!("Unable to retrieve location based on id: {}", name)
         }
@@ -75,24 +75,24 @@ impl Component {
     }
 
     pub fn get_input_edges(&self) -> &Vec<Edge> {
-        return if let Some(input_edges) = &self.input_edges {
+        if let Some(input_edges) = &self.input_edges {
             input_edges
         } else {
             panic!("attempted to get input edges before they were created")
-        };
+        }
     }
     pub fn get_output_edges(&self) -> &Vec<Edge> {
-        return if let Some(input_edges) = &self.output_edges {
-            input_edges
+        if let Some(output_edges) = &self.output_edges {
+            output_edges
         } else {
             panic!("attempted to get output edges before they were created")
-        };
+        }
     }
 
     pub fn get_initial_location(&self) -> &Location {
         let vec: Vec<&Location> = self
             .get_locations()
-            .into_iter()
+            .iter()
             .filter(|location| location.get_location_type() == &LocationType::Initial)
             .collect();
 
@@ -116,12 +116,10 @@ impl Component {
     pub fn get_input_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.input_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Input {
-                if !contain(&actions, edge.get_sync()) {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone(),
-                    });
-                }
+            if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
+                actions.push(Channel {
+                    name: edge.get_sync().clone(),
+                });
             }
         }
         actions
@@ -130,12 +128,10 @@ impl Component {
     pub fn get_output_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.output_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Output {
-                if !contain(&actions, edge.get_sync()) {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone(),
-                    });
-                }
+            if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
+                actions.push(Channel {
+                    name: edge.get_sync().clone(),
+                });
             }
         }
         actions
@@ -154,7 +150,7 @@ impl Component {
             SyncType::Input => {
                 let result: Vec<&Edge> = self
                     .get_input_edges()
-                    .into_iter()
+                    .iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
                             && (e.get_sync() == (channel_name.to_string()).as_str()
@@ -166,7 +162,7 @@ impl Component {
             SyncType::Output => {
                 let result: Vec<&Edge> = self
                     .get_output_edges()
-                    .into_iter()
+                    .iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
                             && (e.get_sync() == (channel_name.to_string()).as_str()
@@ -231,7 +227,7 @@ impl Component {
         self.input_edges = Some(i_edges);
         self.edges = vec![];
 
-        return self;
+        self
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
@@ -258,7 +254,8 @@ impl Component {
         if let Some(update_i) = state.decorated_location.location.get_invariant() {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut state);
         }
-        return self.consistency_helper(state, prune, &mut passed_list);
+
+        self.consistency_helper(state, prune, &mut passed_list)
     }
 
     /// Method used to check if a state is contained in the passed list
@@ -268,14 +265,14 @@ impl Component {
         passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
-            if state.get_location().id == currState.get_location().id {
-                if currState.zone.is_subset_eq(&mut state.zone) {
-                    return true;
-                }
+            if state.get_location().id == currState.get_location().id
+                && currState.zone.is_subset_eq(&mut state.zone)
+            {
+                return true;
             }
         }
 
-        return false;
+        false
     }
 
     /// helper method to check consistency
@@ -347,7 +344,7 @@ impl Component {
         let mut outputExisted: bool = false;
         // If delaying indefinitely is possible -> Prune the rest
         if prune && ModelObjects::component::Component::canDelayIndefinitely(&mut currState) {
-            return true;
+            true
         } else {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
@@ -411,12 +408,12 @@ impl Component {
                 if outputExisted {
                     return true;
                 }
-                return ModelObjects::component::Component::canDelayIndefinitely(&mut currState);
+                ModelObjects::component::Component::canDelayIndefinitely(&mut currState)
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
             // or there are no output edges from the current location -> Independent progress does not hold
             else {
-                return false;
+                false
             }
         }
         // Else if independent progress does not hold through delaying indefinitely,
@@ -428,7 +425,8 @@ impl Component {
                 return false;
             }
         }
-        return true;
+
+        true
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
@@ -513,15 +511,15 @@ impl Component {
                 panic!("Unable to pop state from waiting list")
             }
         }
-        return true;
+
+        true
     }
 
     /// Method to check if moves are overlapping to for instance to verify that component is deterministic
-    fn check_moves_overlap(&self, edges: &Vec<&Edge>, state: &mut State) -> bool {
+    fn check_moves_overlap(&self, edges: &[&Edge], state: &mut State) -> bool {
         if edges.len() < 2 {
             return false;
         }
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
         for i in 0..edges.len() {
             for j in i + 1..edges.len() {
@@ -540,21 +538,18 @@ impl Component {
                 }
                 let location_source = self
                     .get_locations()
-                    .into_iter()
-                    .filter(|l| (l.get_id() == edges[i].get_source_location()))
-                    .nth(0)
+                    .iter()
+                    .find(|l| (l.get_id() == edges[i].get_source_location()))
                     .unwrap();
                 let location_i = self
                     .get_locations()
-                    .into_iter()
-                    .filter(|l| (l.get_id() == edges[i].get_target_location()))
-                    .nth(0)
+                    .iter()
+                    .find(|l| (l.get_id() == edges[i].get_target_location()))
                     .unwrap();
                 let location_j = self
                     .get_locations()
-                    .into_iter()
-                    .filter(|l| (l.get_id() == edges[j].get_target_location()))
-                    .nth(0)
+                    .iter()
+                    .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
                 let location = create_decorated_location(
@@ -588,15 +583,16 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
                 }
 
-                if state_i.zone.is_valid() && state_j.zone.is_valid() {
-                    if state_i.zone.intersects(&mut state_j.zone) {
-                        return true;
-                    }
+                if state_i.zone.is_valid()
+                    && state_j.zone.is_valid()
+                    && state_i.zone.intersects(&mut state_j.zone)
+                {
+                    return true;
                 }
             }
         }
 
-        return false;
+        false
     }
 }
 
@@ -613,23 +609,25 @@ fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> 
             return false;
         }
     }
-    return true;
+
+    true
 }
 
-pub fn contain(channels: &Vec<Channel>, channel: &str) -> bool {
+pub fn contain(channels: &[Channel], channel: &str) -> bool {
     for c in channels {
         if c.name == channel {
             return true;
         }
     }
-    return false;
+
+    false
 }
 
 fn create_decorated_location(location: &Location, declarations: Declarations) -> DecoratedLocation {
-    return DecoratedLocation {
+    DecoratedLocation {
         location,
         declarations,
-    };
+    }
 }
 
 fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
@@ -723,14 +721,14 @@ impl<'a> Transition<'a> {
     }
 
     pub fn apply_updates(&self, locations: &mut DecoratedLocationTuple, zone: &mut Zone) {
-        for (comp, edge, index) in &self.edges {
+        for (_, edge, index) in &self.edges {
             edge.apply_update(&mut locations[*index], zone);
         }
     }
 
     pub fn apply_guards(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
         let mut success = true;
-        for (comp, edge, index) in &self.edges {
+        for (_, edge, index) in &self.edges {
             success = success && edge.apply_guard(&locations[*index], zone);
         }
         success
@@ -825,7 +823,8 @@ impl Edge {
                 clock_vec.push(u.get_variable_name())
             }
         }
-        return clock_vec;
+
+        clock_vec
     }
 }
 
@@ -912,7 +911,7 @@ impl Declarations {
 
     pub fn update_clock_indices(&mut self, start_index: u32) {
         for (_, v) in self.clocks.iter_mut() {
-            *v = *v + start_index
+            *v += start_index
         }
     }
 
@@ -936,37 +935,37 @@ where
 {
     let s = String::deserialize(deserializer)?;
     //Split string into vector of strings
-    let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
+    let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
     let mut clocks: HashMap<String, u32> = HashMap::new();
     let mut counter: u32 = 1;
     for string in decls {
         //skip comments
-        if string.starts_with("//") || string == "" {
+        if string.starts_with("//") || string.is_empty() {
             continue;
         }
-        let sub_decls: Vec<String> = string.split(";").map(|s| s.into()).collect();
+        let sub_decls: Vec<String> = string.split(';').map(|s| s.into()).collect();
 
         for sub_decl in sub_decls {
-            if sub_decl.len() != 0 {
-                let split_string: Vec<String> = sub_decl.split(" ").map(|s| s.into()).collect();
+            if !sub_decl.is_empty() {
+                let split_string: Vec<String> = sub_decl.split(' ').map(|s| s.into()).collect();
                 let variable_type = split_string[0].as_str();
 
                 if variable_type == "clock" {
-                    for i in 1..split_string.len() {
+                    for split_str in split_string.iter().skip(1) {
                         let comma_split: Vec<String> =
-                            split_string[i].split(",").map(|s| s.into()).collect();
+                            split_str.split(',').map(|s| s.into()).collect();
                         for var in comma_split {
-                            if !(var == "") {
+                            if !var.is_empty() {
                                 clocks.insert(var, counter);
                                 counter += 1;
                             }
                         }
                     }
                 } else if variable_type == "int" {
-                    for i in 1..split_string.len() {
+                    for split_str in split_string.iter().skip(1) {
                         let comma_split: Vec<String> =
-                            split_string[i].split(",").map(|s| s.into()).collect();
+                            split_str.split(',').map(|s| s.into()).collect();
                         for var in comma_split {
                             ints.insert(var, 0);
                         }
@@ -983,8 +982,8 @@ where
 
     let dim = clocks.keys().len() as u32;
     Ok(Declarations {
-        ints: ints,
-        clocks: clocks,
+        ints,
+        clocks,
         dimension: dim,
     })
 }
@@ -997,12 +996,12 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    if s.len() == 0 {
+    if s.is_empty() {
         return Ok(None);
     }
     match parse_edge::parse(&s) {
         Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(guard_res) => return Ok(Some(guard_res)),
+            parse_edge::EdgeAttribute::Guard(guard_res) => Ok(Some(guard_res)),
             parse_edge::EdgeAttribute::Updates(_) => {
                 panic!("We expected a guard but got an update? {:?}\n", s)
             }
@@ -1017,7 +1016,7 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    if s.len() == 0 {
+    if s.is_empty() {
         return Ok(None);
     }
     match parse_edge::parse(&s) {
@@ -1025,7 +1024,7 @@ where
             parse_edge::EdgeAttribute::Guard(_) => {
                 panic!("We expected an update but got a guard? {:?}", s)
             }
-            parse_edge::EdgeAttribute::Updates(update_vec) => return Ok(Some(update_vec)),
+            parse_edge::EdgeAttribute::Updates(update_vec) => Ok(Some(update_vec)),
         },
         Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
     }
@@ -1039,11 +1038,11 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    if s.len() == 0 {
+    if s.is_empty() {
         return Ok(None);
     }
     match parse_invariant::parse(&s) {
-        Ok(edgeAttribute) => return Ok(Some(edgeAttribute)),
+        Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
         Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
     }
 }
@@ -1066,14 +1065,14 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    if s.contains("!") {
+    if s.contains('!') {
         let res = s.replace("!", "");
-        return Ok(res);
-    } else if s.contains("?") {
+        Ok(res)
+    } else if s.contains('?') {
         let res = s.replace("?", "");
-        return Ok(res);
+        Ok(res)
     } else {
-        return Ok(s);
+        Ok(s)
     }
 }
 
@@ -1099,7 +1098,7 @@ where
     }
 }
 
-pub fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) -> Component {
     let location = Location {
         id: "EXTRA".to_string(),
         invariant: None,
