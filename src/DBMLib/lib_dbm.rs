@@ -456,7 +456,7 @@ pub fn rs_dbm_add_EQ_constraint(
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint);
         let res2 = rs_dbm_constrain1(dbm, dimension, var_index_j, var_index_i, constraint);
-        return res1 && res2;
+        res1 && res2
     }
 }
 
@@ -490,7 +490,7 @@ pub fn rs_dbm_add_EQ_const_constraint(
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index, 0, constraint1);
         let res2 = rs_dbm_constrain1(dbm, dimension, 0, var_index, constraint2);
-        return res1 && res2;
+        res1 && res2
     }
 }
 
@@ -532,7 +532,7 @@ pub fn rs_dbm_add_and_constraint(
 ) -> bool {
     let res1 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint1);
     let res2 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint2);
-    return res1 && res2;
+    res1 && res2
 }
 
 /// Constrain clock to == value, and return
@@ -628,7 +628,7 @@ pub fn rs_dbm_freeClock(dbm: &mut [i32], dimension: u32, var_index: u32) {
  * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
  */
 pub fn rs_dbm_isSubsetEq(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -> bool {
-    unsafe { return BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension) }
+    unsafe { BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension) }
 }
 
 ///  oda federation minus federation
@@ -648,7 +648,7 @@ pub fn rs_dbm_fed_minus_fed(
             &mut res,
         );
 
-        return fed_to_federation(&mut res, dim);
+        fed_to_federation(&mut res, dim)
     }
 }
 
@@ -658,7 +658,7 @@ fn fed_to_federation(fed: &mut dbm_fed_t, dim: u32) -> Federation {
     // zone: [i32; dim * dim]
     let mut zones = Vec::with_capacity(result.len());
     for dbm_ptr in result.iter() {
-        if *dbm_ptr == std::ptr::null() {
+        if dbm_ptr.is_null() {
             continue;
         }
 
@@ -674,14 +674,14 @@ fn fed_to_federation(fed: &mut dbm_fed_t, dim: u32) -> Federation {
         })
     }
 
-    return Federation::new(zones, dim);
+    Federation::new(zones, dim)
 }
 
 /// currently unused
 pub fn rs_dbm_minus_dbm(dbm1: &mut [i32], dbm2: &mut [i32], dim: u32) -> Federation {
     unsafe {
         let mut res = dbm_subtract1_exposed(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dim);
-        return fed_to_federation(&mut res, dim);
+        fed_to_federation(&mut res, dim)
     }
 }
 
@@ -696,9 +696,7 @@ pub fn rs_dbm_get_constraint(
     var_index_i: u32,
     var_index_j: u32,
 ) -> raw_t {
-    unsafe {
-        return dbm_get_value(dbm.as_mut_ptr(), dimension, var_index_i, var_index_j);
-    }
+    unsafe { dbm_get_value(dbm.as_mut_ptr(), dimension, var_index_i, var_index_j) }
 }
 
 ///used by input enabler to get the upper and lower bounds for each clocks so that constraints can be created
@@ -708,14 +706,12 @@ pub fn rs_dbm_get_constraint_from_dbm_ptr(
     var_index_i: u32,
     var_index_j: u32,
 ) -> raw_t {
-    unsafe {
-        return dbm_get_value(dbm, dimension, var_index_i, var_index_j);
-    }
+    unsafe { dbm_get_value(dbm, dimension, var_index_i, var_index_j) }
 }
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: raw_t) -> bool {
-    unsafe { return BOOL_TRUE == dbm_rawIsStrict(raw) }
+    unsafe { BOOL_TRUE == dbm_rawIsStrict(raw) }
 }
 
 ///converts the bound from c++ to an usable rust type - used when input enabling
@@ -727,7 +723,7 @@ pub fn rs_vec_to_fed(dbm_vec: &mut Vec<*mut raw_t>, dim: u32) -> dbm_fed_t {
     unsafe {
         let mut res = dbm_fed_t::new(dim);
         dbm_vec_to_fed(dbm_vec.as_mut_ptr(), (dbm_vec.len()) as u32, dim, &mut res);
-        return res;
+        res
     }
 }
 
@@ -743,7 +739,7 @@ pub fn rs_fed_to_vec(fed: &mut dbm_fed_t) -> Vec<*const i32> {
             result.push(new_const_ptr);
         }
 
-        return result;
+        result
     }
 }
 ///does a dbm up operation

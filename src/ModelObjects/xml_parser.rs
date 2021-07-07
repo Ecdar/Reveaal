@@ -86,7 +86,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
         };
         locations.push(location);
     }
-    
+
     locations
 }
 
@@ -99,18 +99,22 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
         for label in e.find_all("label") {
             match label.get_attr("kind").unwrap() {
                 "guard" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
-                        guard = Some(guard_res);
-                    },
+                    Ok(edgeAttribute) => {
+                        if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
+                            guard = Some(guard_res);
+                        }
+                    }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
                 "assignment" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
-                        updates = Some(update_vec)
-                    },
+                    Ok(edgeAttribute) => {
+                        if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
+                            updates = Some(update_vec)
+                        }
+                    }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 _ => {}
@@ -162,9 +166,9 @@ fn parse_declarations(variables: &str) -> Declarations {
                 let variable_type = split_string[0].as_str();
 
                 if variable_type == "clock" {
-                    for i in 1..split_string.len() {
+                    for split_str in split_string.iter().skip(1) {
                         let comma_split: Vec<String> =
-                            split_string[i].split(',').map(|s| s.into()).collect();
+                            split_str.split(',').map(|s| s.into()).collect();
                         for var in comma_split {
                             if !var.is_empty() {
                                 clocks.insert(var, counter);

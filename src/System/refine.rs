@@ -1,7 +1,6 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component;
-use crate::ModelObjects::component::{Component, DecoratedLocation, Edge, Transition};
+use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;

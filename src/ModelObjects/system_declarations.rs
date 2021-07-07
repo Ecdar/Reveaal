@@ -92,7 +92,7 @@ where
                         let p = s.replace("}", "");
                         let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {
-                            if action.len() == 0 {
+                            if action.is_empty() {
                                 continue;
                             }
                             if action.ends_with('?') {

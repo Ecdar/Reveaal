@@ -115,12 +115,10 @@ impl Component {
     pub fn get_input_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.input_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Input {
-                if !contain(&actions, edge.get_sync()) {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone(),
-                    });
-                }
+            if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
+                actions.push(Channel {
+                    name: edge.get_sync().clone(),
+                });
             }
         }
         actions
@@ -129,12 +127,10 @@ impl Component {
     pub fn get_output_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.output_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Output {
-                if !contain(&actions, edge.get_sync()) {
-                    actions.push(Channel {
-                        name: edge.get_sync().clone(),
-                    });
-                }
+            if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
+                actions.push(Channel {
+                    name: edge.get_sync().clone(),
+                });
             }
         }
         actions
@@ -391,7 +387,7 @@ impl Component {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -477,7 +473,7 @@ impl Component {
                 panic!("Unable to pop state from waiting list")
             }
         }
-        
+
         true
     }
 
@@ -506,20 +502,17 @@ impl Component {
                 let location_source = self
                     .get_locations()
                     .iter()
-                    .filter(|l| (l.get_id() == edges[i].get_source_location()))
-                    .next()
+                    .find(|l| (l.get_id() == edges[i].get_source_location()))
                     .unwrap();
                 let location_i = self
                     .get_locations()
                     .iter()
-                    .filter(|l| (l.get_id() == edges[i].get_target_location()))
-                    .next()
+                    .find(|l| (l.get_id() == edges[i].get_target_location()))
                     .unwrap();
                 let location_j = self
                     .get_locations()
                     .iter()
-                    .filter(|l| (l.get_id() == edges[j].get_target_location()))
-                    .next()
+                    .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
                 let location = create_decorated_location(
@@ -553,10 +546,11 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
                 }
 
-                if state_i.zone.is_valid() && state_j.zone.is_valid() {
-                    if state_i.zone.intersects(&mut state_j.zone) {
-                        return true;
-                    }
+                if state_i.zone.is_valid()
+                    && state_j.zone.is_valid()
+                    && state_i.zone.intersects(&mut state_j.zone)
+                {
+                    return true;
                 }
             }
         }
@@ -806,7 +800,7 @@ impl Edge {
                 clock_vec.push(u.get_variable_name())
             }
         }
-        
+
         clock_vec
     }
 }
@@ -965,8 +959,8 @@ where
 
     let dim = clocks.keys().len() as u32;
     Ok(Declarations {
-        ints: ints,
-        clocks: clocks,
+        ints,
+        clocks,
         dimension: dim,
     })
 }
@@ -1025,7 +1019,7 @@ where
         return Ok(None);
     }
     match parse_invariant::parse(&s) {
-        Ok(edgeAttribute) => return Ok(Some(edgeAttribute)),
+        Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
         Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
     }
 }
@@ -1051,7 +1045,7 @@ where
     if s.contains('!') {
         let res = s.replace("!", "");
         Ok(res)
-    } else if s.contains("?") {
+    } else if s.contains('?') {
         let res = s.replace("?", "");
         Ok(res)
     } else {

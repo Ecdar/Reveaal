@@ -97,11 +97,11 @@ fn parse_args() -> (
     } else {
         match parse_queries::parse(&query) {
             Ok(queries_result) => {
-                let mut queries: Vec<Query> = vec![];
-                queries.push(Query {
+                let mut queries: Vec<Query> = vec![Query {
                     query: Option::from(queries_result),
                     comment: "".to_string(),
-                });
+                }];
+
                 (
                     components,
                     system_declarations,
