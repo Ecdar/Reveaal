@@ -1,7 +1,3 @@
-use crate::DBMLib::dbm::Zone;
-use std::collections::HashMap;
-use std::i32;
-
 #[derive(Clone)]
 pub struct MaxBounds {
     pub clock_bounds: Vec<i32>,
@@ -18,10 +14,6 @@ impl MaxBounds {
         if self.clock_bounds[clock as usize] < bound {
             self.clock_bounds[clock as usize] = bound;
         }
-    }
-
-    pub fn clock_count(&self) -> usize {
-        self.clock_bounds.len()
     }
 
     pub fn add_bounds(&mut self, bounds: &MaxBounds) {

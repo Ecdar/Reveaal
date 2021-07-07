@@ -73,7 +73,7 @@ impl BoolExpression {
             _ => {}
         }
 
-        return 0;
+        0
     }
 
     pub fn iterate_constraints<F>(&self, function: &mut F)
@@ -142,19 +142,18 @@ impl<'a> SystemRepresentation {
 
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
-                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&right_side.get_max_bounds(dimensions));
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
-                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&right_side.get_max_bounds(dimensions));
             }
             SystemRepresentation::Parentheses(rep) => {
-                bounds.add_bounds(&mut rep.get_max_bounds(dimensions))
+                bounds.add_bounds(&rep.get_max_bounds(dimensions))
             }
             SystemRepresentation::Component(comp) => {
-                let mut comp_bounds = comp.get_max_bounds(dimensions);
-                bounds.add_bounds(&comp_bounds);
+                bounds.add_bounds(&comp.get_max_bounds(dimensions));
             }
         }
 

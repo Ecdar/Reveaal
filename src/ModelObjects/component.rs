@@ -520,7 +520,6 @@ impl Component {
         if edges.len() < 2 {
             return false;
         }
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
 
         for i in 0..edges.len() {
             for j in i + 1..edges.len() {
@@ -722,14 +721,14 @@ impl<'a> Transition<'a> {
     }
 
     pub fn apply_updates(&self, locations: &mut DecoratedLocationTuple, zone: &mut Zone) {
-        for (comp, edge, index) in &self.edges {
+        for (_, edge, index) in &self.edges {
             edge.apply_update(&mut locations[*index], zone);
         }
     }
 
     pub fn apply_guards(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
         let mut success = true;
-        for (comp, edge, index) in &self.edges {
+        for (_, edge, index) in &self.edges {
             success = success && edge.apply_guard(&locations[*index], zone);
         }
         success
@@ -1099,7 +1098,7 @@ where
     }
 }
 
-pub fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) -> Component {
     let location = Location {
         id: "EXTRA".to_string(),
         invariant: None,
