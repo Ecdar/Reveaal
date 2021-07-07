@@ -1,9 +1,11 @@
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{DecoratedLocation, Transition};
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
+use crate::System::extra_actions;
 use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
@@ -13,11 +15,12 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    let mut combined_transitions1: Vec<Transition>;
-    let mut combined_transitions2: Vec<Transition>;
 
-    let inputs2 = sys2.get_input_actions(sys_decls);
-    let outputs1 = sys1.get_output_actions(sys_decls);
+    // Add extra inputs/outputs
+    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(sys1, sys2, sys_decls);
+    let sys_decls = &decl;
+    let inputs = sys2.get_input_actions(sys_decls);
+    let outputs = sys1.get_output_actions(sys_decls);
 
     //Firstly we check the preconditions
     if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), sys_decls) {
@@ -31,39 +34,29 @@ pub fn check_refinement(
     let mut initial_pair =
         StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
     prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    let mut max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
+    initial_pair.zone.extrapolate_max_bounds(&mut max_bounds);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in &outputs1 {
-            match sys1.collect_next_outputs(curr_pair.get_locations1(), output) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_next_outputs(curr_pair.get_locations2(), output) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+        for output in &outputs {
+            let output_transition1 = sys1.collect_next_outputs(curr_pair.get_locations1(), output);
+            let output_transition2 = sys2.collect_next_outputs(curr_pair.get_locations2(), output);
 
             //TODO: Check with alex or thomas to see if this comment is important
             //If this returns false we should continue after resetting global indexes
-            if has_valid_state_pair(
-                &combined_transitions1,
-                &combined_transitions2,
-                &curr_pair,
-                true,
-            ) {
+            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
                 create_new_state_pairs(
-                    &combined_transitions1,
-                    &combined_transitions2,
+                    &output_transition1,
+                    &output_transition2,
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
                     &sys1,
                     &sys2,
-                    output,
-                    false,
+                    &mut max_bounds,
                     true,
                 )
             } else {
@@ -71,44 +64,32 @@ pub fn check_refinement(
                     "Refinement check failed for Output {:?} Zone: {} \n transitions:",
                     output, curr_pair.zone
                 );
-                for trans in combined_transitions1 {
+                for trans in output_transition1 {
                     println!("{}", trans);
                 }
                 println!("--");
-                for trans in combined_transitions2 {
+                for trans in output_transition2 {
                     println!("{}", trans);
                 }
                 return Ok(false);
             }
         }
 
-        for input in &inputs2 {
-            match sys1.collect_next_inputs(curr_pair.get_locations1(), input) {
-                Ok(open_outputs) => combined_transitions1 = open_outputs,
-                Err(err) => return Err(err + " on left side"),
-            }
-            match sys2.collect_next_inputs(curr_pair.get_locations2(), input) {
-                Ok(open_outputs) => combined_transitions2 = open_outputs,
-                Err(err) => return Err(err + " on right side"),
-            }
+        for input in &inputs {
+            let input_transitions1 = sys1.collect_next_inputs(curr_pair.get_locations1(), input);
+            let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
 
             //If this returns false we should continue after resetting global indexes
-            if has_valid_state_pair(
-                &combined_transitions2,
-                &combined_transitions1,
-                &curr_pair,
-                false,
-            ) {
+            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
                 create_new_state_pairs(
-                    &combined_transitions2,
-                    &combined_transitions1,
+                    &input_transitions2,
+                    &input_transitions1,
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
                     &sys2,
                     &sys1,
-                    input,
-                    true,
+                    &mut max_bounds,
                     false,
                 )
             } else {
@@ -116,11 +97,11 @@ pub fn check_refinement(
                     "Refinement check failed for Input {:?} Zone: {} \n transitions:",
                     input, curr_pair.zone
                 );
-                for trans in combined_transitions1 {
+                for trans in input_transitions1 {
                     println!("{}", trans);
                 }
                 println!("--");
-                for trans in combined_transitions2 {
+                for trans in input_transitions2 {
                     println!("{}", trans);
                 }
                 return Ok(false);
@@ -148,7 +129,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions1 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states1, &mut zone) {
+        if transition.apply_guards(&states1, &mut zone) {
             guard_zones_left.push(zone);
         }
     }
@@ -158,7 +139,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions2 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states2, &mut zone) {
+        if transition.apply_guards(&states2, &mut zone) {
             guard_zones_right.push(zone);
         }
     }
@@ -177,8 +158,7 @@ fn create_new_state_pairs<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
+    max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
@@ -192,8 +172,7 @@ fn create_new_state_pairs<'a>(
                 passed_list,
                 sys1,
                 sys2,
-                action,
-                adding_input,
+                max_bounds,
                 is_state1,
             );
         }
@@ -208,8 +187,7 @@ fn build_state_pair<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     sys1: &'a SystemRepresentation,
     sys2: &'a SystemRepresentation,
-    action: &str,
-    adding_input: bool,
+    max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) -> bool {
     //Creates new state pair
@@ -266,7 +244,12 @@ fn build_state_pair<'a>(
         return false;
     }
 
+    if !transition2.apply_invariants(locations2, &mut new_sp_zone) {
+        return false;
+    }
+
     new_sp.zone = new_sp_zone;
+    new_sp.zone.extrapolate_max_bounds(max_bounds);
 
     if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
         waiting_list.push(new_sp.clone());

@@ -1,11 +1,12 @@
 use crate::DBMLib::dbm::Zone;
+use crate::DataReader::parse_edge;
+use crate::DataReader::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
-use crate::ModelObjects::parse_edge;
-use crate::ModelObjects::parse_invariant;
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -171,6 +172,43 @@ impl Component {
                 result
             }
         };
+    }
+
+    pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
+        let result: Vec<&Edge> = self
+            .get_output_edges()
+            .iter()
+            .filter(|e| e.get_source_location() == location.get_id())
+            .collect();
+        result
+    }
+
+    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
+        let mut max_bounds = MaxBounds::create(dimensions);
+        for (clock_name, clock_id) in &self.declarations.clocks {
+            let mut max_bound = 0;
+            for edge in &self.edges {
+                if let Some(guard) = edge.get_guard() {
+                    let new_bound = guard.get_max_constant(*clock_id, clock_name);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
+            }
+
+            for location in &self.locations {
+                if let Some(inv) = location.get_invariant() {
+                    let new_bound = inv.get_max_constant(*clock_id, clock_name);
+                    if max_bound < new_bound {
+                        max_bound = new_bound;
+                    }
+                }
+            }
+
+            max_bounds.add_bound(*clock_id, max_bound);
+        }
+
+        max_bounds
     }
 
     /// Used in initial setup to split edges based on their sync type
@@ -705,20 +743,6 @@ impl<'a> Transition<'a> {
         success
     }
 
-    pub fn apply_guards_after_invariants(
-        &self,
-        locations: &DecoratedLocationTuple,
-        zone: &mut Zone,
-    ) -> bool {
-        let mut success = true;
-        for (comp, edge, index) in &self.edges {
-            success = success
-                && locations[*index].apply_invariant(zone)
-                && edge.apply_guard(&locations[*index], zone);
-        }
-        success
-    }
-
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
@@ -1072,5 +1096,59 @@ where
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
         _ => panic!("Unknown sync type in status {:?}", s),
+    }
+}
+
+pub fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+    let location = Location {
+        id: "EXTRA".to_string(),
+        invariant: None,
+        location_type: LocationType::Initial,
+        urgency: "".to_string(),
+    };
+
+    let mut input_edges = vec![];
+
+    for input in inputs {
+        input_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: input.clone(),
+            sync_type: SyncType::Input,
+            update: None,
+        })
+    }
+
+    let mut output_edges = vec![];
+
+    for output in outputs {
+        output_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: output.clone(),
+            sync_type: SyncType::Output,
+            update: None,
+        })
+    }
+
+    let edges: Vec<Edge> = input_edges
+        .iter()
+        .cloned()
+        .chain(output_edges.iter().cloned())
+        .collect();
+
+    Component {
+        name,
+        declarations: Declarations {
+            ints: HashMap::new(),
+            clocks: HashMap::new(),
+            dimension: 0,
+        },
+        locations: vec![location],
+        edges,
+        input_edges: Some(input_edges),
+        output_edges: Some(output_edges),
     }
 }
