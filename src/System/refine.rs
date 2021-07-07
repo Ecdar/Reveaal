@@ -5,6 +5,7 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
+use crate::System::extra_actions;
 use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
@@ -15,6 +16,9 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
 
+    // Add extra inputs/outputs
+    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(sys1, sys2, sys_decls);
+    let sys_decls = &decl;
     let inputs = sys2.get_input_actions(sys_decls);
     let outputs = sys1.get_output_actions(sys_decls);
 
@@ -125,7 +129,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions1 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states1, &mut zone) {
+        if transition.apply_guards(&states1, &mut zone) {
             guard_zones_left.push(zone);
         }
     }
@@ -135,7 +139,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions2 {
         let mut zone = curr_pair.zone.clone();
         //Save if edge is open
-        if transition.apply_guards_after_invariants(&states2, &mut zone) {
+        if transition.apply_guards(&states2, &mut zone) {
             guard_zones_right.push(zone);
         }
     }

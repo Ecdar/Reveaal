@@ -28,6 +28,9 @@ impl SystemSpecification {
     pub fn get_components(&self) -> &Vec<String> {
         &self.components
     }
+    pub fn get_mut_components(&mut self) -> &mut Vec<String> {
+        &mut self.components
+    }
     pub fn get_input_actions(&self) -> &HashMap<String, Vec<String>> {
         &self.input_actions
     }

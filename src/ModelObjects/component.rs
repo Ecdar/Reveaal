@@ -744,20 +744,6 @@ impl<'a> Transition<'a> {
         success
     }
 
-    pub fn apply_guards_after_invariants(
-        &self,
-        locations: &DecoratedLocationTuple,
-        zone: &mut Zone,
-    ) -> bool {
-        let mut success = true;
-        for (comp, edge, index) in &self.edges {
-            success = success
-                && locations[*index].apply_invariant(zone)
-                && edge.apply_guard(&locations[*index], zone);
-        }
-        success
-    }
-
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
@@ -1110,5 +1096,59 @@ where
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
         _ => panic!("Unknown sync type in status {:?}", s),
+    }
+}
+
+pub fn get_dummy_component(name: String, inputs: &Vec<String>, outputs: &Vec<String>) -> Component {
+    let location = Location {
+        id: "EXTRA".to_string(),
+        invariant: None,
+        location_type: LocationType::Initial,
+        urgency: "".to_string(),
+    };
+
+    let mut input_edges = vec![];
+
+    for input in inputs {
+        input_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: input.clone(),
+            sync_type: SyncType::Input,
+            update: None,
+        })
+    }
+
+    let mut output_edges = vec![];
+
+    for output in outputs {
+        output_edges.push(Edge {
+            guard: None,
+            source_location: "EXTRA".to_string(),
+            target_location: "EXTRA".to_string(),
+            sync: output.clone(),
+            sync_type: SyncType::Output,
+            update: None,
+        })
+    }
+
+    let edges: Vec<Edge> = input_edges
+        .iter()
+        .cloned()
+        .chain(output_edges.iter().cloned())
+        .collect();
+
+    Component {
+        name,
+        declarations: Declarations {
+            ints: HashMap::new(),
+            clocks: HashMap::new(),
+            dimension: 0,
+        },
+        locations: vec![location],
+        edges,
+        input_edges: Some(input_edges),
+        output_edges: Some(output_edges),
     }
 }
