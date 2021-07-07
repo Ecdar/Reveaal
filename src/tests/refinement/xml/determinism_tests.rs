@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod determinism_tests {
     use crate::tests::refinement::Helper::optimize_components;
+    use crate::DataReader::{parse_queries, xml_parser};
     use crate::ModelObjects::queries::Query;
     use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::ModelObjects::{parse_queries, xml_parser};
     use crate::System::extract_system_rep::create_system_rep_from_query;
 
     static PATH: &str = "samples/xml/ConsTests.xml";
