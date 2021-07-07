@@ -1,9 +1,8 @@
+use crate::DataReader::parse_edge::Update;
+use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
-use crate::ModelObjects::parse_edge::Update;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
-use crate::ModelObjects::{
-    component, parse_edge, parse_invariant, queries, representations, system_declarations,
-};
+use crate::ModelObjects::{component, queries, representations, system_declarations};
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
 use std::fs::File;

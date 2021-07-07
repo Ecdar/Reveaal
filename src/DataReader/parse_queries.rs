@@ -4,7 +4,7 @@ use pest::error::Error;
 use pest::Parser;
 
 #[derive(Parser)]
-#[grammar = "ModelObjects/grammars/query_grammar.pest"]
+#[grammar = "DataReader/grammars/query_grammar.pest"]
 pub struct QueryParser;
 
 ///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
@@ -82,6 +82,10 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
             QueryExpression::Potentially(Box::new(build_boolExpr_from_pair(inner_pair)))
         }
         Rule::expr => {
+            let inner_pair = pair.into_inner().next().unwrap();
+            build_expression_from_pair(inner_pair)
+        }
+        Rule::terms => {
             let inner_pair = pair.into_inner().next().unwrap();
             build_expression_from_pair(inner_pair)
         }
