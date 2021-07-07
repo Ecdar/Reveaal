@@ -88,12 +88,12 @@ fn parse_args() -> (
     let (components, system_declarations, q) = parse_automata(folder_path).unwrap();
 
     if query.is_empty() {
-        return (
+        (
             components,
             system_declarations,
             q,
             matches.is_present("checkInputOutput"),
-        );
+        )
     } else {
         match parse_queries::parse(&query) {
             Ok(queries_result) => {
@@ -102,12 +102,12 @@ fn parse_args() -> (
                     query: Option::from(queries_result),
                     comment: "".to_string(),
                 });
-                return (
+                (
                     components,
                     system_declarations,
                     queries,
                     matches.is_present("checkInputOutput"),
-                );
+                )
             }
             Err(e) => panic!("Failed to parse query {:?}", e),
         }
@@ -145,10 +145,10 @@ fn parse_automata(
     components.sort();
 
     if let Ok(result) = read_input(paths, components) {
-        return Ok(result);
+        Ok(result)
     } else {
         let result1 = xml_parser::parse_xml(&folder_path);
-        return Ok(result1);
+        Ok(result1)
     }
 }
 

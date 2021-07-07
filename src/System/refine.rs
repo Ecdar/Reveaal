@@ -135,8 +135,8 @@ pub fn check_refinement(
 }
 
 fn has_valid_state_pair<'a>(
-    transitions1: &Vec<Transition<'a>>,
-    transitions2: &Vec<Transition<'a>>,
+    transitions1: &[Transition<'a>],
+    transitions2: &[Transition<'a>],
     curr_pair: &StatePair<'a>,
     is_state1: bool,
 ) -> bool {
@@ -171,8 +171,8 @@ fn has_valid_state_pair<'a>(
 }
 
 fn create_new_state_pairs<'a>(
-    transitions1: &Vec<Transition<'a>>,
-    transitions2: &Vec<Transition<'a>>,
+    transitions1: &[Transition<'a>],
+    transitions2: &[Transition<'a>],
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,

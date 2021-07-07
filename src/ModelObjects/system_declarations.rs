@@ -49,31 +49,31 @@ where
 {
     let s = String::deserialize(deserializer)?;
     let mut first_run = true;
-    let decls: Vec<String> = s.split("\n").map(|s| s.into()).collect();
+    let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut output_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut components: Vec<String> = vec![];
 
     let mut component_names: Vec<String> = vec![];
 
-    for i in 0..decls.len() {
+    for declaration in &decls {
         //skip comments
-        if decls[i].starts_with("//") || decls[i] == "" {
+        if declaration.starts_with("//") || declaration.is_empty() {
             continue;
         }
 
-        if decls[i].len() != 0 {
+        if !declaration.is_empty() {
             if first_run {
-                let component_decls = &decls[i];
+                let component_decls = &declaration;
 
-                component_names = component_decls.split(" ").map(|s| s.into()).collect();
+                component_names = component_decls.split(' ').map(|s| s.into()).collect();
 
                 if component_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
-                    for j in 1..component_names.len() {
-                        let s = component_names[j].replace(",", "");
+                    for name in component_names.iter_mut().skip(1) {
+                        let s = name.replace(",", "");
                         let s_cleaned = s.replace(";", "");
-                        component_names[j] = s_cleaned.clone();
+                        *name = s_cleaned.clone();
                         components.push(s_cleaned);
                     }
                     first_run = false;
@@ -82,35 +82,33 @@ where
                 }
             }
 
-            let split_string: Vec<String> = decls[i].split(" ").map(|s| s.into()).collect();
+            let split_string: Vec<String> = declaration.split(' ').map(|s| s.into()).collect();
             if split_string[0].as_str() == "IO" {
                 let component_name = split_string[1].clone();
 
                 if component_names.contains(&component_name) {
-                    for i in 2..split_string.len() {
-                        let s = split_string[i].replace("{", "");
+                    for split_str in split_string.iter().skip(2) {
+                        let s = split_str.replace("{", "");
                         let p = s.replace("}", "");
-                        let comp_actions: Vec<String> = p.split(",").map(|s| s.into()).collect();
+                        let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {
                             if action.len() == 0 {
                                 continue;
                             }
-                            if action.ends_with("?") {
+                            if action.ends_with('?') {
                                 let r = action.replace("?", "");
                                 if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
                                     Channel_vec.push(r)
                                 } else {
-                                    let mut Channel_vec = vec![];
-                                    Channel_vec.push(r);
+                                    let Channel_vec = vec![r];
                                     input_actions.insert(component_name.clone(), Channel_vec);
                                 }
-                            } else if action.ends_with("!") {
+                            } else if action.ends_with('!') {
                                 let r = action.replace("!", "");
                                 if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
                                     Channel_vec.push(r.clone())
                                 } else {
-                                    let mut Channel_vec = vec![];
-                                    Channel_vec.push(r.clone());
+                                    let Channel_vec = vec![r.clone()];
                                     output_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else {

@@ -5,7 +5,7 @@ use crate::ModelObjects::representations::BoolExpression;
 
 /// Used to handle update expressions on edges
 pub fn updater(
-    updates: &Vec<parse_edge::Update>,
+    updates: &[parse_edge::Update],
     state: &mut component::DecoratedLocation,
     zone: &mut Zone,
 ) {
@@ -29,7 +29,7 @@ pub fn updater(
 }
 
 /// Used to handle update expressions on edges
-pub fn fullState_updater(updates: &Vec<parse_edge::Update>, state: &mut component::State) {
+pub fn fullState_updater(updates: &[parse_edge::Update], state: &mut component::State) {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
