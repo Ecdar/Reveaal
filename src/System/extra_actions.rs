@@ -18,6 +18,10 @@ pub fn add_extra_inputs_outputs(
     //let inputs2 = get_extra(&sys2, &sys1, sys_decls, true);
     let outputs2 = get_extra(&sys2, &sys1, sys_decls, false);
 
+    if inputs1.is_empty() && outputs2.is_empty() {
+        return (sys1, sys2, sys_decls.clone());
+    }
+
     let mut new_decl = sys_decls.clone();
     let mut decls = new_decl.get_mut_declarations();
 

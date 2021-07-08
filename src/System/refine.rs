@@ -47,8 +47,8 @@ pub fn check_refinement(
 
             //TODO: Check with alex or thomas to see if this comment is important
             //If this returns false we should continue after resetting global indexes
-            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
-                create_new_state_pairs(
+            if !has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
+                || !create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
                     &curr_pair,
@@ -59,18 +59,22 @@ pub fn check_refinement(
                     &mut max_bounds,
                     true,
                 )
-            } else {
-                println!(
-                    "Refinement check failed for Output {:?} Zone: {} \n transitions:",
-                    output, curr_pair.zone
-                );
-                for trans in output_transition1 {
-                    println!("{}", trans);
+            {
+                println!("Refinement check failed for Output {:?}", output);
+                println!("Transitions1:");
+                for t in &output_transition1 {
+                    println!("{}", t);
                 }
-                println!("--");
-                for trans in output_transition2 {
-                    println!("{}", trans);
+                println!("Transitions2:");
+                for t in &output_transition1 {
+                    println!("{}", t);
                 }
+                println!("Current pair: {}", curr_pair);
+                println!("Relation:");
+                for pair in passed_list {
+                    println!("{}", pair);
+                }
+
                 return Ok(false);
             }
         }
@@ -80,8 +84,8 @@ pub fn check_refinement(
             let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
 
             //If this returns false we should continue after resetting global indexes
-            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
-                create_new_state_pairs(
+            if !has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
+                || !create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
                     &curr_pair,
@@ -92,23 +96,32 @@ pub fn check_refinement(
                     &mut max_bounds,
                     false,
                 )
-            } else {
-                println!(
-                    "Refinement check failed for Input {:?} Zone: {} \n transitions:",
-                    input, curr_pair.zone
-                );
-                for trans in input_transitions1 {
-                    println!("{}", trans);
+            {
+                println!("Refinement check failed for Input {:?}", input);
+                println!("Transitions1:");
+                for t in &input_transitions1 {
+                    println!("{}", t);
                 }
-                println!("--");
-                for trans in input_transitions2 {
-                    println!("{}", trans);
+                println!("Transitions2:");
+                for t in &input_transitions2 {
+                    println!("{}", t);
                 }
+                println!("Current pair: {}", curr_pair);
+                println!("Relation:");
+                for pair in passed_list {
+                    println!("{}", pair);
+                }
+
                 return Ok(false);
             }
         }
 
         passed_list.push(curr_pair.clone());
+    }
+
+    println!("Refinement check passed with relation:");
+    for pair in passed_list {
+        println!("{}", pair)
     }
 
     Ok(true)
@@ -123,29 +136,33 @@ fn has_valid_state_pair<'a>(
     let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_states(is_state1);
-
+    let mut pair_zone = curr_pair.zone.clone();
     //create guard zones left
-    let mut guard_zones_left = vec![];
+    let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {
-        let mut zone = curr_pair.zone.clone();
-        //Save if edge is open
-        if transition.apply_guards(&states1, &mut zone) {
-            guard_zones_left.push(zone);
+        if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
+            for zone in fed.iter_mut_zones() {
+                if zone.intersects(&mut pair_zone) {
+                    left_fed.add(zone.clone());
+                }
+            }
         }
     }
 
     //Create guard zones right
-    let mut guard_zones_right = vec![];
+    let mut right_fed = Federation::new(vec![], dim);
     for transition in transitions2 {
-        let mut zone = curr_pair.zone.clone();
-        //Save if edge is open
-        if transition.apply_guards(&states2, &mut zone) {
-            guard_zones_right.push(zone);
+        if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
+            //let mut fed = ;
+            for zone in fed.iter_mut_zones() {
+                if zone.intersects(&mut pair_zone) {
+                    right_fed.add(zone.clone());
+                }
+            }
         }
     }
 
-    let result_federation = Federation::new(guard_zones_left, dim)
-        .minus_fed(&mut Federation::new(guard_zones_right, dim));
+    let result_federation = left_fed.minus_fed(&mut right_fed);
 
     result_federation.is_empty()
 }
@@ -160,11 +177,12 @@ fn create_new_state_pairs<'a>(
     sys2: &'a SystemRepresentation,
     max_bounds: &mut MaxBounds,
     is_state1: bool,
-) {
+) -> bool {
     for transition1 in transitions1 {
+        let mut found_match = false;
         for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
-            build_state_pair(
+            if build_state_pair(
                 transition1,
                 transition2,
                 curr_pair,
@@ -174,9 +192,16 @@ fn create_new_state_pairs<'a>(
                 sys2,
                 max_bounds,
                 is_state1,
-            );
+            ) {
+                found_match = true;
+            }
+        }
+        if !found_match {
+            //println!("Failed to build state pair");
+            //return false;
         }
     }
+    true
 }
 
 fn build_state_pair<'a>(
@@ -205,6 +230,7 @@ fn build_state_pair<'a>(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
+        println!("Guard zone invalid");
         return false;
     }
 
@@ -228,25 +254,26 @@ fn build_state_pair<'a>(
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
+        println!("Inv zone invalid");
         return false;
     }
     let dim = invariant_test.dimension;
     let mut inv_test_fed = Federation::new(vec![invariant_test], dim);
     let mut sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
 
-    let fed_res = inv_test_fed.minus_fed(&mut sp_zone_fed);
+    let fed_res = sp_zone_fed.minus_fed(&mut inv_test_fed);
 
     //let fed_res = invariant_test.dbm_minus_dbm(&mut new_sp_zone);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
     if !fed_res.is_empty() {
+        println!("Fed minus fed invalid");
         return false;
     }
-
-    if !transition2.apply_invariants(locations2, &mut new_sp_zone) {
-        return false;
-    }
+    //if !transition2.apply_invariants(locations2, &mut new_sp_zone) {
+    //    return false;
+    //}
 
     new_sp.zone = new_sp_zone;
     new_sp.zone.extrapolate_max_bounds(max_bounds);
