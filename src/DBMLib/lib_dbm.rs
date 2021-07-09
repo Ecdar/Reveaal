@@ -657,10 +657,6 @@ fn fed_to_federation(fed: &mut dbm_fed_t, dim: u32) -> Federation {
     // zone: [i32; dim * dim]
     let mut zones = Vec::with_capacity(result.len());
     for dbm_ptr in result.iter() {
-        if dbm_ptr.is_null() {
-            continue;
-        }
-
         let mut zone_vec = Vec::with_capacity((dim * dim) as usize);
         for i in 0..dim {
             for j in 0..dim {
@@ -733,8 +729,7 @@ pub fn rs_fed_to_vec(fed: &mut dbm_fed_t) -> Vec<*const i32> {
         let fed_size = dbm_get_fed_size(fed);
         for i in 0..fed_size {
             let raw_data = dbm_get_ith_element_in_fed(fed, i);
-            let dbm_slice = slice_from_raw_parts(raw_data, dbm_get_dbm_dimension(fed) as usize);
-            let new_const_ptr: *const i32 = (&*dbm_slice).as_ptr();
+            let new_const_ptr: *const i32 = &(*raw_data);
             result.push(new_const_ptr);
         }
 

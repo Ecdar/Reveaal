@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::{Federation, Zone};
 use crate::DataReader::parse_edge;
 use crate::DataReader::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
@@ -736,8 +736,8 @@ impl<'a> Transition<'a> {
 
     pub fn apply_invariants(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
         let mut success = true;
-        for (_, _, index) in &self.edges {
-            success = success && locations[*index].apply_invariant(zone);
+        for location in locations {
+            success = success && location.apply_invariant(zone);
         }
         success
     }
@@ -748,6 +748,38 @@ impl<'a> Transition<'a> {
             let next_location = comp.get_location_by_name(new_loc_name);
 
             locations[*index].set_location(next_location);
+        }
+    }
+
+    pub fn get_guard_federation(
+        &self,
+        locations: &DecoratedLocationTuple,
+        dim: u32,
+    ) -> Option<Federation> {
+        let mut fed = Federation::new(vec![Zone::init(dim)], dim);
+        for (comp, edge, index) in &self.edges {
+            let target_location = comp.get_location_by_name(edge.get_target_location());
+            let mut guard_zone = Zone::init(dim);
+            if let Some(inv_source) = target_location.get_invariant() {
+                let dec_loc = DecoratedLocation {
+                    location: target_location,
+                    declarations: locations[*index].declarations.clone(),
+                };
+                dec_loc.apply_invariant(&mut guard_zone);
+            }
+            for clock in edge.get_update_clocks() {
+                let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
+                guard_zone.free_clock(*(clock_index.unwrap()));
+            }
+            edge.apply_guard(&locations[*index], &mut guard_zone);
+            let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
+            let mut inverse = full_fed.minus_fed(&mut Federation::new(vec![guard_zone], dim));
+            fed = fed.minus_fed(&mut inverse);
+        }
+        if !fed.is_empty() {
+            Some(fed)
+        } else {
+            None
         }
     }
 }

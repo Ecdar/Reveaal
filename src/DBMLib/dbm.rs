@@ -308,4 +308,8 @@ impl Federation {
     pub fn iter_zones(&self) -> impl Iterator<Item = Zone> + '_ {
         self.zones.iter().cloned()
     }
+
+    pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
+        self.zones.iter_mut()
+    }
 }
