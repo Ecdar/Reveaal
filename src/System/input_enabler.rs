@@ -18,7 +18,7 @@ pub fn make_input_enabled(
     {
         for location in component.get_locations() {
             let mut location_inv_zone = Zone::init(dimension);
-            let mut decorated_location = component::DecoratedLocation {
+            let decorated_location = component::DecoratedLocation {
                 declarations: component.get_declarations().clone(),
                 location,
             };
@@ -26,7 +26,7 @@ pub fn make_input_enabled(
             if let Some(invariant) = location.get_invariant() {
                 constraint_applyer::apply_constraints_to_state(
                     invariant,
-                    &mut decorated_location,
+                    &decorated_location,
                     &mut location_inv_zone,
                 );
             }
@@ -48,14 +48,14 @@ pub fn make_input_enabled(
                     {
                         constraint_applyer::apply_constraints_to_state(
                             target_invariant,
-                            &mut decorated_location,
+                            &decorated_location,
                             &mut guard_zone,
                         )
                     } else {
                         false
                     };
 
-                    if let Some(_) = edge.get_update() {
+                    if edge.get_update().is_some() {
                         let update_clocks = edge.get_update_clocks();
                         for clock in update_clocks {
                             let clock_index =
@@ -65,12 +65,11 @@ pub fn make_input_enabled(
                     }
 
                     let has_guard = if let Some(guard) = edge.get_guard() {
-                        let res = constraint_applyer::apply_constraints_to_state(
+                        constraint_applyer::apply_constraints_to_state(
                             guard,
-                            &mut decorated_location,
+                            &decorated_location,
                             &mut guard_zone,
-                        );
-                        res
+                        )
                     } else {
                         false
                     };
@@ -110,7 +109,7 @@ fn build_guard_from_zone(
 ) -> Option<representations::BoolExpression> {
     let mut guards: Vec<representations::BoolExpression> = vec![];
 
-    for (_, index) in clocks {
+    for index in clocks.values() {
         let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
         let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
 
@@ -145,10 +144,10 @@ fn build_guard_from_zone(
     }
 
     let res = build_guard_from_zone_helper(&mut guards);
-    return match res {
+    match res {
         representations::BoolExpression::Bool(false) => None,
         _ => Some(res),
-    };
+    }
 }
 
 fn build_guard_from_zone_helper(
@@ -156,7 +155,7 @@ fn build_guard_from_zone_helper(
 ) -> representations::BoolExpression {
     let num_guards = guards.len();
 
-    return if let Some(guard) = guards.pop() {
+    if let Some(guard) = guards.pop() {
         if num_guards == 1 {
             guard
         } else {
@@ -167,7 +166,7 @@ fn build_guard_from_zone_helper(
         }
     } else {
         representations::BoolExpression::Bool(false)
-    };
+    }
 }
 
 fn get_inv_clocks<'a>(

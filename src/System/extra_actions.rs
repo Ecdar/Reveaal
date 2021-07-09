@@ -23,7 +23,7 @@ pub fn add_extra_inputs_outputs(
     }
 
     let mut new_decl = sys_decls.clone();
-    let mut decls = new_decl.get_mut_declarations();
+    let decls = new_decl.get_mut_declarations();
 
     let (name1, name2) = (
         "EXTRA_INPUT_OUTPUTS1".to_string(),
