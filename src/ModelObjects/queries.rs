@@ -24,11 +24,11 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    if s.len() == 0 {
+    if s.is_empty() {
         return Ok(None);
     }
     match parse_queries::parse(&s) {
-        Ok(edgeAttribute) => return Ok(Some(edgeAttribute)),
+        Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
         Err(e) => panic!("Could not parse query {} got error: {:?}", s, e),
     }
 }

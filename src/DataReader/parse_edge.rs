@@ -29,7 +29,7 @@ impl Update {
     }
 
     pub fn get_variable_name(&self) -> &str {
-        return self.variable.as_str();
+        self.variable.as_str()
     }
 }
 
@@ -69,7 +69,7 @@ fn build_guard_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
             let mut inner_pairs = pair.into_inner();
             let inner_pair = inner_pairs.next().unwrap();
 
-            return EdgeAttribute::Guard(build_expression_from_pair(inner_pair));
+            EdgeAttribute::Guard(build_expression_from_pair(inner_pair))
         }
         _ => panic!("Unable to match: {:?} as rule, guard", pair),
     }
@@ -91,7 +91,7 @@ fn build_update_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
 
             updates = build_assignments_from_pair(inner_pair);
 
-            return EdgeAttribute::Updates(updates);
+            EdgeAttribute::Updates(updates)
         }
         _ => panic!("Unable to match: {:?} as rule, update", pair),
     }
@@ -123,7 +123,7 @@ fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Vec<Update>
         ),
     }
 
-    return updates;
+    updates
 }
 
 fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
@@ -137,7 +137,7 @@ fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
         expression,
     };
 
-    return update;
+    update
 }
 
 fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {

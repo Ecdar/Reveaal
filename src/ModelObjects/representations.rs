@@ -73,7 +73,7 @@ impl BoolExpression {
             _ => {}
         }
 
-        return 0;
+        0
     }
 
     pub fn iterate_constraints<F>(&self, function: &mut F)
@@ -142,19 +142,18 @@ impl<'a> SystemRepresentation {
 
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
-                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&right_side.get_max_bounds(dimensions));
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                bounds.add_bounds(&mut left_side.get_max_bounds(dimensions));
-                bounds.add_bounds(&mut right_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&left_side.get_max_bounds(dimensions));
+                bounds.add_bounds(&right_side.get_max_bounds(dimensions));
             }
             SystemRepresentation::Parentheses(rep) => {
-                bounds.add_bounds(&mut rep.get_max_bounds(dimensions))
+                bounds.add_bounds(&rep.get_max_bounds(dimensions))
             }
             SystemRepresentation::Component(comp) => {
-                let mut comp_bounds = comp.get_max_bounds(dimensions);
-                bounds.add_bounds(&comp_bounds);
+                bounds.add_bounds(&comp.get_max_bounds(dimensions));
             }
         }
 
@@ -212,7 +211,7 @@ impl<'a> SystemRepresentation {
     pub fn collect_next_inputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &String,
+        action: &str,
     ) -> Vec<Transition<'a>> {
         let mut transitions = vec![];
         let mut index = 0;
@@ -230,7 +229,7 @@ impl<'a> SystemRepresentation {
     pub fn collect_next_outputs(
         &'a self,
         locations: &[DecoratedLocation<'a>],
-        action: &String,
+        action: &str,
     ) -> Vec<Transition<'a>> {
         let mut transitions = vec![];
         let mut index = 0;
@@ -249,7 +248,7 @@ impl<'a> SystemRepresentation {
         &'a self,
         locations: &[DecoratedLocation<'a>],
         index: &mut usize,
-        action: &String,
+        action: &str,
         open_transitions: &mut Vec<Transition<'a>>,
         sync_type: &SyncType,
     ) {
