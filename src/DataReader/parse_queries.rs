@@ -101,7 +101,7 @@ fn build_refinement_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
     let lside = build_expression_from_pair(left_side_pair);
     let rside = build_expression_from_pair(right_side_pair);
 
-    return QueryExpression::Refinement(Box::new(lside), Box::new(rside));
+    QueryExpression::Refinement(Box::new(lside), Box::new(rside))
 }
 
 fn build_specificationFeature_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
