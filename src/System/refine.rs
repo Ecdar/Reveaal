@@ -187,7 +187,7 @@ fn create_new_state_pairs<'a>(
                 sys2,
                 max_bounds,
                 is_state1,
-            )
+            );
         }
     }
 }
@@ -251,17 +251,12 @@ fn build_state_pair<'a>(
 
     let fed_res = sp_zone_fed.minus_fed(&mut inv_test_fed);
 
-    //let fed_res = invariant_test.dbm_minus_dbm(&mut new_sp_zone);
-
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
     if !fed_res.is_empty() {
         println!("Fed minus fed invalid");
         return false;
     }
-    //if !transition2.apply_invariants(locations2, &mut new_sp_zone) {
-    //    return false;
-    //}
 
     new_sp.zone = new_sp_zone;
     new_sp.zone.extrapolate_max_bounds(max_bounds);
