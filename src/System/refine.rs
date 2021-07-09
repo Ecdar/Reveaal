@@ -153,7 +153,6 @@ fn has_valid_state_pair<'a>(
     let mut right_fed = Federation::new(vec![], dim);
     for transition in transitions2 {
         if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
-            //let mut fed = ;
             for zone in fed.iter_mut_zones() {
                 if zone.intersects(&mut pair_zone) {
                     right_fed.add(zone.clone());
