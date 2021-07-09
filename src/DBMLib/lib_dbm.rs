@@ -732,7 +732,6 @@ pub fn rs_fed_to_vec(fed: &mut dbm_fed_t) -> Vec<*const i32> {
     unsafe {
         let mut result: Vec<*const i32> = vec![];
         let fed_size = dbm_get_fed_size(fed);
-        //println!("Fed size {}", fed_size);
         for i in 0..fed_size {
             let raw_data = dbm_get_ith_element_in_fed(fed, i);
             let new_const_ptr: *const i32 = &(*raw_data);
