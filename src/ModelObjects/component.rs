@@ -754,9 +754,11 @@ impl<'a> Transition<'a> {
 
 impl fmt::Display for Transition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Transition{")?;
         for (_, edge, _) in &self.edges {
-            f.write_fmt(format_args!("{:?}, ", edge))?;
+            f.write_fmt(format_args!("{}, ", edge))?;
         }
+        f.write_str("}")?;
         Ok(())
     }
 }
@@ -775,6 +777,24 @@ pub struct Edge {
     pub update: Option<Vec<parse_edge::Update>>,
     #[serde(deserialize_with = "decode_sync")]
     pub sync: String,
+}
+
+impl fmt::Display for Edge {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "Edge {{{}-({}{})->{}, Guard: {:?}, Update: {:?}}}",
+            self.source_location,
+            self.sync,
+            match self.sync_type {
+                SyncType::Input => "?",
+                SyncType::Output => "!",
+            },
+            self.target_location,
+            self.guard,
+            self.update
+        ))?;
+        Ok(())
+    }
 }
 
 impl Edge {
