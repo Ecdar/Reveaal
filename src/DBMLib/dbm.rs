@@ -25,8 +25,8 @@ impl Zone {
         }
     }
 
-    pub fn is_valid(&mut self) -> bool {
-        lib::rs_dbm_is_valid(self.matrix.as_mut_slice(), self.dimension)
+    pub fn is_valid(&self) -> bool {
+        lib::rs_dbm_is_valid(&self.matrix[..], self.dimension)
     }
 
     pub fn init(dimension: u32) -> Self {
@@ -40,9 +40,9 @@ impl Zone {
         zone
     }
 
-    pub fn satisfies_i_lt_j(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+    pub fn satisfies_i_lt_j(&self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
         lib::rs_dbm_satisfies_i_LT_j(
-            self.matrix.as_mut_slice(),
+            &self.matrix[..],
             self.dimension,
             var_index_i,
             var_index_j,
@@ -50,9 +50,9 @@ impl Zone {
         )
     }
 
-    pub fn satisfies_i_lte_j(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+    pub fn satisfies_i_lte_j(&self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
         lib::rs_dbm_satisfies_i_LTE_j(
-            self.matrix.as_mut_slice(),
+            &self.matrix[..],
             self.dimension,
             var_index_i,
             var_index_j,
@@ -60,24 +60,19 @@ impl Zone {
         )
     }
 
-    pub fn satisfies_i_eq_j(&mut self, var_index_i: u32, var_index_j: u32) -> bool {
-        lib::rs_dbm_satisfies_i_EQUAL_j(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-        )
+    pub fn satisfies_i_eq_j(&self, var_index_i: u32, var_index_j: u32) -> bool {
+        lib::rs_dbm_satisfies_i_EQUAL_j(&self.matrix[..], self.dimension, var_index_i, var_index_j)
     }
 
     pub fn satisfies_i_eq_j_bounds(
-        &mut self,
+        &self,
         var_index_i: u32,
         var_index_j: u32,
         bound_i: i32,
         bound_j: i32,
     ) -> bool {
         lib::rs_dbm_satisfies_i_EQUAL_j_bounds(
-            self.matrix.as_mut_slice(),
+            &self.matrix[..],
             self.dimension,
             var_index_i,
             var_index_j,
@@ -160,7 +155,7 @@ impl Zone {
         )
     }
 
-    pub fn intersects(&mut self, other: &mut Self) -> bool {
+    pub fn intersection(&mut self, other: &Self) -> bool {
         assert_eq!(
             self.dimension, other.dimension,
             "can not take intersection af two zones with differencing dimension"
@@ -168,7 +163,7 @@ impl Zone {
 
         lib::rs_dmb_intersection(
             self.matrix.as_mut_slice(),
-            other.matrix.as_mut_slice(),
+            &other.matrix[..],
             self.dimension,
         )
     }
@@ -181,30 +176,18 @@ impl Zone {
         lib::rs_dbm_freeClock(self.matrix.as_mut_slice(), self.dimension, clock_index);
     }
 
-    pub fn is_subset_eq(&mut self, other: &mut Self) -> bool {
+    pub fn is_subset_eq(&self, other: &Self) -> bool {
         assert_eq!(
             self.dimension, other.dimension,
             "can not take intersection af two zones with differencing dimension"
         );
 
-        lib::rs_dbm_isSubsetEq(
-            self.matrix.as_mut_slice(),
-            other.matrix.as_mut_slice(),
-            self.dimension,
-        )
+        lib::rs_dbm_isSubsetEq(&self.matrix[..], &other.matrix[..], self.dimension)
     }
 
-    // TODO rs_dbm_minus_dbm
-
-    // TODO rs_dbm_extrapolateMaxBounds
-
-    pub fn get_constraint(&mut self, var_index_i: u32, var_index_j: u32) -> (bool, i32) {
-        let raw_constraint = lib::rs_dbm_get_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-        );
+    pub fn get_constraint(&self, var_index_i: u32, var_index_j: u32) -> (bool, i32) {
+        let raw_constraint =
+            lib::rs_dbm_get_constraint(&self.matrix[..], self.dimension, var_index_i, var_index_j);
 
         (
             lib::rs_raw_is_strict(raw_constraint),
@@ -212,13 +195,9 @@ impl Zone {
         )
     }
 
-    pub fn is_constraint_infinity(&mut self, var_index_i: u32, var_index_j: u32) -> bool {
-        lib::rs_dbm_get_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-        ) == lib::DBM_INF
+    pub fn is_constraint_infinity(&self, var_index_i: u32, var_index_j: u32) -> bool {
+        lib::rs_dbm_get_constraint(&self.matrix[..], self.dimension, var_index_i, var_index_j)
+            == lib::DBM_INF
     }
 
     pub fn up(&mut self) {
@@ -229,36 +208,30 @@ impl Zone {
         lib::rs_dbm_zero(self.matrix.as_mut_slice(), self.dimension)
     }
 
-    pub fn dbm_minus_dbm(&mut self, other: &mut Self) -> Federation {
+    pub fn dbm_minus_dbm(&self, other: &Self) -> Federation {
         // NOTE: this function is only used in crate::System::refine::build_state_pair
         // so the implement is just a copy past from that, and is not as generic as it should be.
 
         assert_eq!(self.dimension, other.dimension);
 
-        lib::rs_dbm_minus_dbm(
-            &mut self.matrix.as_mut_slice(),
-            &mut other.matrix.as_mut_slice(),
-            self.dimension,
-        )
+        lib::rs_dbm_minus_dbm(&self.matrix[..], &other.matrix[..], self.dimension)
     }
 
-    pub fn extrapolate_max_bounds(&mut self, max_bounds: &mut MaxBounds) {
+    pub fn extrapolate_max_bounds(&mut self, max_bounds: &MaxBounds) {
         lib::rs_dbm_extrapolateMaxBounds(
             &mut self.matrix.as_mut_slice(),
             self.dimension,
-            max_bounds.clock_bounds.as_mut_ptr(),
+            max_bounds.clock_bounds.as_ptr(),
         );
     }
 }
 
 impl Display for Zone {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut self_cloned = self.clone();
-
         for i in 0..self.dimension {
             f.write_str("( ")?;
             for j in 0..self.dimension {
-                let (rel, val) = self_cloned.get_constraint(i, j);
+                let (rel, val) = self.get_constraint(i, j);
                 f.write_fmt(format_args!("({}, {})", rel, val))?;
             }
             f.write_str(")\n")?;
@@ -280,21 +253,18 @@ impl Federation {
         Self { zones, dimension }
     }
 
-    pub fn minus_fed(&mut self, other: &mut Self) -> Federation {
+    pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
-        let mut self_zones: Vec<*mut i32> = self
+        let mut self_zones: Vec<*const i32> =
+            self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect();
+        let mut other_zones: Vec<*const i32> = other
             .zones
-            .iter_mut()
-            .map(|zone| zone.matrix.as_mut_ptr())
-            .collect();
-        let mut other_zones: Vec<*mut i32> = other
-            .zones
-            .iter_mut()
-            .map(|zone| zone.matrix.as_mut_ptr())
+            .iter()
+            .map(|zone| zone.matrix.as_ptr())
             .collect();
 
-        lib::rs_dbm_fed_minus_fed(&mut self_zones, &mut other_zones, self.dimension)
+        lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
     }
 
     pub fn add(&mut self, zone: Zone) {
@@ -305,8 +275,8 @@ impl Federation {
         self.zones.is_empty()
     }
 
-    pub fn iter_zones(&self) -> impl Iterator<Item = Zone> + '_ {
-        self.zones.iter().cloned()
+    pub fn iter_zones(&self) -> impl Iterator<Item = &Zone> + '_ {
+        self.zones.iter()
     }
 
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {

@@ -82,16 +82,16 @@ pub fn make_input_enabled(
                     }
                 }
 
-                let mut zones_federation = Federation::new(zones, location_inv_zone.dimension);
-                let result_federation = full_federation.minus_fed(&mut zones_federation);
+                let zones_federation = Federation::new(zones, location_inv_zone.dimension);
+                let result_federation = full_federation.minus_fed(&zones_federation);
 
-                for mut fed_zone in result_federation.iter_zones() {
+                for fed_zone in result_federation.iter_zones() {
                     new_edges.push(component::Edge {
                         source_location: location.get_id().to_string(),
                         target_location: location.get_id().to_string(),
                         sync_type: component::SyncType::Input,
                         guard: build_guard_from_zone(
-                            &mut fed_zone,
+                            &fed_zone,
                             component.get_declarations().get_clocks(),
                         ),
                         update: None,
@@ -105,7 +105,7 @@ pub fn make_input_enabled(
 }
 
 fn build_guard_from_zone(
-    zone: &mut Zone,
+    zone: &Zone,
     clocks: &HashMap<String, u32>,
 ) -> Option<representations::BoolExpression> {
     let mut guards: Vec<representations::BoolExpression> = vec![];

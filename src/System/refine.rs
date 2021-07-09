@@ -139,7 +139,7 @@ fn has_valid_state_pair<'a>(
     for transition in transitions1 {
         if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
             for zone in fed.iter_mut_zones() {
-                if zone.intersects(&mut pair_zone) {
+                if zone.intersection(&pair_zone) {
                     left_fed.add(zone.clone());
                 }
             }
@@ -151,14 +151,14 @@ fn has_valid_state_pair<'a>(
     for transition in transitions2 {
         if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
             for zone in fed.iter_mut_zones() {
-                if zone.intersects(&mut pair_zone) {
+                if zone.intersection(&pair_zone) {
                     right_fed.add(zone.clone());
                 }
             }
         }
     }
 
-    let result_federation = left_fed.minus_fed(&mut right_fed);
+    let result_federation = left_fed.minus_fed(&right_fed);
 
     result_federation.is_empty()
 }
@@ -246,10 +246,10 @@ fn build_state_pair<'a>(
         return false;
     }
     let dim = invariant_test.dimension;
-    let mut inv_test_fed = Federation::new(vec![invariant_test], dim);
-    let mut sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
+    let inv_test_fed = Federation::new(vec![invariant_test], dim);
+    let sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
 
-    let fed_res = sp_zone_fed.minus_fed(&mut inv_test_fed);
+    let fed_res = sp_zone_fed.minus_fed(&inv_test_fed);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
@@ -371,7 +371,7 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             panic!("dimensions of dbm didn't match - fatal error")
         }
 
-        if state_pair.zone.is_subset_eq(&mut passed_state_pair.zone) {
+        if state_pair.zone.is_subset_eq(&passed_state_pair.zone) {
             return false;
         }
     }
