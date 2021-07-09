@@ -45,10 +45,8 @@ pub fn check_refinement(
             let output_transition1 = sys1.collect_next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.collect_next_outputs(curr_pair.get_locations2(), output);
 
-            //TODO: Check with alex or thomas to see if this comment is important
-            //If this returns false we should continue after resetting global indexes
-            if !has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
-                || !create_new_state_pairs(
+            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
+                create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
                     &curr_pair,
@@ -59,7 +57,7 @@ pub fn check_refinement(
                     &mut max_bounds,
                     true,
                 )
-            {
+            } else {
                 println!("Refinement check failed for Output {:?}", output);
                 println!("Transitions1:");
                 for t in &output_transition1 {
@@ -83,9 +81,8 @@ pub fn check_refinement(
             let input_transitions1 = sys1.collect_next_inputs(curr_pair.get_locations1(), input);
             let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
 
-            //If this returns false we should continue after resetting global indexes
-            if !has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
-                || !create_new_state_pairs(
+            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
+                create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
                     &curr_pair,
@@ -96,7 +93,7 @@ pub fn check_refinement(
                     &mut max_bounds,
                     false,
                 )
-            {
+            } else {
                 println!("Refinement check failed for Input {:?}", input);
                 println!("Transitions1:");
                 for t in &input_transitions1 {
@@ -176,12 +173,11 @@ fn create_new_state_pairs<'a>(
     sys2: &'a SystemRepresentation,
     max_bounds: &mut MaxBounds,
     is_state1: bool,
-) -> bool {
+) {
     for transition1 in transitions1 {
-        let mut found_match = false;
         for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
-            if build_state_pair(
+            build_state_pair(
                 transition1,
                 transition2,
                 curr_pair,
@@ -191,16 +187,9 @@ fn create_new_state_pairs<'a>(
                 sys2,
                 max_bounds,
                 is_state1,
-            ) {
-                found_match = true;
-            }
-        }
-        if !found_match {
-            //println!("Failed to build state pair");
-            //return false;
+            )
         }
     }
-    true
 }
 
 fn build_state_pair<'a>(
