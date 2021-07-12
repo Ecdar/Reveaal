@@ -94,22 +94,20 @@ fn parse_args() -> (
             matches.is_present("checkInputOutput"),
         )
     } else {
-        match parse_queries::parse(&query) {
-            Ok(queries_result) => {
-                let queries: Vec<Query> = vec![Query {
-                    query: Option::from(queries_result),
-                    comment: "".to_string(),
-                }];
-
-                (
-                    components,
-                    system_declarations,
-                    queries,
-                    matches.is_present("checkInputOutput"),
-                )
-            }
-            Err(e) => panic!("Failed to parse query {:?}", e),
-        }
+        let queries = parse_queries::parse(&query);
+        let queries = queries
+            .into_iter()
+            .map(|q| Query {
+                query: Option::from(q),
+                comment: "".to_string(),
+            })
+            .collect();
+        (
+            components,
+            system_declarations,
+            queries,
+            matches.is_present("checkInputOutput"),
+        )
     }
 }
 
