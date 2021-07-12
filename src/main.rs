@@ -132,20 +132,26 @@ fn parse_automata(
         }
     }
     folder_path.push_str("/Components");
+    match fs::read_dir(&folder_path) {
+        Ok(read_value) => {
+            let mut components = read_value
+                .map(|res| res.map(|e| e.path()))
+                .filter(|x| !(x.as_ref().unwrap().is_dir()))
+                .collect::<Result<Vec<_>, io::Error>>()?;
 
-    let mut components = fs::read_dir(&folder_path)?
-        .map(|res| res.map(|e| e.path()))
-        .filter(|x| !(x.as_ref().unwrap().is_dir()))
-        .collect::<Result<Vec<_>, io::Error>>()?;
+            paths.sort();
+            components.sort();
 
-    paths.sort();
-    components.sort();
-
-    if let Ok(result) = read_input(paths, components) {
-        Ok(result)
-    } else {
-        let result1 = xml_parser::parse_xml(&folder_path);
-        Ok(result1)
+            if let Ok(result) = read_input(paths, components) {
+                Ok(result)
+            } else {
+                let result1 = xml_parser::parse_xml(&folder_path);
+                Ok(result1)
+            }
+        }
+        Err(..) => {
+            panic!("Path {} does not exist.", folder_path);
+        }
     }
 }
 
