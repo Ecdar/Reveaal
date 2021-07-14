@@ -1,6 +1,5 @@
 extern crate pest;
 use crate::ModelObjects::representations::QueryExpression;
-use pest::error::Error;
 use pest::Parser;
 
 #[derive(Parser)]
@@ -10,15 +9,38 @@ pub struct QueryParser;
 ///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
 
-pub fn parse(edge_attribute_str: &str) -> Result<QueryExpression, Error<Rule>> {
-    let mut pairs = QueryParser::parse(Rule::query, edge_attribute_str)
+pub fn parse(edge_attribute_str: &str) -> Vec<QueryExpression> {
+    let mut pairs = QueryParser::parse(Rule::queries, edge_attribute_str)
         .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
     let pair = pairs.next().unwrap();
+    let mut queries = vec![];
     match pair.as_rule() {
-        Rule::query => Ok(build_query_from_pair(pair)),
+        Rule::queries => {
+            build_queries(pair, &mut queries);
+            queries
+        }
         err => {
             panic!("Unable to match query string as rule: {:?}", err)
         }
+    }
+}
+
+pub fn build_queries(pair: pest::iterators::Pair<Rule>, list: &mut Vec<QueryExpression>) {
+    match pair.as_rule() {
+        Rule::queryList => {
+            for p in pair.into_inner() {
+                build_queries(p, list)
+            }
+        }
+        Rule::queries => {
+            for p in pair.into_inner() {
+                build_queries(p, list)
+            }
+        }
+        Rule::query => {
+            list.push(build_query_from_pair(pair));
+        }
+        _ => {}
     }
 }
 
@@ -33,6 +55,19 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
 
     match pair.as_rule() {
         Rule::refinement => build_refinement_from_pair(pair),
+        Rule::getComponent => {
+            let inner_pair = pair.into_inner().next().unwrap();
+            QueryExpression::GetComponent(Box::new(build_expression_from_pair(inner_pair)))
+        }
+        Rule::prune => {
+            let inner_pair = pair.into_inner().next().unwrap();
+            QueryExpression::Prune(Box::new(build_expression_from_pair(inner_pair)))
+        }
+        Rule::bisim => {
+            let inner_pair = pair.into_inner().next().unwrap();
+            QueryExpression::BisimMinimize(Box::new(build_expression_from_pair(inner_pair)))
+        }
+
         Rule::consistency => {
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::Consistency(Box::new(build_expression_from_pair(inner_pair)))
@@ -84,6 +119,19 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
         Rule::expr => {
             let inner_pair = pair.into_inner().next().unwrap();
             build_expression_from_pair(inner_pair)
+        }
+        Rule::saveExpr => {
+            let mut inner: Vec<pest::iterators::Pair<Rule>> = pair.into_inner().collect();
+            let name = inner.pop().unwrap();
+            let inner_pair = inner.pop().unwrap();
+            let name = build_var_from_pair(name);
+            match name {
+                QueryExpression::VarName(save_name) => QueryExpression::SaveAs(
+                    Box::new(build_expression_from_pair(inner_pair)),
+                    save_name,
+                ),
+                err => panic!("Could not parse save-as name"),
+            }
         }
         Rule::terms => {
             let inner_pair = pair.into_inner().next().unwrap();

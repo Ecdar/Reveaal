@@ -1,4 +1,8 @@
-query = {SOI ~ (refinement | consistency | implementation | determinism | specification | logicFormulas) ~ EOI}
+queries = {SOI ~ queryList ~ EOI}
+
+queryList = {query ~ ";" ~ queryList | query}
+
+query = {refinement | consistency | implementation | determinism | specification | getComponent | prune | bisim | logicFormulas}
 
 
 refinement = {"refinement:" ~ expr ~ "<=" ~ expr}
@@ -7,9 +11,17 @@ consistency = {"consistency:" ~ expr}
 
 implementation = {"implementation:" ~ expr}
 
+getComponent = {"get-component:" ~ saveExpr}
+
+prune = {"prune:" ~ saveExpr}
+
+bisim = {"bisim-minim:" ~ saveExpr}
+
 determinism = {"determinism:" ~ expr}
 
 specification = {"specification:" ~ expr}
+
+saveExpr = {  expr  ~ "save-as" ~ variable}
 
 expr = { specificationFeature}
 
@@ -48,7 +60,7 @@ atom = {int | "true" | "false" }
 
 var = {variable ~ ":" ~ logicFormulas | variable}
 variable = { (variable_name ~ "."?)+ ~ (int | variable_name)?}
-variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*}
+variable_name = @{(ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")*) ~ !"-"}
 
 int = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
 
