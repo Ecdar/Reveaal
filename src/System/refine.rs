@@ -2,38 +2,43 @@ use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::statepair::StatePair;
+use crate::ModelObjects::system::{System, UncachedSystem};
 use crate::ModelObjects::system_declarations;
-use crate::System::extra_actions;
 use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
-    sys1: SystemRepresentation,
-    sys2: SystemRepresentation,
+    mut sys1: UncachedSystem,
+    mut sys2: UncachedSystem,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-
     // Add extra inputs/outputs
-    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(sys1, sys2, sys_decls);
-    let sys_decls = &decl;
-    let inputs = sys2.get_input_actions(sys_decls);
-    let outputs = sys1.get_output_actions(sys_decls);
+    let dimensions = 1 + sys1.get_clock_count() + sys2.get_clock_count();
+    let sys1 = UncachedSystem::cache(sys1, dimensions, sys_decls);
+    let sys2 = UncachedSystem::cache(sys2, dimensions, sys_decls);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), sys_decls) {
+    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone()) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
 
-    let initial_locations_1: Vec<DecoratedLocation> = sys1.get_initial_locations();
-    let initial_locations_2: Vec<DecoratedLocation> = sys2.get_initial_locations();
+    let inputs = sys2.get_input_actions();
+    let outputs = sys1.get_output_actions();
+
+    let initial_locations_1 = sys1.get_initial_locations();
+    let initial_locations_2 = sys2.get_initial_locations();
 
     let mut initial_pair =
         StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
-    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    assert_eq!(dimensions, initial_pair.zone.dimension);
+    prepare_init_state(
+        &mut initial_pair,
+        &initial_locations_1,
+        &initial_locations_2,
+    );
     let mut max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
     initial_pair.zone.extrapolate_max_bounds(&mut max_bounds);
     waiting_list.push(initial_pair);
@@ -41,7 +46,7 @@ pub fn check_refinement(
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in &outputs {
+        for output in outputs {
             let output_transition1 = sys1.collect_next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.collect_next_outputs(curr_pair.get_locations2(), output);
 
@@ -52,8 +57,6 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &sys1,
-                    &sys2,
                     &mut max_bounds,
                     true,
                 )
@@ -77,7 +80,7 @@ pub fn check_refinement(
             }
         }
 
-        for input in &inputs {
+        for input in inputs {
             let input_transitions1 = sys1.collect_next_inputs(curr_pair.get_locations1(), input);
             let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
 
@@ -88,8 +91,6 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &sys2,
-                    &sys1,
                     &mut max_bounds,
                     false,
                 )
@@ -132,7 +133,7 @@ fn has_valid_state_pair<'a>(
 ) -> bool {
     let dim = curr_pair.zone.dimension;
 
-    let (states1, states2) = curr_pair.get_states(is_state1);
+    let (states1, states2) = curr_pair.get_locations(is_state1);
     let mut pair_zone = curr_pair.zone.clone();
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
@@ -169,8 +170,6 @@ fn create_new_state_pairs<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &'a SystemRepresentation,
-    sys2: &'a SystemRepresentation,
     max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) {
@@ -183,8 +182,6 @@ fn create_new_state_pairs<'a>(
                 curr_pair,
                 waiting_list,
                 passed_list,
-                sys1,
-                sys2,
                 max_bounds,
                 is_state1,
             );
@@ -198,8 +195,6 @@ fn build_state_pair<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    sys1: &'a SystemRepresentation,
-    sys2: &'a SystemRepresentation,
     max_bounds: &mut MaxBounds,
     is_state1: bool,
 ) -> bool {
@@ -270,13 +265,13 @@ fn build_state_pair<'a>(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_locations_1: Vec<DecoratedLocation>,
-    initial_locations_2: Vec<DecoratedLocation>,
+    initial_locations_1: &Vec<DecoratedLocation>,
+    initial_locations_2: &Vec<DecoratedLocation>,
 ) {
     for location in initial_locations_1 {
         let init_inv1 = location.get_location().get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, &location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv1, location, &mut initial_pair.zone)
         } else {
             true
         };
@@ -288,7 +283,7 @@ fn prepare_init_state(
     for location in initial_locations_2 {
         let init_inv2 = location.get_location().get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, &location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv2, location, &mut initial_pair.zone)
         } else {
             true
         };
@@ -298,20 +293,16 @@ fn prepare_init_state(
     }
 }
 
-fn check_preconditions(
-    sys1: &mut SystemRepresentation,
-    sys2: &mut SystemRepresentation,
-    sys_decls: &system_declarations::SystemDeclarations,
-) -> bool {
+fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
     if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
         return false;
     }
-    let outputs1 = sys1.get_output_actions(&sys_decls);
-    let outputs2 = sys2.get_output_actions(&sys_decls);
+    let outputs1 = sys1.get_output_actions();
+    let outputs2 = sys2.get_output_actions();
 
-    for o2 in &outputs2 {
+    for o2 in outputs2 {
         let mut found_match = false;
-        for o1 in &outputs1 {
+        for o1 in outputs1 {
             if o1 == o2 {
                 found_match = true;
                 break;
@@ -326,8 +317,8 @@ fn check_preconditions(
         }
     }
 
-    let inputs1 = sys1.get_input_actions(&sys_decls);
-    let inputs2 = sys2.get_input_actions(&sys_decls);
+    let inputs1 = sys1.get_input_actions();
+    let inputs2 = sys2.get_input_actions();
 
     if !hashset_equal(&inputs1, &inputs2) {
         println!(

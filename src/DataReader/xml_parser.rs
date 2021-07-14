@@ -192,12 +192,7 @@ fn parse_declarations(variables: &str) -> Declarations {
         }
     }
 
-    let dim = clocks.keys().len() as u32;
-    Declarations {
-        ints,
-        clocks,
-        dimension: dim,
-    }
+    Declarations { ints, clocks }
 }
 
 fn decode_sync_type(global_decl: &str) -> SystemSpecification {

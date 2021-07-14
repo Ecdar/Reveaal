@@ -9,6 +9,7 @@ mod tests;
 
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
+use crate::System::extra_actions;
 use crate::System::{extract_system_rep, input_enabler, refine};
 use clap::{load_yaml, App};
 use std::path::PathBuf;
@@ -39,27 +40,32 @@ pub fn main() {
     }
 
     for query in &queries {
-        let system_rep_tuple =
+        let (sys1, opt_sys2, check_type) =
             extract_system_rep::create_system_rep_from_query(query, &optimized_components);
-        if system_rep_tuple.2 == "refinement" {
-            if let Some(sys2) = system_rep_tuple.1 {
-                if !checkInputOutput {
-                    match refine::check_refinement(system_rep_tuple.0, sys2, &system_declarations) {
-                        Ok(res) => println!("Refinement result: {:?}", res),
-                        Err(err_msg) => println!("{}", err_msg),
-                    }
-                } else {
-                    let inputs2 = sys2.get_input_actions(&system_declarations);
-                    let outputs1 = system_rep_tuple.0.get_output_actions(&system_declarations);
 
-                    let extra_i = system_rep_tuple
-                        .0
-                        .find_matching_input(&system_declarations, &inputs2);
-                    let extra_o = sys2.find_matching_output(&system_declarations, &outputs1);
+        if check_type == "refinement" {
+            let mut extra_components = vec![];
+            let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
+                sys1,
+                opt_sys2.unwrap(),
+                &system_declarations,
+                &mut extra_components,
+            );
 
-                    println!("extra outputs {:?}", extra_o);
-                    println!("extra inputs {:?}", extra_i);
+            if !checkInputOutput {
+                match refine::check_refinement(sys1, sys2, &decl) {
+                    Ok(res) => println!("Refinement result: {:?}", res),
+                    Err(err_msg) => println!("{}", err_msg),
                 }
+            } else {
+                let inputs2 = sys2.get_input_actions(&system_declarations).clone();
+                let outputs1 = sys1.get_output_actions(&system_declarations).clone();
+
+                let extra_i = sys1.find_matching_input(&system_declarations, &inputs2);
+                let extra_o = sys2.find_matching_output(&system_declarations, &outputs1);
+
+                println!("extra outputs {:?}", extra_o);
+                println!("extra inputs {:?}", extra_i);
             }
         }
     }
