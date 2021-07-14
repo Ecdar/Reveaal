@@ -269,10 +269,10 @@ impl Component {
         passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
-            if state.get_location().id == currState.get_location().id
-                && currState.zone.is_subset_eq(&mut state.zone)
-            {
-                return true;
+            if state.get_location().id == currState.get_location().id {
+                if currState.zone.is_subset_eq(&state.zone) {
+                    return true;
+                }
             }
         }
 
@@ -347,8 +347,8 @@ impl Component {
         }
         let mut outputExisted: bool = false;
         // If delaying indefinitely is possible -> Prune the rest
-        if prune && ModelObjects::component::Component::canDelayIndefinitely(&mut currState) {
-            true
+        if prune && ModelObjects::component::Component::canDelayIndefinitely(&currState) {
+            return true;
         } else {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
@@ -412,7 +412,7 @@ impl Component {
                 if outputExisted {
                     return true;
                 }
-                ModelObjects::component::Component::canDelayIndefinitely(&mut currState)
+                return ModelObjects::component::Component::canDelayIndefinitely(&currState);
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
             // or there are no output edges from the current location -> Independent progress does not hold
@@ -423,7 +423,7 @@ impl Component {
         // Else if independent progress does not hold through delaying indefinitely,
         // we must check for being able to output and satisfy independent progress
     }
-    pub fn canDelayIndefinitely(currState: &mut State) -> bool {
+    pub fn canDelayIndefinitely(currState: &State) -> bool {
         for i in 1..currState.zone.dimension {
             if !currState.zone.is_constraint_infinity(i, 0) {
                 return false;
@@ -580,11 +580,10 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
                 }
 
-                if state_i.zone.is_valid()
-                    && state_j.zone.is_valid()
-                    && state_i.zone.intersects(&mut state_j.zone)
-                {
-                    return true;
+                if state_i.zone.is_valid() && state_j.zone.is_valid() {
+                    if state_i.zone.intersection(&state_j.zone) {
+                        return true;
+                    }
                 }
             }
         }
@@ -602,7 +601,7 @@ fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> 
         if state.zone.dimension != passed_state_pair.zone.dimension {
             panic!("dimensions of dbm didn't match - fatal error")
         }
-        if state.zone.is_subset_eq(&mut passed_state_pair.zone) {
+        if state.zone.is_subset_eq(&passed_state_pair.zone) {
             return false;
         }
     }
@@ -765,8 +764,8 @@ impl<'a> Transition<'a> {
             }
             edge.apply_guard(&locations[*index], &mut guard_zone);
             let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
-            let mut inverse = full_fed.minus_fed(&mut Federation::new(vec![guard_zone], dim));
-            fed = fed.minus_fed(&mut inverse);
+            let mut inverse = full_fed.minus_fed(&Federation::new(vec![guard_zone], dim));
+            fed = fed.minus_fed(&inverse);
         }
         if !fed.is_empty() {
             Some(fed)

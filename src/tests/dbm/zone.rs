@@ -30,7 +30,7 @@ mod test {
 
     #[test]
     fn testZoneGetConstraint1() {
-        let mut zone = Zone::from(vec![1, -3, 11, 1], 2).clone();
+        let zone = Zone::from(vec![1, -3, 11, 1], 2).clone();
         assert_eq!(zone.get_constraint(0, 0), (false, 0));
         assert_eq!(zone.get_constraint(0, 1), (false, -2));
         assert_eq!(zone.get_constraint(1, 0), (false, 5));

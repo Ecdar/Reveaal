@@ -11,7 +11,7 @@ mod determinism_tests {
     fn testG1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G1").unwrap();
+        let query = parse_queries::parse("determinism: G1").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -25,7 +25,7 @@ mod determinism_tests {
     fn testG2() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G2").unwrap();
+        let query = parse_queries::parse("determinism: G2").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -40,7 +40,7 @@ mod determinism_tests {
     fn testG3() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G3").unwrap();
+        let query = parse_queries::parse("determinism: G3").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -54,7 +54,7 @@ mod determinism_tests {
     fn testG4() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G4").unwrap();
+        let query = parse_queries::parse("determinism: G4").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -69,7 +69,7 @@ mod determinism_tests {
     fn testG5() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G5").unwrap();
+        let query = parse_queries::parse("determinism: G5").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -83,7 +83,7 @@ mod determinism_tests {
     fn testG6() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G6").unwrap();
+        let query = parse_queries::parse("determinism: G6").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -98,7 +98,7 @@ mod determinism_tests {
     fn testG7() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G7").unwrap();
+        let query = parse_queries::parse("determinism: G7").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -113,7 +113,7 @@ mod determinism_tests {
     fn testG8() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G8").unwrap();
+        let query = parse_queries::parse("determinism: G8").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -129,7 +129,7 @@ mod determinism_tests {
         // shouldn't be deterministic
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G9").unwrap();
+        let query = parse_queries::parse("determinism: G9").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -144,7 +144,7 @@ mod determinism_tests {
     fn testG10() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G10").unwrap();
+        let query = parse_queries::parse("determinism: G10").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -159,7 +159,7 @@ mod determinism_tests {
     fn testG11() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G11").unwrap();
+        let query = parse_queries::parse("determinism: G11").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -174,7 +174,7 @@ mod determinism_tests {
     fn testG12() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G12").unwrap();
+        let query = parse_queries::parse("determinism: G12").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -189,7 +189,7 @@ mod determinism_tests {
     fn testG13() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G13").unwrap();
+        let query = parse_queries::parse("determinism: G13").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -204,7 +204,7 @@ mod determinism_tests {
     fn testG14() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G14").unwrap();
+        let query = parse_queries::parse("determinism: G14").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -219,7 +219,7 @@ mod determinism_tests {
     fn testG15() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G15").unwrap();
+        let query = parse_queries::parse("determinism: G15").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -234,7 +234,7 @@ mod determinism_tests {
     fn testG16() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G16").unwrap();
+        let query = parse_queries::parse("determinism: G16").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -249,7 +249,7 @@ mod determinism_tests {
     fn testG17() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G17").unwrap();
+        let query = parse_queries::parse("determinism: G17").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -264,7 +264,7 @@ mod determinism_tests {
     fn testG22() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G22").unwrap();
+        let query = parse_queries::parse("determinism: G22").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -280,7 +280,7 @@ mod determinism_tests {
         // shouldn't be deterministic
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("determinism: G23").unwrap();
+        let query = parse_queries::parse("determinism: G23").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),

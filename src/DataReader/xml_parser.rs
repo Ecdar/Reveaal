@@ -214,7 +214,10 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
             if first_run {
                 let component_decls = declaration;
 
-                component_names = component_decls.split(' ').map(|s| s.into()).collect();
+                component_names = component_decls
+                    .split(' ')
+                    .map(|s| s.chars().filter(|c| !c.is_whitespace()).collect())
+                    .collect();
 
                 if component_names[0] == "system" {
                     //do not include element 0 as that is the system keyword

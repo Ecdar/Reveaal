@@ -26,13 +26,13 @@ pub const DBM_INF: i32 = i32::MAX - 1;
 /// let mut dbm : [i32; 9] = [0; 9];
 /// dbm_init(dbm.as_mut_ptr(), 3);
 /// ```
-pub fn rs_dbm_is_valid(dbm: &mut [i32], dimension: u32) -> bool {
+pub fn rs_dbm_is_valid(dbm: &[i32], dimension: u32) -> bool {
     let first = dbm.get(0).unwrap();
     if first == &-1 {
         return false;
     }
     unsafe {
-        let res = dbm_check_validity(dbm.as_mut_ptr(), dimension);
+        let res = dbm_check_validity(dbm.as_ptr(), dimension);
 
         return if 1 == res {
             true
@@ -92,7 +92,7 @@ pub fn rs_dbm_init(dbm: &mut [i32], dimension: u32) {
 /// rs_dbm_satisfies_i_LT_j(&mut dbm, 3, 1, 2, 10);
 /// ```
 pub fn rs_dbm_satisfies_i_LT_j(
-    dbm: &mut [i32],
+    dbm: &[i32],
     dimension: u32,
     var_index_i: u32,
     var_index_j: u32,
@@ -102,7 +102,7 @@ pub fn rs_dbm_satisfies_i_LT_j(
         let constraint = dbm_boundbool2raw(bound, true);
 
         let res = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
@@ -140,7 +140,7 @@ pub fn rs_dbm_satisfies_i_LT_j(
 /// rs_dbm_satisfies_i_LTE_j(&mut dbm, 3, 1, 2, 10);
 /// ```
 pub fn rs_dbm_satisfies_i_LTE_j(
-    dbm: &mut [i32],
+    dbm: &[i32],
     dimension: u32,
     var_index_i: u32,
     var_index_j: u32,
@@ -150,7 +150,7 @@ pub fn rs_dbm_satisfies_i_LTE_j(
         let constraint = dbm_boundbool2raw(bound, false);
 
         let res = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
@@ -187,7 +187,7 @@ pub fn rs_dbm_satisfies_i_LTE_j(
 /// rs_dbm_satisfies_i_EQUAL_j(&mut dbm, 3, 1, 2);
 /// ```
 pub fn rs_dbm_satisfies_i_EQUAL_j(
-    dbm: &mut [i32],
+    dbm: &[i32],
     dimension: u32,
     var_index_i: u32,
     var_index_j: u32,
@@ -196,14 +196,14 @@ pub fn rs_dbm_satisfies_i_EQUAL_j(
         let constraint = dbm_boundbool2raw(0, false);
 
         let res_i_minus_j = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
         );
         let res_j_minus_i = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_j,
             var_index_i,
@@ -248,7 +248,7 @@ pub fn rs_dbm_satisfies_i_EQUAL_j(
 /// rs_dbm_satisfies_i_EQUAL_j_bounds(&mut dbm, 3, 1, 2, 10, 4);
 /// ```
 pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
-    dbm: &mut [i32],
+    dbm: &[i32],
     dimension: u32,
     var_index_i: u32,
     var_index_j: u32,
@@ -260,14 +260,14 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
         let constraint_j_minus_i = dbm_boundbool2raw(bound_i - bound_j, false);
 
         let res_i_minus_j = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint_i_minus_j,
         );
         let res_j_minus_i = dbm_satisfies(
-            dbm.as_mut_ptr(),
+            dbm.as_ptr(),
             dimension,
             var_index_j,
             var_index_i,
@@ -574,10 +574,10 @@ pub fn rs_dbm_constrain_var_to_val(
     }
 }
 
-/// Used to check if dbms intersect and thus have overlapping moves
-pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -> bool {
+/// Used to perform an intersection of dbms, dbm1 is updated to the intersection, returns whether the dbms intersect
+pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &[i32], dimension: u32) -> bool {
     unsafe {
-        let res = dbm_intersection(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension);
+        let res = dbm_intersection(dbm1.as_mut_ptr(), dbm2.as_ptr(), dimension);
         return if BOOL_TRUE == res {
             true
         } else if BOOL_FALSE == res {
@@ -626,21 +626,23 @@ pub fn rs_dbm_freeClock(dbm: &mut [i32], dimension: u32, var_index: u32) {
  * - dbm_isValid for both DBMs
  * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
  */
-pub fn rs_dbm_isSubsetEq(dbm1: &mut [i32], dbm2: &mut [i32], dimension: u32) -> bool {
-    unsafe { BOOL_TRUE == dbm_isSubsetEq(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dimension) }
+pub fn rs_dbm_isSubsetEq(dbm1: &[i32], dbm2: &[i32], dimension: u32) -> bool {
+    unsafe { BOOL_TRUE == dbm_isSubsetEq(dbm1.as_ptr(), dbm2.as_ptr(), dimension) }
 }
 
 ///  oda federation minus federation
 pub fn rs_dbm_fed_minus_fed(
-    dbm_vec1: &mut Vec<*mut raw_t>,
-    dbm_vec2: &mut Vec<*mut raw_t>,
+    dbm_vec1: &Vec<*const raw_t>,
+    dbm_vec2: &Vec<*const raw_t>,
     dim: u32,
 ) -> Federation {
     unsafe {
+        let dbm_vec1_mut = &mut *(dbm_vec1.as_ptr() as *mut *mut i32);
+        let dbm_vec2_mut = &mut *(dbm_vec2.as_ptr() as *mut *mut i32);
         let mut res = dbm_fed_t::new(dim);
         dbm_fed_minus_fed(
-            dbm_vec1.as_mut_ptr(),
-            dbm_vec2.as_mut_ptr(),
+            dbm_vec1_mut,
+            dbm_vec2_mut,
             (dbm_vec1.len()) as u32,
             (dbm_vec2.len()) as u32,
             dim,
@@ -673,25 +675,26 @@ fn fed_to_federation(fed: &mut dbm_fed_t, dim: u32) -> Federation {
 }
 
 /// currently unused
-pub fn rs_dbm_minus_dbm(dbm1: &mut [i32], dbm2: &mut [i32], dim: u32) -> Federation {
+pub fn rs_dbm_minus_dbm(dbm1: &[i32], dbm2: &[i32], dim: u32) -> Federation {
     unsafe {
-        let mut res = dbm_subtract1_exposed(dbm1.as_mut_ptr(), dbm2.as_mut_ptr(), dim);
-        fed_to_federation(&mut res, dim)
+        let mut res = dbm_subtract1_exposed(dbm1.as_ptr(), dbm2.as_ptr(), dim);
+        return fed_to_federation(&mut res, dim);
     }
 }
 
-///Currently unused
 pub fn rs_dbm_extrapolateMaxBounds(dbm1: &mut [i32], dim: u32, maxbounds: *const i32) {
     unsafe { dbm_extrapolateMaxBounds(dbm1.as_mut_ptr(), dim, maxbounds) }
 }
 
 pub fn rs_dbm_get_constraint(
-    dbm: &mut [i32],
+    dbm: &[i32],
     dimension: u32,
     var_index_i: u32,
     var_index_j: u32,
 ) -> raw_t {
-    unsafe { dbm_get_value(dbm.as_mut_ptr(), dimension, var_index_i, var_index_j) }
+    unsafe {
+        return dbm_get_value(dbm.as_ptr(), dimension, var_index_i, var_index_j);
+    }
 }
 
 ///used by input enabler to get the upper and lower bounds for each clocks so that constraints can be created

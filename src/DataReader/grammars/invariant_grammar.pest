@@ -25,4 +25,4 @@ char = {!("\"") ~ ANY}
 
 operator = { ">=" | "<=" | "<" | ">" }
 
-WHITESPACE = _{ " " }
+WHITESPACE = _{ " " | "\n" | "\r\n" | "\t"}

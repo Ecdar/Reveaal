@@ -27,8 +27,13 @@ where
     if s.is_empty() {
         return Ok(None);
     }
-    match parse_queries::parse(&s) {
-        Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
-        Err(e) => panic!("Could not parse query {} got error: {:?}", s, e),
+
+    let queries = parse_queries::parse(&s);
+    if queries.len() > 1 {
+        panic!("Could not parse query {} contains multiple queries", s);
+    } else if queries.len() == 0 {
+        panic!("Could not parse query {} contains no queries", s);
+    } else {
+        Ok(queries.into_iter().next())
     }
 }
