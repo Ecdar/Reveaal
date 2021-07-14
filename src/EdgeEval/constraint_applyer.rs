@@ -483,7 +483,7 @@ pub fn apply_constraints_to_state2(
                 }
             }
         }
-        BoolExpression::Parentheses(_expr) => apply_constraints_to_state2(guard, state),
+        BoolExpression::Parentheses(expr) => apply_constraints_to_state2(expr, state),
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = state.get_declarations().get_clocks().get(name.as_str()) {
                 BoolExpression::Clock(*clock_index)
