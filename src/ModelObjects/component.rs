@@ -6,6 +6,7 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::fullState_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
+use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
@@ -26,14 +27,17 @@ pub struct Component {
     pub output_edges: Option<Vec<Edge>>,
 }
 
+impl DeclarationProvider for Component {
+    fn get_declarations(&self) -> &Declarations {
+        &self.declarations
+    }
+}
+
 #[allow(dead_code)]
 impl Component {
     ///Start of basic methods for manipulating fields
     pub fn get_name(&self) -> &String {
         &self.name
-    }
-    pub fn get_declarations(&self) -> &Declarations {
-        &self.declarations
     }
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
@@ -243,7 +247,7 @@ impl Component {
 
         let initial_location = DecoratedLocation {
             location: initial_loc,
-            declarations: self.get_declarations().clone(),
+            component: self,
         };
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
@@ -300,7 +304,7 @@ impl Component {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.zone.clone();
             let loc = self.get_location_by_name(&edge.target_location);
-            let location = create_decorated_location(loc, currState.get_declarations().clone());
+            let location = DecoratedLocation::create(loc, self);
 
             let mut new_state = create_state(location, full_new_zone);
 
@@ -362,7 +366,7 @@ impl Component {
                 let full_new_zone = currState.zone.clone();
 
                 let loc = self.get_location_by_name(&edge.target_location);
-                let location = create_decorated_location(loc, currState.get_declarations().clone());
+                let location = DecoratedLocation::create(loc, self);
 
                 let mut new_state = create_state(location, full_new_zone);
 
@@ -438,7 +442,7 @@ impl Component {
 
         let initial_location = DecoratedLocation {
             location: initial_loc,
-            declarations: self.get_declarations().clone(),
+            component: self,
         };
 
         let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
@@ -480,8 +484,7 @@ impl Component {
                         let full_new_zone = full_state.zone.clone();
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
-                        let state =
-                            create_decorated_location(loc, full_state.get_declarations().clone());
+                        let state = DecoratedLocation::create(loc, self);
                         let mut new_state = create_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
@@ -552,10 +555,7 @@ impl Component {
                     .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
-                let location = create_decorated_location(
-                    state.get_location(),
-                    state.get_declarations().clone(),
-                );
+                let location = DecoratedLocation::create(state.get_location(), self);
                 let mut state_i = create_state(location, state.zone.clone());
                 if let Some(inv_source) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
@@ -567,10 +567,7 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
                 }
 
-                let location = create_decorated_location(
-                    state.get_location(),
-                    state.get_declarations().clone(),
-                );
+                let location = DecoratedLocation::create(state.get_location(), self);
                 let mut state_j = create_state(location, state.zone.clone());
                 if let Some(update_j) = location_source.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
@@ -620,13 +617,6 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     }
 
     false
-}
-
-fn create_decorated_location(location: &Location, declarations: Declarations) -> DecoratedLocation {
-    DecoratedLocation {
-        location,
-        declarations,
-    }
 }
 
 fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
@@ -699,14 +689,14 @@ pub type DecoratedLocationTuple<'a> = Vec<DecoratedLocation<'a>>;
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition<'a> {
-    pub edges: Vec<(&'a Component, &'a Edge, usize)>,
+    pub edges: Vec<(&'a ComponentView<'a>, &'a Edge, usize)>,
 }
 impl<'a> Transition<'a> {
     pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
         let mut out = vec![];
         for l in left {
             for r in &*right {
-                let temp: Vec<(&'a Component, &'a Edge, usize)> = l
+                let temp: Vec<(&'a ComponentView, &'a Edge, usize)> = l
                     .edges
                     .iter()
                     .cloned()
@@ -744,7 +734,7 @@ impl<'a> Transition<'a> {
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
-            let next_location = comp.get_location_by_name(new_loc_name);
+            let next_location = comp.get_component().get_location_by_name(new_loc_name);
 
             locations[*index].set_location(next_location);
         }
@@ -757,12 +747,14 @@ impl<'a> Transition<'a> {
     ) -> Option<Federation> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
-            let target_location = comp.get_location_by_name(edge.get_target_location());
+            let target_location = comp
+                .get_component()
+                .get_location_by_name(edge.get_target_location());
             let mut guard_zone = Zone::init(dim);
             if let Some(inv_source) = target_location.get_invariant() {
                 let dec_loc = DecoratedLocation {
                     location: target_location,
-                    declarations: locations[*index].declarations.clone(),
+                    component: *comp,
                 };
                 dec_loc.apply_invariant(&mut guard_zone);
             }
@@ -890,18 +882,21 @@ impl Channel {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DecoratedLocation<'a> {
     pub location: &'a Location,
-    pub declarations: Declarations,
+    pub component: &'a dyn DeclarationProvider,
 }
 
 #[allow(dead_code)]
 impl<'a> DecoratedLocation<'a> {
-    pub fn create(location: &Location, declarations: Declarations) -> DecoratedLocation {
+    pub fn create(
+        location: &'a Location,
+        component: &'a dyn DeclarationProvider,
+    ) -> DecoratedLocation<'a> {
         DecoratedLocation {
             location,
-            declarations,
+            component,
         }
     }
 
@@ -914,11 +909,7 @@ impl<'a> DecoratedLocation<'a> {
     }
 
     pub fn get_declarations(&self) -> &Declarations {
-        &self.declarations
-    }
-
-    pub fn get_mut_declarations(&mut self) -> &mut Declarations {
-        &mut self.declarations
+        &self.component.get_declarations()
     }
 
     pub fn get_location(&self) -> &Location {
@@ -929,9 +920,13 @@ impl<'a> DecoratedLocation<'a> {
         self.location = location;
     }
 
-    pub fn get_dimensions(&self) -> &u32 {
-        self.get_declarations().get_dimension()
+    pub fn get_clock_count(&self) -> u32 {
+        self.get_declarations().get_clock_count()
     }
+}
+
+pub trait DeclarationProvider {
+    fn get_declarations(&self) -> &Declarations;
 }
 
 /// The declaration struct is used to hold the indices for each clock, and is meant to be the owner of int variables once implemented
@@ -939,7 +934,6 @@ impl<'a> DecoratedLocation<'a> {
 pub struct Declarations {
     pub ints: HashMap<String, i32>,
     pub clocks: HashMap<String, u32>,
-    pub dimension: u32,
 }
 
 #[allow(dead_code)]
@@ -956,8 +950,8 @@ impl Declarations {
         &self.clocks
     }
 
-    pub fn get_dimension(&self) -> &u32 {
-        &self.dimension
+    pub fn get_clock_count(&self) -> u32 {
+        self.clocks.len() as u32
     }
 
     pub fn update_clock_indices(&mut self, start_index: u32) {
@@ -1031,12 +1025,7 @@ where
         }
     }
 
-    let dim = clocks.keys().len() as u32;
-    Ok(Declarations {
-        ints,
-        clocks,
-        dimension: dim,
-    })
+    Ok(Declarations { ints, clocks })
 }
 
 /// Function used for deserializing guards
@@ -1194,7 +1183,6 @@ pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) 
         declarations: Declarations {
             ints: HashMap::new(),
             clocks: HashMap::new(),
-            dimension: 0,
         },
         locations: vec![location],
         edges,

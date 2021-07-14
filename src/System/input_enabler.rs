@@ -1,6 +1,7 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
+use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations;
 use std::collections::HashMap;
@@ -9,7 +10,7 @@ pub fn make_input_enabled(
     component: &mut component::Component,
     sys_decls: &system_declarations::SystemDeclarations,
 ) {
-    let dimension = *(component.get_declarations().get_dimension()) + 1;
+    let dimension = component.get_declarations().get_clock_count() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
     if let Some(inputs) = sys_decls
         .get_declarations()
@@ -18,15 +19,11 @@ pub fn make_input_enabled(
     {
         for location in component.get_locations() {
             let mut location_inv_zone = Zone::init(dimension);
-            let decorated_location = component::DecoratedLocation {
-                declarations: component.get_declarations().clone(),
-                location,
-            };
 
             if let Some(invariant) = location.get_invariant() {
-                constraint_applyer::apply_constraints_to_state(
+                constraint_applyer::apply_constraints_to_state_declarations(
                     invariant,
-                    &decorated_location,
+                    component.get_declarations(),
                     &mut location_inv_zone,
                 );
             }
@@ -46,9 +43,9 @@ pub fn make_input_enabled(
                         .get_location_by_name(edge.get_target_location())
                         .get_invariant()
                     {
-                        constraint_applyer::apply_constraints_to_state(
+                        constraint_applyer::apply_constraints_to_state_declarations(
                             target_invariant,
-                            &decorated_location,
+                            component.get_declarations(),
                             &mut guard_zone,
                         )
                     } else {
@@ -65,9 +62,9 @@ pub fn make_input_enabled(
                     }
 
                     let has_guard = if let Some(guard) = edge.get_guard() {
-                        constraint_applyer::apply_constraints_to_state(
+                        constraint_applyer::apply_constraints_to_state_declarations(
                             guard,
-                            &decorated_location,
+                            component.get_declarations(),
                             &mut guard_zone,
                         )
                     } else {

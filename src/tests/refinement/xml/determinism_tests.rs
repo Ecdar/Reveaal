@@ -3,7 +3,6 @@ mod determinism_tests {
     use crate::tests::refinement::Helper::optimize_components;
     use crate::DataReader::{parse_queries, xml_parser};
     use crate::ModelObjects::queries::Query;
-    use crate::ModelObjects::representations::SystemRepresentation;
     use crate::System::extract_system_rep::create_system_rep_from_query;
 
     static PATH: &str = "samples/xml/ConsTests.xml";
@@ -20,12 +19,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
     #[test]
     fn testG2() {
@@ -39,12 +33,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -59,12 +48,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
     #[test]
     fn testG4() {
@@ -78,12 +62,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -98,12 +77,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
     #[test]
     fn testG6() {
@@ -117,12 +91,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -137,12 +106,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -157,12 +121,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -178,12 +137,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(!leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -198,12 +152,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -218,12 +167,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -238,12 +182,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -258,12 +197,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -278,12 +212,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(!leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -298,12 +227,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -318,12 +242,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(!leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -338,12 +257,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -358,12 +272,7 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(leftSys.all_components_are_deterministic());
     }
 
     #[test]
@@ -379,11 +288,6 @@ mod determinism_tests {
 
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.is_deterministic());
-            }
-            _ => {}
-        }
+        assert!(!leftSys.all_components_are_deterministic());
     }
 }

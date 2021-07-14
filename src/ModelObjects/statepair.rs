@@ -1,10 +1,10 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::DecoratedLocationTuple;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::representations::SystemRepresentation;
+use crate::ModelObjects::system::System;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct StatePair<'a> {
     pub locations1: DecoratedLocationTuple<'a>,
     pub locations2: DecoratedLocationTuple<'a>,
@@ -18,11 +18,11 @@ impl<'b> StatePair<'b> {
     ) -> StatePair<'a> {
         let mut dimensions = 1;
         for state in &locations1 {
-            dimensions += state.get_dimensions();
+            dimensions += state.get_clock_count();
         }
 
         for state in &locations2 {
-            dimensions += state.get_dimensions();
+            dimensions += state.get_clock_count();
         }
 
         let mut zone = Zone::new(dimensions);
@@ -59,7 +59,7 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn get_states(
+    pub fn get_locations(
         &self,
         is_states1: bool,
     ) -> (&DecoratedLocationTuple<'b>, &DecoratedLocationTuple<'b>) {
@@ -70,15 +70,11 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn calculate_max_bound(
-        &mut self,
-        sys1: &SystemRepresentation,
-        sys2: &SystemRepresentation,
-    ) -> MaxBounds {
+    pub fn calculate_max_bound(&mut self, sys1: &System, sys2: &System) -> MaxBounds {
         let mut bounds = MaxBounds::create(self.zone.dimension);
 
-        bounds.add_bounds(&sys1.get_max_bounds(self.zone.dimension));
-        bounds.add_bounds(&sys2.get_max_bounds(self.zone.dimension));
+        bounds.add_bounds(sys1.get_max_bounds());
+        bounds.add_bounds(sys2.get_max_bounds());
 
         bounds
     }

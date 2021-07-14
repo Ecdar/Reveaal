@@ -3,6 +3,7 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::extra_actions;
 use crate::System::extract_system_rep::create_system_rep_from_query;
 use crate::System::input_enabler;
 use crate::System::refine;
@@ -98,7 +99,16 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     let res = create_system_rep_from_query(&q, &optimized_components);
     let leftSys = res.0;
     let rightSys = res.1.unwrap();
-    refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap()
+
+    let mut extra_components = vec![];
+    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
+        leftSys,
+        rightSys,
+        decl.borrow(),
+        &mut extra_components,
+    );
+
+    refine::check_refinement(sys1, sys2, &decl).unwrap()
 }
 
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
@@ -112,5 +122,14 @@ pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     let res = create_system_rep_from_query(&q, &components);
     let leftSys = res.0;
     let rightSys = res.1.unwrap();
-    refine::check_refinement(leftSys, rightSys, decl.borrow()).unwrap()
+
+    let mut extra_components = vec![];
+    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
+        leftSys,
+        rightSys,
+        decl.borrow(),
+        &mut extra_components,
+    );
+
+    refine::check_refinement(sys1, sys2, &decl).unwrap()
 }

@@ -19,12 +19,8 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+
+        assert!(leftSys.precheck_sys_rep());
     }
     #[test]
     fn testG2() {
@@ -37,12 +33,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -56,12 +47,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -75,12 +61,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -94,12 +75,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -113,12 +89,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -132,12 +103,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -151,12 +117,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -170,12 +131,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -189,12 +145,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -208,12 +159,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -227,12 +173,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -246,12 +187,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -265,12 +201,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -284,12 +215,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -303,12 +229,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -322,12 +243,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -341,12 +257,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -360,12 +271,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(!Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(!leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -379,12 +285,7 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 
     #[test]
@@ -398,11 +299,6 @@ mod consistency_tests {
         };
         let res = create_system_rep_from_query(&q, &optimized_components);
         let leftSys = res.0;
-        match leftSys {
-            SystemRepresentation::Component(Component) => {
-                assert!(Component.check_consistency(true));
-            }
-            _ => {}
-        }
+        assert!(leftSys.precheck_sys_rep());
     }
 }

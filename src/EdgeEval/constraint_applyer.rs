@@ -8,7 +8,20 @@ pub fn apply_constraints_to_state(
     zone: &mut Zone,
 ) -> bool {
     if let BoolExpression::Bool(val) =
-        apply_constraints_to_state_helper(guard, location, zone, true).0
+        apply_constraints_to_state_helper(guard, location.get_declarations(), zone, true).0
+    {
+        val
+    } else {
+        panic!("unexpected value returned when attempting to apply constraints to zone")
+    }
+}
+
+pub fn apply_constraints_to_state_declarations(
+    guard: &BoolExpression,
+    decls: &component::Declarations,
+    zone: &mut Zone,
+) -> bool {
+    if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, decls, zone, true).0
     {
         val
     } else {
@@ -18,21 +31,21 @@ pub fn apply_constraints_to_state(
 
 pub fn apply_constraints_to_state_helper(
     guard: &BoolExpression,
-    location: &component::DecoratedLocation,
+    decls: &component::Declarations,
     zone: &mut Zone,
     should_apply: bool,
 ) -> (BoolExpression, bool) {
     match guard {
         BoolExpression::AndOp(left, right) => {
             let (left, _contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, true);
+                apply_constraints_to_state_helper(&**left, decls, zone, true);
             if let BoolExpression::Bool(val) = left {
                 if !val {
                     return (BoolExpression::Bool(false), false);
                 }
             }
             let (right, _contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, true);
+                apply_constraints_to_state_helper(&**right, decls, zone, true);
 
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -50,18 +63,18 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::OrOp(left, right) => {
             let (mut left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (mut right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if contains_clock_left && contains_clock_right {
                 panic!("clock constrained on both sides of or operator, resulting in state that is not well defined")
             }
 
             if contains_clock_left {
-                left = apply_constraints_to_state_helper(&left, location, zone, true).0;
+                left = apply_constraints_to_state_helper(&left, decls, zone, true).0;
             } else if contains_clock_right {
-                right = apply_constraints_to_state_helper(&right, location, zone, true).0;
+                right = apply_constraints_to_state_helper(&right, decls, zone, true).0;
             }
             match left {
                 BoolExpression::Bool(left_val) => match right {
@@ -79,9 +92,9 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::LessEQ(left, right) => {
             let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
                 return (BoolExpression::LessEQ(left.clone(), right.clone()), true);
@@ -124,9 +137,9 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::GreatEQ(left, right) => {
             let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
                 return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
@@ -169,9 +182,9 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::EQ(left, right) => {
             let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
                 return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
@@ -213,9 +226,9 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::LessT(left, right) => {
             let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
                 return (BoolExpression::LessT(left.clone(), right.clone()), true);
@@ -254,9 +267,9 @@ pub fn apply_constraints_to_state_helper(
         }
         BoolExpression::GreatT(left, right) => {
             let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, location, zone, false);
+                apply_constraints_to_state_helper(&**left, decls, zone, false);
             let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, location, zone, false);
+                apply_constraints_to_state_helper(&**right, decls, zone, false);
 
             if !should_apply && (contains_clock_right || contains_clock_left) {
                 return (BoolExpression::GreatT(left.clone(), right.clone()), true);
@@ -293,12 +306,12 @@ pub fn apply_constraints_to_state_helper(
             }
         }
         BoolExpression::Parentheses(expr) => {
-            apply_constraints_to_state_helper(expr, location, zone, should_apply)
+            apply_constraints_to_state_helper(expr, decls, zone, should_apply)
         }
         BoolExpression::VarName(name) => {
-            if let Some(clock_index) = location.get_declarations().get_clocks().get(name.as_str()) {
+            if let Some(clock_index) = decls.get_clocks().get(name.as_str()) {
                 (BoolExpression::Clock(*clock_index), true)
-            } else if let Some(val) = location.get_declarations().get_ints().get(name.as_str()) {
+            } else if let Some(val) = decls.get_ints().get(name.as_str()) {
                 (BoolExpression::Int(*val), false)
             } else {
                 panic!("No clock or variable named {:?} was found", name)
