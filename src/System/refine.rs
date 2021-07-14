@@ -265,8 +265,8 @@ fn build_state_pair<'a>(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_locations_1: &Vec<DecoratedLocation>,
-    initial_locations_2: &Vec<DecoratedLocation>,
+    initial_locations_1: &[DecoratedLocation],
+    initial_locations_2: &[DecoratedLocation],
 ) {
     for location in initial_locations_1 {
         let init_inv1 = location.get_location().get_invariant();

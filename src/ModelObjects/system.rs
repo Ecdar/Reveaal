@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{
-    Component, DecoratedLocation, LocationType, SyncType, Transition,
-};
+use crate::ModelObjects::component::{DecoratedLocation, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
@@ -12,6 +10,7 @@ pub struct UncachedSystem<'a> {
     base_representation: SystemRepresentation<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> UncachedSystem<'a> {
     pub fn create(base_representation: SystemRepresentation<'a>) -> Self {
         UncachedSystem {
@@ -19,14 +18,14 @@ impl<'a> UncachedSystem<'a> {
         }
     }
 
-    pub fn cache<'b>(
+    pub fn cache(
         system: UncachedSystem<'a>,
         dimensions: u32,
         sys_decls: &SystemDeclarations,
     ) -> System<'a> {
-        let max_bounds = system.get_max_bounds(dimensions).clone();
-        let input_actions = system.get_input_actions(sys_decls).clone();
-        let output_actions = system.get_output_actions(sys_decls).clone();
+        let max_bounds = system.get_max_bounds(dimensions);
+        let input_actions = system.get_input_actions(sys_decls);
+        let output_actions = system.get_output_actions(sys_decls);
 
         let cache = System {
             base_representation: system.move_represetation(),
@@ -147,6 +146,7 @@ pub struct System<'a> {
     initial_locations: RefCell<Option<Vec<DecoratedLocation<'a>>>>,
 }
 
+#[allow(dead_code)]
 impl<'a> System<'a> {
     pub fn create(
         base_representation: SystemRepresentation<'a>,

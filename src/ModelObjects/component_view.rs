@@ -34,11 +34,11 @@ impl<'a> ComponentView<'a> {
         self.component.get_name()
     }
 
-    pub fn get_locations<'b>(&'b self) -> &'b Vec<Location> {
+    pub fn get_locations(&self) -> &Vec<Location> {
         self.component.get_locations()
     }
 
-    pub fn get_initial_location<'b>(&'b self) -> &'b Location {
+    pub fn get_initial_location(&self) -> &Location {
         self.component
             .get_locations()
             .iter()

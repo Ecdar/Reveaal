@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{
-    Component, DecoratedLocation, Location, SyncType, Transition,
-};
+use crate::ModelObjects::component::{DecoratedLocation, Location, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -161,22 +159,6 @@ impl<'a> SystemRepresentation<'a> {
         bounds
     }
 
-    pub fn any_composition<'b, F>(&'b self, predicate: &mut F) -> bool
-    where
-        F: FnMut(&'b ComponentView<'a>) -> bool,
-    {
-        match self {
-            SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.any_composition(predicate) || right_side.any_composition(predicate)
-            }
-            SystemRepresentation::Conjunction(left_side, right_side) => {
-                left_side.any_composition(predicate) && right_side.any_composition(predicate)
-            }
-            SystemRepresentation::Parentheses(rep) => rep.any_composition(predicate),
-            SystemRepresentation::Component(comp_view) => predicate(comp_view),
-        }
-    }
-
     pub fn all_components<'b, F>(&'b self, predicate: &mut F) -> bool
     where
         F: FnMut(&'b ComponentView<'a>) -> bool,
@@ -189,22 +171,6 @@ impl<'a> SystemRepresentation<'a> {
                 left_side.all_components(predicate) && right_side.all_components(predicate)
             }
             SystemRepresentation::Parentheses(rep) => rep.all_components(predicate),
-            SystemRepresentation::Component(comp_view) => predicate(comp_view),
-        }
-    }
-
-    pub fn all_mut_components<'b, F>(&'b mut self, predicate: &mut F) -> bool
-    where
-        F: FnMut(&'b mut ComponentView<'a>) -> bool,
-    {
-        match self {
-            SystemRepresentation::Composition(left_side, right_side) => {
-                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
-            }
-            SystemRepresentation::Conjunction(left_side, right_side) => {
-                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
-            }
-            SystemRepresentation::Parentheses(rep) => rep.all_mut_components(predicate),
             SystemRepresentation::Component(comp_view) => predicate(comp_view),
         }
     }
@@ -266,7 +232,7 @@ impl<'a> SystemRepresentation<'a> {
         }
     }
 
-    pub fn get_input_actions<'b>(&'b self, sys_decls: &SystemDeclarations) -> Vec<String> {
+    pub fn get_input_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
         let mut actions = vec![];
         // Consider compositions as they may remove input actions
         self.collect_input_actions(sys_decls, &mut actions);
@@ -312,7 +278,7 @@ impl<'a> SystemRepresentation<'a> {
         }
     }
 
-    pub fn get_output_actions<'b>(&'b self, sys_decls: &SystemDeclarations) -> Vec<String> {
+    pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
         let mut actions = vec![];
 
         self.all_components(&mut |comp: &ComponentView| -> bool {
@@ -380,20 +346,6 @@ impl<'a> SystemRepresentation<'a> {
         let mut states = vec![];
         self.all_components(&mut |comp: &'b ComponentView| -> bool {
             let init_loc: &'b Location = comp.get_initial_location();
-
-            let state = DecoratedLocation::create(init_loc, comp);
-            states.push(state);
-
-            true
-        });
-
-        states
-    }
-
-    pub fn get_initial_locations_full_lifetime(&'a self) -> Vec<DecoratedLocation<'a>> {
-        let mut states = vec![];
-        self.all_components(&mut |comp: &'a ComponentView| -> bool {
-            let init_loc: &'a Location = comp.get_initial_location();
 
             let state = DecoratedLocation::create(init_loc, comp);
             states.push(state);

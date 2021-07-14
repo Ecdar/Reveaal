@@ -31,10 +31,10 @@ pub fn add_extra_inputs_outputs<'a>(
     decls.get_mut_components().push(name1.clone());
     decls.get_mut_components().push(name2.clone());
 
-    let comp1 = get_dummy_component(name1.clone(), &inputs1, &vec![]);
+    let comp1 = get_dummy_component(name1.clone(), &inputs1, &[]);
     components.push(comp1);
 
-    let comp2 = get_dummy_component(name2.clone(), &vec![], &outputs2);
+    let comp2 = get_dummy_component(name2.clone(), &[], &outputs2);
     components.push(comp2);
 
     let comp_view = ComponentView::create(components.get(0).unwrap(), 0);
@@ -66,14 +66,14 @@ fn get_extra(
     is_input: bool,
 ) -> Vec<String> {
     let actions1 = if is_input {
-        sys1.get_input_actions(sys_decls).clone()
+        sys1.get_input_actions(sys_decls)
     } else {
-        sys1.get_output_actions(sys_decls).clone()
+        sys1.get_output_actions(sys_decls)
     };
     let actions2 = if is_input {
-        sys2.get_input_actions(sys_decls).clone()
+        sys2.get_input_actions(sys_decls)
     } else {
-        sys2.get_output_actions(sys_decls).clone()
+        sys2.get_output_actions(sys_decls)
     };
 
     let result = actions2

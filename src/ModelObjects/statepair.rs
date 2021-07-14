@@ -1,7 +1,6 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::DecoratedLocationTuple;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system::System;
 use std::fmt::{Display, Formatter};
 
@@ -71,7 +70,7 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn calculate_max_bound<'a>(&mut self, sys1: &System, sys2: &System) -> MaxBounds {
+    pub fn calculate_max_bound(&mut self, sys1: &System, sys2: &System) -> MaxBounds {
         let mut bounds = MaxBounds::create(self.zone.dimension);
 
         bounds.add_bounds(sys1.get_max_bounds());

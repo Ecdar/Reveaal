@@ -42,7 +42,7 @@ impl Component {
     pub fn get_name(&self) -> &String {
         &self.name
     }
-    pub fn get_locations<'b>(&'b self) -> &'b Vec<Location> {
+    pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
     }
     pub fn get_location_by_name(&self, name: &str) -> &Location {
