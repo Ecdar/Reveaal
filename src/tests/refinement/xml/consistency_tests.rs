@@ -12,7 +12,7 @@ mod consistency_tests {
     fn testG1() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl); // input enabler samt opsætter clock indcies
-        let query = parse_queries::parse("consistency: G1").unwrap();
+        let query = parse_queries::parse("consistency: G1").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -30,7 +30,7 @@ mod consistency_tests {
     fn testG2() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G2").unwrap();
+        let query = parse_queries::parse("consistency: G2").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -49,7 +49,7 @@ mod consistency_tests {
     fn testG3() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G3").unwrap();
+        let query = parse_queries::parse("consistency: G3").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -68,7 +68,7 @@ mod consistency_tests {
     fn testG4() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G4").unwrap();
+        let query = parse_queries::parse("consistency: G4").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -87,7 +87,7 @@ mod consistency_tests {
     fn testG5() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G5").unwrap();
+        let query = parse_queries::parse("consistency: G5").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -106,7 +106,7 @@ mod consistency_tests {
     fn testG6() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G6").unwrap();
+        let query = parse_queries::parse("consistency: G6").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -125,7 +125,7 @@ mod consistency_tests {
     fn testG7() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G7").unwrap();
+        let query = parse_queries::parse("consistency: G7").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -144,7 +144,7 @@ mod consistency_tests {
     fn testG8() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G8").unwrap();
+        let query = parse_queries::parse("consistency: G8").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -163,7 +163,7 @@ mod consistency_tests {
     fn testG9() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G9").unwrap();
+        let query = parse_queries::parse("consistency: G9").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -182,7 +182,7 @@ mod consistency_tests {
     fn testG10() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G10").unwrap();
+        let query = parse_queries::parse("consistency: G10").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -201,7 +201,7 @@ mod consistency_tests {
     fn testG11() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G11").unwrap();
+        let query = parse_queries::parse("consistency: G11").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -220,7 +220,7 @@ mod consistency_tests {
     fn testG12() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G12").unwrap();
+        let query = parse_queries::parse("consistency: G12").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -239,7 +239,7 @@ mod consistency_tests {
     fn testG13() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G13").unwrap();
+        let query = parse_queries::parse("consistency: G13").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -258,7 +258,7 @@ mod consistency_tests {
     fn testG14() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G14").unwrap();
+        let query = parse_queries::parse("consistency: G14").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -277,7 +277,7 @@ mod consistency_tests {
     fn testG15() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G15").unwrap();
+        let query = parse_queries::parse("consistency: G15").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -296,7 +296,7 @@ mod consistency_tests {
     fn testG16() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G16").unwrap();
+        let query = parse_queries::parse("consistency: G16").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -315,7 +315,7 @@ mod consistency_tests {
     fn testG17() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G17").unwrap();
+        let query = parse_queries::parse("consistency: G17").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -334,7 +334,7 @@ mod consistency_tests {
     fn testG18() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G18").unwrap();
+        let query = parse_queries::parse("consistency: G18").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -353,7 +353,7 @@ mod consistency_tests {
     fn testG19() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G19").unwrap();
+        let query = parse_queries::parse("consistency: G19").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -372,7 +372,7 @@ mod consistency_tests {
     fn testG20() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G20").unwrap();
+        let query = parse_queries::parse("consistency: G20").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),
@@ -391,7 +391,7 @@ mod consistency_tests {
     fn testG21() {
         let (automataList, decl, _) = xml_parser::parse_xml(PATH);
         let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G21").unwrap();
+        let query = parse_queries::parse("consistency: G21").remove(0);
         let q = Query {
             query: Option::from(query),
             comment: "".to_string(),

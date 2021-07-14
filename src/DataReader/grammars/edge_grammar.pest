@@ -47,4 +47,4 @@ highOperator = { "/" | "*" | "%" }
 lowOperator = { ">=" | "<=" | "==" | "<" | ">" }
 
 
-WHITESPACE = _{ " " }
+WHITESPACE = _{ " " | "\n" | "\r\n" | "\t"}
