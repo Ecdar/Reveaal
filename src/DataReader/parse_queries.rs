@@ -1,6 +1,5 @@
 extern crate pest;
 use crate::ModelObjects::representations::QueryExpression;
-use pest::error::Error;
 use pest::Parser;
 
 #[derive(Parser)]
@@ -41,7 +40,7 @@ pub fn build_queries(pair: pest::iterators::Pair<Rule>, list: &mut Vec<QueryExpr
         Rule::query => {
             list.push(build_query_from_pair(pair));
         }
-        other => {}
+        _ => {}
     }
 }
 
