@@ -89,7 +89,7 @@ pub fn optimize_components(
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     let (automataList, decl, _) = xml_parser::parse_xml(PATH);
     let optimized_components = optimize_components(automataList, &decl);
-    let query = parse_queries::parse(QUERY).unwrap();
+    let query = parse_queries::parse(QUERY).remove(0);
     let q = Query {
         query: Option::from(query),
         comment: "".to_string(),
@@ -103,7 +103,7 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
 
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     let (components, decl) = json_setup(String::from(PATH));
-    let query = parse_queries::parse(QUERY).unwrap();
+    let query = parse_queries::parse(QUERY).remove(0);
     let q = Query {
         query: Option::from(query),
         comment: "".to_string(),
