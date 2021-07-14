@@ -31,9 +31,6 @@ impl DeclarationProvider for Component {
     fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }
-    fn get_type(&self) -> &str {
-        "Component"
-    }
 }
 
 #[allow(dead_code)]
@@ -931,13 +928,6 @@ impl<'a> DecoratedLocation<'a> {
 
 pub trait DeclarationProvider {
     fn get_declarations(&self) -> &Declarations;
-    fn get_type(&self) -> &str;
-}
-
-impl std::fmt::Debug for dyn DeclarationProvider {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "")
-    }
 }
 
 /// The declaration struct is used to hold the indices for each clock, and is meant to be the owner of int variables once implemented

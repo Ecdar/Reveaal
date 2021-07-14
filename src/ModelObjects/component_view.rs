@@ -55,7 +55,4 @@ impl<'a> DeclarationProvider for ComponentView<'a> {
     fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }
-    fn get_type(&self) -> &str {
-        "View"
-    }
 }
