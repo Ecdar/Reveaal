@@ -220,16 +220,15 @@ impl Component {
         let mut o_edges = vec![];
         let mut i_edges = vec![];
 
-        for edge in self.edges {
+        for edge in &self.edges {
             match edge.sync_type {
-                SyncType::Input => i_edges.push(edge),
-                SyncType::Output => o_edges.push(edge),
+                SyncType::Input => i_edges.push(edge.clone()),
+                SyncType::Output => o_edges.push(edge.clone()),
             }
         }
 
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
-        self.edges = vec![];
 
         self
     }
