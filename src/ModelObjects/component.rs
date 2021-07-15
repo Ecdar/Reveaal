@@ -652,7 +652,7 @@ pub enum LocationType {
     Universal,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
 pub struct Location {
     pub id: String,
     #[serde(deserialize_with = "decode_invariant", default)]

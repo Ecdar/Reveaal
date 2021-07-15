@@ -11,6 +11,7 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extra_actions;
 use crate::System::{extract_system_rep, input_enabler, refine};
+use System::save_component::combine_components;
 use clap::{load_yaml, App};
 use std::path::PathBuf;
 use std::{fs, io};
@@ -67,6 +68,11 @@ pub fn main() {
                 println!("extra outputs {:?}", extra_o);
                 println!("extra inputs {:?}", extra_i);
             }
+        } else if check_type == "get-component"{
+            let new_component = combine_components(&sys1);
+
+            //Some logic to save a component to disk
+            //Consider how we return new_component for testing
         }
     }
 }
