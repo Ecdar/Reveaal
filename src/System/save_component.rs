@@ -1,10 +1,11 @@
 use crate::ModelObjects::component::{
-    Component, DecoratedLocation, Edge, Location, LocationType, SyncType,
+    Component, DeclarationProvider, Declarations, DecoratedLocation, Edge, Location, LocationType,
+    SyncType,
 };
 use crate::ModelObjects::representations::{BoolExpression, SystemRepresentation};
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) -> Component {
     let representation = system.borrow_representation();
@@ -17,13 +18,47 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
         &mut locations,
         &mut edges,
     );
+    let clocks = HashMap::new();
+    representation.all_components(&mut |comp| {
+        clocks.extend(comp.get_declarations().clocks.into_iter());
+        true
+    });
 
-    ()
+    let locations = locations
+        .into_iter()
+        .map(|loc_vec| {
+            let is_initial = loc_vec
+                .iter()
+                .all(|loc| loc.location.location_type == LocationType::Initial);
+            Location {
+                id: location_pair_name(&loc_vec),
+                invariant: None,
+                location_type: if is_initial {
+                    LocationType::Initial
+                } else {
+                    LocationType::Normal
+                },
+                urgency: "NORMAL".to_string(),
+            }
+        })
+        .collect();
+
+    Component {
+        name: "todo".to_string(),
+        declarations: Declarations {
+            ints: HashMap::new(),
+            clocks,
+        },
+        locations: locations,
+        edges: edges,
+        input_edges: None,
+        output_edges: None,
+    }
 }
 
 fn get_edges_from_locations<'a>(
     location: Vec<DecoratedLocation<'a>>,
-    representation: &SystemRepresentation<'a>,
+    representation: &'a SystemRepresentation<'a>,
     decl: &SystemDeclarations,
     passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
     edges: &mut Vec<Edge>,
@@ -37,11 +72,11 @@ fn get_edges_from_locations<'a>(
     get_specific_edges_from_locations(&location, representation, decl, passed_list, edges, false);
 }
 
-fn get_specific_edges_from_locations<'b>(
-    location: &Vec<DecoratedLocation<'b>>,
-    representation: &SystemRepresentation<'b>,
+fn get_specific_edges_from_locations<'a>(
+    location: &'a Vec<DecoratedLocation>,
+    representation: &'a SystemRepresentation<'a>,
     decl: &SystemDeclarations,
-    passed_list: &mut Vec<Vec<DecoratedLocation<'b>>>,
+    passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
     edges: &mut Vec<Edge>,
     input: bool,
 ) {
@@ -77,7 +112,7 @@ fn get_specific_edges_from_locations<'b>(
                 },
                 guard: None,  //TODO
                 update: None, //TODO
-                sync: sync,
+                sync: sync.clone(),
             };
 
             edges.push(edge);
@@ -98,72 +133,4 @@ fn location_pair_name(locations: &Vec<DecoratedLocation>) -> String {
     let name = locations.get(len - 1).unwrap().get_location().get_id();
     result.push_str(format!("{})", name));
     result
-}
-
-fn iterate_edges<'a, F>(
-    left: &'a Component,
-    right: &'a Component,
-    predicate: &mut F,
-) -> (Vec<Location>, Vec<Edge>)
-where
-    F: FnMut(&Location, &Edge, &Edge) -> Option<(Edge, (&'a Location, &'a Location))>,
-{
-    let mut passed_list: Vec<(&'a Location, &'a Location)> = vec![];
-    let mut waiting_list: Vec<(Location, (&'a Location, &'a Location))> = vec![];
-
-    let mut edges: Vec<Edge> = vec![];
-    let mut locations: Vec<Location> = vec![];
-
-    let left_init_loc = left.get_initial_location();
-    let right_init_loc = right.get_initial_location();
-    let init_location = create_common_location(left_init_loc, right_init_loc);
-    init_location.location_type = LocationType::Initial;
-
-    waiting_list.push((init_location, (left_init_loc, right_init_loc)));
-    passed_list.push((left_init_loc, right_init_loc));
-
-    while !waiting_list.is_empty() {
-        let (combined_location, (left_loc, right_loc)) = waiting_list.pop().unwrap();
-
-        let left_edges = left.get_all_edges_from(left_loc);
-        let right_edges = left.get_all_edges_from(right_loc);
-
-        for left_edge in &left_edges {
-            for right_edge in &right_edges {
-                if let Some((new_edge, traversal)) = predicate(left_edge, right_edge) {
-                    if !passed_list.contains(&traversal) {
-                        let new_combined_location =
-                            create_common_location(traversal.0, traversal.1);
-                        new_edge.target_location = new_combined_location.get_id().clone();
-                        edges.push(new_edge);
-                        waiting_list.push((new_combined_location, traversal));
-                        passed_list.push(traversal);
-                    }
-                }
-            }
-        }
-    }
-    (locations, edges)
-}
-
-fn create_common_location(left: &Location, right: &Location) -> Location {
-    let invariant = if left.get_invariant().is_some() && right.get_invariant().is_some() {
-        Some(BoolExpression::AndOp(
-            Box::new(left.get_invariant().unwrap()),
-            Box::new(right.get_invariant().unwrap()),
-        ))
-    } else if left.get_invariant().is_some() && right.get_invariant().is_none() {
-        Some(left.get_invariant().unwrap().clone())
-    } else if left.get_invariant().is_none() && right.get_invariant().is_some() {
-        Some(right.get_invariant().unwrap().clone())
-    } else {
-        None
-    };
-
-    Location {
-        id: format!("({}, {})", left.get_id(), right.get_id()),
-        invariant,
-        location_type: LocationType::Normal,
-        urgency: String::new(), // What should this be?
-    }
 }
