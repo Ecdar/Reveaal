@@ -18,14 +18,15 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
         &mut locations,
         &mut edges,
     );
-    let clocks = HashMap::new();
+    let mut clocks = HashMap::new();
     representation.all_components(&mut |comp| {
-        clocks.extend(comp.get_declarations().clocks.into_iter());
+        clocks.extend(comp.get_declarations().clocks.clone());
         true
     });
 
     let locations = locations
-        .into_iter()
+        .iter()
+        .cloned()
         .map(|loc_vec| {
             let is_initial = loc_vec
                 .iter()
@@ -68,12 +69,19 @@ fn get_edges_from_locations<'a>(
     }
 
     passed_list.push(location.clone());
-    get_specific_edges_from_locations(&location, representation, decl, passed_list, edges, true);
-    get_specific_edges_from_locations(&location, representation, decl, passed_list, edges, false);
+    get_specific_edges_from_locations(
+        location.clone(),
+        representation,
+        decl,
+        passed_list,
+        edges,
+        true,
+    );
+    get_specific_edges_from_locations(location, representation, decl, passed_list, edges, false);
 }
 
 fn get_specific_edges_from_locations<'a>(
-    location: &'a Vec<DecoratedLocation>,
+    location: Vec<DecoratedLocation<'a>>,
     representation: &'a SystemRepresentation<'a>,
     decl: &SystemDeclarations,
     passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
@@ -128,9 +136,9 @@ fn location_pair_name(locations: &Vec<DecoratedLocation>) -> String {
     let mut result = "(".to_string();
     for i in 0..len - 1 {
         let name = locations.get(i).unwrap().get_location().get_id();
-        result.push_str(format!("{},", name));
+        result.push_str(&format!("{},", name));
     }
     let name = locations.get(len - 1).unwrap().get_location().get_id();
-    result.push_str(format!("{})", name));
+    result.push_str(&format!("{})", name));
     result
 }

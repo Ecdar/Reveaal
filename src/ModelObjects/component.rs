@@ -882,10 +882,16 @@ impl Channel {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct DecoratedLocation<'a> {
     pub location: &'a Location,
     pub component: &'a dyn DeclarationProvider,
+}
+
+impl PartialEq for DecoratedLocation<'_> {
+    fn eq(&self, other: &DecoratedLocation) -> bool {
+        self.location == other.location
+    }
 }
 
 #[allow(dead_code)]
@@ -927,12 +933,6 @@ impl<'a> DecoratedLocation<'a> {
 
 pub trait DeclarationProvider {
     fn get_declarations(&self) -> &Declarations;
-}
-
-impl PartialEq for dyn DeclarationProvider {
-    fn eq(&self, other: &dyn DeclarationProvider) -> bool {
-        true
-    }
 }
 
 /// The declaration struct is used to hold the indices for each clock, and is meant to be the owner of int variables once implemented

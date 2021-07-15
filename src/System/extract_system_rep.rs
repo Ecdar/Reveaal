@@ -44,6 +44,11 @@ pub fn create_system_rep_from_query<'a>(
                 None,
                 String::from("determinism"),
             ),
+            QueryExpression::GetComponent(body) => (
+                UncachedSystem::create(extract_side(body, components, &mut clock_index)),
+                None,
+                String::from("get-component"),
+            ),
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query),
         }
@@ -80,6 +85,7 @@ fn extract_side<'a>(
             }
             panic!("Could not find component with name: {:?}", name);
         }
+        QueryExpression::SaveAs(comp, name) => extract_side(comp, components, clock_index), //TODO
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }

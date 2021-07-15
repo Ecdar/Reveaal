@@ -11,7 +11,6 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extra_actions;
 use crate::System::{extract_system_rep, input_enabler, refine};
-use System::save_component::combine_components;
 use clap::{load_yaml, App};
 use std::path::PathBuf;
 use std::{fs, io};
@@ -19,6 +18,7 @@ use DataReader::json_reader;
 use ModelObjects::component;
 use ModelObjects::queries;
 use ModelObjects::system_declarations;
+use System::save_component::combine_components;
 
 #[macro_use]
 extern crate pest_derive;
@@ -68,9 +68,9 @@ pub fn main() {
                 println!("extra outputs {:?}", extra_o);
                 println!("extra inputs {:?}", extra_i);
             }
-        } else if check_type == "get-component"{
-            let new_component = combine_components(&sys1);
-
+        } else if check_type == "get-component" {
+            let new_component = combine_components(&sys1, &system_declarations);
+            println!("{:?}", new_component);
             //Some logic to save a component to disk
             //Consider how we return new_component for testing
         }
