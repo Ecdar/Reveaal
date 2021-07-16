@@ -1,304 +1,237 @@
 #[cfg(test)]
 mod consistency_tests {
-    use crate::tests::refinement::Helper::optimize_components;
-    use crate::DataReader::{parse_queries, xml_parser};
-    use crate::ModelObjects::queries::Query;
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::System::extract_system_rep::create_system_rep_from_query;
+    use crate::tests::refinement::Helper::xml_run_query;
+    use crate::System::executable_query::QueryResult;
 
     static PATH: &str = "samples/xml/ConsTests.xml";
 
     #[test]
     fn testG1() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl); // input enabler samt opsætter clock indcies
-        let query = parse_queries::parse("consistency: G1").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
+        let result = xml_run_query(PATH, "consistency: G1");
 
-        assert!(leftSys.precheck_sys_rep());
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
     #[test]
     fn testG2() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G2").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G2");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG3() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G3").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G3");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG4() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G4").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G4");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG5() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G5").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G5");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG6() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G6").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G6");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG7() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G7").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G7");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG8() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G8").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G8");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG9() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G9").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G9");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG10() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G10").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G10");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG11() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G11").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G11");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG12() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G12").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G12");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG13() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G13").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G13");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG14() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G14").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G14");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG15() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G15").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G15");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG16() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G16").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G16");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG17() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G17").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G17");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG18() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G18").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G18");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG19() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G19").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(!leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G19");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(!is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG20() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G20").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G20");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 
     #[test]
     fn testG21() {
-        let (automataList, decl, _) = xml_parser::parse_xml(PATH);
-        let optimized_components = optimize_components(automataList, &decl);
-        let query = parse_queries::parse("consistency: G21").remove(0);
-        let q = Query {
-            query: Option::from(query),
-            comment: "".to_string(),
-        };
-        let res = create_system_rep_from_query(&q, &optimized_components);
-        let leftSys = res.0;
-        assert!(leftSys.precheck_sys_rep());
+        let result = xml_run_query(PATH, "consistency: G21");
+
+        if let QueryResult::Consistency(is_consistent) = result {
+            assert!(is_consistent)
+        } else {
+            panic!("Not consistency check");
+        }
     }
 }

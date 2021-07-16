@@ -19,6 +19,7 @@ use DataReader::json_reader;
 use ModelObjects::component;
 use ModelObjects::queries;
 use ModelObjects::system_declarations;
+use System::executable_query::{ExecutableQuery, QueryResult};
 
 #[macro_use]
 extern crate pest_derive;
@@ -41,38 +42,16 @@ pub fn main() {
     }
 
     for query in &queries {
-        let (sys1, opt_sys2, check_type) =
-            extract_system_rep::create_system_rep_from_query(query, &optimized_components);
+        let executable_query = Box::new(extract_system_rep::create_executable_query(
+            query,
+            &system_declarations,
+            &optimized_components,
+        ));
 
-        if check_type == "refinement" {
-            let mut extra_components = vec![];
-            let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
-                sys1,
-                opt_sys2.unwrap(),
-                &system_declarations,
-                &mut extra_components,
-            );
+        let result = executable_query.execute();
 
-            if !checkInputOutput {
-                match refine::check_refinement(sys1, sys2, &decl) {
-                    Ok(res) => println!("Refinement result: {:?}", res),
-                    Err(err_msg) => println!("{}", err_msg),
-                }
-            } else {
-                let inputs2 = sys2.get_input_actions(&system_declarations).clone();
-                let outputs1 = sys1.get_output_actions(&system_declarations).clone();
-
-                let extra_i = sys1.find_matching_input(&system_declarations, &inputs2);
-                let extra_o = sys2.find_matching_output(&system_declarations, &outputs1);
-
-                println!("extra outputs {:?}", extra_o);
-                println!("extra inputs {:?}", extra_i);
-            }
-        } else if check_type == "get-component"{
-            let new_component = combine_components(&sys1);
-
-            //Some logic to save a component to disk
-            //Consider how we return new_component for testing
+        if let QueryResult::Error(err) = result {
+            panic!(err);
         }
     }
 }
