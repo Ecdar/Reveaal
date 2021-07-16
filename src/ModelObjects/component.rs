@@ -773,6 +773,35 @@ impl<'a> Transition<'a> {
             None
         }
     }
+
+    pub fn get_guard_expression(&self) -> Option<BoolExpression> {
+        let mut guard: Option<BoolExpression> = None;
+        for (_, edge, _) in &self.edges {
+            if let Some(g) = &edge.guard {
+                if let Some(g_full) = guard {
+                    guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g.clone())));
+                } else {
+                    guard = Some(g.clone());
+                }
+            }
+        }
+
+        guard
+    }
+
+    pub fn get_updates(&self) -> Option<Vec<parse_edge::Update>> {
+        let mut updates = vec![];
+        for (_, edge, _) in &self.edges {
+            if let Some(update) = &edge.update {
+                updates.extend(update.iter().cloned());
+            }
+        }
+        if updates.is_empty() {
+            None
+        } else {
+            Some(updates)
+        }
+    }
 }
 
 impl fmt::Display for Transition<'_> {

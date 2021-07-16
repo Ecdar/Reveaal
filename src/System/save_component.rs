@@ -31,9 +31,22 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
             let is_initial = loc_vec
                 .iter()
                 .all(|loc| loc.location.location_type == LocationType::Initial);
+            let mut invariant: Option<BoolExpression> = None;
+            for loc in &loc_vec {
+                if let Some(inv) = &loc.location.invariant {
+                    if let Some(inv_full) = invariant {
+                        invariant = Some(BoolExpression::AndOp(
+                            Box::new(inv_full),
+                            Box::new(inv.clone()),
+                        ));
+                    } else {
+                        invariant = Some(inv.clone());
+                    }
+                }
+            }
             Location {
                 id: location_pair_name(&loc_vec),
-                invariant: None,
+                invariant,
                 location_type: if is_initial {
                     LocationType::Initial
                 } else {
@@ -109,7 +122,6 @@ fn get_specific_edges_from_locations<'a>(
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
-
             let edge = Edge {
                 source_location: location_pair_name(&location),
                 target_location: location_pair_name(&target_location),
@@ -118,8 +130,8 @@ fn get_specific_edges_from_locations<'a>(
                 } else {
                     SyncType::Output
                 },
-                guard: None,  //TODO
-                update: None, //TODO
+                guard: transition.get_guard_expression(),
+                update: transition.get_updates(),
                 sync: sync.clone(),
             };
 
