@@ -774,12 +774,16 @@ impl<'a> Transition<'a> {
         }
     }
 
-    pub fn get_guard_expression(&self) -> Option<BoolExpression> {
+    pub fn get_guard_expression(&self, add_id_to_vars: bool) -> Option<BoolExpression> {
         let mut guard: Option<BoolExpression> = None;
-        for (_, edge, _) in &self.edges {
+        for (_, edge, comp_id) in &self.edges {
             if let Some(g) = &edge.guard {
+                let mut g = g.clone();
+                if add_id_to_vars {
+                    g.add_component_id_to_vars(*comp_id);
+                }
                 if let Some(g_full) = guard {
-                    guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g.clone())));
+                    guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g)));
                 } else {
                     guard = Some(g.clone());
                 }
@@ -789,11 +793,18 @@ impl<'a> Transition<'a> {
         guard
     }
 
-    pub fn get_updates(&self) -> Option<Vec<parse_edge::Update>> {
+    pub fn get_updates(&self, add_id_to_vars: bool) -> Option<Vec<parse_edge::Update>> {
         let mut updates = vec![];
-        for (_, edge, _) in &self.edges {
+        for (_, edge, comp_id) in &self.edges {
             if let Some(update) = &edge.update {
-                updates.extend(update.iter().cloned());
+                let mut update = update.clone();
+                if add_id_to_vars {
+                    for mut u in &mut update {
+                        u.add_component_id_to_vars(*comp_id);
+                    }
+                }
+
+                updates.append(&mut update);
             }
         }
         if updates.is_empty() {
