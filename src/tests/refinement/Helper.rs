@@ -3,8 +3,9 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::executable_query::{QueryResult, RefinementExecutor};
 use crate::System::extra_actions;
-use crate::System::extract_system_rep::create_system_rep_from_query;
+use crate::System::extract_system_rep::create_executable_query;
 use crate::System::input_enabler;
 use crate::System::refine;
 use std::borrow::Borrow;
@@ -88,6 +89,22 @@ pub fn optimize_components(
 }
 
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
+    match xml_run_query(PATH, QUERY) {
+        QueryResult::Refinement(result) => result,
+        QueryResult::Error(err) => panic!(err),
+        _ => panic!("Not a refinement check"),
+    }
+}
+
+pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
+    match json_run_query(PATH, QUERY) {
+        QueryResult::Refinement(result) => result,
+        QueryResult::Error(err) => panic!(err),
+        _ => panic!("Not a refinement check"),
+    }
+}
+
+pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let (automataList, decl, _) = xml_parser::parse_xml(PATH);
     let optimized_components = optimize_components(automataList, &decl);
     let query = parse_queries::parse(QUERY).remove(0);
@@ -96,22 +113,12 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
         comment: "".to_string(),
     };
 
-    let res = create_system_rep_from_query(&q, &optimized_components);
-    let leftSys = res.0;
-    let rightSys = res.1.unwrap();
+    let query = create_executable_query(&q, &decl, &optimized_components);
 
-    let mut extra_components = vec![];
-    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
-        leftSys,
-        rightSys,
-        decl.borrow(),
-        &mut extra_components,
-    );
-
-    refine::check_refinement(sys1, sys2, &decl).unwrap()
+    query.execute()
 }
 
-pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
+pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let (components, decl) = json_setup(String::from(PATH));
     let query = parse_queries::parse(QUERY).remove(0);
     let q = Query {
@@ -119,17 +126,7 @@ pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
         comment: "".to_string(),
     };
 
-    let res = create_system_rep_from_query(&q, &components);
-    let leftSys = res.0;
-    let rightSys = res.1.unwrap();
+    let query = create_executable_query(&q, &decl, &components);
 
-    let mut extra_components = vec![];
-    let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
-        leftSys,
-        rightSys,
-        decl.borrow(),
-        &mut extra_components,
-    );
-
-    refine::check_refinement(sys1, sys2, &decl).unwrap()
+    query.execute()
 }
