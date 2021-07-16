@@ -4,46 +4,46 @@ use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system::UncachedSystem;
+use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::executable_query::{
+    ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, RefinementExecutor,
+};
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
-pub fn create_system_rep_from_query<'a>(
+pub fn create_executable_query<'a>(
     full_query: &Query,
+    system_declarations: &SystemDeclarations,
     components: &'a [component::Component],
-) -> (UncachedSystem<'a>, Option<UncachedSystem<'a>>, String) {
+) -> Box<dyn ExecutableQuery + 'a> {
     let mut clock_index: u32 = 0;
 
     if let Some(query) = full_query.get_query() {
         match query {
-            QueryExpression::Refinement(left_side, right_side) => (
-                UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
-                Some(UncachedSystem::create(extract_side(
-                    right_side,
-                    components,
-                    &mut clock_index,
-                ))),
-                String::from("refinement"),
-            ),
-            QueryExpression::Specification(body) => (
-                UncachedSystem::create(extract_side(body, components, &mut clock_index)),
-                None,
-                String::from("specification"),
-            ),
-            QueryExpression::Consistency(body) => (
-                UncachedSystem::create(extract_side(body, components, &mut clock_index)),
-                None,
-                String::from("consistency"),
-            ),
-            QueryExpression::Implementation(body) => (
-                UncachedSystem::create(extract_side(body, components, &mut clock_index)),
-                None,
-                String::from("implementation"),
-            ),
-            QueryExpression::Determinism(body) => (
-                UncachedSystem::create(extract_side(body, components, &mut clock_index)),
-                None,
-                String::from("determinism"),
-            ),
+            QueryExpression::Refinement(left_side, right_side) =>
+                Box::new(
+                    RefinementExecutor{
+                        sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
+                        sys2: UncachedSystem::create(extract_side(right_side, components, &mut clock_index)),
+                        decls: system_declarations.clone(),
+                    }
+                )
+            ,
+            QueryExpression::Consistency(query_expression) =>
+                Box::new(
+                    ConsistencyExecutor {
+                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
+                    }
+                )
+            ,
+            QueryExpression::Determinism(query_expression) => {
+                Box::new(
+                    DeterminismExecutor {
+                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
+                    }
+                )
+            }
+            ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query),
         }
