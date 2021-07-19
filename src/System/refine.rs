@@ -213,7 +213,7 @@ fn build_state_pair<'a>(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
-        println!("Guard zone invalid");
+        //println!("Guard zone invalid");
         return false;
     }
 
@@ -237,7 +237,6 @@ fn build_state_pair<'a>(
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
-        println!("Inv zone invalid");
         return false;
     }
     let dim = invariant_test.dimension;
@@ -249,7 +248,6 @@ fn build_state_pair<'a>(
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
     if !fed_res.is_empty() {
-        println!("Fed minus fed invalid");
         return false;
     }
 
