@@ -478,7 +478,6 @@ mod composition_tests {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Administration || Researcher");
     }
 
-    #[ignore] //Infinite loop into a stack overflow probably infinite recursion somewhere
     #[test]
     fn AdministrationSpecSavedRefinesSelf() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Administration || Spec");
@@ -609,7 +608,6 @@ mod composition_tests {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Machine3 || Spec");
     }
 
-    #[ignore] // Crashes test framework due to dbm not closed error
     #[test]
     fn ResearcherResearcherSavedRefinesSelf() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Researcher || Researcher");
