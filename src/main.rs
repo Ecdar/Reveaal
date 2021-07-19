@@ -69,15 +69,21 @@ fn parse_args() -> (
 
     if let Some(folder_arg) = matches.value_of("folder") {
         folder_path = folder_arg.to_string();
-        env::set_current_dir(std::path::Path::new(&folder_path))
-            .expect("Failed to set working directory to input folder");
     }
 
     if let Some(query_arg) = matches.value_of("query") {
         query = query_arg.to_string();
     }
 
-    let (components, system_declarations, q) = parse_automata(folder_path).unwrap();
+    let (components, system_declarations, q) = parse_automata(folder_path.clone()).unwrap();
+
+    let mut path = std::path::Path::new(&folder_path);
+    if path.is_file() {
+        path = path
+            .parent()
+            .expect("Failed to find parent directory of input file");
+    };
+    env::set_current_dir(path).expect("Failed to set working directory to input folder");
 
     if query.is_empty() {
         (
