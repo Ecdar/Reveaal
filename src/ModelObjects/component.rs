@@ -264,7 +264,13 @@ impl Component {
             constraint_applyer::apply_constraints_to_state2(update_i, &mut state);
         }
 
-        self.consistency_helper(state, prune, &mut passed_list)
+        let bounds = self.get_max_bounds(dimension);
+
+        if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
+            println!("NOT CONSISTENT");
+            return false;
+        }
+        true
     }
 
     /// Method used to check if a state is contained in the passed list
@@ -290,7 +296,9 @@ impl Component {
         mut currState: State<'a>,
         prune: bool,
         passed_list: &mut Vec<State<'a>>,
+        bounds: &MaxBounds,
     ) -> bool {
+        currState.zone.extrapolate_max_bounds(bounds);
         if self.passed_contains_state(&mut currState, passed_list) {
             return true;
         } else {
@@ -345,7 +353,7 @@ impl Component {
                 continue;
             }
 
-            let inputConsistent = self.consistency_helper(new_state, prune, passed_list);
+            let inputConsistent = self.consistency_helper(new_state, prune, passed_list, bounds);
             if !inputConsistent {
                 return false;
             }
@@ -405,7 +413,8 @@ impl Component {
                     continue;
                 }
 
-                let outputConsistent = self.consistency_helper(new_state, prune, passed_list);
+                let outputConsistent =
+                    self.consistency_helper(new_state, prune, passed_list, bounds);
                 if outputConsistent && prune {
                     return true;
                 }
