@@ -9,17 +9,16 @@ mod tests;
 
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
-use crate::System::extra_actions;
-use crate::System::{extract_system_rep, input_enabler, refine};
-use System::save_component::combine_components;
+use crate::System::{extract_system_rep, input_enabler};
 use clap::{load_yaml, App};
+use std::env;
 use std::path::PathBuf;
 use std::{fs, io};
 use DataReader::json_reader;
 use ModelObjects::component;
 use ModelObjects::queries;
 use ModelObjects::system_declarations;
-use System::executable_query::{ExecutableQuery, QueryResult};
+use System::executable_query::QueryResult;
 
 #[macro_use]
 extern crate pest_derive;
@@ -69,6 +68,8 @@ fn parse_args() -> (
 
     if let Some(folder_arg) = matches.value_of("folder") {
         folder_path = folder_arg.to_string();
+        env::set_current_dir(std::path::Path::new(&folder_path))
+            .expect("Failed to set working directory to input folder");
     }
 
     if let Some(query_arg) = matches.value_of("query") {
@@ -165,6 +166,7 @@ fn read_input(
         match component.to_str() {
             Some(path_string) => {
                 let json_component = json_reader::json_to_component(path_string.to_string());
+
                 match json_component {
                     Ok(result) => json_components.push(result),
                     Err(e) => panic!("We failed to read {}. We got error {}", path_string, e),

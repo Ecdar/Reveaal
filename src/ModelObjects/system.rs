@@ -42,7 +42,7 @@ impl<'a> UncachedSystem<'a> {
         self.base_representation
     }
 
-    pub fn borrow_representation(&self) -> &SystemRepresentation<'a>{
+    pub fn borrow_representation(&self) -> &SystemRepresentation<'a> {
         &self.base_representation
     }
 

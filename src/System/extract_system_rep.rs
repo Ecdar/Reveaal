@@ -6,7 +6,8 @@ use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::executable_query::{
-    ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, RefinementExecutor,
+    ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
+    RefinementExecutor,
 };
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
@@ -42,6 +43,19 @@ pub fn create_executable_query<'a>(
                         system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
                     }
                 )
+            }
+            ,
+            QueryExpression::GetComponent(save_as_expression) => {
+                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+                    Box::new(
+                        GetComponentExecutor {
+                            system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index)),
+                            comp_name: comp_name.clone()
+                        }
+                    )
+                }else{
+                    panic!("Unexpected expression type")
+                }
             }
             ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
