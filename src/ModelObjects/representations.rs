@@ -83,6 +83,104 @@ impl BoolExpression {
         new_constraint * 2 + 1
     }
 
+    pub fn add_component_id_to_vars(&mut self, comp_id: usize) {
+        match self {
+            BoolExpression::AndOp(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::OrOp(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::Parentheses(inner) => {
+                inner.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::LessEQ(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::GreatT(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::GreatEQ(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::LessT(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::LessEQ(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::EQ(left, right) => {
+                left.add_component_id_to_vars(comp_id);
+                right.add_component_id_to_vars(comp_id);
+            }
+            BoolExpression::Clock(_) => {
+                //Assuming ids are correctly offset we dont have to do anything here
+            }
+            BoolExpression::VarName(name) => {
+                *name = format!("{}{}", *name, comp_id);
+            }
+            BoolExpression::Bool(_) => {}
+            BoolExpression::Int(_) => {}
+        }
+    }
+
+    pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
+        match self {
+            BoolExpression::AndOp(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::OrOp(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Parentheses(inner) => {
+                inner.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::LessEQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::GreatT(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::GreatEQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::LessT(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::LessEQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::EQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Clock(_) => {
+                //Assuming ids are correctly offset we dont have to do anything here
+            }
+            BoolExpression::VarName(name) => {
+                if *name == from_name {
+                    *name = to_name.to_string();
+                }
+            }
+            BoolExpression::Bool(_) => {}
+            BoolExpression::Int(_) => {}
+        }
+    }
+
     fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
         match left {
             BoolExpression::Clock(clock_id) => {

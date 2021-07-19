@@ -33,6 +33,19 @@ impl Update {
     pub fn get_variable_name(&self) -> &str {
         self.variable.as_str()
     }
+
+    pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
+        if self.variable == from_name {
+            self.variable = to_name.to_string();
+        }
+
+        self.expression.swap_var_name(from_name, to_name);
+    }
+
+    pub fn add_component_id_to_vars(&mut self, comp_id: usize) {
+        self.variable = format!("{}{}", self.variable, comp_id);
+        self.expression.add_component_id_to_vars(comp_id);
+    }
 }
 
 pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Error<Rule>> {

@@ -50,7 +50,8 @@ pub fn create_executable_query<'a>(
                     Box::new(
                         GetComponentExecutor {
                             system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index)),
-                            comp_name: comp_name.clone()
+                            comp_name: comp_name.clone(),
+                            decls: system_declarations.clone(),
                         }
                     )
                 }else{
@@ -94,6 +95,7 @@ fn extract_side<'a>(
             }
             panic!("Could not find component with name: {:?}", name);
         }
+        QueryExpression::SaveAs(comp, name) => extract_side(comp, components, clock_index), //TODO
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }
