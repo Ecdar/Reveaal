@@ -25,6 +25,49 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
+    pub fn encode_expr(&self) -> String {
+        match self {
+            BoolExpression::AndOp(left, right) => [
+                left.encode_expr(),
+                String::from(" && "),
+                right.encode_expr(),
+            ]
+            .concat(),
+            BoolExpression::OrOp(left, right) => [
+                left.encode_expr(),
+                String::from(" || "),
+                right.encode_expr(),
+            ]
+            .concat(),
+            BoolExpression::LessEQ(left, right) => {
+                [left.encode_expr(), String::from("<="), right.encode_expr()].concat()
+            }
+            BoolExpression::GreatEQ(left, right) => {
+                [left.encode_expr(), String::from(">="), right.encode_expr()].concat()
+            }
+            BoolExpression::LessT(left, right) => {
+                [left.encode_expr(), String::from("<"), right.encode_expr()].concat()
+            }
+            BoolExpression::GreatT(left, right) => {
+                [left.encode_expr(), String::from(">"), right.encode_expr()].concat()
+            }
+            BoolExpression::EQ(left, right) => {
+                [left.encode_expr(), String::from("=="), right.encode_expr()].concat()
+            }
+            BoolExpression::Parentheses(expr) => {
+                [String::from("("), expr.encode_expr(), String::from(")")].concat()
+            }
+            BoolExpression::Clock(clock) => [String::from("??")].concat(),
+            BoolExpression::VarName(var) => var.clone(),
+            BoolExpression::Bool(boolean) => {
+                format!("{}", boolean)
+            }
+            BoolExpression::Int(num) => {
+                format!("{}", num)
+            }
+        }
+    }
+
     pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 

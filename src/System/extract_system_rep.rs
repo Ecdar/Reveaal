@@ -44,20 +44,20 @@ pub fn create_executable_query<'a>(
                     &mut clock_index,
                 )),
             }),
-            QueryExpression::GetComponent(expr) => {
-                if let QueryExpression::SaveAs(system_expr, comp_name) = expr.as_ref() {
-                    panic!("Not implemented yet");
-                } else {
-                    Box::new(GetComponentExecutor {
-                        system: UncachedSystem::create(extract_side(
-                            expr,
-                            components,
-                            &mut clock_index,
-                        )),
-                        sys_decls: system_declarations.clone(),
-                    })
+            QueryExpression::GetComponent(save_as_expression) => {
+                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+                    Box::new(
+                        GetComponentExecutor {
+                            system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index)),
+                            comp_name: comp_name.clone(),
+                            decls: system_declarations.clone(),
+                        }
+                    )
+                }else{
+                    panic!("Unexpected expression type")
                 }
             }
+            ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query),
         }

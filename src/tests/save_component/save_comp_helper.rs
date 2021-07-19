@@ -10,12 +10,14 @@ pub mod save_comp_helper {
     use crate::ModelObjects::system_declarations::SystemDeclarations;
     use crate::System::executable_query::QueryResult;
     use crate::System::extract_system_rep;
+    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let (components, mut decl) = Helper::json_setup(String::from(input_path));
 
+        //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
         let query = parse_queries::parse(str_query.as_str()).remove(0);
 
@@ -35,15 +37,14 @@ pub mod save_comp_helper {
         };
 
         let new_comp = combine_components(&base_system.clone(), &decl.clone());
-        let new_comp = new_comp.create_edge_io_split();
+        let mut new_comp = new_comp.create_edge_io_split();
         decl.add_component(&new_comp);
+
+        input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         let new_system = UncachedSystem::create(SystemRepresentation::Component(
             ComponentView::create(&new_comp, clock_index),
         ));
-
-        assert!(new_system.precheck_sys_rep());
-        assert!(base_system.precheck_sys_rep());
 
         assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
         assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
