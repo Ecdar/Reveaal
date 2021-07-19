@@ -1,6 +1,8 @@
+use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
 
 pub enum QueryResult {
@@ -43,13 +45,17 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
 
 pub struct GetComponentExecutor<'a> {
     pub system: UncachedSystem<'a>,
-    pub save_path: String,
+    pub comp_name: String,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        // calculate component and serialize it
-        QueryResult::Error(String::from("Not implemented yet"))
+        let mut comp = combine_components(&self.system);
+        comp.name = self.comp_name;
+
+        component_to_json(&comp);
+
+        QueryResult::GetComponent(comp)
     }
 }
 
