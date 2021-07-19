@@ -406,8 +406,15 @@ impl<'a> SystemRepresentation<'a> {
                 }
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                left_side.collect_input_actions(sys_decls, set);
-                right_side.collect_input_actions(sys_decls, set);
+                let mut left_in = HashSet::new();
+                left_side.collect_input_actions(sys_decls, &mut left_in);
+                let mut right_in = HashSet::new();
+                right_side.collect_input_actions(sys_decls, &mut right_in);
+                for a in &left_in {
+                    if right_in.contains(a) {
+                        set.insert(a.clone());
+                    }
+                }
             }
             SystemRepresentation::Parentheses(rep) => {
                 rep.collect_input_actions(sys_decls, set);
@@ -428,22 +435,42 @@ impl<'a> SystemRepresentation<'a> {
 
     pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> HashSet<String> {
         let mut actions = HashSet::new();
+        self.collect_output_actions(sys_decls, &mut actions);
+        actions
+    }
 
-        self.all_components(&mut |comp: &ComponentView| -> bool {
-            if let Some(outputs_res) = sys_decls
-                .get_declarations()
-                .get_output_actions()
-                .get(comp.get_name())
-            {
-                for action in outputs_res.clone() {
-                    actions.insert(action);
+    fn collect_output_actions(&'a self, sys_decls: &SystemDeclarations, set: &mut HashSet<String>) {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.collect_output_actions(sys_decls, set);
+                right_side.collect_output_actions(sys_decls, set);
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                let mut left_in = HashSet::new();
+                left_side.collect_output_actions(sys_decls, &mut left_in);
+                let mut right_in = HashSet::new();
+                right_side.collect_output_actions(sys_decls, &mut right_in);
+                for a in &left_in {
+                    if right_in.contains(a) {
+                        set.insert(a.clone());
+                    }
                 }
             }
-
-            true
-        });
-
-        actions
+            SystemRepresentation::Parentheses(rep) => {
+                rep.collect_output_actions(sys_decls, set);
+            }
+            SystemRepresentation::Component(comp_view) => {
+                if let Some(outputs_res) = sys_decls
+                    .get_declarations()
+                    .get_output_actions()
+                    .get(comp_view.get_name())
+                {
+                    for action in outputs_res.clone() {
+                        set.insert(action);
+                    }
+                }
+            }
+        }
     }
 
     pub fn find_matching_input(
