@@ -50,7 +50,8 @@ pub fn create_executable_query<'a>(
                     Box::new(
                         GetComponentExecutor {
                             system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index)),
-                            comp_name: comp_name.clone()
+                            comp_name: comp_name.clone(),
+                            decls: system_declarations.clone(),
                         }
                     )
                 }else{

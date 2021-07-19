@@ -46,11 +46,12 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
 pub struct GetComponentExecutor<'a> {
     pub system: UncachedSystem<'a>,
     pub comp_name: String,
+    pub decls: SystemDeclarations,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system);
+        let mut comp = combine_components(&self.system, &self.decls);
         comp.name = self.comp_name;
 
         component_to_json(&comp);
