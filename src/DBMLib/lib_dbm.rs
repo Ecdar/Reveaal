@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 
 use crate::DBMLib::dbm::{Federation, Zone};
-use std::ptr::slice_from_raw_parts;
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 //in DBM lib 0 is < and 1 is <=  here in regards to constraint_index parameter useds

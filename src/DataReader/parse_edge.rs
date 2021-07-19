@@ -1,8 +1,9 @@
 extern crate pest;
+use crate::ModelObjects::component::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -16,9 +17,10 @@ pub enum EdgeAttribute {
     Guard(BoolExpression),
 }
 
-#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, std::cmp::PartialEq)]
 pub struct Update {
     variable: String,
+    #[serde(serialize_with = "encode_boolexpr")]
     expression: BoolExpression,
 }
 

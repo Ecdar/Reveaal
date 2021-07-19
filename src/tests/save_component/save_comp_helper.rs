@@ -16,6 +16,7 @@ pub mod save_comp_helper {
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let (components, mut decl) = Helper::json_setup(String::from(input_path));
 
+        //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
         let query = parse_queries::parse(str_query.as_str()).remove(0);
 

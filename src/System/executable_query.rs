@@ -1,3 +1,4 @@
+use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -44,12 +45,16 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
 
 pub struct GetComponentExecutor<'a> {
     pub system: UncachedSystem<'a>,
-    pub sys_decls: SystemDeclarations,
+    pub comp_name: String,
+    pub decls: SystemDeclarations,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let comp = combine_components(&self.as_ref().system, &self.as_ref().sys_decls);
+        let mut comp = combine_components(&self.system, &self.decls);
+        comp.name = self.comp_name;
+
+        component_to_json(&comp);
 
         QueryResult::GetComponent(comp)
     }
