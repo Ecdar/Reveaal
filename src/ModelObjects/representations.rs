@@ -533,6 +533,26 @@ impl<'a> SystemRepresentation<'a> {
         states
     }
 
+    pub fn get_all_locations<'b>(&'b self) -> Vec<Vec<DecoratedLocation<'b>>> {
+        let mut location_tuples: Vec<Vec<DecoratedLocation>> = vec![vec![]];
+        self.all_components(&mut |comp: &'b ComponentView| -> bool {
+            let mut new_tuples: Vec<Vec<DecoratedLocation>> = vec![];
+            for loc in comp.get_locations() {
+                let mut temp: Vec<Vec<DecoratedLocation>> = location_tuples.clone();
+                for v in &mut temp {
+                    v.push(DecoratedLocation::create(loc, comp));
+                }
+                new_tuples.extend(temp);
+            }
+
+            location_tuples = new_tuples;
+
+            true
+        });
+
+        location_tuples
+    }
+
     pub fn precheck_sys_rep(&self) -> bool {
         self.all_components(&mut |comp_view: &ComponentView| -> bool {
             comp_view.get_component().check_consistency(true)
