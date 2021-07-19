@@ -10,6 +10,7 @@ pub mod save_comp_helper {
     use crate::ModelObjects::system_declarations::SystemDeclarations;
     use crate::System::executable_query::QueryResult;
     use crate::System::extract_system_rep;
+    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
 
@@ -36,15 +37,14 @@ pub mod save_comp_helper {
         };
 
         let new_comp = combine_components(&base_system.clone(), &decl.clone());
-        let new_comp = new_comp.create_edge_io_split();
+        let mut new_comp = new_comp.create_edge_io_split();
         decl.add_component(&new_comp);
+
+        input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         let new_system = UncachedSystem::create(SystemRepresentation::Component(
             ComponentView::create(&new_comp, clock_index),
         ));
-
-        assert!(new_system.precheck_sys_rep());
-        assert!(base_system.precheck_sys_rep());
 
         assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
         assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
