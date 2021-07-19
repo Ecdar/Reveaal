@@ -320,7 +320,7 @@ fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
     let inputs1 = sys1.get_input_actions();
     let inputs2 = sys2.get_input_actions();
 
-    if !hashset_equal(&inputs1, &inputs2) {
+    if inputs1 != inputs2 {
         println!(
             "input of left side is not equal to input of right side i1: {:?}, i2 {:?}",
             inputs1, inputs2
@@ -367,14 +367,4 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
         }
     }
     true
-}
-
-fn hashset_equal<T>(a: &[T], b: &[T]) -> bool
-where
-    T: Eq + Hash,
-{
-    let a: HashSet<_> = a.iter().collect();
-    let b: HashSet<_> = b.iter().collect();
-
-    a == b
 }

@@ -106,7 +106,14 @@ fn get_edges_from_locations<'a>(
         edges,
         true,
     );
-    get_specific_edges_from_locations(location, representation, decl, passed_list, edges, false);
+    get_specific_edges_from_locations(
+        location.clone(),
+        representation,
+        decl,
+        passed_list,
+        edges,
+        false,
+    );
 }
 
 fn get_specific_edges_from_locations<'a>(
@@ -134,7 +141,6 @@ fn get_specific_edges_from_locations<'a>(
                 SyncType::Output
             },
         );
-
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
@@ -150,7 +156,6 @@ fn get_specific_edges_from_locations<'a>(
                 update: transition.get_updates(true),
                 sync: sync.clone(),
             };
-
             edges.push(edge);
 
             get_edges_from_locations(target_location, representation, decl, passed_list, edges);

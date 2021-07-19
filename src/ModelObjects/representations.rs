@@ -3,6 +3,7 @@ use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
+use std::collections::HashSet;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -334,39 +335,39 @@ impl<'a> SystemRepresentation<'a> {
         }
     }
 
-    pub fn get_input_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
-        let mut actions = vec![];
+    pub fn get_input_actions(&self, sys_decls: &SystemDeclarations) -> HashSet<String> {
+        let mut actions = HashSet::new();
         // Consider compositions as they may remove input actions
         self.collect_input_actions(sys_decls, &mut actions);
         actions
     }
 
-    fn collect_input_actions(&'a self, sys_decls: &SystemDeclarations, vec: &mut Vec<String>) {
+    fn collect_input_actions(&'a self, sys_decls: &SystemDeclarations, set: &mut HashSet<String>) {
         match self {
             SystemRepresentation::Composition(left_side, right_side) => {
-                let mut left_in = vec![];
+                let mut left_in = HashSet::new();
                 left_side.collect_input_actions(sys_decls, &mut left_in);
-                let mut right_in = vec![];
+                let mut right_in = HashSet::new();
                 right_side.collect_input_actions(sys_decls, &mut right_in);
                 let left_out = left_side.get_output_actions(sys_decls);
                 let right_out = right_side.get_output_actions(sys_decls);
                 for a in &left_in {
                     if !right_out.contains(a) {
-                        vec.push(a.clone());
+                        set.insert(a.clone());
                     }
                 }
                 for a in &right_in {
                     if !left_out.contains(a) {
-                        vec.push(a.clone());
+                        set.insert(a.clone());
                     }
                 }
             }
             SystemRepresentation::Conjunction(left_side, right_side) => {
-                left_side.collect_input_actions(sys_decls, vec);
-                right_side.collect_input_actions(sys_decls, vec);
+                left_side.collect_input_actions(sys_decls, set);
+                right_side.collect_input_actions(sys_decls, set);
             }
             SystemRepresentation::Parentheses(rep) => {
-                rep.collect_input_actions(sys_decls, vec);
+                rep.collect_input_actions(sys_decls, set);
             }
             SystemRepresentation::Component(comp_view) => {
                 if let Some(inputs_res) = sys_decls
@@ -374,14 +375,16 @@ impl<'a> SystemRepresentation<'a> {
                     .get_input_actions()
                     .get(comp_view.get_name())
                 {
-                    vec.append(&mut inputs_res.clone());
+                    for action in inputs_res.clone() {
+                        set.insert(action);
+                    }
                 }
             }
         }
     }
 
-    pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
-        let mut actions = vec![];
+    pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> HashSet<String> {
+        let mut actions = HashSet::new();
 
         self.all_components(&mut |comp: &ComponentView| -> bool {
             if let Some(outputs_res) = sys_decls
@@ -389,7 +392,9 @@ impl<'a> SystemRepresentation<'a> {
                 .get_output_actions()
                 .get(comp.get_name())
             {
-                actions.append(&mut outputs_res.clone());
+                for action in outputs_res.clone() {
+                    actions.insert(action);
+                }
             }
 
             true
