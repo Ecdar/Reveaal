@@ -325,7 +325,11 @@ impl Component {
                 .get_location_by_name(edge.get_source_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
+                if let BoolExpression::Bool(false) =
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state)
+                {
+                    continue;
+                };
             }
 
             if let Some(guard) = edge.get_guard() {
@@ -387,7 +391,11 @@ impl Component {
                     .get_location_by_name(edge.get_source_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state);
+                    if let BoolExpression::Bool(false) =
+                        constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state)
+                    {
+                        continue;
+                    };
                 }
 
                 if let Some(guard) = edge.get_guard() {
@@ -572,10 +580,18 @@ impl Component {
                 let location = DecoratedLocation::create(state.get_location(), self);
                 let mut state_i = create_state(location, state.zone.clone());
                 if let Some(inv_source) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i);
+                    if let BoolExpression::Bool(false) =
+                        constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i)
+                    {
+                        continue;
+                    };
                 }
                 if let Some(update_i) = &edges[i].guard {
-                    constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i);
+                    if let BoolExpression::Bool(false) =
+                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i)
+                    {
+                        continue;
+                    };
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
@@ -584,11 +600,19 @@ impl Component {
                 let location = DecoratedLocation::create(state.get_location(), self);
                 let mut state_j = create_state(location, state.zone.clone());
                 if let Some(update_j) = location_source.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
+                    if let BoolExpression::Bool(false) =
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j)
+                    {
+                        continue;
+                    };
                 }
 
                 if let Some(update_j) = &edges[j].guard {
-                    constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j);
+                    if let BoolExpression::Bool(false) =
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j)
+                    {
+                        continue;
+                    };
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
