@@ -6,7 +6,8 @@ use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::executable_query::{
-    ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, RefinementExecutor,
+    ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
+    RefinementExecutor,
 };
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
@@ -20,30 +21,43 @@ pub fn create_executable_query<'a>(
 
     if let Some(query) = full_query.get_query() {
         match query {
-            QueryExpression::Refinement(left_side, right_side) =>
-                Box::new(
-                    RefinementExecutor{
-                        sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
-                        sys2: UncachedSystem::create(extract_side(right_side, components, &mut clock_index)),
-                        decls: system_declarations.clone(),
-                    }
-                )
-            ,
-            QueryExpression::Consistency(query_expression) =>
-                Box::new(
-                    ConsistencyExecutor {
-                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
-                    }
-                )
-            ,
-            QueryExpression::Determinism(query_expression) => {
-                Box::new(
-                    DeterminismExecutor {
-                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
-                    }
-                )
+            QueryExpression::Refinement(left_side, right_side) => Box::new(RefinementExecutor {
+                sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
+                sys2: UncachedSystem::create(extract_side(
+                    right_side,
+                    components,
+                    &mut clock_index,
+                )),
+                decls: system_declarations.clone(),
+            }),
+            QueryExpression::Consistency(query_expression) => Box::new(ConsistencyExecutor {
+                system: UncachedSystem::create(extract_side(
+                    query_expression,
+                    components,
+                    &mut clock_index,
+                )),
+            }),
+            QueryExpression::Determinism(query_expression) => Box::new(DeterminismExecutor {
+                system: UncachedSystem::create(extract_side(
+                    query_expression,
+                    components,
+                    &mut clock_index,
+                )),
+            }),
+            QueryExpression::GetComponent(expr) => {
+                if let QueryExpression::SaveAs(system_expr, comp_name) = expr.as_ref() {
+                    panic!("Not implemented yet");
+                } else {
+                    Box::new(GetComponentExecutor {
+                        system: UncachedSystem::create(extract_side(
+                            expr,
+                            components,
+                            &mut clock_index,
+                        )),
+                        sys_decls: system_declarations.clone(),
+                    })
+                }
             }
-            ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
             _ => panic!("Not yet setup to handle {:?}", query),
         }
@@ -52,7 +66,7 @@ pub fn create_executable_query<'a>(
     }
 }
 
-fn extract_side<'a>(
+pub fn extract_side<'a>(
     side: &QueryExpression,
     components: &'a [component::Component],
     clock_index: &mut u32,

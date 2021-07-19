@@ -1,6 +1,7 @@
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
 
 pub enum QueryResult {
@@ -43,13 +44,14 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
 
 pub struct GetComponentExecutor<'a> {
     pub system: UncachedSystem<'a>,
-    pub save_path: String,
+    pub sys_decls: SystemDeclarations,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        // calculate component and serialize it
-        QueryResult::Error(String::from("Not implemented yet"))
+        let comp = combine_components(&self.as_ref().system, &self.as_ref().sys_decls);
+
+        QueryResult::GetComponent(comp)
     }
 }
 

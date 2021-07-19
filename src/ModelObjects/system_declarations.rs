@@ -1,3 +1,4 @@
+use crate::ModelObjects::component::{Channel, Component};
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
@@ -14,6 +15,23 @@ impl SystemDeclarations {
     }
     pub fn get_mut_declarations(&mut self) -> &mut SystemSpecification {
         &mut self.declarations
+    }
+
+    pub fn add_component(&mut self, comp: &Component) {
+        self.declarations.input_actions.insert(
+            comp.get_name().clone(),
+            comp.get_input_actions()
+                .into_iter()
+                .map(|channel| channel.name)
+                .collect(),
+        );
+        self.declarations.output_actions.insert(
+            comp.get_name().clone(),
+            comp.get_output_actions()
+                .into_iter()
+                .map(|channel| channel.name)
+                .collect(),
+        );
     }
 }
 
