@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod Refinement_university {
-    use crate::tests::refinement::Helper::json_refinement_check;
+    use crate::tests::refinement::Helper::{json_refinement_check, json_run_query};
 
     static PATH: &str = "samples/json/EcdarUniversity";
 

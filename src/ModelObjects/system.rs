@@ -42,6 +42,10 @@ impl<'a> UncachedSystem<'a> {
         self.base_representation
     }
 
+    pub fn borrow_representation(&self) -> &SystemRepresentation<'a> {
+        &self.base_representation
+    }
+
     pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
         self.base_representation.get_max_bounds(dimensions)
     }

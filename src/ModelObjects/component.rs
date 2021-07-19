@@ -10,20 +10,26 @@ use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Add;
 
 /// The basic struct used to represent components read from either Json or xml
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Component {
     pub name: String,
 
-    #[serde(deserialize_with = "decode_declarations")]
+    #[serde(
+        deserialize_with = "decode_declarations",
+        serialize_with = "encode_declarations"
+    )]
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
+    #[serde(skip)]
     pub input_edges: Option<Vec<Edge>>,
+    #[serde(skip)]
     pub output_edges: Option<Vec<Edge>>,
 }
 
@@ -644,19 +650,26 @@ impl State<'_> {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
 pub enum LocationType {
     Normal,
     Initial,
     Universal,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
 pub struct Location {
     pub id: String,
-    #[serde(deserialize_with = "decode_invariant", default)]
+    #[serde(
+        deserialize_with = "decode_invariant",
+        serialize_with = "encode_opt_boolexpr"
+    )]
     pub invariant: Option<representations::BoolExpression>,
-    #[serde(deserialize_with = "decode_location_type", alias = "type")]
+    #[serde(
+        deserialize_with = "decode_location_type",
+        serialize_with = "encode_location_type",
+        alias = "type"
+    )]
     pub location_type: LocationType,
     pub urgency: String,
 }
@@ -677,7 +690,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 pub enum SyncType {
     Input,
     Output,
@@ -785,17 +798,93 @@ impl fmt::Display for Transition<'_> {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+pub fn encode_declarations<S>(decls: &Declarations, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut output = String::from("clock ");
+    let mut it = decls.clocks.iter();
+    let (first_clock, _) = it.next().unwrap();
+    output = output.add(&format!("{}", first_clock));
+
+    for (clock, _) in it {
+        output = output.add(&format!(", {}", clock));
+    }
+    output = output.add(";");
+
+    serializer.serialize_str(&output)
+}
+
+pub fn encode_opt_boolexpr<S>(
+    opt_expr: &Option<representations::BoolExpression>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if let Some(expr) = opt_expr {
+        encode_boolexpr(expr, serializer)
+    } else {
+        serializer.serialize_str("")
+    }
+}
+
+pub fn encode_boolexpr<S>(
+    expr: &representations::BoolExpression,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&expr.encode_expr())
+}
+
+pub fn encode_opt_updates<S>(
+    opt_updates: &Option<Vec<parse_edge::Update>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut output = String::new();
+    if let Some(updates) = opt_updates {
+        for update in updates {
+            output = output.add(
+                &[
+                    update.get_variable_name(),
+                    "=",
+                    &update.get_expression().encode_expr(),
+                ]
+                .concat(),
+            );
+        }
+        serializer.serialize_str(&output)
+    } else {
+        serializer.serialize_str("")
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Edge {
     #[serde(alias = "sourceLocation")]
     pub source_location: String,
     #[serde(alias = "targetLocation")]
     pub target_location: String,
-    #[serde(deserialize_with = "decode_sync_type", alias = "status")]
+    #[serde(
+        deserialize_with = "decode_sync_type",
+        serialize_with = "encode_sync_type",
+        alias = "status"
+    )]
     pub sync_type: SyncType,
-    #[serde(deserialize_with = "decode_guard")]
+    #[serde(
+        deserialize_with = "decode_guard",
+        serialize_with = "encode_opt_boolexpr"
+    )]
     pub guard: Option<representations::BoolExpression>,
-    #[serde(deserialize_with = "decode_update")]
+    #[serde(
+        deserialize_with = "decode_update",
+        serialize_with = "encode_opt_updates"
+    )]
     pub update: Option<Vec<parse_edge::Update>>,
     #[serde(deserialize_with = "decode_sync")]
     pub sync: String,
@@ -1099,6 +1188,17 @@ where
     }
 }
 
+fn encode_sync_type<S>(sync_type: &SyncType, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match sync_type {
+        SyncType::Input => serializer.serialize_str("INPUT"),
+        SyncType::Output => serializer.serialize_str("OUTPUT"),
+        _ => panic!("Unknown sync type in status {:?}", sync_type),
+    }
+}
+
 fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
@@ -1134,6 +1234,18 @@ where
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
         _ => panic!("Unknown sync type in status {:?}", s),
+    }
+}
+
+// Function used for deserializing location types
+fn encode_location_type<S>(location_type: &LocationType, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match location_type {
+        LocationType::Normal => serializer.serialize_str("NORMAL"),
+        LocationType::Initial => serializer.serialize_str("INITIAL"),
+        LocationType::Universal => serializer.serialize_str("UNIVERSAL"),
     }
 }
 
