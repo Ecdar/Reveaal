@@ -21,30 +21,29 @@ pub fn create_executable_query<'a>(
 
     if let Some(query) = full_query.get_query() {
         match query {
-            QueryExpression::Refinement(left_side, right_side) =>
-                Box::new(
-                    RefinementExecutor{
-                        sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
-                        sys2: UncachedSystem::create(extract_side(right_side, components, &mut clock_index)),
-                        decls: system_declarations.clone(),
-                    }
-                )
-            ,
-            QueryExpression::Consistency(query_expression) =>
-                Box::new(
-                    ConsistencyExecutor {
-                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
-                    }
-                )
-            ,
-            QueryExpression::Determinism(query_expression) => {
-                Box::new(
-                    DeterminismExecutor {
-                        system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index))
-                    }
-                )
-            }
-            ,
+            QueryExpression::Refinement(left_side, right_side) => Box::new(RefinementExecutor {
+                sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
+                sys2: UncachedSystem::create(extract_side(
+                    right_side,
+                    components,
+                    &mut clock_index,
+                )),
+                decls: system_declarations.clone(),
+            }),
+            QueryExpression::Consistency(query_expression) => Box::new(ConsistencyExecutor {
+                system: UncachedSystem::create(extract_side(
+                    query_expression,
+                    components,
+                    &mut clock_index,
+                )),
+            }),
+            QueryExpression::Determinism(query_expression) => Box::new(DeterminismExecutor {
+                system: UncachedSystem::create(extract_side(
+                    query_expression,
+                    components,
+                    &mut clock_index,
+                )),
+            }),
             QueryExpression::GetComponent(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
                     Box::new(
@@ -67,7 +66,7 @@ pub fn create_executable_query<'a>(
     }
 }
 
-fn extract_side<'a>(
+pub fn extract_side<'a>(
     side: &QueryExpression,
     components: &'a [component::Component],
     clock_index: &mut u32,
@@ -95,7 +94,7 @@ fn extract_side<'a>(
             }
             panic!("Could not find component with name: {:?}", name);
         }
-        QueryExpression::SaveAs(comp, name) => extract_side(comp, components, clock_index), //TODO
+        QueryExpression::SaveAs(comp, _) => extract_side(comp, components, clock_index), //TODO
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }
