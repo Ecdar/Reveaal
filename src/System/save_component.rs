@@ -11,8 +11,8 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
     let representation = system.borrow_representation();
     let mut location_tuples = vec![];
     let mut edges = vec![];
-    get_edges_from_locations(
-        representation.get_initial_locations(),
+    collect_all_edges_and_locations(
+        //representation.get_initial_locations(),
         representation,
         decl,
         &mut location_tuples,
@@ -22,7 +22,6 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
     let clocks = get_clock_map(&representation);
 
     let locations = get_locations_from_tuples(&location_tuples);
-
     Component {
         name: "".to_string(),
         declarations: Declarations {
@@ -86,7 +85,75 @@ fn get_clock_map(sysrep: &SystemRepresentation) -> HashMap<String, u32> {
     clocks
 }
 
-fn get_edges_from_locations<'a>(
+fn collect_all_edges_and_locations<'a>(
+    representation: &'a SystemRepresentation<'a>,
+    decl: &SystemDeclarations,
+    locations: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    edges: &mut Vec<Edge>,
+) {
+    let mut l = representation.get_all_locations();
+    println!("Found {} locations", l.len());
+    locations.extend(l);
+    for location in locations {
+        collect_edges_from_location(location, representation, decl, edges);
+    }
+}
+
+fn collect_edges_from_location<'a>(
+    location: &Vec<DecoratedLocation<'a>>,
+    representation: &'a SystemRepresentation<'a>,
+    decl: &SystemDeclarations,
+    edges: &mut Vec<Edge>,
+) {
+    collect_specific_edges_from_location(location, representation, decl, edges, true);
+    collect_specific_edges_from_location(location, representation, decl, edges, false);
+}
+
+fn collect_specific_edges_from_location<'a>(
+    location: &Vec<DecoratedLocation<'a>>,
+    representation: &'a SystemRepresentation<'a>,
+    decl: &SystemDeclarations,
+    edges: &mut Vec<Edge>,
+    input: bool,
+) {
+    for sync in if input {
+        representation.get_input_actions(decl)
+    } else {
+        representation.get_output_actions(decl)
+    } {
+        let mut transitions = vec![];
+        representation.collect_next_transitions(
+            location,
+            &mut 0,
+            &sync,
+            &mut transitions,
+            &if input {
+                SyncType::Input
+            } else {
+                SyncType::Output
+            },
+        );
+        for transition in transitions {
+            let mut target_location = location.clone();
+            transition.move_locations(&mut target_location);
+            let edge = Edge {
+                source_location: location_pair_name(location),
+                target_location: location_pair_name(&target_location),
+                sync_type: if input {
+                    SyncType::Input
+                } else {
+                    SyncType::Output
+                },
+                guard: transition.get_guard_expression(true),
+                update: transition.get_updates(true),
+                sync: sync.clone(),
+            };
+            edges.push(edge);
+        }
+    }
+}
+
+fn get_pruned_edges_from_locations<'a>(
     location: Vec<DecoratedLocation<'a>>,
     representation: &'a SystemRepresentation<'a>,
     decl: &SystemDeclarations,
@@ -98,7 +165,7 @@ fn get_edges_from_locations<'a>(
     }
 
     passed_list.push(location.clone());
-    get_specific_edges_from_locations(
+    get_pruned_specific_edges_from_locations(
         location.clone(),
         representation,
         decl,
@@ -106,10 +173,17 @@ fn get_edges_from_locations<'a>(
         edges,
         true,
     );
-    get_specific_edges_from_locations(location, representation, decl, passed_list, edges, false);
+    get_pruned_specific_edges_from_locations(
+        location.clone(),
+        representation,
+        decl,
+        passed_list,
+        edges,
+        false,
+    );
 }
 
-fn get_specific_edges_from_locations<'a>(
+fn get_pruned_specific_edges_from_locations<'a>(
     location: Vec<DecoratedLocation<'a>>,
     representation: &'a SystemRepresentation<'a>,
     decl: &SystemDeclarations,
@@ -134,7 +208,6 @@ fn get_specific_edges_from_locations<'a>(
                 SyncType::Output
             },
         );
-
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
@@ -150,10 +223,15 @@ fn get_specific_edges_from_locations<'a>(
                 update: transition.get_updates(true),
                 sync: sync.clone(),
             };
-
             edges.push(edge);
 
-            get_edges_from_locations(target_location, representation, decl, passed_list, edges);
+            get_pruned_edges_from_locations(
+                target_location,
+                representation,
+                decl,
+                passed_list,
+                edges,
+            );
         }
     }
 }

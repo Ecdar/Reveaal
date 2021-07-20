@@ -4,6 +4,7 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct UncachedSystem<'a> {
@@ -88,11 +89,11 @@ impl<'a> UncachedSystem<'a> {
         transitions
     }
 
-    pub fn get_input_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
+    pub fn get_input_actions(&self, sys_decls: &SystemDeclarations) -> HashSet<String> {
         self.base_representation.get_input_actions(sys_decls)
     }
 
-    pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> Vec<String> {
+    pub fn get_output_actions(&self, sys_decls: &SystemDeclarations) -> HashSet<String> {
         self.base_representation.get_output_actions(sys_decls)
     }
 
@@ -145,8 +146,8 @@ impl<'a> UncachedSystem<'a> {
 pub struct System<'a> {
     base_representation: SystemRepresentation<'a>,
     max_bounds: MaxBounds,
-    input_actions: Vec<String>,
-    output_actions: Vec<String>,
+    input_actions: HashSet<String>,
+    output_actions: HashSet<String>,
     initial_locations: RefCell<Option<Vec<DecoratedLocation<'a>>>>,
 }
 
@@ -214,11 +215,11 @@ impl<'a> System<'a> {
         &self.max_bounds
     }
 
-    pub fn get_input_actions(&self) -> &Vec<String> {
+    pub fn get_input_actions(&self) -> &HashSet<String> {
         &self.input_actions
     }
 
-    pub fn get_output_actions(&self) -> &Vec<String> {
+    pub fn get_output_actions(&self) -> &HashSet<String> {
         &self.output_actions
     }
 

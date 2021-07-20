@@ -213,7 +213,7 @@ fn build_state_pair<'a>(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
-        println!("Guard zone invalid");
+        //println!("Guard zone invalid");
         return false;
     }
 
@@ -237,7 +237,6 @@ fn build_state_pair<'a>(
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
-        println!("Inv zone invalid");
         return false;
     }
     let dim = invariant_test.dimension;
@@ -249,7 +248,6 @@ fn build_state_pair<'a>(
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
     if !fed_res.is_empty() {
-        println!("Fed minus fed invalid");
         return false;
     }
 
@@ -320,7 +318,7 @@ fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
     let inputs1 = sys1.get_input_actions();
     let inputs2 = sys2.get_input_actions();
 
-    if !hashset_equal(&inputs1, &inputs2) {
+    if inputs1 != inputs2 {
         println!(
             "input of left side is not equal to input of right side i1: {:?}, i2 {:?}",
             inputs1, inputs2
@@ -367,14 +365,4 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
         }
     }
     true
-}
-
-fn hashset_equal<T>(a: &[T], b: &[T]) -> bool
-where
-    T: Eq + Hash,
-{
-    let a: HashSet<_> = a.iter().collect();
-    let b: HashSet<_> = b.iter().collect();
-
-    a == b
 }
