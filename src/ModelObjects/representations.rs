@@ -558,4 +558,13 @@ impl<'a> SystemRepresentation<'a> {
             comp_view.get_component().check_consistency(true)
         })
     }
+
+    pub fn get_dimensions(&self) -> u32 {
+        let mut dimensions = 1;
+        self.all_components(&mut |comp_view| {
+            dimensions += comp_view.clock_count();
+            true
+        });
+        dimensions
+    }
 }

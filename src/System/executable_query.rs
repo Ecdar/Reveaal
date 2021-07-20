@@ -62,11 +62,12 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 
 pub struct ConsistencyExecutor<'a> {
     pub system: UncachedSystem<'a>,
+    pub sys_decls: SystemDeclarations,
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.precheck_sys_rep())
+        QueryResult::Consistency(self.system.check_consistency(&self.as_ref().sys_decls))
     }
 }
 

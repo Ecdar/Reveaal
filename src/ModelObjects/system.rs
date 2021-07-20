@@ -1,4 +1,5 @@
-use crate::ModelObjects::component::{DecoratedLocation, SyncType, Transition};
+use crate::DBMLib::dbm::Zone;
+use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
@@ -139,6 +140,127 @@ impl<'a> UncachedSystem<'a> {
     pub fn all_components_are_deterministic(&self) -> bool {
         self.base_representation
             .all_components(&mut |comp| comp.get_component().is_deterministic())
+    }
+
+    pub fn collect_open_input_transitions<'b>(
+        &'b self,
+        sys_decls: &SystemDeclarations,
+        locations: &Vec<DecoratedLocation<'b>>,
+        zone: &Zone,
+    ) -> Vec<(Transition<'b>, (Vec<DecoratedLocation>, Zone))> {
+        let mut input_transitions = vec![];
+        for input in self.get_input_actions(sys_decls) {
+            let transitions = self.collect_next_inputs(&locations, &input);
+            for transition in transitions {
+                let mut locations_clone = locations.clone();
+                let mut zone_clone = zone.clone();
+                if transition.apply_guards(&locations_clone, &mut zone_clone) {
+                    transition.apply_updates(&locations_clone, &mut zone_clone);
+                    transition.move_locations(&mut locations_clone);
+                    if transition.apply_invariants(&locations_clone, &mut zone_clone) {
+                        input_transitions.push((transition, (locations_clone, zone_clone)));
+                    }
+                }
+            }
+        }
+
+        input_transitions
+    }
+
+    pub fn collect_open_output_transitions<'b>(
+        &'b self,
+        sys_decls: &SystemDeclarations,
+        locations: &Vec<DecoratedLocation<'b>>,
+        zone: &Zone,
+    ) -> Vec<(Transition<'b>, (Vec<DecoratedLocation>, Zone))> {
+        let mut output_transitions = vec![];
+        for output in self.get_output_actions(sys_decls) {
+            let transitions = self.collect_next_outputs(&locations, &output);
+            for transition in transitions.into_iter() {
+                let mut locations_clone = locations.clone();
+                let mut zone_clone = zone.clone();
+                if transition.apply_guards(&locations_clone, &mut zone_clone) {
+                    transition.apply_updates(&locations_clone, &mut zone_clone);
+                    transition.move_locations(&mut locations_clone);
+                    if transition.apply_invariants(&locations_clone, &mut zone_clone) {
+                        output_transitions.push((transition, (locations_clone, zone_clone)));
+                    }
+                }
+            }
+        }
+
+        output_transitions
+    }
+
+    pub fn all_reachable_states<F>(
+        &self,
+        sys_decls: &SystemDeclarations,
+        dim: u32,
+        predicate: &mut F,
+    ) -> bool
+    where
+        F: FnMut((Vec<DecoratedLocation>, Zone), Vec<Transition>, Vec<Transition>) -> bool,
+    {
+        let mut passed: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
+        let mut waiting: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
+
+        let max_bounds = self.get_max_bounds(dim);
+
+        let init_loc = self.get_initial_locations();
+        let zone = Zone::init(dim);
+        waiting.push((init_loc, zone));
+
+        while !waiting.is_empty() {
+            let (locations, zone) = waiting.pop().unwrap();
+            passed.push((locations.clone(), zone.clone()));
+
+            let mut input_moves = self.collect_open_input_transitions(sys_decls, &locations, &zone);
+            let mut output_moves =
+                self.collect_open_output_transitions(sys_decls, &locations, &zone);
+
+            for (_, (next_locations, next_zone)) in
+                input_moves.iter_mut().chain(output_moves.iter_mut())
+            {
+                next_zone.up();
+                for location in next_locations.iter() {
+                    if !location.apply_invariant(next_zone) {
+                        panic!("Invariants led to bad zone");
+                    }
+                }
+                next_zone.extrapolate_max_bounds(&max_bounds);
+
+                //Aggressive cloning can be reduced by changing to a State struct over tuple
+                if !passed.contains(&(next_locations.clone(), next_zone.clone()))
+                    && !waiting.contains(&(next_locations.clone(), next_zone.clone()))
+                {
+                    waiting.push((next_locations.clone(), next_zone.clone()));
+                }
+            }
+
+            let input_transitions = input_moves
+                .into_iter()
+                .map(|(transition, _)| transition)
+                .collect();
+            let output_transitions = output_moves
+                .into_iter()
+                .map(|(transition, _)| transition)
+                .collect();
+
+            if !predicate((locations, zone), input_transitions, output_transitions) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn check_consistency(&self, sys_decls: &SystemDeclarations) -> bool {
+        let dimensions = self.base_representation.get_dimensions();
+
+        //Check if local consistency holds for all reachable states
+        self.all_reachable_states(sys_decls, dimensions, &mut |(_, zone), _, outputs| {
+            !outputs.is_empty() || zone.canDelayIndefinitely()
+        })
     }
 }
 

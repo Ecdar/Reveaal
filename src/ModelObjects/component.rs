@@ -364,7 +364,7 @@ impl Component {
         }
         let mut outputExisted: bool = false;
         // If delaying indefinitely is possible -> Prune the rest
-        if prune && ModelObjects::component::Component::canDelayIndefinitely(&currState) {
+        if prune && currState.zone.canDelayIndefinitely() {
             return true;
         } else {
             let mut edges: Vec<&Edge> = vec![];
@@ -434,7 +434,7 @@ impl Component {
                 if outputExisted {
                     return true;
                 }
-                return ModelObjects::component::Component::canDelayIndefinitely(&currState);
+                return currState.zone.canDelayIndefinitely();
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
             // or there are no output edges from the current location -> Independent progress does not hold
@@ -444,15 +444,6 @@ impl Component {
         }
         // Else if independent progress does not hold through delaying indefinitely,
         // we must check for being able to output and satisfy independent progress
-    }
-    pub fn canDelayIndefinitely(currState: &State) -> bool {
-        for i in 1..currState.zone.dimension {
-            if !currState.zone.is_constraint_infinity(i, 0) {
-                return false;
-            }
-        }
-
-        true
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
@@ -754,9 +745,9 @@ impl<'a> Transition<'a> {
         out
     }
 
-    pub fn apply_updates(&self, locations: &mut DecoratedLocationTuple, zone: &mut Zone) {
+    pub fn apply_updates(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) {
         for (_, edge, index) in &self.edges {
-            edge.apply_update(&mut locations[*index], zone);
+            edge.apply_update(&locations[*index], zone);
         }
     }
 
@@ -982,7 +973,7 @@ impl fmt::Display for Edge {
 }
 
 impl Edge {
-    pub fn apply_update(&self, location: &mut DecoratedLocation, zone: &mut Zone) {
+    pub fn apply_update(&self, location: &DecoratedLocation, zone: &mut Zone) {
         if let Some(updates) = self.get_update() {
             updater(updates, location, zone);
         }
