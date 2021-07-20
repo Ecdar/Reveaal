@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::{Channel, Component};
+use crate::ModelObjects::component::Component;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
