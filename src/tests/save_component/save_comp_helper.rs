@@ -1,14 +1,11 @@
 #[cfg(test)]
 pub mod save_comp_helper {
     use crate::tests::refinement::Helper;
-    use crate::DataReader::{parse_queries, xml_parser};
+    use crate::DataReader::parse_queries;
     use crate::ModelObjects::component_view::ComponentView;
-    use crate::ModelObjects::queries::Query;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::ModelObjects::representations::SystemRepresentation;
     use crate::ModelObjects::system::UncachedSystem;
-    use crate::ModelObjects::system_declarations::SystemDeclarations;
-    use crate::System::executable_query::QueryResult;
     use crate::System::extract_system_rep;
     use crate::System::input_enabler;
     use crate::System::refine;
@@ -23,15 +20,11 @@ pub mod save_comp_helper {
 
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
-            if let QueryExpression::SaveAs(system_expr, _) = expr.as_ref() {
-                UncachedSystem::create(extract_system_rep::extract_side(
-                    expr.as_ref(),
-                    &components,
-                    &mut clock_index,
-                ))
-            } else {
-                panic!("Failed to create system");
-            }
+            UncachedSystem::create(extract_system_rep::extract_side(
+                expr.as_ref(),
+                &components,
+                &mut clock_index,
+            ))
         } else {
             panic!("Failed to create system")
         };

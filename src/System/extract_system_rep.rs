@@ -94,7 +94,7 @@ pub fn extract_side<'a>(
             }
             panic!("Could not find component with name: {:?}", name);
         }
-        QueryExpression::SaveAs(comp, name) => extract_side(comp, components, clock_index), //TODO
+        QueryExpression::SaveAs(comp, _) => extract_side(comp, components, clock_index), //TODO
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }
