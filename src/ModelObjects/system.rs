@@ -1,11 +1,11 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::{Federation, Zone};
 use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone)]
 pub struct UncachedSystem<'a> {
@@ -258,9 +258,76 @@ impl<'a> UncachedSystem<'a> {
         let dimensions = self.base_representation.get_dimensions();
 
         //Check if local consistency holds for all reachable states
-        self.all_reachable_states(sys_decls, dimensions, &mut |(_, zone), _, outputs| {
-            !outputs.is_empty() || zone.canDelayIndefinitely()
-        })
+        let is_consistent =
+            self.all_reachable_states(sys_decls, dimensions, &mut |(_, zone), _, outputs| {
+                !outputs.is_empty() || zone.canDelayIndefinitely()
+            });
+
+        self.all_components_are_deterministic() && is_consistent
+    }
+
+    pub fn check_determinism(&self, sys_decls: &SystemDeclarations) -> bool {
+        let dimensions = self.base_representation.get_dimensions();
+
+        self.all_reachable_states(
+            sys_decls,
+            dimensions,
+            &mut |(locations, zone), inputs, outputs| {
+                let mut zones: HashMap<&String, Federation> = HashMap::new();
+
+                for input_transition in &inputs {
+                    if zones.contains_key(input_transition.get_action().unwrap()) {
+                        let fed = zones
+                            .get_mut(input_transition.get_action().unwrap())
+                            .unwrap();
+                        let guard_fed = input_transition
+                            .get_guard_federation(&locations, zone.dimension)
+                            .unwrap();
+
+                        for guard_fed_zone in guard_fed.move_zones() {
+                            for fed_zone in fed.iter_zones() {
+                                if guard_fed_zone.clone().intersection(fed_zone) {
+                                    return false;
+                                }
+                            }
+                            fed.add(guard_fed_zone);
+                        }
+                    } else {
+                        let guard_fed = input_transition
+                            .get_guard_federation(&locations, zone.dimension)
+                            .unwrap();
+                        zones.insert(input_transition.get_action().unwrap(), guard_fed);
+                    }
+                }
+
+                for output_transition in &outputs {
+                    if zones.contains_key(output_transition.get_action().unwrap()) {
+                        let fed = zones
+                            .get_mut(output_transition.get_action().unwrap())
+                            .unwrap();
+                        let guard_fed = output_transition
+                            .get_guard_federation(&locations, zone.dimension)
+                            .unwrap();
+
+                        for guard_fed_zone in guard_fed.move_zones() {
+                            for fed_zone in fed.iter_zones() {
+                                if guard_fed_zone.clone().intersection(fed_zone) {
+                                    return false;
+                                }
+                            }
+                            fed.add(guard_fed_zone);
+                        }
+                    } else {
+                        let guard_fed = output_transition
+                            .get_guard_federation(&locations, zone.dimension)
+                            .unwrap();
+                        zones.insert(output_transition.get_action().unwrap(), guard_fed);
+                    }
+                }
+
+                true
+            },
+        )
     }
 }
 

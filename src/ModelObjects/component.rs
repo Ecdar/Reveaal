@@ -849,6 +849,14 @@ impl<'a> Transition<'a> {
             Some(updates)
         }
     }
+
+    pub fn get_action(&self) -> Option<&String> {
+        if let Some((_, edge, _)) = self.edges.get(0) {
+            Some(edge.get_sync())
+        } else {
+            None
+        }
+    }
 }
 
 impl fmt::Display for Transition<'_> {

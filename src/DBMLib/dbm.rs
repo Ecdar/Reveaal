@@ -263,6 +263,10 @@ impl Federation {
         Self { zones, dimension }
     }
 
+    pub fn full(dimension: u32) -> Self {
+        Federation::new(vec![Zone::init(dimension)], dimension)
+    }
+
     pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
@@ -275,6 +279,10 @@ impl Federation {
             .collect();
 
         lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
+    }
+
+    pub fn invert(&self) -> Federation {
+        Federation::full(self.dimension).minus_fed(self)
     }
 
     pub fn add(&mut self, zone: Zone) {
@@ -291,5 +299,9 @@ impl Federation {
 
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
         self.zones.iter_mut()
+    }
+
+    pub fn move_zones(self) -> Vec<Zone> {
+        self.zones
     }
 }
