@@ -321,6 +321,22 @@ impl<'a> SystemRepresentation<'a> {
         }
     }
 
+    pub fn all_mut_components<'b, F>(&'b mut self, predicate: &mut F) -> bool
+    where
+        F: FnMut(&'b mut ComponentView<'a>) -> bool,
+    {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Parentheses(rep) => rep.all_mut_components(predicate),
+            SystemRepresentation::Component(comp_view) => predicate(comp_view),
+        }
+    }
+
     pub fn collect_next_transitions<'b>(
         &'b self,
         locations: &[DecoratedLocation<'a>],

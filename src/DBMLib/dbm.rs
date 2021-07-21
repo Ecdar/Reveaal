@@ -169,6 +169,7 @@ impl Zone {
     }
 
     pub fn update(&mut self, var_index: u32, value: i32) {
+        println!("IN c++ land {}", var_index);
         lib::rs_dbm_update(self.matrix.as_mut_slice(), self.dimension, var_index, value)
     }
 

@@ -66,8 +66,11 @@ pub struct ConsistencyExecutor<'a> {
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
-    fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.check_consistency(&self.as_ref().sys_decls))
+    fn execute(mut self: Box<Self>) -> QueryResult {
+        QueryResult::Consistency(
+            self.system
+                .check_consistency(&self.as_ref().sys_decls.clone()),
+        )
     }
 }
 

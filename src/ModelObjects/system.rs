@@ -199,7 +199,7 @@ impl<'a> UncachedSystem<'a> {
         predicate: &mut F,
     ) -> bool
     where
-        F: FnMut((Vec<DecoratedLocation>, Zone), Vec<Transition>, Vec<Transition>) -> bool,
+        F: FnMut((&Vec<DecoratedLocation>, &Zone), Vec<Transition>, Vec<Transition>) -> bool,
     {
         let mut passed: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
         let mut waiting: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
@@ -207,12 +207,19 @@ impl<'a> UncachedSystem<'a> {
         let max_bounds = self.get_max_bounds(dim);
 
         let init_loc = self.get_initial_locations();
-        let zone = Zone::init(dim);
+        let mut zone = Zone::init(dim);
+
+        for location in init_loc.iter() {
+            if !location.apply_invariant(&mut zone) {
+                panic!("Invariants led to bad zone");
+            }
+        }
+        zone.extrapolate_max_bounds(&max_bounds);
+
         waiting.push((init_loc, zone));
 
         while !waiting.is_empty() {
             let (locations, zone) = waiting.pop().unwrap();
-            passed.push((locations.clone(), zone.clone()));
 
             let mut input_moves = self.collect_open_input_transitions(sys_decls, &locations, &zone);
             let mut output_moves =
@@ -232,6 +239,7 @@ impl<'a> UncachedSystem<'a> {
                 //Aggressive cloning can be reduced by changing to a State struct over tuple
                 if !passed.contains(&(next_locations.clone(), next_zone.clone()))
                     && !waiting.contains(&(next_locations.clone(), next_zone.clone()))
+                    && (&locations, &zone) != (next_locations, next_zone)
                 {
                     waiting.push((next_locations.clone(), next_zone.clone()));
                 }
@@ -246,24 +254,28 @@ impl<'a> UncachedSystem<'a> {
                 .map(|(transition, _)| transition)
                 .collect();
 
-            if !predicate((locations, zone), input_transitions, output_transitions) {
+            if !predicate((&locations, &zone), input_transitions, output_transitions) {
                 return false;
             }
+            passed.push((locations, zone));
         }
 
         true
     }
 
-    pub fn check_consistency(&self, sys_decls: &SystemDeclarations) -> bool {
+    pub fn check_consistency(&mut self, sys_decls: &SystemDeclarations) -> bool {
         let dimensions = self.base_representation.get_dimensions();
-
+        let old_offset = self.set_clock_offset(0);
         //Check if local consistency holds for all reachable states
         let is_consistent =
             self.all_reachable_states(sys_decls, dimensions, &mut |(_, zone), _, outputs| {
                 !outputs.is_empty() || zone.canDelayIndefinitely()
             });
+        let is_deterministic = self.all_components_are_deterministic();
 
-        self.all_components_are_deterministic() && is_consistent
+        self.set_clock_offset(old_offset);
+
+        is_deterministic && is_consistent
     }
 
     pub fn check_determinism(&self, sys_decls: &SystemDeclarations) -> bool {
@@ -328,6 +340,24 @@ impl<'a> UncachedSystem<'a> {
                 true
             },
         )
+    }
+
+    //Sets a new clock offset and returns the old one
+    pub fn set_clock_offset(&mut self, offset: u32) -> u32 {
+        let mut lowest: Option<u32> = None;
+        let mut clock_index = offset;
+        self.base_representation
+            .all_mut_components(&mut |comp_view: &mut ComponentView| {
+                let next = Some(comp_view.get_clock_offset());
+                comp_view.set_clock_offset(clock_index);
+                clock_index += comp_view.clock_count();
+                if lowest.is_none() || lowest > next {
+                    lowest = next;
+                }
+                true
+            });
+
+        lowest.unwrap()
     }
 }
 

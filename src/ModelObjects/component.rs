@@ -1120,9 +1120,16 @@ impl Declarations {
         self.clocks.len() as u32
     }
 
-    pub fn update_clock_indices(&mut self, start_index: u32) {
+    pub fn set_clock_indices(&mut self, start_index: u32) {
         for (_, v) in self.clocks.iter_mut() {
             *v += start_index
+        }
+    }
+
+    pub fn update_clock_indices(&mut self, start_index: u32, old_offset: u32) {
+        for (_, v) in self.clocks.iter_mut() {
+            *v -= old_offset;
+            *v += start_index;
         }
     }
 

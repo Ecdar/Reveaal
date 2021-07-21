@@ -19,7 +19,7 @@ pub mod save_comp_helper {
         let query = parse_queries::parse(str_query.as_str()).remove(0);
 
         let mut clock_index: u32 = 0;
-        let base_system = if let QueryExpression::GetComponent(expr) = &query {
+        let mut base_system = if let QueryExpression::GetComponent(expr) = &query {
             UncachedSystem::create(extract_system_rep::extract_side(
                 expr.as_ref(),
                 &components,
@@ -35,11 +35,21 @@ pub mod save_comp_helper {
 
         input_enabler::make_input_enabled(&mut new_comp, &decl);
 
-        let new_system = UncachedSystem::create(SystemRepresentation::Component(
+        let mut new_system = UncachedSystem::create(SystemRepresentation::Component(
             ComponentView::create(&new_comp, clock_index),
         ));
 
-        assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
-        assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
+        let base_is_consistent = base_system.check_consistency(&decl);
+
+        if new_system.check_consistency(&decl) {
+            assert!(
+                refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap()
+            );
+            assert!(
+                refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap()
+            );
+        } else {
+            assert!(!base_is_consistent);
+        }
     }
 }
