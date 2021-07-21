@@ -734,14 +734,14 @@ pub type DecoratedLocationTuple<'a> = Vec<DecoratedLocation<'a>>;
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition<'a> {
-    pub edges: Vec<(&'a ComponentView<'a>, &'a Edge, usize)>,
+    pub edges: Vec<(&'a Component, &'a Edge, usize)>,
 }
 impl<'a> Transition<'a> {
     pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
         let mut out = vec![];
         for l in left {
             for r in &*right {
-                let temp: Vec<(&'a ComponentView, &'a Edge, usize)> = l
+                let temp: Vec<(&'a Component, &'a Edge, usize)> = l
                     .edges
                     .iter()
                     .cloned()
@@ -779,7 +779,7 @@ impl<'a> Transition<'a> {
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
-            let next_location = comp.get_component().get_location_by_name(new_loc_name);
+            let next_location = comp.get_location_by_name(new_loc_name);
 
             locations[*index].set_location(next_location);
         }
@@ -792,9 +792,7 @@ impl<'a> Transition<'a> {
     ) -> Option<Federation> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
-            let target_location = comp
-                .get_component()
-                .get_location_by_name(edge.get_target_location());
+            let target_location = comp.get_location_by_name(edge.get_target_location());
             let mut guard_zone = Zone::init(dim);
             if let Some(inv_source) = target_location.get_invariant() {
                 let dec_loc = DecoratedLocation {

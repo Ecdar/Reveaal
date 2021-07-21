@@ -369,7 +369,7 @@ impl<'a> SystemRepresentation<'a> {
                 );
                 for e in next_edges {
                     open_transitions.push(Transition {
-                        edges: vec![(comp_view, e, *index)],
+                        edges: vec![(comp_view.get_component(), e, *index)],
                     });
                 }
 
