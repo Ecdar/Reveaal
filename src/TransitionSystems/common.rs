@@ -1,7 +1,7 @@
 macro_rules! default_composition {
     () => {
         fn get_max_bounds(&self) -> MaxBounds {
-            panic!["Not implemented"];
+            panic!("Not implemented");
         }
         fn get_input_actions(&self) -> HashSet<String> {
             self.inputs.clone()

@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::{Channel, Component, Location, SyncType, Transition};
+use crate::ModelObjects::component::{SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem};
 use std::collections::hash_set::HashSet;
