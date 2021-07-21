@@ -2,7 +2,7 @@ use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, std::cmp::PartialEq)]
 pub struct Zone {
     pub(crate) dimension: u32,
     pub(in crate::DBMLib) matrix: Vec<i32>,
@@ -169,6 +169,7 @@ impl Zone {
     }
 
     pub fn update(&mut self, var_index: u32, value: i32) {
+        println!("IN c++ land {}", var_index);
         lib::rs_dbm_update(self.matrix.as_mut_slice(), self.dimension, var_index, value)
     }
 
@@ -224,6 +225,16 @@ impl Zone {
             max_bounds.clock_bounds.as_ptr(),
         );
     }
+
+    pub fn canDelayIndefinitely(&self) -> bool {
+        for i in 1..self.dimension {
+            if !self.is_constraint_infinity(i, 0) {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 impl Display for Zone {
@@ -253,6 +264,10 @@ impl Federation {
         Self { zones, dimension }
     }
 
+    pub fn full(dimension: u32) -> Self {
+        Federation::new(vec![Zone::init(dimension)], dimension)
+    }
+
     pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
@@ -265,6 +280,10 @@ impl Federation {
             .collect();
 
         lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
+    }
+
+    pub fn invert(&self) -> Federation {
+        Federation::full(self.dimension).minus_fed(self)
     }
 
     pub fn add(&mut self, zone: Zone) {
@@ -281,5 +300,9 @@ impl Federation {
 
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
         self.zones.iter_mut()
+    }
+
+    pub fn move_zones(self) -> Vec<Zone> {
+        self.zones
     }
 }

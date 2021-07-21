@@ -36,6 +36,7 @@ pub fn create_executable_query<'a>(
                     components,
                     &mut clock_index,
                 )),
+                sys_decls: system_declarations.clone()
             }),
             QueryExpression::Determinism(query_expression) => Box::new(DeterminismExecutor {
                 system: UncachedSystem::create(extract_side(

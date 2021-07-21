@@ -321,6 +321,22 @@ impl<'a> SystemRepresentation<'a> {
         }
     }
 
+    pub fn all_mut_components<'b, F>(&'b mut self, predicate: &mut F) -> bool
+    where
+        F: FnMut(&'b mut ComponentView<'a>) -> bool,
+    {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                left_side.all_mut_components(predicate) && right_side.all_mut_components(predicate)
+            }
+            SystemRepresentation::Parentheses(rep) => rep.all_mut_components(predicate),
+            SystemRepresentation::Component(comp_view) => predicate(comp_view),
+        }
+    }
+
     pub fn collect_next_transitions<'b>(
         &'b self,
         locations: &[DecoratedLocation<'a>],
@@ -557,5 +573,14 @@ impl<'a> SystemRepresentation<'a> {
         self.all_components(&mut |comp_view: &ComponentView| -> bool {
             comp_view.get_component().check_consistency(true)
         })
+    }
+
+    pub fn get_dimensions(&self) -> u32 {
+        let mut dimensions = 1;
+        self.all_components(&mut |comp_view| {
+            dimensions += comp_view.clock_count();
+            true
+        });
+        dimensions
     }
 }

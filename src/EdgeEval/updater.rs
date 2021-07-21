@@ -6,7 +6,7 @@ use crate::ModelObjects::representations::BoolExpression;
 /// Used to handle update expressions on edges
 pub fn updater(
     updates: &[parse_edge::Update],
-    state: &mut component::DecoratedLocation,
+    state: &component::DecoratedLocation,
     zone: &mut Zone,
 ) {
     for update in updates {
