@@ -745,6 +745,14 @@ pub fn rs_dbm_up(dbm: &mut [i32], dimension: u32) {
     }
 }
 
+///does a dbm down operation
+pub fn rs_dbm_down(dbm: &mut [i32], dimension: u32) {
+    unsafe {
+        dbm_down(dbm.as_mut_ptr(), dimension);
+    }
+}
+
+
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm: &mut [i32], dimension: u32) {
     unsafe {

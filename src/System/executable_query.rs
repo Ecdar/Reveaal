@@ -3,6 +3,7 @@ use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
+use crate::System::consistency::consistency_check;
 use crate::System::{extra_actions, refine};
 
 pub enum QueryResult {
@@ -68,8 +69,7 @@ pub struct ConsistencyExecutor<'a> {
 impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
     fn execute(mut self: Box<Self>) -> QueryResult {
         QueryResult::Consistency(
-            self.system
-                .check_consistency(&self.as_ref().sys_decls.clone()),
+            consistency_check(&mut self.system, &self.sys_decls)
         )
     }
 }

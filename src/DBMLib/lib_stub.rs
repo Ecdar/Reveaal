@@ -513,6 +513,11 @@ pub fn rs_dbm_up(_dbm: &mut [i32], _dimension: u32) {
     unimplemented!()
 }
 
+///does a dbm down operation
+pub fn rs_dbm_down(dbm: &mut [i32], dimension: u32) {
+    unimplemented!()
+}
+
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(_dbm: &mut [i32], _dimension: u32) {
     unimplemented!()

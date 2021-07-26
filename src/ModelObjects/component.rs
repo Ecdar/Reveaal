@@ -3,7 +3,7 @@ use crate::DataReader::parse_edge;
 use crate::DataReader::parse_invariant;
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::EdgeEval::updater::fullState_updater;
+use crate::EdgeEval::updater::state_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
 use crate::ModelObjects::component_view::ComponentView;
@@ -184,6 +184,41 @@ impl Component {
         };
     }
 
+    /// Method used to get the previous edges based on a current location and a specific sync type (i.e input or output)
+    pub fn get_previous_edges(
+        &self,
+        location: &Location,
+        channel_name: &str,
+        sync_type: SyncType,
+    ) -> Vec<&Edge> {
+        return match sync_type {
+            SyncType::Input => {
+                let result: Vec<&Edge> = self
+                    .get_input_edges()
+                    .iter()
+                    .filter(|e| {
+                        (e.get_target_location() == location.get_id())
+                            && (e.get_sync() == (channel_name.to_string()).as_str()
+                                || e.get_sync() == "*")
+                    })
+                    .collect();
+                result
+            }
+            SyncType::Output => {
+                let result: Vec<&Edge> = self
+                    .get_output_edges()
+                    .iter()
+                    .filter(|e| {
+                        (e.get_target_location() == location.get_id())
+                            && (e.get_sync() == (channel_name.to_string()).as_str()
+                                || e.get_sync() == "*")
+                    })
+                    .collect();
+                result
+            }
+        };
+    }
+
     pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
         let result: Vec<&Edge> = self
             .get_output_edges()
@@ -260,8 +295,8 @@ impl Component {
         let zone = Zone::init(dimension);
 
         let mut state = create_state(initial_location, zone);
-        if let Some(update_i) = state.decorated_location.location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(update_i, &mut state);
+        if let Some(update_i) = state.decorated_locations[0].location.get_invariant() {
+            constraint_applyer::apply_constraints_to_state2(update_i, &mut state, 0);
         }
 
         let bounds = self.get_max_bounds(dimension);
@@ -280,7 +315,7 @@ impl Component {
         passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
-            if state.get_location().id == currState.get_location().id {
+            if state.get_location(0).id == currState.get_location(0).id {
                 if currState.zone.is_subset_eq(&state.zone) {
                     return true;
                 }
@@ -308,7 +343,7 @@ impl Component {
         let mut edges: Vec<&Edge> = vec![];
         for input_action in self.get_input_actions() {
             edges.append(&mut self.get_next_edges(
-                currState.get_location(),
+                currState.get_location(0),
                 input_action.get_name(),
                 SyncType::Input,
             ));
@@ -326,14 +361,14 @@ impl Component {
                 .get_invariant()
             {
                 if let BoolExpression::Bool(false) =
-                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state)
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)
                 {
                     continue;
                 };
             }
 
             if let Some(guard) = edge.get_guard() {
-                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
+                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0);
             }
 
             if !new_state.zone.is_valid() {
@@ -341,7 +376,7 @@ impl Component {
             }
 
             if let Some(update) = edge.get_update() {
-                fullState_updater(update, &mut new_state);
+                state_updater(update, &mut new_state, 0);
             }
 
             new_state.zone.up();
@@ -350,7 +385,7 @@ impl Component {
                 .get_location_by_name(edge.get_target_location())
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
+                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
             }
 
             if !new_state.zone.is_valid() {
@@ -370,7 +405,7 @@ impl Component {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
                 edges.append(&mut self.get_next_edges(
-                    currState.get_location(),
+                    currState.get_location(0),
                     output_action.get_name(),
                     SyncType::Output,
                 ));
@@ -392,21 +427,21 @@ impl Component {
                     .get_invariant()
                 {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state)
+                        constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)
                     {
                         continue;
                     };
                 }
 
                 if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state);
+                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0);
                 }
                 if !new_state.zone.is_valid() {
                     continue;
                 }
 
                 if let Some(update) = edge.get_update() {
-                    fullState_updater(update, &mut new_state);
+                    state_updater(update, &mut new_state, 0);
                 }
                 new_state.zone.up();
 
@@ -414,7 +449,7 @@ impl Component {
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state);
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state,0);
                 }
 
                 if !new_state.zone.is_valid() {
@@ -472,7 +507,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(),
+                        full_state.get_location(0),
                         input_action.get_name(),
                         SyncType::Input,
                     ));
@@ -483,7 +518,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions() {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(),
+                        full_state.get_location(0),
                         output_action.get_name(),
                         SyncType::Output,
                     ));
@@ -504,6 +539,7 @@ impl Component {
                                 constraint_applyer::apply_constraints_to_state2(
                                     guard,
                                     &mut new_state,
+                                    0
                                 )
                             {
                             } else {
@@ -512,7 +548,7 @@ impl Component {
                             }
                         }
                         if let Some(updates) = edge.get_update() {
-                            fullState_updater(updates, &mut new_state);
+                            state_updater(updates, &mut new_state, 0);
                         }
 
                         if is_new_state(&mut new_state, &mut passed_list)
@@ -568,31 +604,31 @@ impl Component {
                     .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
-                let location = DecoratedLocation::create(state.get_location(), self);
+                let location = DecoratedLocation::create(state.get_location(0), self);
                 let mut state_i = create_state(location, state.zone.clone());
                 if let Some(inv_source) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i)
+                        constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
                     {
                         continue;
                     };
                 }
                 if let Some(update_i) = &edges[i].guard {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i)
+                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, 0)
                     {
                         continue;
                     };
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i);
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, 0);
                 }
 
-                let location = DecoratedLocation::create(state.get_location(), self);
+                let location = DecoratedLocation::create(state.get_location(0), self);
                 let mut state_j = create_state(location, state.zone.clone());
                 if let Some(update_j) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j)
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
                     {
                         continue;
                     };
@@ -600,13 +636,13 @@ impl Component {
 
                 if let Some(update_j) = &edges[j].guard {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j)
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
                     {
                         continue;
                     };
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j);
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j, 0);
                 }
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
@@ -623,8 +659,12 @@ impl Component {
 
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
 fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> bool {
+    assert_eq!(state.decorated_locations.len(), 1);
+
     for passed_state_pair in passed_list {
-        if state.get_location().get_id() != passed_state_pair.get_location().get_id() {
+        if state.get_location(0).get_id()
+            != passed_state_pair.get_location(0).get_id()
+        {
             continue;
         }
         if state.zone.dimension != passed_state_pair.zone.dimension {
@@ -650,7 +690,7 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
 
 fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
     State {
-        decorated_location,
+        decorated_locations: vec![decorated_location],
         zone,
     }
 }
@@ -658,19 +698,49 @@ fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
-#[derive(Clone)]
+#[derive(Clone, std::cmp::PartialEq)]
 pub struct State<'a> {
-    pub decorated_location: DecoratedLocation<'a>,
+    pub decorated_locations: DecoratedLocationTuple<'a>,
     pub zone: Zone,
 }
 
-impl State<'_> {
-    pub fn get_location(&self) -> &Location {
-        &self.decorated_location.get_location()
+impl<'a> State<'a> {
+    pub fn create(decorated_locations: DecoratedLocationTuple<'a>, zone: Zone) -> Self{
+        State{
+            decorated_locations,
+            zone,
+        }
     }
 
-    pub fn get_declarations(&self) -> &Declarations {
-        &self.decorated_location.get_declarations()
+    pub fn from_location(decorated_locations: DecoratedLocationTuple<'a>, dimensions: u32) -> Option<Self>{
+        let mut zone = Zone::init(dimensions);
+
+        for location in &decorated_locations {
+            if !location.apply_invariant(&mut zone){
+                return None;
+            }
+        }
+
+        Some(State{
+            decorated_locations,
+            zone,
+        })
+    }
+
+    pub fn is_subset_of(&self, other: &Self) -> bool {
+        if self.decorated_locations != other.decorated_locations{
+            return false;
+        }
+
+        self.zone.is_subset_eq(&other.zone)
+    }
+
+    pub fn get_location(&self, index: usize) -> &Location {
+        self.decorated_locations[index].get_location()
+    }
+
+    pub fn get_declarations(&self, index: usize) -> &Declarations {
+        self.decorated_locations[index].get_declarations()
     }
 }
 
@@ -728,6 +798,32 @@ pub struct Transition<'a> {
     pub edges: Vec<(&'a ComponentView<'a>, &'a Edge, usize)>,
 }
 impl<'a> Transition<'a> {
+    pub fn use_transition(&self, state: &mut State<'a>) -> bool{
+        if self.apply_guards(&state.decorated_locations, &mut state.zone) {
+            self.apply_updates(&state.decorated_locations, &mut state.zone);
+            self.move_locations(&mut state.decorated_locations);
+            state.zone.up();
+            if self.apply_invariants(&mut state.decorated_locations, &mut state.zone) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn use_transition_backwards(&self, state: &mut State<'a>) -> bool{
+        self.apply_updates(&state.decorated_locations, &mut state.zone);
+        if self.apply_guards(&state.decorated_locations, &mut state.zone) {
+            self.move_locations_backwards(&mut state.decorated_locations);
+            state.zone.down();
+            if self.apply_invariants(&mut state.decorated_locations, &mut state.zone) {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
         let mut out = vec![];
         for l in left {
@@ -770,6 +866,15 @@ impl<'a> Transition<'a> {
     pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
+            let next_location = comp.get_component().get_location_by_name(new_loc_name);
+
+            locations[*index].set_location(next_location);
+        }
+    }
+
+    pub fn move_locations_backwards(&self, locations: &mut DecoratedLocationTuple<'a>) {
+        for (comp, edge, index) in &self.edges {
+            let new_loc_name = edge.get_source_location();
             let next_location = comp.get_component().get_location_by_name(new_loc_name);
 
             locations[*index].set_location(next_location);
@@ -1072,6 +1177,10 @@ impl<'a> DecoratedLocation<'a> {
         } else {
             true
         }
+    }
+
+    pub fn get_invariant(&self) -> &Option<BoolExpression> {
+        self.get_location().get_invariant()
     }
 
     pub fn get_declarations(&self) -> &Declarations {

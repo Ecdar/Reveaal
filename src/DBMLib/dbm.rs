@@ -169,7 +169,6 @@ impl Zone {
     }
 
     pub fn update(&mut self, var_index: u32, value: i32) {
-        println!("IN c++ land {}", var_index);
         lib::rs_dbm_update(self.matrix.as_mut_slice(), self.dimension, var_index, value)
     }
 
@@ -203,6 +202,10 @@ impl Zone {
 
     pub fn up(&mut self) {
         lib::rs_dbm_up(self.matrix.as_mut_slice(), self.dimension)
+    }
+
+    pub fn down(&mut self) {
+        lib::rs_dbm_down(self.matrix.as_mut_slice(), self.dimension)
     }
 
     pub fn zero(&mut self) {

@@ -25,6 +25,57 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
+    pub fn contains_max_bound(&self) -> bool {
+        match self {
+            BoolExpression::AndOp(left, right) => {
+                left.contains_max_bound() ||
+                right.contains_max_bound()
+            }
+            BoolExpression::OrOp(left, right) => {
+                left.contains_max_bound() ||
+                right.contains_max_bound()
+            }
+            BoolExpression::Parentheses(expr) => expr.contains_max_bound(),
+            BoolExpression::GreatEQ(left, right) => {
+                if let BoolExpression::Clock(_) = right.as_ref(){
+                    true
+                }else if let BoolExpression::VarName(_) = right.as_ref(){
+                    true
+                }else{
+                    false
+                }
+            },
+            BoolExpression::LessEQ(left, right) => {
+                if let BoolExpression::Clock(_) = left.as_ref(){
+                    true
+                }else if let BoolExpression::VarName(_) = left.as_ref(){
+                    true
+                }else{
+                    false
+                }
+            },
+            BoolExpression::LessT(left, right) => {
+                if let BoolExpression::Clock(_) = left.as_ref(){
+                    true
+                }else if let BoolExpression::VarName(_) = left.as_ref(){
+                    true
+                }else{
+                    false
+                }
+            },
+            BoolExpression::GreatT(left, right) => {
+                if let BoolExpression::Clock(_) = right.as_ref(){
+                    true
+                }else if let BoolExpression::VarName(_) = right.as_ref(){
+                    true
+                }else{
+                    false
+                }
+            },
+            _ => false,
+        }
+    }
+
     pub fn encode_expr(&self) -> String {
         match self {
             BoolExpression::AndOp(left, right) => [
@@ -379,6 +430,63 @@ impl<'a> SystemRepresentation<'a> {
             }
             SystemRepresentation::Component(comp_view) => {
                 let next_edges = comp_view.get_component().get_next_edges(
+                    locations[*index].get_location(),
+                    action,
+                    *sync_type,
+                );
+                for e in next_edges {
+                    open_transitions.push(Transition {
+                        edges: vec![(comp_view, e, *index)],
+                    });
+                }
+
+                *index += 1;
+            }
+        }
+    }
+
+    pub fn collect_previous_transitions<'b>(
+        &'b self,
+        locations: &[DecoratedLocation<'a>],
+        index: &mut usize,
+        action: &str,
+        open_transitions: &mut Vec<Transition<'b>>,
+        sync_type: &SyncType,
+    ) {
+        match self {
+            SystemRepresentation::Composition(left_side, right_side) => {
+                let mut left = vec![];
+                let mut right = vec![];
+
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
+
+                right_side
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
+                // Independent actions
+                if left.is_empty() || right.is_empty() {
+                    open_transitions.append(&mut left);
+                    open_transitions.append(&mut right);
+                }
+                // Synchronized actions
+                else {
+                    open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
+                }
+            }
+            SystemRepresentation::Conjunction(left_side, right_side) => {
+                let mut left = vec![];
+                let mut right = vec![];
+                left_side.collect_next_transitions(locations, index, action, &mut left, sync_type);
+
+                right_side
+                    .collect_next_transitions(locations, index, action, &mut right, sync_type);
+
+                open_transitions.append(&mut Transition::combinations(&mut left, &mut right));
+            }
+            SystemRepresentation::Parentheses(rep) => {
+                rep.collect_next_transitions(locations, index, action, open_transitions, sync_type);
+            }
+            SystemRepresentation::Component(comp_view) => {
+                let next_edges = comp_view.get_component().get_previous_edges(
                     locations[*index].get_location(),
                     action,
                     *sync_type,

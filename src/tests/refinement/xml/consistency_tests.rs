@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod consistency_tests {
+    use crate::tests::refinement::Helper;
     use crate::tests::refinement::Helper::xml_run_query;
     use crate::System::executable_query::QueryResult;
 
@@ -15,6 +16,7 @@ mod consistency_tests {
             panic!("Not consistency check");
         }
     }
+
     #[test]
     fn testG2() {
         let result = xml_run_query(PATH, "consistency: G2");

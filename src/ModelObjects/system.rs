@@ -1,5 +1,5 @@
 use crate::DBMLib::dbm::{Federation, Zone};
-use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition};
+use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition, DecoratedLocationTuple};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
@@ -54,14 +54,14 @@ impl<'a> UncachedSystem<'a> {
 
     pub fn collect_next_inputs<'b>(
         &'b self,
-        locations: &[DecoratedLocation<'a>],
+        state: &State<'b>,
         action: &str,
-    ) -> Vec<Transition> {
+    ) -> Vec<Transition<'b>> {
         let mut transitions: Vec<Transition<'b>> = vec![];
         let mut index = 0;
 
         self.base_representation.collect_next_transitions(
-            locations,
+            &state.decorated_locations,
             &mut index,
             action,
             &mut transitions,
@@ -144,22 +144,17 @@ impl<'a> UncachedSystem<'a> {
 
     pub fn collect_open_input_transitions<'b>(
         &'b self,
-        sys_decls: &SystemDeclarations,
-        locations: &Vec<DecoratedLocation<'b>>,
-        zone: &Zone,
-    ) -> Vec<(Transition<'b>, (Vec<DecoratedLocation>, Zone))> {
+        sys_decls: & SystemDeclarations,
+        state: &State<'b>,
+    ) -> Vec<(Transition, State)> {
         let mut input_transitions = vec![];
         for input in self.get_input_actions(sys_decls) {
-            let transitions = self.collect_next_inputs(&locations, &input);
-            for transition in transitions {
-                let mut locations_clone = locations.clone();
-                let mut zone_clone = zone.clone();
-                if transition.apply_guards(&locations_clone, &mut zone_clone) {
-                    transition.apply_updates(&locations_clone, &mut zone_clone);
-                    transition.move_locations(&mut locations_clone);
-                    if transition.apply_invariants(&locations_clone, &mut zone_clone) {
-                        input_transitions.push((transition, (locations_clone, zone_clone)));
-                    }
+            let transitions = self.collect_next_inputs(state, &input);
+            for transition in transitions.into_iter() {
+                let mut new_state = state.clone();
+
+                if transition.use_transition(&mut new_state){
+                    input_transitions.push((transition, new_state));
                 }
             }
         }
@@ -170,21 +165,16 @@ impl<'a> UncachedSystem<'a> {
     pub fn collect_open_output_transitions<'b>(
         &'b self,
         sys_decls: &SystemDeclarations,
-        locations: &Vec<DecoratedLocation<'b>>,
-        zone: &Zone,
-    ) -> Vec<(Transition<'b>, (Vec<DecoratedLocation>, Zone))> {
+        state: &State<'b>
+    ) -> Vec<(Transition, State)> {
         let mut output_transitions = vec![];
         for output in self.get_output_actions(sys_decls) {
-            let transitions = self.collect_next_outputs(&locations, &output);
-            for transition in transitions.into_iter() {
-                let mut locations_clone = locations.clone();
-                let mut zone_clone = zone.clone();
-                if transition.apply_guards(&locations_clone, &mut zone_clone) {
-                    transition.apply_updates(&locations_clone, &mut zone_clone);
-                    transition.move_locations(&mut locations_clone);
-                    if transition.apply_invariants(&locations_clone, &mut zone_clone) {
-                        output_transitions.push((transition, (locations_clone, zone_clone)));
-                    }
+            let transitions = self.collect_next_outputs(&state.decorated_locations, &output);
+            for transition in transitions {
+                let mut new_state = state.clone();
+
+                if transition.use_transition(&mut new_state){
+                    output_transitions.push((transition, new_state));
                 }
             }
         }
@@ -192,17 +182,42 @@ impl<'a> UncachedSystem<'a> {
         output_transitions
     }
 
-    pub fn all_reachable_states<F>(
-        &self,
+    pub fn collect_previous_inputs<'b>(
+        &'b self,
+        sys_decls: &SystemDeclarations,
+        state: &State<'b>
+    ) -> Vec<Transition<'b>> {
+        let mut transitions: Vec<Transition<'b>> = vec![];
+        for input in self.get_input_actions(sys_decls) {
+            let mut index = 0;
+    
+            self.base_representation.collect_next_transitions(
+                &state.decorated_locations,
+                &mut index,
+                &input,
+                &mut transitions,
+                &SyncType::Input,
+            );
+        }
+
+        transitions
+    }
+
+    pub fn get_locations(&self) -> Vec<DecoratedLocationTuple> {
+        self.base_representation.get_all_locations()
+    }
+
+    pub fn all_reachable_states<'b, F>(
+        &'b self,
         sys_decls: &SystemDeclarations,
         dim: u32,
         predicate: &mut F,
     ) -> bool
     where
-        F: FnMut((&Vec<DecoratedLocation>, &Zone), Vec<Transition>, Vec<Transition>) -> bool,
+        F: FnMut(&State<'b>, Vec<Transition>, Vec<Transition>) -> bool,
     {
-        let mut passed: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
-        let mut waiting: Vec<(Vec<DecoratedLocation>, Zone)> = vec![];
+        let mut passed: Vec<State> = vec![];
+        let mut waiting: Vec<State> = vec![];
 
         let max_bounds = self.get_max_bounds(dim);
 
@@ -216,32 +231,32 @@ impl<'a> UncachedSystem<'a> {
         }
         zone.extrapolate_max_bounds(&max_bounds);
 
-        waiting.push((init_loc, zone));
+        waiting.push(State::create(init_loc, zone));
 
         while !waiting.is_empty() {
-            let (locations, zone) = waiting.pop().unwrap();
+            let state = waiting.pop().unwrap();
 
-            let mut input_moves = self.collect_open_input_transitions(sys_decls, &locations, &zone);
+            let mut input_moves = self.collect_open_input_transitions(sys_decls, &state);
             let mut output_moves =
-                self.collect_open_output_transitions(sys_decls, &locations, &zone);
+                self.collect_open_output_transitions(sys_decls, &state);
 
-            for (_, (next_locations, next_zone)) in
+            for (_, new_state) in
                 input_moves.iter_mut().chain(output_moves.iter_mut())
             {
-                next_zone.up();
-                for location in next_locations.iter() {
-                    if !location.apply_invariant(next_zone) {
+                new_state.zone.up();
+                for location in state.decorated_locations.iter() {
+                    if !location.apply_invariant(&mut new_state.zone) {
                         panic!("Invariants led to bad zone");
                     }
                 }
-                next_zone.extrapolate_max_bounds(&max_bounds);
+                new_state.zone.extrapolate_max_bounds(&max_bounds);
 
                 //Aggressive cloning can be reduced by changing to a State struct over tuple
-                if !passed.contains(&(next_locations.clone(), next_zone.clone()))
-                    && !waiting.contains(&(next_locations.clone(), next_zone.clone()))
-                    && (&locations, &zone) != (next_locations, next_zone)
+                if !passed.contains(&new_state)
+                    && !waiting.contains(&new_state)
+                    && state != *new_state
                 {
-                    waiting.push((next_locations.clone(), next_zone.clone()));
+                    waiting.push(new_state.clone());
                 }
             }
 
@@ -254,10 +269,10 @@ impl<'a> UncachedSystem<'a> {
                 .map(|(transition, _)| transition)
                 .collect();
 
-            if !predicate((&locations, &zone), input_transitions, output_transitions) {
+            if !predicate(&state, input_transitions, output_transitions) {
                 return false;
             }
-            passed.push((locations, zone));
+            passed.push(state);
         }
 
         true
@@ -267,10 +282,13 @@ impl<'a> UncachedSystem<'a> {
         let dimensions = self.base_representation.get_dimensions();
         let old_offset = self.set_clock_offset(0);
         //Check if local consistency holds for all reachable states
-        let is_consistent =
-            self.all_reachable_states(sys_decls, dimensions, &mut |(_, zone), _, outputs| {
-                !outputs.is_empty() || zone.canDelayIndefinitely()
-            });
+        let is_consistent = self.all_reachable_states(
+            sys_decls,
+            dimensions,
+            &mut |state, _, outputs| {
+                !outputs.is_empty() || state.zone.canDelayIndefinitely()
+            },
+        );
         let is_deterministic = self.all_components_are_deterministic();
 
         self.set_clock_offset(old_offset);
@@ -284,7 +302,7 @@ impl<'a> UncachedSystem<'a> {
         self.all_reachable_states(
             sys_decls,
             dimensions,
-            &mut |(locations, zone), inputs, outputs| {
+            &mut |state, inputs, outputs| {
                 let mut zones: HashMap<&String, Federation> = HashMap::new();
 
                 for input_transition in &inputs {
@@ -293,7 +311,7 @@ impl<'a> UncachedSystem<'a> {
                             .get_mut(input_transition.get_action().unwrap())
                             .unwrap();
                         let guard_fed = input_transition
-                            .get_guard_federation(&locations, zone.dimension)
+                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
                             .unwrap();
 
                         for guard_fed_zone in guard_fed.move_zones() {
@@ -306,7 +324,7 @@ impl<'a> UncachedSystem<'a> {
                         }
                     } else {
                         let guard_fed = input_transition
-                            .get_guard_federation(&locations, zone.dimension)
+                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
                             .unwrap();
                         zones.insert(input_transition.get_action().unwrap(), guard_fed);
                     }
@@ -318,7 +336,7 @@ impl<'a> UncachedSystem<'a> {
                             .get_mut(output_transition.get_action().unwrap())
                             .unwrap();
                         let guard_fed = output_transition
-                            .get_guard_federation(&locations, zone.dimension)
+                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
                             .unwrap();
 
                         for guard_fed_zone in guard_fed.move_zones() {
@@ -331,7 +349,7 @@ impl<'a> UncachedSystem<'a> {
                         }
                     } else {
                         let guard_fed = output_transition
-                            .get_guard_federation(&locations, zone.dimension)
+                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
                             .unwrap();
                         zones.insert(output_transition.get_action().unwrap(), guard_fed);
                     }
