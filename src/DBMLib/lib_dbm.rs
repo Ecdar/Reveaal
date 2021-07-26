@@ -752,7 +752,6 @@ pub fn rs_dbm_down(dbm: &mut [i32], dimension: u32) {
     }
 }
 
-
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm: &mut [i32], dimension: u32) {
     unsafe {

@@ -1,5 +1,7 @@
 use crate::DBMLib::dbm::{Federation, Zone};
-use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition, DecoratedLocationTuple};
+use crate::ModelObjects::component::{
+    DecoratedLocation, DecoratedLocationTuple, State, SyncType, Transition,
+};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
@@ -144,7 +146,7 @@ impl<'a> UncachedSystem<'a> {
 
     pub fn collect_open_input_transitions<'b>(
         &'b self,
-        sys_decls: & SystemDeclarations,
+        sys_decls: &SystemDeclarations,
         state: &State<'b>,
     ) -> Vec<(Transition, State)> {
         let mut input_transitions = vec![];
@@ -153,7 +155,7 @@ impl<'a> UncachedSystem<'a> {
             for transition in transitions.into_iter() {
                 let mut new_state = state.clone();
 
-                if transition.use_transition(&mut new_state){
+                if transition.use_transition(&mut new_state) {
                     input_transitions.push((transition, new_state));
                 }
             }
@@ -165,7 +167,7 @@ impl<'a> UncachedSystem<'a> {
     pub fn collect_open_output_transitions<'b>(
         &'b self,
         sys_decls: &SystemDeclarations,
-        state: &State<'b>
+        state: &State<'b>,
     ) -> Vec<(Transition, State)> {
         let mut output_transitions = vec![];
         for output in self.get_output_actions(sys_decls) {
@@ -173,7 +175,7 @@ impl<'a> UncachedSystem<'a> {
             for transition in transitions {
                 let mut new_state = state.clone();
 
-                if transition.use_transition(&mut new_state){
+                if transition.use_transition(&mut new_state) {
                     output_transitions.push((transition, new_state));
                 }
             }
@@ -185,12 +187,12 @@ impl<'a> UncachedSystem<'a> {
     pub fn collect_previous_inputs<'b>(
         &'b self,
         sys_decls: &SystemDeclarations,
-        state: &State<'b>
+        state: &State<'b>,
     ) -> Vec<Transition<'b>> {
         let mut transitions: Vec<Transition<'b>> = vec![];
         for input in self.get_input_actions(sys_decls) {
             let mut index = 0;
-    
+
             self.base_representation.collect_next_transitions(
                 &state.decorated_locations,
                 &mut index,
@@ -237,12 +239,9 @@ impl<'a> UncachedSystem<'a> {
             let state = waiting.pop().unwrap();
 
             let mut input_moves = self.collect_open_input_transitions(sys_decls, &state);
-            let mut output_moves =
-                self.collect_open_output_transitions(sys_decls, &state);
+            let mut output_moves = self.collect_open_output_transitions(sys_decls, &state);
 
-            for (_, new_state) in
-                input_moves.iter_mut().chain(output_moves.iter_mut())
-            {
+            for (_, new_state) in input_moves.iter_mut().chain(output_moves.iter_mut()) {
                 new_state.zone.up();
                 for location in state.decorated_locations.iter() {
                     if !location.apply_invariant(&mut new_state.zone) {
@@ -282,13 +281,10 @@ impl<'a> UncachedSystem<'a> {
         let dimensions = self.base_representation.get_dimensions();
         let old_offset = self.set_clock_offset(0);
         //Check if local consistency holds for all reachable states
-        let is_consistent = self.all_reachable_states(
-            sys_decls,
-            dimensions,
-            &mut |state, _, outputs| {
+        let is_consistent =
+            self.all_reachable_states(sys_decls, dimensions, &mut |state, _, outputs| {
                 !outputs.is_empty() || state.zone.canDelayIndefinitely()
-            },
-        );
+            });
         let is_deterministic = self.all_components_are_deterministic();
 
         self.set_clock_offset(old_offset);
@@ -299,65 +295,61 @@ impl<'a> UncachedSystem<'a> {
     pub fn check_determinism(&self, sys_decls: &SystemDeclarations) -> bool {
         let dimensions = self.base_representation.get_dimensions();
 
-        self.all_reachable_states(
-            sys_decls,
-            dimensions,
-            &mut |state, inputs, outputs| {
-                let mut zones: HashMap<&String, Federation> = HashMap::new();
+        self.all_reachable_states(sys_decls, dimensions, &mut |state, inputs, outputs| {
+            let mut zones: HashMap<&String, Federation> = HashMap::new();
 
-                for input_transition in &inputs {
-                    if zones.contains_key(input_transition.get_action().unwrap()) {
-                        let fed = zones
-                            .get_mut(input_transition.get_action().unwrap())
-                            .unwrap();
-                        let guard_fed = input_transition
-                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
-                            .unwrap();
+            for input_transition in &inputs {
+                if zones.contains_key(input_transition.get_action().unwrap()) {
+                    let fed = zones
+                        .get_mut(input_transition.get_action().unwrap())
+                        .unwrap();
+                    let guard_fed = input_transition
+                        .get_guard_federation(&state.decorated_locations, state.zone.dimension)
+                        .unwrap();
 
-                        for guard_fed_zone in guard_fed.move_zones() {
-                            for fed_zone in fed.iter_zones() {
-                                if guard_fed_zone.clone().intersection(fed_zone) {
-                                    return false;
-                                }
+                    for guard_fed_zone in guard_fed.move_zones() {
+                        for fed_zone in fed.iter_zones() {
+                            if guard_fed_zone.clone().intersection(fed_zone) {
+                                return false;
                             }
-                            fed.add(guard_fed_zone);
                         }
-                    } else {
-                        let guard_fed = input_transition
-                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
-                            .unwrap();
-                        zones.insert(input_transition.get_action().unwrap(), guard_fed);
+                        fed.add(guard_fed_zone);
                     }
+                } else {
+                    let guard_fed = input_transition
+                        .get_guard_federation(&state.decorated_locations, state.zone.dimension)
+                        .unwrap();
+                    zones.insert(input_transition.get_action().unwrap(), guard_fed);
                 }
+            }
 
-                for output_transition in &outputs {
-                    if zones.contains_key(output_transition.get_action().unwrap()) {
-                        let fed = zones
-                            .get_mut(output_transition.get_action().unwrap())
-                            .unwrap();
-                        let guard_fed = output_transition
-                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
-                            .unwrap();
+            for output_transition in &outputs {
+                if zones.contains_key(output_transition.get_action().unwrap()) {
+                    let fed = zones
+                        .get_mut(output_transition.get_action().unwrap())
+                        .unwrap();
+                    let guard_fed = output_transition
+                        .get_guard_federation(&state.decorated_locations, state.zone.dimension)
+                        .unwrap();
 
-                        for guard_fed_zone in guard_fed.move_zones() {
-                            for fed_zone in fed.iter_zones() {
-                                if guard_fed_zone.clone().intersection(fed_zone) {
-                                    return false;
-                                }
+                    for guard_fed_zone in guard_fed.move_zones() {
+                        for fed_zone in fed.iter_zones() {
+                            if guard_fed_zone.clone().intersection(fed_zone) {
+                                return false;
                             }
-                            fed.add(guard_fed_zone);
                         }
-                    } else {
-                        let guard_fed = output_transition
-                            .get_guard_federation(&state.decorated_locations, state.zone.dimension)
-                            .unwrap();
-                        zones.insert(output_transition.get_action().unwrap(), guard_fed);
+                        fed.add(guard_fed_zone);
                     }
+                } else {
+                    let guard_fed = output_transition
+                        .get_guard_federation(&state.decorated_locations, state.zone.dimension)
+                        .unwrap();
+                    zones.insert(output_transition.get_action().unwrap(), guard_fed);
                 }
+            }
 
-                true
-            },
-        )
+            true
+        })
     }
 
     //Sets a new clock offset and returns the old one

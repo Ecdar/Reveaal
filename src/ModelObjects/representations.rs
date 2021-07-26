@@ -28,50 +28,48 @@ impl BoolExpression {
     pub fn contains_max_bound(&self) -> bool {
         match self {
             BoolExpression::AndOp(left, right) => {
-                left.contains_max_bound() ||
-                right.contains_max_bound()
+                left.contains_max_bound() || right.contains_max_bound()
             }
             BoolExpression::OrOp(left, right) => {
-                left.contains_max_bound() ||
-                right.contains_max_bound()
+                left.contains_max_bound() || right.contains_max_bound()
             }
             BoolExpression::Parentheses(expr) => expr.contains_max_bound(),
             BoolExpression::GreatEQ(left, right) => {
-                if let BoolExpression::Clock(_) = right.as_ref(){
+                if let BoolExpression::Clock(_) = right.as_ref() {
                     true
-                }else if let BoolExpression::VarName(_) = right.as_ref(){
+                } else if let BoolExpression::VarName(_) = right.as_ref() {
                     true
-                }else{
+                } else {
                     false
                 }
-            },
+            }
             BoolExpression::LessEQ(left, right) => {
-                if let BoolExpression::Clock(_) = left.as_ref(){
+                if let BoolExpression::Clock(_) = left.as_ref() {
                     true
-                }else if let BoolExpression::VarName(_) = left.as_ref(){
+                } else if let BoolExpression::VarName(_) = left.as_ref() {
                     true
-                }else{
+                } else {
                     false
                 }
-            },
+            }
             BoolExpression::LessT(left, right) => {
-                if let BoolExpression::Clock(_) = left.as_ref(){
+                if let BoolExpression::Clock(_) = left.as_ref() {
                     true
-                }else if let BoolExpression::VarName(_) = left.as_ref(){
+                } else if let BoolExpression::VarName(_) = left.as_ref() {
                     true
-                }else{
+                } else {
                     false
                 }
-            },
+            }
             BoolExpression::GreatT(left, right) => {
-                if let BoolExpression::Clock(_) = right.as_ref(){
+                if let BoolExpression::Clock(_) = right.as_ref() {
                     true
-                }else if let BoolExpression::VarName(_) = right.as_ref(){
+                } else if let BoolExpression::VarName(_) = right.as_ref() {
                     true
-                }else{
+                } else {
                     false
                 }
-            },
+            }
             _ => false,
         }
     }
