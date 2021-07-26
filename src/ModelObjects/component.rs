@@ -392,7 +392,11 @@ impl Component {
                     .get_invariant()
                 {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)
+                        constraint_applyer::apply_constraints_to_state2(
+                            source_inv,
+                            &mut new_state,
+                            0,
+                        )
                     {
                         continue;
                     };
@@ -414,7 +418,7 @@ impl Component {
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state,0);
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
                 }
 
                 if !new_state.zone.is_valid() {
@@ -504,7 +508,7 @@ impl Component {
                                 constraint_applyer::apply_constraints_to_state2(
                                     guard,
                                     &mut new_state,
-                                    0
+                                    0,
                                 )
                             {
                             } else {
@@ -627,9 +631,7 @@ fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> 
     assert_eq!(state.decorated_locations.len(), 1);
 
     for passed_state_pair in passed_list {
-        if state.get_location(0).get_id()
-            != passed_state_pair.get_location(0).get_id()
-        {
+        if state.get_location(0).get_id() != passed_state_pair.get_location(0).get_id() {
             continue;
         }
         if state.zone.dimension != passed_state_pair.zone.dimension {
@@ -670,30 +672,33 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub fn create(decorated_locations: DecoratedLocationTuple<'a>, zone: Zone) -> Self{
-        State{
+    pub fn create(decorated_locations: DecoratedLocationTuple<'a>, zone: Zone) -> Self {
+        State {
             decorated_locations,
             zone,
         }
     }
 
-    pub fn from_location(decorated_locations: DecoratedLocationTuple<'a>, dimensions: u32) -> Option<Self>{
+    pub fn from_location(
+        decorated_locations: DecoratedLocationTuple<'a>,
+        dimensions: u32,
+    ) -> Option<Self> {
         let mut zone = Zone::init(dimensions);
 
         for location in &decorated_locations {
-            if !location.apply_invariant(&mut zone){
+            if !location.apply_invariant(&mut zone) {
                 return None;
             }
         }
 
-        Some(State{
+        Some(State {
             decorated_locations,
             zone,
         })
     }
 
     pub fn is_subset_of(&self, other: &Self) -> bool {
-        if self.decorated_locations != other.decorated_locations{
+        if self.decorated_locations != other.decorated_locations {
             return false;
         }
 
@@ -763,7 +768,7 @@ pub struct Transition<'a> {
     pub edges: Vec<(&'a ComponentView<'a>, &'a Edge, usize)>,
 }
 impl<'a> Transition<'a> {
-    pub fn use_transition(&self, state: &mut State<'a>) -> bool{
+    pub fn use_transition(&self, state: &mut State<'a>) -> bool {
         if self.apply_guards(&state.decorated_locations, &mut state.zone) {
             self.apply_updates(&state.decorated_locations, &mut state.zone);
             self.move_locations(&mut state.decorated_locations);
