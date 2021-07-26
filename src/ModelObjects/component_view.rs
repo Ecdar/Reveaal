@@ -13,13 +13,23 @@ pub struct ComponentView<'a> {
 impl<'a> ComponentView<'a> {
     pub fn create(component: &'a Component, clock_index_offset: u32) -> Self {
         let mut declarations = component.get_declarations().clone();
-        declarations.update_clock_indices(clock_index_offset);
+        declarations.set_clock_indices(clock_index_offset);
 
         ComponentView {
             component,
             declarations,
             clock_index_offset,
         }
+    }
+
+    pub fn set_clock_offset(&mut self, new_offset: u32) {
+        self.declarations
+            .update_clock_indices(new_offset, self.clock_index_offset);
+        self.clock_index_offset = new_offset;
+    }
+
+    pub fn get_clock_offset(&self) -> u32 {
+        self.clock_index_offset
     }
 
     pub fn get_component(&self) -> &'a Component {
