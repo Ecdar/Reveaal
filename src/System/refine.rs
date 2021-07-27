@@ -4,13 +4,12 @@ use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system::{System, UncachedSystem};
-use crate::ModelObjects::system_declarations;
-use std::{collections::HashSet, hash::Hash};
+use crate::ModelObjects::system_declarations::SystemDeclarations;
 
 pub fn check_refinement(
-    mut sys1: UncachedSystem,
-    mut sys2: UncachedSystem,
-    sys_decls: &system_declarations::SystemDeclarations,
+    sys1: UncachedSystem,
+    sys2: UncachedSystem,
+    sys_decls: &SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
@@ -20,7 +19,7 @@ pub fn check_refinement(
     let sys2 = UncachedSystem::cache(sys2, dimensions, sys_decls);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone()) {
+    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), dimensions, sys_decls) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
@@ -291,8 +290,15 @@ fn prepare_init_state(
     }
 }
 
-fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
-    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
+fn check_preconditions(
+    sys1: &mut System,
+    sys2: &mut System,
+    dimensions: u32,
+    sys_decls: &SystemDeclarations,
+) -> bool {
+    if !(sys2.precheck_sys_rep(dimensions, sys_decls)
+        && sys1.precheck_sys_rep(dimensions, sys_decls))
+    {
         return false;
     }
     let outputs1 = sys1.get_output_actions();

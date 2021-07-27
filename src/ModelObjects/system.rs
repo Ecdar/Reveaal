@@ -1,9 +1,10 @@
 use crate::DBMLib::dbm::Zone;
-use crate::ModelObjects::component::{DecoratedLocation, SyncType, Transition, State};
+use crate::ModelObjects::component::{DecoratedLocation, State, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::local_consistency;
 use std::cell::RefCell;
 use std::collections::HashSet;
 
@@ -60,7 +61,7 @@ impl<'a> UncachedSystem<'a> {
 
         State {
             decorated_locations: init_loc,
-            zone
+            zone,
         }
     }
 
@@ -68,12 +69,12 @@ impl<'a> UncachedSystem<'a> {
         self.base_representation.get_max_bounds(dimensions)
     }
 
-    pub fn collect_next_inputs<'b>(
-        &'b self,
-        locations: &[DecoratedLocation<'a>],
+    pub fn collect_next_inputs(
+        &self,
+        locations: &[DecoratedLocation],
         action: &str,
     ) -> Vec<Transition> {
-        let mut transitions: Vec<Transition<'b>> = vec![];
+        let mut transitions: Vec<Transition> = vec![];
         let mut index = 0;
 
         self.base_representation.collect_next_transitions(
@@ -87,12 +88,12 @@ impl<'a> UncachedSystem<'a> {
         transitions
     }
 
-    pub fn collect_next_outputs<'b>(
-        &'b self,
-        locations: &[DecoratedLocation<'a>],
+    pub fn collect_next_outputs(
+        &self,
+        locations: &[DecoratedLocation],
         action: &str,
     ) -> Vec<Transition> {
-        let mut transitions: Vec<Transition<'b>> = vec![];
+        let mut transitions: Vec<Transition> = vec![];
         let mut index = 0;
 
         self.base_representation.collect_next_transitions(
@@ -149,13 +150,26 @@ impl<'a> UncachedSystem<'a> {
         clocks
     }
 
-    pub fn precheck_sys_rep(&self) -> bool {
-        self.base_representation.precheck_sys_rep()
-    }
-
     pub fn all_components_are_deterministic(&self) -> bool {
         self.base_representation
             .all_components(&mut |comp| comp.get_component().is_deterministic())
+    }
+
+    pub fn precheck_sys_rep(&self, dimensions: u32, sys_decls: &SystemDeclarations) -> bool {
+        if !self.all_components_are_deterministic() {
+            println!("NOT DETERMINISTIC");
+            return false;
+        }
+
+        if !self
+            .base_representation
+            .consistency_check(dimensions, sys_decls)
+        {
+            println!("NOT LOCALLY CONSISTENT");
+            return false;
+        }
+
+        true
     }
 }
 
@@ -182,16 +196,29 @@ impl<'a> System<'a> {
         UncachedSystem::cache(system, dimensions, sys_decls)
     }
 
-    pub fn precheck_sys_rep(&self) -> bool {
-        self.base_representation.precheck_sys_rep()
+    pub fn precheck_sys_rep(&self, dimensions: u32, sys_decls: &SystemDeclarations) -> bool {
+        if !self.all_components_are_deterministic() {
+            println!("NOT DETERMINISTIC");
+            return false;
+        }
+
+        if !self
+            .base_representation
+            .consistency_check(dimensions, sys_decls)
+        {
+            println!("NOT LOCALLY CONSISTENT");
+            return false;
+        }
+
+        true
     }
 
-    pub fn collect_next_inputs<'b>(
-        &'b self,
-        locations: &[DecoratedLocation<'a>],
+    pub fn collect_next_inputs(
+        &self,
+        locations: &[DecoratedLocation],
         action: &str,
     ) -> Vec<Transition> {
-        let mut transitions: Vec<Transition<'b>> = vec![];
+        let mut transitions: Vec<Transition> = vec![];
         let mut index = 0;
 
         self.base_representation.collect_next_transitions(
@@ -205,12 +232,12 @@ impl<'a> System<'a> {
         transitions
     }
 
-    pub fn collect_next_outputs<'b>(
-        &'b self,
-        locations: &[DecoratedLocation<'a>],
+    pub fn collect_next_outputs(
+        &self,
+        locations: &[DecoratedLocation],
         action: &str,
     ) -> Vec<Transition> {
-        let mut transitions: Vec<Transition<'b>> = vec![];
+        let mut transitions: Vec<Transition> = vec![];
         let mut index = 0;
 
         self.base_representation.collect_next_transitions(
@@ -222,6 +249,34 @@ impl<'a> System<'a> {
         );
 
         transitions
+    }
+
+    pub fn create_initial_state(&self, dimensions: u32) -> State {
+        let init_loc = self.base_representation.get_initial_locations();
+        let mut zone = Zone::init(dimensions);
+        for loc in &init_loc {
+            if !loc.apply_invariant(&mut zone) {
+                panic!("Invalid initial state");
+            }
+        }
+
+        State {
+            decorated_locations: init_loc,
+            zone,
+        }
+    }
+
+    pub fn get_clock_count(&self) -> u32 {
+        let mut clocks = 0;
+
+        self.base_representation
+            .all_components(&mut |comp_view: &ComponentView| {
+                clocks += comp_view.clock_count() as u32;
+
+                true
+            });
+
+        clocks
     }
 
     pub fn move_represetation(self) -> SystemRepresentation<'a> {
@@ -245,5 +300,10 @@ impl<'a> System<'a> {
             .borrow_mut()
             .get_or_insert_with(|| self.base_representation.get_initial_locations())
             .clone()
+    }
+
+    pub fn all_components_are_deterministic(&self) -> bool {
+        self.base_representation
+            .all_components(&mut |comp| comp.get_component().is_deterministic())
     }
 }

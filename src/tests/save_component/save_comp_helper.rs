@@ -39,7 +39,20 @@ pub mod save_comp_helper {
             ComponentView::create(&new_comp, clock_index),
         ));
 
-        assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
-        assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
+        let dimensions = 1 + new_system.get_clock_count() + base_system.get_clock_count();
+
+        let base_precheck = base_system.precheck_sys_rep(dimensions, &decl);
+        let new_precheck = new_system.precheck_sys_rep(dimensions, &decl);
+        assert_eq!(base_precheck, new_precheck);
+
+        //Only do refinement check if both pass precheck
+        if base_precheck && new_precheck {
+            assert!(
+                refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap()
+            );
+            assert!(
+                refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap()
+            );
+        }
     }
 }

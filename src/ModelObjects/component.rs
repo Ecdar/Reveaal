@@ -845,13 +845,19 @@ impl<'a> Transition<'a> {
                     location: target_location,
                     component: *comp,
                 };
-                dec_loc.apply_invariant(&mut guard_zone);
+                if !dec_loc.apply_invariant(&mut guard_zone) {
+                    println!("Caught bitchy 2 botches");
+                    continue;
+                }
             }
             for clock in edge.get_update_clocks() {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
                 guard_zone.free_clock(*(clock_index.unwrap()));
             }
-            edge.apply_guard(&locations[*index], &mut guard_zone);
+            if !edge.apply_guard(&locations[*index], &mut guard_zone) {
+                println!("Caught bitchy botch");
+                continue;
+            }
             let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
             let mut inverse = full_fed.minus_fed(&Federation::new(vec![guard_zone], dim));
             fed = fed.minus_fed(&inverse);

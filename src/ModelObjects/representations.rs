@@ -1,7 +1,9 @@
 use crate::ModelObjects::component::{DecoratedLocation, Location, SyncType, Transition};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::system::System;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::System::local_consistency;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -323,7 +325,7 @@ impl<'a> SystemRepresentation<'a> {
 
     pub fn collect_next_transitions<'b>(
         &'b self,
-        locations: &[DecoratedLocation<'a>],
+        locations: &[DecoratedLocation],
         index: &mut usize,
         action: &str,
         open_transitions: &mut Vec<Transition<'b>>,
@@ -553,9 +555,18 @@ impl<'a> SystemRepresentation<'a> {
         location_tuples
     }
 
-    pub fn precheck_sys_rep(&self) -> bool {
-        self.all_components(&mut |comp_view: &ComponentView| -> bool {
-            comp_view.get_component().check_consistency(true)
-        })
+    pub fn consistency_check(&self, dimensions: u32, sys_decls: &SystemDeclarations) -> bool {
+        //Optimize by consistency checking compositions individually
+        //Based on: If Left and Right are consistent in a system Left || Right = C then C is also consistent
+        if let SystemRepresentation::Composition(left, right) = self {
+            left.consistency_check(dimensions, sys_decls)
+                && right.consistency_check(dimensions, sys_decls)
+        } else {
+            local_consistency::is_least_consistent(&System::create(
+                self.clone(),
+                dimensions,
+                sys_decls,
+            ))
+        }
     }
 }
