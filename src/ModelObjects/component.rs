@@ -127,6 +127,9 @@ impl Component {
         let mut actions = vec![];
         for edge in self.input_edges.as_ref().unwrap() {
             if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
+                if edge.get_sync() == "*" {
+                    continue;
+                };
                 actions.push(Channel {
                     name: edge.get_sync().clone(),
                 });
@@ -139,6 +142,9 @@ impl Component {
         let mut actions = vec![];
         for edge in self.output_edges.as_ref().unwrap() {
             if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
+                if edge.get_sync() == "*" {
+                    continue;
+                };
                 actions.push(Channel {
                     name: edge.get_sync().clone(),
                 });
