@@ -60,23 +60,25 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     }
 }
 
-pub struct ConsistencyExecutor<'a> {
-    pub system: UncachedSystem<'a>,
+pub struct ConsistencyExecutor {
+    pub system: Box<dyn TransitionSystem<'static>>,
 }
 
-impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
+impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.precheck_sys_rep())
+        let dim = self.system.get_num_clocks() + 1;
+        QueryResult::Consistency(self.system.precheck_sys_rep(dim))
     }
 }
 
-pub struct DeterminismExecutor<'a> {
-    pub system: UncachedSystem<'a>,
+pub struct DeterminismExecutor {
+    pub system: Box<dyn TransitionSystem<'static>>,
 }
 
-impl<'a> ExecutableQuery for DeterminismExecutor<'a> {
+impl<'a> ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        let is_deterministic = self.system.all_components_are_deterministic();
+        let dim = self.system.get_num_clocks() + 1;
+        let is_deterministic = self.system.is_deterministic(dim);
 
         QueryResult::Determinism(is_deterministic)
     }

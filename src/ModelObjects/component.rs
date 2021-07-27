@@ -246,8 +246,8 @@ impl Component {
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
-    pub fn check_consistency(&self, prune: bool) -> bool {
-        if !self.is_deterministic() {
+    pub fn check_consistency(&self, dim: u32, prune: bool) -> bool {
+        if !self.is_deterministic(dim) {
             println!("NOT DETERMINISTIC");
             return false;
         }
@@ -258,10 +258,10 @@ impl Component {
 
         let initial_location = DecoratedLocation {
             location: initial_loc,
-            component: self,
+            decls: &self.declarations,
         };
 
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        let dimension = dim;
 
         let zone = Zone::init(dimension);
 
@@ -462,7 +462,7 @@ impl Component {
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
-    pub fn is_deterministic(&self) -> bool {
+    pub fn is_deterministic(&self, dim: u32) -> bool {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
@@ -473,7 +473,7 @@ impl Component {
             decls: &self.declarations,
         };
 
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        let dimension = dim;
 
         let mut state = create_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 

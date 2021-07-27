@@ -15,12 +15,12 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
-    let dimensions = 1 + sys1.get_clock_count() + sys2.get_clock_count();
-    let sys1 = UncachedSystem::cache(sys1, dimensions, sys_decls);
-    let sys2 = UncachedSystem::cache(sys2, dimensions, sys_decls);
+    let dimensions = 1 + sys1.get_num_clocks() + sys2.get_num_clocks();
+    sys1.initialize(dimensions);
+    sys2.initialize(dimensions);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone()) {
+    if !check_preconditions(&sys1, &sys2, dimensions) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }

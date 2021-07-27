@@ -1,7 +1,9 @@
 macro_rules! default_composition {
     () => {
-        fn get_max_bounds(&self) -> MaxBounds {
-            panic!("Not implemented");
+        fn get_max_bounds(&self, dim: u32) -> MaxBounds {
+            let mut bounds = self.left.get_max_bounds(dim);
+            bounds.add_bounds(&self.right.get_max_bounds(dim));
+            bounds
         }
         fn get_input_actions(&self) -> HashSet<String> {
             self.inputs.clone()
@@ -28,6 +30,26 @@ macro_rules! default_composition {
                 }
             }
             location_tuples
+        }
+
+        fn get_components<'b>(&'b self) -> Vec<&'b Component> {
+            let mut comps = self.left.get_components();
+            comps.extend(self.right.get_components());
+            comps
+        }
+
+        fn update_clock_indices(&mut self, index: &mut u32) {
+            self.left.update_clock_indices(index);
+            self.right.update_clock_indices(index);
+        }
+
+        fn precheck_sys_rep(&self, dim: u32) -> bool {
+            //TODO: this is wrong as conjunction is not necessarily consistent
+            self.left.precheck_sys_rep(dim) && self.right.precheck_sys_rep(dim)
+        }
+
+        fn is_deterministic(&self, dim: u32) -> bool {
+            self.left.is_deterministic(dim) && self.right.is_deterministic(dim)
         }
     };
 }

@@ -99,6 +99,19 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_num_clocks(&self) -> u32;
 
+    fn get_components<'b>(&'b self) -> Vec<&'b Component>;
+
+    fn precheck_sys_rep(&self, dim: u32) -> bool;
+
+    fn initialize(&mut self, dimensions: u32) {}
+
+    fn is_deterministic(&self, dim: u32) -> bool;
+
+    fn update_clock_indices(&mut self, index: &mut u32);
+    /*fn all_components<'b, F>(&'b self, func: &mut F)
+    where
+        F: FnMut(&'b Component) -> ();*/
+
     //I think this should be implemented elsewhere
     //fn check_consistency(&self) -> bool;
 }
@@ -106,8 +119,18 @@ pub trait TransitionSystem<'a>: DynClone {
 clone_trait_object!(TransitionSystem<'static>);
 
 impl TransitionSystem<'_> for Component {
-    fn get_max_bounds(&self) -> MaxBounds {
-        self.get_max_bounds(self.get_num_clocks())
+    fn update_clock_indices(&mut self, index: &mut u32) {
+        self.declarations.update_clock_indices(*index);
+
+        *index += self.get_num_clocks();
+    }
+
+    fn get_components<'b>(&'b self) -> Vec<&'b Component> {
+        vec![self]
+    }
+
+    fn get_max_bounds(&self, dim: u32) -> MaxBounds {
+        self.get_max_bounds(dim)
     }
 
     fn get_input_actions(&self) -> HashSet<String> {
@@ -157,5 +180,13 @@ impl TransitionSystem<'_> for Component {
         *index += 1;
 
         open_transitions
+    }
+
+    fn precheck_sys_rep(&self, dim: u32) -> bool {
+        self.check_consistency(dim, true)
+    }
+
+    fn is_deterministic(&self, dim: u32) -> bool {
+        Component::is_deterministic(self, dim)
     }
 }
