@@ -6,15 +6,13 @@ use crate::ModelObjects::representations::BoolExpression;
 /// Used to handle update expressions on edges
 pub fn updater(
     updates: &[parse_edge::Update],
-    state: &mut component::DecoratedLocation,
+    decl: &component::Declarations, //Will eventually be mutable
     zone: &mut Zone,
 ) {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
-                if let Some(&clock_index) = state
-                    .get_declarations()
-                    .get_clock_index_by_name(update.get_variable_name())
+                if let Some(&clock_index) = decl.get_clock_index_by_name(update.get_variable_name())
                 {
                     zone.update(clock_index, *val);
                 } else {

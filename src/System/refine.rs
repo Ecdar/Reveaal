@@ -28,16 +28,13 @@ pub fn check_refinement(
     let inputs = sys2.get_input_actions();
     let outputs = sys1.get_output_actions();
 
-    let initial_locations_1 = sys1.get_initial_locations();
-    let initial_locations_2 = sys2.get_initial_locations();
+    let initial_locations_1 = sys1.get_initial_location();
+    let initial_locations_2 = sys2.get_initial_location();
 
-    let mut initial_pair =
-        StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
-    assert_eq!(dimensions, initial_pair.zone.dimension);
-    prepare_init_state(
-        &mut initial_pair,
-        &initial_locations_1,
-        &initial_locations_2,
+    let mut initial_pair = StatePair::create(
+        dimensions,
+        initial_locations_1.clone(),
+        initial_locations_2.clone(),
     );
     let mut max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
     initial_pair.zone.extrapolate_max_bounds(&mut max_bounds);
@@ -195,12 +192,15 @@ fn build_state_pair<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    max_bounds: &mut MaxBounds,
+    max_bounds: &MaxBounds,
     is_state1: bool,
 ) -> bool {
     //Creates new state pair
-    let mut new_sp: StatePair =
-        StatePair::create(curr_pair.locations1.clone(), curr_pair.locations2.clone());
+    let mut new_sp: StatePair = StatePair::create(
+        curr_pair.get_dimensions(),
+        curr_pair.locations1.clone(),
+        curr_pair.locations2.clone(),
+    );
     //Creates DBM for that state pair
     let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
@@ -230,10 +230,10 @@ fn build_state_pair<'a>(
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
-    let inv_success1 = transition1.apply_invariants(locations1, &mut new_sp_zone);
+    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone);
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = transition2.apply_invariants(locations2, &mut invariant_test);
+    let inv_success2 = locations2.apply_invariants(&mut invariant_test);
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
@@ -263,13 +263,13 @@ fn build_state_pair<'a>(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_locations_1: &[DecoratedLocation],
-    initial_locations_2: &[DecoratedLocation],
+    initial_locations_1: LocationTuple,
+    initial_locations_2: LocationTuple,
 ) {
-    for location in initial_locations_1 {
-        let init_inv1 = location.get_location().get_invariant();
+    for (location, decl) in initial_locations_1.iter_zipped() {
+        let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
         } else {
             true
         };
@@ -278,10 +278,10 @@ fn prepare_init_state(
         }
     }
 
-    for location in initial_locations_2 {
-        let init_inv2 = location.get_location().get_invariant();
+    for (location, decl) in initial_locations_2.iter_zipped() {
+        let init_inv2 = location.get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
         } else {
             true
         };
@@ -330,28 +330,24 @@ fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
-        if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
+        /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")
         }
         if passed_state_pair.get_locations2().len() != state_pair.get_locations2().len() {
             panic!("state vectors should always have same length")
-        }
+        }*/
 
         for i in 0..passed_state_pair.get_locations1().len() {
-            if passed_state_pair.get_locations1()[i]
-                .get_location()
-                .get_id()
-                != state_pair.get_locations1()[i].get_location().get_id()
+            if passed_state_pair.get_locations1().get_location(i).get_id()
+                != state_pair.get_locations1().get_location(i).get_id()
             {
                 continue 'OuterFor;
             }
         }
 
         for i in 0..passed_state_pair.get_locations2().len() {
-            if passed_state_pair.get_locations2()[i]
-                .get_location()
-                .get_id()
-                != state_pair.get_locations2()[i].get_location().get_id()
+            if passed_state_pair.get_locations2().get_location(i).get_id()
+                != state_pair.get_locations2().get_location(i).get_id()
             {
                 continue 'OuterFor;
             }

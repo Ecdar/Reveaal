@@ -4,11 +4,10 @@ use crate::ModelObjects::representations::BoolExpression;
 
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
-    location: &component::DecoratedLocation,
+    decls: &component::Declarations,
     zone: &mut Zone,
 ) -> bool {
-    if let BoolExpression::Bool(val) =
-        apply_constraints_to_state_helper(guard, location.get_declarations(), zone, true).0
+    if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, decls, zone, true).0
     {
         val
     } else {

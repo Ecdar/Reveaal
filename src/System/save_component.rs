@@ -35,17 +35,17 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
     }
 }
 
-fn get_locations_from_tuples(location_tuples: &Vec<Vec<DecoratedLocation>>) -> Vec<Location> {
+fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Location> {
     location_tuples
         .iter()
         .cloned()
         .map(|loc_vec| {
             let is_initial = loc_vec
                 .iter()
-                .all(|loc| loc.location.location_type == LocationType::Initial);
+                .all(|loc| loc.location_type == LocationType::Initial);
             let mut invariant: Option<BoolExpression> = None;
             for (comp_id, loc) in loc_vec.iter().enumerate() {
-                if let Some(inv) = &loc.location.invariant {
+                if let Some(inv) = &loc.invariant {
                     let mut inv = inv.clone();
                     inv.add_component_id_to_vars(comp_id);
                     if let Some(inv_full) = invariant {
@@ -57,7 +57,7 @@ fn get_locations_from_tuples(location_tuples: &Vec<Vec<DecoratedLocation>>) -> V
             }
 
             Location {
-                id: location_pair_name(&loc_vec),
+                id: loc_vec.to_string(),
                 invariant,
                 location_type: if is_initial {
                     LocationType::Initial
@@ -100,8 +100,8 @@ fn collect_all_edges_and_locations<'a>(
 }
 
 fn collect_edges_from_location<'a>(
-    location: &Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: &LocationTuple<'a>,
+    representation: &Box<dyn TransitionSystem<'static>>,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
 ) {
@@ -110,8 +110,8 @@ fn collect_edges_from_location<'a>(
 }
 
 fn collect_specific_edges_from_location<'a>(
-    location: &Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: &LocationTuple<'a>,
+    representation: &Box<dyn TransitionSystem<'static>>,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
     input: bool,
@@ -137,8 +137,8 @@ fn collect_specific_edges_from_location<'a>(
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
             let edge = Edge {
-                source_location: location_pair_name(location),
-                target_location: location_pair_name(&target_location),
+                source_location: location.to_string(),
+                target_location: target_location.to_string(),
                 sync_type: if input {
                     SyncType::Input
                 } else {
@@ -154,10 +154,10 @@ fn collect_specific_edges_from_location<'a>(
 }
 
 fn get_pruned_edges_from_locations<'a>(
-    location: Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: LocationTuple<'a>,
+    representation: &'a Box<dyn TransitionSystem<'static>>,
     decl: &SystemDeclarations,
-    passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
 ) {
     if passed_list.contains(&location) {
@@ -184,10 +184,10 @@ fn get_pruned_edges_from_locations<'a>(
 }
 
 fn get_pruned_specific_edges_from_locations<'a>(
-    location: Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: LocationTuple<'a>,
+    representation: &'a Box<dyn TransitionSystem<'static>>,
     decl: &SystemDeclarations,
-    passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
     input: bool,
 ) {
@@ -212,8 +212,8 @@ fn get_pruned_specific_edges_from_locations<'a>(
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
             let edge = Edge {
-                source_location: location_pair_name(&location),
-                target_location: location_pair_name(&target_location),
+                source_location: location.to_string(),
+                target_location: target_location.to_string(),
                 sync_type: if input {
                     SyncType::Input
                 } else {
@@ -234,17 +234,4 @@ fn get_pruned_specific_edges_from_locations<'a>(
             );
         }
     }
-}
-
-fn location_pair_name(locations: &Vec<DecoratedLocation>) -> String {
-    let len = locations.len();
-
-    let mut result = "(".to_string();
-    for i in 0..len - 1 {
-        let name = locations.get(i).unwrap().get_location().get_id();
-        result.push_str(&format!("{},", name));
-    }
-    let name = locations.get(len - 1).unwrap().get_location().get_id();
-    result.push_str(&format!("{})", name));
-    result
 }
