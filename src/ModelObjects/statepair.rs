@@ -1,6 +1,6 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
@@ -61,8 +61,8 @@ impl<'b> StatePair<'b> {
 
     pub fn calculate_max_bound(
         &mut self,
-        sys1: &Box<dyn TransitionSystem<'static>>,
-        sys2: &Box<dyn TransitionSystem<'static>>,
+        sys1: &TransitionSystemPtr,
+        sys2: &TransitionSystemPtr,
     ) -> MaxBounds {
         let dim = self.zone.dimension;
 

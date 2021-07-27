@@ -3,7 +3,7 @@ use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
-use crate::TransitionSystems::TransitionSystem;
+use crate::TransitionSystems::TransitionSystemPtr;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -18,8 +18,8 @@ pub trait ExecutableQuery {
 }
 
 pub struct RefinementExecutor {
-    pub sys1: Box<dyn TransitionSystem<'static>>,
-    pub sys2: Box<dyn TransitionSystem<'static>>,
+    pub sys1: TransitionSystemPtr,
+    pub sys2: TransitionSystemPtr,
     pub decls: SystemDeclarations,
 }
 
@@ -44,7 +44,7 @@ impl ExecutableQuery for RefinementExecutor {
 }
 
 pub struct GetComponentExecutor {
-    pub system: Box<dyn TransitionSystem<'static>>,
+    pub system: TransitionSystemPtr,
     pub comp_name: String,
     pub decls: SystemDeclarations,
 }
@@ -61,7 +61,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor {
 }
 
 pub struct ConsistencyExecutor {
-    pub system: Box<dyn TransitionSystem<'static>>,
+    pub system: TransitionSystemPtr,
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {
@@ -72,7 +72,7 @@ impl<'a> ExecutableQuery for ConsistencyExecutor {
 }
 
 pub struct DeterminismExecutor {
-    pub system: Box<dyn TransitionSystem<'static>>,
+    pub system: TransitionSystemPtr,
 }
 
 impl<'a> ExecutableQuery for DeterminismExecutor {

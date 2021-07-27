@@ -1,18 +1,14 @@
 use crate::ModelObjects::component::get_dummy_component;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
-use crate::TransitionSystems::{Composition, TransitionSystem};
+use crate::TransitionSystems::{Composition, TransitionSystemPtr};
 
 pub fn add_extra_inputs_outputs(
-    sys1: Box<dyn TransitionSystem<'static>>,
-    sys2: Box<dyn TransitionSystem<'static>>,
+    sys1: TransitionSystemPtr,
+    sys2: TransitionSystemPtr,
     sys_decls: &SystemDeclarations,
     components: &mut Vec<Component>,
-) -> (
-    Box<dyn TransitionSystem<'static>>,
-    Box<dyn TransitionSystem<'static>>,
-    SystemDeclarations,
-) {
+) -> (TransitionSystemPtr, TransitionSystemPtr, SystemDeclarations) {
     let inputs1 = get_extra(&sys1, &sys2, sys_decls, true);
     //let outputs1 = get_extra(&sys1, &sys2, sys_decls, false);
 
@@ -38,19 +34,19 @@ pub fn add_extra_inputs_outputs(
 
     let comp2 = get_dummy_component(name2.clone(), &[], &outputs2);
     components.push(comp2.clone());
-    let mut new_sys1 = Composition::new(sys1, Box::new(comp1));
+    let new_sys1 = Composition::new(sys1, Box::new(comp1));
 
-    let mut new_sys2 = Composition::new(sys2, Box::new(comp2));
+    let new_sys2 = Composition::new(sys2, Box::new(comp2));
 
     decls.get_mut_input_actions().insert(name1, inputs1);
     decls.get_mut_output_actions().insert(name2, outputs2);
 
-    (Box::new(new_sys1), Box::new(new_sys2), new_decl)
+    (new_sys1, new_sys2, new_decl)
 }
 
 fn get_extra(
-    sys1: &Box<dyn TransitionSystem<'static>>,
-    sys2: &Box<dyn TransitionSystem<'static>>,
+    sys1: &TransitionSystemPtr,
+    sys2: &TransitionSystemPtr,
     sys_decls: &SystemDeclarations,
     is_input: bool,
 ) -> Vec<String> {

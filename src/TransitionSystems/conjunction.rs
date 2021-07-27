@@ -1,21 +1,18 @@
 use crate::ModelObjects::component::{Component, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 #[derive(Clone)]
 pub struct Conjunction {
-    left: Box<dyn TransitionSystem<'static>>,
-    right: Box<dyn TransitionSystem<'static>>,
+    left: TransitionSystemPtr,
+    right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 }
 
 impl Conjunction {
-    pub fn new(
-        left: Box<dyn TransitionSystem<'static>>,
-        right: Box<dyn TransitionSystem<'static>>,
-    ) -> Conjunction {
+    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Conjunction> {
         let outputs = left
             .get_output_actions()
             .intersection(&right.get_output_actions())
@@ -28,12 +25,12 @@ impl Conjunction {
             .cloned()
             .collect();
 
-        Conjunction {
+        Box::new(Conjunction {
             left,
             right,
             inputs,
             outputs,
-        }
+        })
     }
 }
 

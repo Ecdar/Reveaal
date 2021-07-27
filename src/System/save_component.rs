@@ -3,13 +3,10 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
-pub fn combine_components(
-    system: &Box<dyn TransitionSystem<'static>>,
-    decl: &SystemDeclarations,
-) -> Component {
+pub fn combine_components(system: &TransitionSystemPtr, decl: &SystemDeclarations) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     collect_all_edges_and_locations(
@@ -70,7 +67,7 @@ fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Locati
         .collect()
 }
 
-fn get_clock_map(sysrep: &Box<dyn TransitionSystem<'static>>) -> HashMap<String, u32> {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
     let mut comp_id = 0;
 
@@ -85,7 +82,7 @@ fn get_clock_map(sysrep: &Box<dyn TransitionSystem<'static>>) -> HashMap<String,
 }
 
 fn collect_all_edges_and_locations<'a>(
-    representation: &'a Box<dyn TransitionSystem<'static>>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
     locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
@@ -100,7 +97,7 @@ fn collect_all_edges_and_locations<'a>(
 
 fn collect_edges_from_location<'a>(
     location: &LocationTuple<'a>,
-    representation: &Box<dyn TransitionSystem<'static>>,
+    representation: &TransitionSystemPtr,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
 ) {
@@ -110,7 +107,7 @@ fn collect_edges_from_location<'a>(
 
 fn collect_specific_edges_from_location<'a>(
     location: &LocationTuple<'a>,
-    representation: &Box<dyn TransitionSystem<'static>>,
+    representation: &TransitionSystemPtr,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
     input: bool,
@@ -152,7 +149,7 @@ fn collect_specific_edges_from_location<'a>(
 
 fn get_pruned_edges_from_locations<'a>(
     location: LocationTuple<'a>,
-    representation: &'a Box<dyn TransitionSystem<'static>>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
     passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
@@ -182,7 +179,7 @@ fn get_pruned_edges_from_locations<'a>(
 
 fn get_pruned_specific_edges_from_locations<'a>(
     location: LocationTuple<'a>,
-    representation: &'a Box<dyn TransitionSystem<'static>>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
     passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,

@@ -1,21 +1,18 @@
 use crate::ModelObjects::component::{Component, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 #[derive(Clone)]
 pub struct Quotient {
-    left: Box<dyn TransitionSystem<'static>>,
-    right: Box<dyn TransitionSystem<'static>>,
+    left: TransitionSystemPtr,
+    right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 }
 
-impl<'a> Quotient {
-    pub fn new(
-        left: Box<dyn TransitionSystem<'a>>,
-        right: Box<dyn TransitionSystem<'a>>,
-    ) -> Quotient {
+impl Quotient {
+    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Quotient> {
         panic!("Not implemented");
     }
 }

@@ -7,7 +7,9 @@ use crate::System::executable_query::{
     RefinementExecutor,
 };
 
-use crate::TransitionSystems::{Composition, Conjunction, Quotient, TransitionSystem};
+use crate::TransitionSystems::{
+    Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
+};
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -69,23 +71,23 @@ pub fn extract_side(
     side: &QueryExpression,
     components: &[component::Component],
     clock_index: &mut u32,
-) -> Box<dyn TransitionSystem<'static>> {
+) -> TransitionSystemPtr {
     match side {
         QueryExpression::Parentheses(expression) => {
             extract_side(expression, components, clock_index)
         }
-        QueryExpression::Composition(left, right) => Box::new(Composition::new(
+        QueryExpression::Composition(left, right) => Composition::new(
             extract_side(left, components, clock_index),
             extract_side(right, components, clock_index),
-        )),
-        QueryExpression::Conjunction(left, right) => Box::new(Conjunction::new(
+        ),
+        QueryExpression::Conjunction(left, right) => Conjunction::new(
             extract_side(left, components, clock_index),
             extract_side(right, components, clock_index),
-        )),
-        QueryExpression::Quotient(left, right) => Box::new(Quotient::new(
+        ),
+        QueryExpression::Quotient(left, right) => Quotient::new(
             extract_side(left, components, clock_index),
             extract_side(right, components, clock_index),
-        )),
+        ),
         QueryExpression::VarName(name) => {
             for comp in components {
                 if comp.get_name() == name {

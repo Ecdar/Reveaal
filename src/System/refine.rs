@@ -4,12 +4,12 @@ use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ModelObjects::system_declarations;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
-    mut sys1: Box<dyn TransitionSystem<'static>>,
-    mut sys2: Box<dyn TransitionSystem<'static>>,
+    mut sys1: TransitionSystemPtr,
+    mut sys2: TransitionSystemPtr,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
@@ -293,11 +293,7 @@ fn prepare_init_state(
     }
 }
 
-fn check_preconditions(
-    sys1: &Box<dyn TransitionSystem<'static>>,
-    sys2: &Box<dyn TransitionSystem<'static>>,
-    dim: u32,
-) -> bool {
+fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
     if !(sys2.precheck_sys_rep(dim) && sys1.precheck_sys_rep(dim)) {
         return false;
     }

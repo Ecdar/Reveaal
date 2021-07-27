@@ -1,21 +1,18 @@
 use crate::ModelObjects::component::{Component, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 #[derive(Clone)]
 pub struct Composition {
-    left: Box<dyn TransitionSystem<'static>>,
-    right: Box<dyn TransitionSystem<'static>>,
+    left: TransitionSystemPtr,
+    right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 }
 
 impl Composition {
-    pub fn new(
-        left: Box<dyn TransitionSystem<'static>>,
-        right: Box<dyn TransitionSystem<'static>>,
-    ) -> Composition {
+    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Composition> {
         let left_out = left.get_output_actions();
         let right_out = right.get_output_actions();
 
@@ -38,12 +35,12 @@ impl Composition {
 
         let outputs = left_out.union(&right_out).cloned().collect();
 
-        Composition {
+        Box::new(Composition {
             left,
             right,
             inputs,
             outputs,
-        }
+        })
     }
 }
 

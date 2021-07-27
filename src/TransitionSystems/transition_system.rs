@@ -78,6 +78,8 @@ impl<'a> LocationTuple<'a> {
     }
 }
 
+pub type TransitionSystemPtr = Box<dyn TransitionSystem<'static>>;
+
 pub trait TransitionSystem<'a>: DynClone {
     fn get_max_bounds(&self, dim: u32) -> MaxBounds;
 
