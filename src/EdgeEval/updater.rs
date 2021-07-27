@@ -27,12 +27,16 @@ pub fn updater(
 }
 
 /// Used to handle update expressions on edges
-pub fn fullState_updater(updates: &[parse_edge::Update], state: &mut component::State) {
+pub fn state_updater(
+    updates: &[parse_edge::Update],
+    state: &mut component::State,
+    comp_index: usize,
+) {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
                 if let Some(&clock_index) = state
-                    .get_declarations()
+                    .get_declarations(comp_index)
                     .get_clock_index_by_name(update.get_variable_name())
                 {
                     state.zone.update(clock_index, *val);

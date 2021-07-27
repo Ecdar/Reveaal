@@ -90,7 +90,7 @@ pub fn extract_side(
             for comp in components {
                 if comp.get_name() == name {
                     let mut c = comp.clone();
-                    c.update_clock_indices(clock_index);
+                    c.set_clock_indices(clock_index);
                     return Box::new(c);
                 }
             }

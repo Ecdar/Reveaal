@@ -38,9 +38,9 @@ macro_rules! default_composition {
             comps
         }
 
-        fn update_clock_indices(&mut self, index: &mut u32) {
-            self.left.update_clock_indices(index);
-            self.right.update_clock_indices(index);
+        fn set_clock_indices(&mut self, index: &mut u32) {
+            self.left.set_clock_indices(index);
+            self.right.set_clock_indices(index);
         }
 
         fn precheck_sys_rep(&self, dim: u32) -> bool {

@@ -25,7 +25,7 @@ impl<'a> LocationTuple<'a> {
         self.locations[index] = new_loc;
     }
 
-    pub fn simple(location: &'a Location, declaration: &'a Declarations) -> Self {
+    pub fn simple(location: &'a Location, declaration: &Declarations) -> Self {
         LocationTuple {
             locations: vec![location],
             declarations: vec![declaration.clone()],
@@ -125,7 +125,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn is_deterministic(&self, dim: u32) -> bool;
 
-    fn update_clock_indices(&mut self, index: &mut u32);
+    fn set_clock_indices(&mut self, index: &mut u32);
     /*fn all_components<'b, F>(&'b self, func: &mut F)
     where
         F: FnMut(&'b Component) -> ();*/
@@ -137,8 +137,8 @@ pub trait TransitionSystem<'a>: DynClone {
 clone_trait_object!(TransitionSystem<'static>);
 
 impl TransitionSystem<'_> for Component {
-    fn update_clock_indices(&mut self, index: &mut u32) {
-        self.declarations.update_clock_indices(*index);
+    fn set_clock_indices(&mut self, index: &mut u32) {
+        self.declarations.set_clock_indices(*index);
 
         *index += self.get_num_clocks();
     }

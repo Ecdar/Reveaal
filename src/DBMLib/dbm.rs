@@ -2,7 +2,7 @@ use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, std::cmp::PartialEq)]
 pub struct Zone {
     pub(crate) dimension: u32,
     pub(in crate::DBMLib) matrix: Vec<i32>,
@@ -223,6 +223,16 @@ impl Zone {
             self.dimension,
             max_bounds.clock_bounds.as_ptr(),
         );
+    }
+
+    pub fn canDelayIndefinitely(&self) -> bool {
+        for i in 1..self.dimension {
+            if !self.is_constraint_infinity(i, 0) {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
