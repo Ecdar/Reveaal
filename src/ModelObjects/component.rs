@@ -799,7 +799,11 @@ impl<'a> Transition<'a> {
             }
             let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
             let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
-            let mut inverse = full_fed.minus_fed(&Federation::new(vec![guard_zone], dim));
+            let mut inverse = if success {
+                full_fed.minus_fed(&Federation::new(vec![guard_zone], dim))
+            } else {
+                full_fed
+            };
             fed = fed.minus_fed(&inverse);
         }
         if !fed.is_empty() {
