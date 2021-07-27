@@ -3,6 +3,7 @@ use crate::ModelObjects::component::{
     Channel, Component, Declarations, DecoratedLocation, Location, SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
+use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,8 +78,8 @@ impl<'a> LocationTuple<'a> {
     }
 }
 
-pub trait TransitionSystem<'a> {
-    fn get_max_bounds(&self) -> MaxBounds;
+pub trait TransitionSystem<'a>: DynClone {
+    fn get_max_bounds(&self, dim: u32) -> MaxBounds;
 
     fn next_transitions<'b>(
         &'b self,
@@ -101,6 +102,8 @@ pub trait TransitionSystem<'a> {
     //I think this should be implemented elsewhere
     //fn check_consistency(&self) -> bool;
 }
+
+clone_trait_object!(TransitionSystem<'static>);
 
 impl TransitionSystem<'_> for Component {
     fn get_max_bounds(&self) -> MaxBounds {

@@ -1,20 +1,21 @@
-use crate::ModelObjects::component::{SyncType, Transition};
+use crate::ModelObjects::component::{Component, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem};
 use std::collections::hash_set::HashSet;
 
-pub struct Conjunction<'a> {
-    left: Box<dyn TransitionSystem<'a>>,
-    right: Box<dyn TransitionSystem<'a>>,
+#[derive(Clone)]
+pub struct Conjunction {
+    left: Box<dyn TransitionSystem<'static>>,
+    right: Box<dyn TransitionSystem<'static>>,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 }
 
-impl<'a> Conjunction<'a> {
+impl Conjunction {
     pub fn new(
-        left: Box<dyn TransitionSystem<'a>>,
-        right: Box<dyn TransitionSystem<'a>>,
-    ) -> Conjunction<'a> {
+        left: Box<dyn TransitionSystem<'static>>,
+        right: Box<dyn TransitionSystem<'static>>,
+    ) -> Conjunction {
         let outputs = left
             .get_output_actions()
             .intersection(&right.get_output_actions())
@@ -36,7 +37,7 @@ impl<'a> Conjunction<'a> {
     }
 }
 
-impl<'a> TransitionSystem<'a> for Conjunction<'a> {
+impl<'a> TransitionSystem<'static> for Conjunction {
     default_composition!();
     fn next_transitions<'b>(
         &'b self,

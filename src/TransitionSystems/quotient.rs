@@ -1,25 +1,26 @@
-use crate::ModelObjects::component::{SyncType, Transition};
+use crate::ModelObjects::component::{Component, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem};
 use std::collections::hash_set::HashSet;
 
-pub struct Quotient<'a> {
-    left: Box<dyn TransitionSystem<'a>>,
-    right: Box<dyn TransitionSystem<'a>>,
+#[derive(Clone)]
+pub struct Quotient {
+    left: Box<dyn TransitionSystem<'static>>,
+    right: Box<dyn TransitionSystem<'static>>,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 }
 
-impl<'a> Quotient<'a> {
+impl<'a> Quotient {
     pub fn new(
         left: Box<dyn TransitionSystem<'a>>,
         right: Box<dyn TransitionSystem<'a>>,
-    ) -> Quotient<'a> {
+    ) -> Quotient {
         panic!("Not implemented");
     }
 }
 
-impl<'a> TransitionSystem<'a> for Quotient<'a> {
+impl TransitionSystem<'static> for Quotient {
     default_composition!();
     fn next_transitions<'b>(
         &'b self,
