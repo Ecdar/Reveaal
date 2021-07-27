@@ -1,4 +1,5 @@
-use crate::ModelObjects::component::{DecoratedLocation, SyncType, Transition};
+use crate::DBMLib::dbm::Zone;
+use crate::ModelObjects::component::{DecoratedLocation, SyncType, Transition, State};
 use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::SystemRepresentation;
@@ -45,6 +46,22 @@ impl<'a> UncachedSystem<'a> {
 
     pub fn borrow_representation(&self) -> &SystemRepresentation<'a> {
         &self.base_representation
+    }
+
+    pub fn create_initial_state(&self) -> State {
+        let dimensions = self.get_clock_count() + 1;
+        let init_loc = self.get_initial_locations();
+        let mut zone = Zone::init(dimensions);
+        for loc in &init_loc {
+            if !loc.apply_invariant(&mut zone) {
+                panic!("Invalid initial state");
+            }
+        }
+
+        State {
+            decorated_locations: init_loc,
+            zone
+        }
     }
 
     pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
@@ -119,7 +136,7 @@ impl<'a> UncachedSystem<'a> {
         self.base_representation.get_initial_locations()
     }
 
-    pub fn get_clock_count(&mut self) -> u32 {
+    pub fn get_clock_count(&self) -> u32 {
         let mut clocks = 0;
 
         self.base_representation

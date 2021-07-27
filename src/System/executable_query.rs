@@ -3,7 +3,7 @@ use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
-use crate::System::{extra_actions, refine};
+use crate::System::{extra_actions, refine, local_consistency};
 
 pub enum QueryResult {
     Refinement(bool),
@@ -62,11 +62,14 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 
 pub struct ConsistencyExecutor<'a> {
     pub system: UncachedSystem<'a>,
+    pub sys_decls: SystemDeclarations
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.precheck_sys_rep())
+        QueryResult::Consistency(
+            local_consistency::is_least_consistent(&self.system, &self.sys_decls)
+        )
     }
 }
 
