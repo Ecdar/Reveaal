@@ -1,9 +1,9 @@
 use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
+use crate::TransitionSystems::TransitionSystem;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -17,13 +17,13 @@ pub trait ExecutableQuery {
     fn execute(self: Box<Self>) -> QueryResult;
 }
 
-pub struct RefinementExecutor<'a> {
-    pub sys1: UncachedSystem<'a>,
-    pub sys2: UncachedSystem<'a>,
+pub struct RefinementExecutor {
+    pub sys1: Box<dyn TransitionSystem<'static>>,
+    pub sys2: Box<dyn TransitionSystem<'static>>,
     pub decls: SystemDeclarations,
 }
 
-impl<'a> ExecutableQuery for RefinementExecutor<'a> {
+impl ExecutableQuery for RefinementExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut extra_components = vec![];
         let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
@@ -43,13 +43,13 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
     }
 }
 
-pub struct GetComponentExecutor<'a> {
-    pub system: UncachedSystem<'a>,
+pub struct GetComponentExecutor {
+    pub system: Box<dyn TransitionSystem<'static>>,
     pub comp_name: String,
     pub decls: SystemDeclarations,
 }
 
-impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
+impl<'a> ExecutableQuery for GetComponentExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut comp = combine_components(&self.system, &self.decls);
         comp.name = self.comp_name;

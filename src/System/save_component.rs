@@ -1,26 +1,26 @@
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, DecoratedLocation, Edge, Location, LocationType,
-    SyncType,
+    Component, Declarations, Edge, Location, LocationType, SyncType,
 };
-use crate::ModelObjects::representations::{BoolExpression, SystemRepresentation};
-use crate::ModelObjects::system::UncachedSystem;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::TransitionSystems::{LocationTuple, TransitionSystem};
 use std::collections::HashMap;
 
-pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) -> Component {
-    let representation = system.borrow_representation();
+pub fn combine_components(
+    system: &Box<dyn TransitionSystem<'static>>,
+    decl: &SystemDeclarations,
+) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     collect_all_edges_and_locations(
         //representation.get_initial_locations(),
-        representation,
+        system,
         decl,
         &mut location_tuples,
         &mut edges,
     );
 
-    let clocks = get_clock_map(&representation);
-
+    let clocks = get_clock_map(system);
     let locations = get_locations_from_tuples(&location_tuples);
     Component {
         name: "".to_string(),
@@ -70,25 +70,24 @@ fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Locati
         .collect()
 }
 
-fn get_clock_map(sysrep: &SystemRepresentation) -> HashMap<String, u32> {
+fn get_clock_map(sysrep: &Box<dyn TransitionSystem<'static>>) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
     let mut comp_id = 0;
-    sysrep.all_components(&mut |comp| {
-        for (k, v) in &comp.get_declarations().clocks {
+
+    let initial = sysrep.get_initial_location();
+    for comp_id in 0..initial.len() {
+        for (k, v) in &initial.get_decl(comp_id).clocks {
             clocks.insert(format!("{}{}", k, comp_id), *v);
         }
-        comp_id += 1;
-
-        true
-    });
+    }
 
     clocks
 }
 
 fn collect_all_edges_and_locations<'a>(
-    representation: &'a SystemRepresentation<'a>,
+    representation: &'a Box<dyn TransitionSystem<'static>>,
     decl: &SystemDeclarations,
-    locations: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
 ) {
     let mut l = representation.get_all_locations();
@@ -117,21 +116,19 @@ fn collect_specific_edges_from_location<'a>(
     input: bool,
 ) {
     for sync in if input {
-        representation.get_input_actions(decl)
+        representation.get_input_actions()
     } else {
-        representation.get_output_actions(decl)
+        representation.get_output_actions()
     } {
-        let mut transitions = vec![];
-        representation.collect_next_transitions(
+        let transitions = representation.next_transitions(
             location,
-            &mut 0,
             &sync,
-            &mut transitions,
             &if input {
                 SyncType::Input
             } else {
                 SyncType::Output
             },
+            &mut 0,
         );
         for transition in transitions {
             let mut target_location = location.clone();
@@ -192,21 +189,19 @@ fn get_pruned_specific_edges_from_locations<'a>(
     input: bool,
 ) {
     for sync in if input {
-        representation.get_input_actions(decl)
+        representation.get_input_actions()
     } else {
-        representation.get_output_actions(decl)
+        representation.get_output_actions()
     } {
-        let mut transitions = vec![];
-        representation.collect_next_transitions(
+        let transitions = representation.next_transitions(
             &location,
-            &mut 0,
             &sync,
-            &mut transitions,
             &if input {
                 SyncType::Input
             } else {
                 SyncType::Output
             },
+            &mut 0,
         );
         for transition in transitions {
             let mut target_location = location.clone();

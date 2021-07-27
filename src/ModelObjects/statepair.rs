@@ -59,11 +59,15 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn calculate_max_bound(&mut self, sys1: &System, sys2: &System) -> MaxBounds {
-        let mut bounds = MaxBounds::create(self.zone.dimension);
+    pub fn calculate_max_bound(
+        &mut self,
+        sys1: &Box<dyn TransitionSystem<'static>>,
+        sys2: &Box<dyn TransitionSystem<'static>>,
+    ) -> MaxBounds {
+        let dim = self.zone.dimension;
 
-        bounds.add_bounds(sys1.get_max_bounds());
-        bounds.add_bounds(sys2.get_max_bounds());
+        let mut bounds = sys1.get_max_bounds(dim);
+        bounds.add_bounds(&sys2.get_max_bounds(dim));
 
         bounds
     }

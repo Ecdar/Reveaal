@@ -1,16 +1,18 @@
 use crate::ModelObjects::component::get_dummy_component;
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::component_view::ComponentView;
-use crate::ModelObjects::representations::SystemRepresentation;
-use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::TransitionSystems::{Composition, TransitionSystem};
 
-pub fn add_extra_inputs_outputs<'a>(
-    sys1: UncachedSystem<'a>,
-    sys2: UncachedSystem<'a>,
+pub fn add_extra_inputs_outputs(
+    sys1: Box<dyn TransitionSystem<'static>>,
+    sys2: Box<dyn TransitionSystem<'static>>,
     sys_decls: &SystemDeclarations,
-    components: &'a mut Vec<Component>,
-) -> (UncachedSystem<'a>, UncachedSystem<'a>, SystemDeclarations) {
+    components: &mut Vec<Component>,
+) -> (
+    Box<dyn TransitionSystem<'static>>,
+    Box<dyn TransitionSystem<'static>>,
+    SystemDeclarations,
+) {
     let inputs1 = get_extra(&sys1, &sys2, sys_decls, true);
     //let outputs1 = get_extra(&sys1, &sys2, sys_decls, false);
 
@@ -32,48 +34,35 @@ pub fn add_extra_inputs_outputs<'a>(
     decls.get_mut_components().push(name2.clone());
 
     let comp1 = get_dummy_component(name1.clone(), &inputs1, &[]);
-    components.push(comp1);
+    components.push(comp1.clone());
 
     let comp2 = get_dummy_component(name2.clone(), &[], &outputs2);
-    components.push(comp2);
+    components.push(comp2.clone());
+    let mut new_sys1 = Composition::new(sys1, Box::new(comp1));
 
-    let comp_view = ComponentView::create(components.get(0).unwrap(), 0);
-    let new_sys1 = SystemRepresentation::Composition(
-        Box::new(sys1.move_represetation()),
-        Box::new(SystemRepresentation::Component(comp_view)),
-    );
-
-    let comp_view = ComponentView::create(components.get(1).unwrap(), 0);
-    let new_sys2 = SystemRepresentation::Composition(
-        Box::new(sys2.move_represetation()),
-        Box::new(SystemRepresentation::Component(comp_view)),
-    );
+    let mut new_sys2 = Composition::new(sys2, Box::new(comp2));
 
     decls.get_mut_input_actions().insert(name1, inputs1);
     decls.get_mut_output_actions().insert(name2, outputs2);
 
-    (
-        UncachedSystem::create(new_sys1),
-        UncachedSystem::create(new_sys2),
-        new_decl,
-    )
+    (Box::new(new_sys1), Box::new(new_sys2), new_decl)
 }
 
 fn get_extra(
-    sys1: &UncachedSystem,
-    sys2: &UncachedSystem,
+    sys1: &Box<dyn TransitionSystem<'static>>,
+    sys2: &Box<dyn TransitionSystem<'static>>,
     sys_decls: &SystemDeclarations,
     is_input: bool,
 ) -> Vec<String> {
     let actions1 = if is_input {
-        sys1.get_input_actions(sys_decls)
+        sys1.get_input_actions()
     } else {
-        sys1.get_output_actions(sys_decls)
+        sys1.get_output_actions()
     };
     let actions2 = if is_input {
-        sys2.get_input_actions(sys_decls)
+        sys2.get_input_actions()
     } else {
-        sys2.get_output_actions(sys_decls)
+        sys2.get_output_actions()
     };
 
     let result = actions2

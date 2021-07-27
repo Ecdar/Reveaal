@@ -89,6 +89,24 @@ pub trait TransitionSystem<'a>: DynClone {
         index: &mut usize,
     ) -> Vec<Transition<'b>>;
 
+    fn next_outputs<'b>(
+        &'b self,
+        location: &LocationTuple<'b>,
+        action: &str,
+    ) -> Vec<Transition<'b>> {
+        let mut index = 0;
+        self.next_transitions(location, action, &SyncType::Output, &mut index)
+    }
+
+    fn next_inputs<'b>(
+        &'b self,
+        location: &LocationTuple<'b>,
+        action: &str,
+    ) -> Vec<Transition<'b>> {
+        let mut index = 0;
+        self.next_transitions(location, action, &SyncType::Input, &mut index)
+    }
+
     fn get_input_actions(&self) -> HashSet<String>;
 
     fn get_output_actions(&self) -> HashSet<String>;

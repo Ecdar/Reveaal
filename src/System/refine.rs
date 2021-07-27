@@ -3,13 +3,13 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
-use crate::ModelObjects::system::{System, UncachedSystem};
 use crate::ModelObjects::system_declarations;
+use crate::TransitionSystems::{LocationTuple, TransitionSystem};
 use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
-    mut sys1: UncachedSystem,
-    mut sys2: UncachedSystem,
+    mut sys1: Box<dyn TransitionSystem<'static>>,
+    mut sys2: Box<dyn TransitionSystem<'static>>,
     sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
@@ -36,16 +36,18 @@ pub fn check_refinement(
         initial_locations_1.clone(),
         initial_locations_2.clone(),
     );
-    let mut max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
-    initial_pair.zone.extrapolate_max_bounds(&mut max_bounds);
+
+    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
+    initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in outputs {
-            let output_transition1 = sys1.collect_next_outputs(curr_pair.get_locations1(), output);
-            let output_transition2 = sys2.collect_next_outputs(curr_pair.get_locations2(), output);
+        for output in &outputs {
+            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
+            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
 
             if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
                 create_new_state_pairs(
@@ -54,7 +56,7 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &mut max_bounds,
+                    &max_bounds,
                     true,
                 )
             } else {
@@ -77,9 +79,9 @@ pub fn check_refinement(
             }
         }
 
-        for input in inputs {
-            let input_transitions1 = sys1.collect_next_inputs(curr_pair.get_locations1(), input);
-            let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
+        for input in &inputs {
+            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
+            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
             if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
                 create_new_state_pairs(
@@ -88,7 +90,7 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &mut max_bounds,
+                    &max_bounds,
                     false,
                 )
             } else {
@@ -167,7 +169,7 @@ fn create_new_state_pairs<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    max_bounds: &mut MaxBounds,
+    max_bounds: &MaxBounds,
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
@@ -291,17 +293,21 @@ fn prepare_init_state(
     }
 }
 
-fn check_preconditions(sys1: &mut System, sys2: &mut System) -> bool {
-    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
+fn check_preconditions(
+    sys1: &Box<dyn TransitionSystem<'static>>,
+    sys2: &Box<dyn TransitionSystem<'static>>,
+    dim: u32,
+) -> bool {
+    if !(sys2.precheck_sys_rep(dim) && sys1.precheck_sys_rep(dim)) {
         return false;
     }
     let outputs1 = sys1.get_output_actions();
     let outputs2 = sys2.get_output_actions();
 
-    for o2 in outputs2 {
+    for o2 in &outputs2 {
         let mut found_match = false;
-        for o1 in outputs1 {
-            if o1 == o2 {
+        for o1 in &outputs1 {
+            if *o1 == *o2 {
                 found_match = true;
                 break;
             }
@@ -352,7 +358,7 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
                 continue 'OuterFor;
             }
         }
-        if state_pair.zone.dimension != passed_state_pair.zone.dimension {
+        if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
         }
 

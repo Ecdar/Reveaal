@@ -1,14 +1,13 @@
 use crate::ModelObjects::component;
-use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
-use crate::ModelObjects::representations::SystemRepresentation;
-use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     RefinementExecutor,
 };
+
+use crate::TransitionSystems::{Composition, Conjunction, Quotient, TransitionSystem};
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -22,33 +21,33 @@ pub fn create_executable_query<'a>(
     if let Some(query) = full_query.get_query() {
         match query {
             QueryExpression::Refinement(left_side, right_side) => Box::new(RefinementExecutor {
-                sys1: UncachedSystem::create(extract_side(left_side, components, &mut clock_index)),
-                sys2: UncachedSystem::create(extract_side(
+                sys1: extract_side(left_side, components, &mut clock_index),
+                sys2: extract_side(
                     right_side,
                     components,
                     &mut clock_index,
-                )),
+                ),
                 decls: system_declarations.clone(),
             }),
             QueryExpression::Consistency(query_expression) => Box::new(ConsistencyExecutor {
-                system: UncachedSystem::create(extract_side(
+                system: extract_side(
                     query_expression,
                     components,
                     &mut clock_index,
-                )),
+                ),
             }),
             QueryExpression::Determinism(query_expression) => Box::new(DeterminismExecutor {
-                system: UncachedSystem::create(extract_side(
+                system: extract_side(
                     query_expression,
                     components,
                     &mut clock_index,
-                )),
+                ),
             }),
             QueryExpression::GetComponent(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
                     Box::new(
                         GetComponentExecutor {
-                            system: UncachedSystem::create(extract_side(query_expression, components, &mut clock_index)),
+                            system: extract_side(query_expression, components, &mut clock_index),
                             comp_name: comp_name.clone(),
                             decls: system_declarations.clone(),
                         }
@@ -66,30 +65,33 @@ pub fn create_executable_query<'a>(
     }
 }
 
-pub fn extract_side<'a>(
+pub fn extract_side(
     side: &QueryExpression,
-    components: &'a [component::Component],
+    components: &[component::Component],
     clock_index: &mut u32,
-) -> SystemRepresentation<'a> {
+) -> Box<dyn TransitionSystem<'static>> {
     match side {
-        QueryExpression::Parentheses(expression) => SystemRepresentation::Parentheses(Box::new(
-            extract_side(expression, components, clock_index),
+        QueryExpression::Parentheses(expression) => {
+            extract_side(expression, components, clock_index)
+        }
+        QueryExpression::Composition(left, right) => Box::new(Composition::new(
+            extract_side(left, components, clock_index),
+            extract_side(right, components, clock_index),
         )),
-        QueryExpression::Composition(left, right) => SystemRepresentation::Composition(
-            Box::new(extract_side(left, components, clock_index)),
-            Box::new(extract_side(right, components, clock_index)),
-        ),
-        QueryExpression::Conjunction(left, right) => SystemRepresentation::Conjunction(
-            Box::new(extract_side(left, components, clock_index)),
-            Box::new(extract_side(right, components, clock_index)),
-        ),
+        QueryExpression::Conjunction(left, right) => Box::new(Conjunction::new(
+            extract_side(left, components, clock_index),
+            extract_side(right, components, clock_index),
+        )),
+        QueryExpression::Quotient(left, right) => Box::new(Quotient::new(
+            extract_side(left, components, clock_index),
+            extract_side(right, components, clock_index),
+        )),
         QueryExpression::VarName(name) => {
             for comp in components {
                 if comp.get_name() == name {
-                    let comp_view = ComponentView::create(comp, *clock_index);
-                    *clock_index += comp_view.clock_count();
-
-                    return SystemRepresentation::Component(comp_view);
+                    let mut c = comp.clone();
+                    c.update_clock_indices(clock_index);
+                    return Box::new(c);
                 }
             }
             panic!("Could not find component with name: {:?}", name);
