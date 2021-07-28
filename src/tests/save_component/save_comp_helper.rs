@@ -26,7 +26,6 @@ pub mod save_comp_helper {
         let new_comp = combine_components(&base_system.clone(), &decl.clone());
         let mut new_comp = Box::new(new_comp.create_edge_io_split());
         decl.add_component(&new_comp);
-        //input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         input_enabler::make_input_enabled(&mut new_comp, &decl);
 

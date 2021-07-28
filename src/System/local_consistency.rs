@@ -1,6 +1,6 @@
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::TransitionSystem;
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
@@ -25,7 +25,7 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
 pub fn consistency_least_helper<'b>(
     state: State<'b>,
     passed_list: &mut Vec<State<'b>>,
-    mut system: &'b dyn TransitionSystem,
+    system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
