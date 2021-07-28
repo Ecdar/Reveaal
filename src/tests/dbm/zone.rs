@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::DBMLib::dbm::{Federation, Zone};
+    use crate::DBMLib::dbm::Zone;
     use crate::DBMLib::lib;
 
     #[test]

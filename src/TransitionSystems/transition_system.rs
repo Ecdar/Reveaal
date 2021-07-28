@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
     Channel, Component, Declarations, DecoratedLocation, Location, SyncType, Transition,
 };

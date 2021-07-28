@@ -1,16 +1,13 @@
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::{DecoratedLocation, Transition};
+use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
-use crate::ModelObjects::system_declarations;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
     mut sys2: TransitionSystemPtr,
-    sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];

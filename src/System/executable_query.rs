@@ -33,7 +33,7 @@ impl ExecutableQuery for RefinementExecutor {
             &mut extra_components,
         );
 
-        match refine::check_refinement(sys1, sys2, &decl) {
+        match refine::check_refinement(sys1, sys2) {
             Ok(res) => {
                 println!("Refinement result: {:?}", res);
                 QueryResult::Refinement(res)

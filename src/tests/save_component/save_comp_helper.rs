@@ -4,7 +4,6 @@ pub mod save_comp_helper {
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
-    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
 
@@ -28,7 +27,7 @@ pub mod save_comp_helper {
         //input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         let new_system = Box::new(new_comp);
-        assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
-        assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
+        assert!(refine::check_refinement(new_system.clone(), base_system.clone()).unwrap());
+        assert!(refine::check_refinement(base_system.clone(), new_system.clone()).unwrap());
     }
 }

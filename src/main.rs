@@ -10,8 +10,7 @@ mod tests;
 
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
-use crate::System::extra_actions;
-use crate::System::{extract_system_rep, input_enabler, refine};
+use crate::System::{extract_system_rep, input_enabler};
 use clap::{load_yaml, App};
 use std::env;
 use std::path::PathBuf;
