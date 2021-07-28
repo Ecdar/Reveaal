@@ -2,14 +2,12 @@
 pub mod save_comp_helper {
     use crate::tests::refinement::Helper;
     use crate::DataReader::parse_queries;
-    use crate::ModelObjects::component_view::ComponentView;
     use crate::ModelObjects::representations::QueryExpression;
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::ModelObjects::system::UncachedSystem;
     use crate::System::extract_system_rep;
     use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
+    use crate::TransitionSystems::TransitionSystem;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let (components, mut decl) = Helper::json_setup(String::from(input_path));
@@ -20,38 +18,31 @@ pub mod save_comp_helper {
 
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
-            UncachedSystem::create(extract_system_rep::extract_side(
-                expr.as_ref(),
-                &components,
-                &mut clock_index,
-            ))
+            extract_system_rep::extract_side(expr.as_ref(), &components, &mut clock_index)
         } else {
             panic!("Failed to create system")
         };
 
         let new_comp = combine_components(&base_system.clone(), &decl.clone());
-        let mut new_comp = new_comp.create_edge_io_split();
+        let mut new_comp = Box::new(new_comp.create_edge_io_split());
         decl.add_component(&new_comp);
+        //input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         input_enabler::make_input_enabled(&mut new_comp, &decl);
 
-        let new_system = UncachedSystem::create(SystemRepresentation::Component(
-            ComponentView::create(&new_comp, clock_index),
-        ));
+        let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
 
-        let dimensions = 1 + new_system.get_clock_count() + base_system.get_clock_count();
-
-        let base_precheck = base_system.precheck_sys_rep(dimensions, &decl);
-        let new_precheck = new_system.precheck_sys_rep(dimensions, &decl);
+        let base_precheck = base_system.precheck_sys_rep(dimensions);
+        let new_precheck = new_comp.precheck_sys_rep(dimensions);
         assert_eq!(base_precheck, new_precheck);
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
             assert!(
-                refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap()
+                refine::check_refinement(new_comp.clone(), base_system.clone(), &decl).unwrap()
             );
             assert!(
-                refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap()
+                refine::check_refinement(base_system.clone(), new_comp.clone(), &decl).unwrap()
             );
         }
     }

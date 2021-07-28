@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod Conjunction_refinement {
     use crate::tests::refinement::Helper::json_refinement_check;
-    use crate::ModelObjects::representations::SystemRepresentation;
     use crate::System::refine;
     use std::borrow::Borrow;
 

@@ -1,29 +1,31 @@
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::system::System;
+use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
 
 //Local consistency check WITH pruning
-pub fn is_least_consistent(system: &System) -> bool {
+pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
     let mut passed = vec![];
-    let max_bounds = system.get_max_bounds();
-    let state = system.create_initial_state(max_bounds.get_dimensions());
+    let dimensions = 1 + system.get_num_clocks();
+    let max_bounds = system.get_max_bounds(dimensions);
+    let state = system.get_initial_state(dimensions);
 
-    consistency_least_helper(state, &mut passed, system, max_bounds)
+    consistency_least_helper(state, &mut passed, system, &max_bounds)
 }
 
 //Local consistency check WITHOUT pruning
-pub fn is_fully_consistent(system: &System) -> bool {
+pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
     let mut passed = vec![];
-    let max_bounds = system.get_max_bounds();
-    let state = system.create_initial_state(max_bounds.get_dimensions());
+    let dimensions = 1 + system.get_num_clocks();
+    let max_bounds = system.get_max_bounds(dimensions);
+    let state = system.get_initial_state(dimensions);
 
-    consistency_fully_helper(state, &mut passed, system, max_bounds)
+    consistency_fully_helper(state, &mut passed, system, &max_bounds)
 }
 
-fn consistency_least_helper<'b>(
+pub fn consistency_least_helper<'b>(
     state: State<'b>,
     passed_list: &mut Vec<State<'b>>,
-    system: &'b System,
+    mut system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
@@ -32,7 +34,7 @@ fn consistency_least_helper<'b>(
     passed_list.push(state.clone());
 
     for input in system.get_input_actions() {
-        for transition in &system.collect_next_inputs(&state.decorated_locations, &input) {
+        for transition in &system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -49,7 +51,7 @@ fn consistency_least_helper<'b>(
     }
 
     for output in system.get_output_actions() {
-        for transition in system.collect_next_outputs(&state.decorated_locations, &output) {
+        for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -67,7 +69,7 @@ fn consistency_least_helper<'b>(
 fn consistency_fully_helper<'b>(
     state: State<'b>,
     passed_list: &mut Vec<State<'b>>,
-    system: &'b System,
+    system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
@@ -76,7 +78,7 @@ fn consistency_fully_helper<'b>(
     passed_list.push(state.clone());
 
     for input in system.get_input_actions() {
-        for transition in system.collect_next_inputs(&state.decorated_locations, &input) {
+        for transition in system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -93,7 +95,7 @@ fn consistency_fully_helper<'b>(
 
     let mut output_existed = false;
     for output in system.get_output_actions() {
-        for transition in system.collect_next_outputs(&state.decorated_locations, &output) {
+        for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);

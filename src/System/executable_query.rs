@@ -1,9 +1,9 @@
 use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::system::UncachedSystem;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
-use crate::System::{extra_actions, local_consistency, refine};
+use crate::System::{extra_actions, refine};
+use crate::TransitionSystems::TransitionSystemPtr;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -17,13 +17,13 @@ pub trait ExecutableQuery {
     fn execute(self: Box<Self>) -> QueryResult;
 }
 
-pub struct RefinementExecutor<'a> {
-    pub sys1: UncachedSystem<'a>,
-    pub sys2: UncachedSystem<'a>,
+pub struct RefinementExecutor {
+    pub sys1: TransitionSystemPtr,
+    pub sys2: TransitionSystemPtr,
     pub decls: SystemDeclarations,
 }
 
-impl<'a> ExecutableQuery for RefinementExecutor<'a> {
+impl ExecutableQuery for RefinementExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut extra_components = vec![];
         let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
@@ -43,13 +43,13 @@ impl<'a> ExecutableQuery for RefinementExecutor<'a> {
     }
 }
 
-pub struct GetComponentExecutor<'a> {
-    pub system: UncachedSystem<'a>,
+pub struct GetComponentExecutor {
+    pub system: TransitionSystemPtr,
     pub comp_name: String,
     pub decls: SystemDeclarations,
 }
 
-impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
+impl<'a> ExecutableQuery for GetComponentExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut comp = combine_components(&self.system, &self.decls);
         comp.name = self.comp_name;
@@ -60,27 +60,25 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     }
 }
 
-pub struct ConsistencyExecutor<'a> {
-    pub system: UncachedSystem<'a>,
-    pub sys_decls: SystemDeclarations,
+pub struct ConsistencyExecutor {
+    pub system: TransitionSystemPtr,
 }
 
-impl<'a> ExecutableQuery for ConsistencyExecutor<'a> {
+impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        let dimensions = self.system.get_clock_count() + 1;
-        let cached_system = UncachedSystem::cache(self.system, dimensions, &self.sys_decls);
-
-        QueryResult::Consistency(cached_system.precheck_sys_rep(dimensions, &self.sys_decls))
+        let dim = self.system.get_num_clocks() + 1;
+        QueryResult::Consistency(self.system.precheck_sys_rep(dim))
     }
 }
 
-pub struct DeterminismExecutor<'a> {
-    pub system: UncachedSystem<'a>,
+pub struct DeterminismExecutor {
+    pub system: TransitionSystemPtr,
 }
 
-impl<'a> ExecutableQuery for DeterminismExecutor<'a> {
+impl<'a> ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        let is_deterministic = self.system.all_components_are_deterministic();
+        let dim = self.system.get_num_clocks() + 1;
+        let is_deterministic = self.system.is_deterministic(dim);
 
         QueryResult::Determinism(is_deterministic)
     }

@@ -3,23 +3,24 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{DecoratedLocation, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
-use crate::ModelObjects::system::{System, UncachedSystem};
-use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::ModelObjects::system_declarations;
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
-    sys1: UncachedSystem,
-    sys2: UncachedSystem,
-    sys_decls: &SystemDeclarations,
+    mut sys1: TransitionSystemPtr,
+    mut sys2: TransitionSystemPtr,
+    sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
-    let dimensions = 1 + sys1.get_clock_count() + sys2.get_clock_count();
-    let sys1 = UncachedSystem::cache(sys1, dimensions, sys_decls);
-    let sys2 = UncachedSystem::cache(sys2, dimensions, sys_decls);
+    let dimensions = 1 + sys1.get_num_clocks() + sys2.get_num_clocks();
+    sys1.initialize(dimensions);
+    sys2.initialize(dimensions);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&mut sys1.clone(), &mut sys2.clone(), dimensions, sys_decls) {
+    if !check_preconditions(&sys1, &sys2, dimensions) {
         println!("preconditions failed - refinement false");
         return Ok(false);
     }
@@ -27,27 +28,26 @@ pub fn check_refinement(
     let inputs = sys2.get_input_actions();
     let outputs = sys1.get_output_actions();
 
-    let initial_locations_1 = sys1.get_initial_locations();
-    let initial_locations_2 = sys2.get_initial_locations();
+    let initial_locations_1 = sys1.get_initial_location();
+    let initial_locations_2 = sys2.get_initial_location();
 
-    let mut initial_pair =
-        StatePair::create(initial_locations_1.clone(), initial_locations_2.clone());
-    assert_eq!(dimensions, initial_pair.zone.dimension);
-    prepare_init_state(
-        &mut initial_pair,
-        &initial_locations_1,
-        &initial_locations_2,
+    let mut initial_pair = StatePair::create(
+        dimensions,
+        initial_locations_1.clone(),
+        initial_locations_2.clone(),
     );
-    let mut max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
-    initial_pair.zone.extrapolate_max_bounds(&mut max_bounds);
+
+    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
+    initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
 
-        for output in outputs {
-            let output_transition1 = sys1.collect_next_outputs(curr_pair.get_locations1(), output);
-            let output_transition2 = sys2.collect_next_outputs(curr_pair.get_locations2(), output);
+        for output in &outputs {
+            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
+            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
 
             if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
                 create_new_state_pairs(
@@ -56,7 +56,7 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &mut max_bounds,
+                    &max_bounds,
                     true,
                 )
             } else {
@@ -79,9 +79,9 @@ pub fn check_refinement(
             }
         }
 
-        for input in inputs {
-            let input_transitions1 = sys1.collect_next_inputs(curr_pair.get_locations1(), input);
-            let input_transitions2 = sys2.collect_next_inputs(curr_pair.get_locations2(), input);
+        for input in &inputs {
+            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
+            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
             if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
                 create_new_state_pairs(
@@ -90,7 +90,7 @@ pub fn check_refinement(
                     &curr_pair,
                     &mut waiting_list,
                     &mut passed_list,
-                    &mut max_bounds,
+                    &max_bounds,
                     false,
                 )
             } else {
@@ -169,7 +169,7 @@ fn create_new_state_pairs<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    max_bounds: &mut MaxBounds,
+    max_bounds: &MaxBounds,
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
@@ -194,12 +194,15 @@ fn build_state_pair<'a>(
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
-    max_bounds: &mut MaxBounds,
+    max_bounds: &MaxBounds,
     is_state1: bool,
 ) -> bool {
     //Creates new state pair
-    let mut new_sp: StatePair =
-        StatePair::create(curr_pair.locations1.clone(), curr_pair.locations2.clone());
+    let mut new_sp: StatePair = StatePair::create(
+        curr_pair.get_dimensions(),
+        curr_pair.locations1.clone(),
+        curr_pair.locations2.clone(),
+    );
     //Creates DBM for that state pair
     let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
@@ -229,10 +232,10 @@ fn build_state_pair<'a>(
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
-    let inv_success1 = transition1.apply_invariants(locations1, &mut new_sp_zone);
+    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone);
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = transition2.apply_invariants(locations2, &mut invariant_test);
+    let inv_success2 = locations2.apply_invariants(&mut invariant_test);
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
@@ -262,13 +265,13 @@ fn build_state_pair<'a>(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_locations_1: &[DecoratedLocation],
-    initial_locations_2: &[DecoratedLocation],
+    initial_locations_1: LocationTuple,
+    initial_locations_2: LocationTuple,
 ) {
-    for location in initial_locations_1 {
-        let init_inv1 = location.get_location().get_invariant();
+    for (location, decl) in initial_locations_1.iter_zipped() {
+        let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
         } else {
             true
         };
@@ -277,10 +280,10 @@ fn prepare_init_state(
         }
     }
 
-    for location in initial_locations_2 {
-        let init_inv2 = location.get_location().get_invariant();
+    for (location, decl) in initial_locations_2.iter_zipped() {
+        let init_inv2 = location.get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, location, &mut initial_pair.zone)
+            apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
         } else {
             true
         };
@@ -290,24 +293,17 @@ fn prepare_init_state(
     }
 }
 
-fn check_preconditions(
-    sys1: &mut System,
-    sys2: &mut System,
-    dimensions: u32,
-    sys_decls: &SystemDeclarations,
-) -> bool {
-    if !(sys2.precheck_sys_rep(dimensions, sys_decls)
-        && sys1.precheck_sys_rep(dimensions, sys_decls))
-    {
+fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
+    if !(sys2.precheck_sys_rep(dim) && sys1.precheck_sys_rep(dim)) {
         return false;
     }
     let outputs1 = sys1.get_output_actions();
     let outputs2 = sys2.get_output_actions();
 
-    for o2 in outputs2 {
+    for o2 in &outputs2 {
         let mut found_match = false;
-        for o1 in outputs1 {
-            if o1 == o2 {
+        for o1 in &outputs1 {
+            if *o1 == *o2 {
                 found_match = true;
                 break;
             }
@@ -336,33 +332,29 @@ fn check_preconditions(
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
-        if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
+        /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")
         }
         if passed_state_pair.get_locations2().len() != state_pair.get_locations2().len() {
             panic!("state vectors should always have same length")
-        }
+        }*/
 
         for i in 0..passed_state_pair.get_locations1().len() {
-            if passed_state_pair.get_locations1()[i]
-                .get_location()
-                .get_id()
-                != state_pair.get_locations1()[i].get_location().get_id()
+            if passed_state_pair.get_locations1().get_location(i).get_id()
+                != state_pair.get_locations1().get_location(i).get_id()
             {
                 continue 'OuterFor;
             }
         }
 
         for i in 0..passed_state_pair.get_locations2().len() {
-            if passed_state_pair.get_locations2()[i]
-                .get_location()
-                .get_id()
-                != state_pair.get_locations2()[i].get_location().get_id()
+            if passed_state_pair.get_locations2().get_location(i).get_id()
+                != state_pair.get_locations2().get_location(i).get_id()
             {
                 continue 'OuterFor;
             }
         }
-        if state_pair.zone.dimension != passed_state_pair.zone.dimension {
+        if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
         }
 
