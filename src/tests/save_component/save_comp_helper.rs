@@ -2,10 +2,7 @@
 pub mod save_comp_helper {
     use crate::tests::refinement::Helper;
     use crate::DataReader::parse_queries;
-    use crate::ModelObjects::component_view::ComponentView;
     use crate::ModelObjects::representations::QueryExpression;
-    use crate::ModelObjects::representations::SystemRepresentation;
-    use crate::ModelObjects::system::UncachedSystem;
     use crate::System::extract_system_rep;
     use crate::System::input_enabler;
     use crate::System::refine;
@@ -20,11 +17,7 @@ pub mod save_comp_helper {
 
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
-            UncachedSystem::create(extract_system_rep::extract_side(
-                expr.as_ref(),
-                &components,
-                &mut clock_index,
-            ))
+            extract_system_rep::extract_side(expr.as_ref(), &components, &mut clock_index)
         } else {
             panic!("Failed to create system")
         };
@@ -32,13 +25,9 @@ pub mod save_comp_helper {
         let new_comp = combine_components(&base_system.clone(), &decl.clone());
         let mut new_comp = new_comp.create_edge_io_split();
         decl.add_component(&new_comp);
+        //input_enabler::make_input_enabled(&mut new_comp, &decl);
 
-        input_enabler::make_input_enabled(&mut new_comp, &decl);
-
-        let new_system = UncachedSystem::create(SystemRepresentation::Component(
-            ComponentView::create(&new_comp, clock_index),
-        ));
-
+        let new_system = Box::new(new_comp);
         assert!(refine::check_refinement(new_system.clone(), base_system.clone(), &decl).unwrap());
         assert!(refine::check_refinement(base_system.clone(), new_system.clone(), &decl).unwrap());
     }

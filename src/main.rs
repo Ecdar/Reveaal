@@ -5,6 +5,7 @@ mod DataReader;
 mod EdgeEval;
 mod ModelObjects;
 mod System;
+mod TransitionSystems;
 mod tests;
 
 use crate::DataReader::{parse_queries, xml_parser};

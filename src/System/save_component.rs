@@ -1,26 +1,23 @@
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, DecoratedLocation, Edge, Location, LocationType,
-    SyncType,
+    Component, Declarations, Edge, Location, LocationType, SyncType,
 };
-use crate::ModelObjects::representations::{BoolExpression, SystemRepresentation};
-use crate::ModelObjects::system::UncachedSystem;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
-pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) -> Component {
-    let representation = system.borrow_representation();
+pub fn combine_components(system: &TransitionSystemPtr, decl: &SystemDeclarations) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     collect_all_edges_and_locations(
         //representation.get_initial_locations(),
-        representation,
+        system,
         decl,
         &mut location_tuples,
         &mut edges,
     );
 
-    let clocks = get_clock_map(&representation);
-
+    let clocks = get_clock_map(system);
     let locations = get_locations_from_tuples(&location_tuples);
     Component {
         name: "".to_string(),
@@ -35,17 +32,17 @@ pub fn combine_components(system: &UncachedSystem, decl: &SystemDeclarations) ->
     }
 }
 
-fn get_locations_from_tuples(location_tuples: &Vec<Vec<DecoratedLocation>>) -> Vec<Location> {
+fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Location> {
     location_tuples
         .iter()
         .cloned()
         .map(|loc_vec| {
             let is_initial = loc_vec
                 .iter()
-                .all(|loc| loc.location.location_type == LocationType::Initial);
+                .all(|loc| loc.location_type == LocationType::Initial);
             let mut invariant: Option<BoolExpression> = None;
             for (comp_id, loc) in loc_vec.iter().enumerate() {
-                if let Some(inv) = &loc.location.invariant {
+                if let Some(inv) = &loc.invariant {
                     let mut inv = inv.clone();
                     inv.add_component_id_to_vars(comp_id);
                     if let Some(inv_full) = invariant {
@@ -57,7 +54,7 @@ fn get_locations_from_tuples(location_tuples: &Vec<Vec<DecoratedLocation>>) -> V
             }
 
             Location {
-                id: location_pair_name(&loc_vec),
+                id: loc_vec.to_string(),
                 invariant,
                 location_type: if is_initial {
                     LocationType::Initial
@@ -70,25 +67,24 @@ fn get_locations_from_tuples(location_tuples: &Vec<Vec<DecoratedLocation>>) -> V
         .collect()
 }
 
-fn get_clock_map(sysrep: &SystemRepresentation) -> HashMap<String, u32> {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
     let mut comp_id = 0;
-    sysrep.all_components(&mut |comp| {
-        for (k, v) in &comp.get_declarations().clocks {
+
+    let initial = sysrep.get_initial_location();
+    for comp_id in 0..initial.len() {
+        for (k, v) in &initial.get_decl(comp_id).clocks {
             clocks.insert(format!("{}{}", k, comp_id), *v);
         }
-        comp_id += 1;
-
-        true
-    });
+    }
 
     clocks
 }
 
 fn collect_all_edges_and_locations<'a>(
-    representation: &'a SystemRepresentation<'a>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
-    locations: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
 ) {
     let mut l = representation.get_all_locations();
@@ -100,8 +96,8 @@ fn collect_all_edges_and_locations<'a>(
 }
 
 fn collect_edges_from_location<'a>(
-    location: &Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: &LocationTuple<'a>,
+    representation: &TransitionSystemPtr,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
 ) {
@@ -110,35 +106,33 @@ fn collect_edges_from_location<'a>(
 }
 
 fn collect_specific_edges_from_location<'a>(
-    location: &Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: &LocationTuple<'a>,
+    representation: &TransitionSystemPtr,
     decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
     input: bool,
 ) {
     for sync in if input {
-        representation.get_input_actions(decl)
+        representation.get_input_actions()
     } else {
-        representation.get_output_actions(decl)
+        representation.get_output_actions()
     } {
-        let mut transitions = vec![];
-        representation.collect_next_transitions(
+        let transitions = representation.next_transitions(
             location,
-            &mut 0,
             &sync,
-            &mut transitions,
             &if input {
                 SyncType::Input
             } else {
                 SyncType::Output
             },
+            &mut 0,
         );
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
             let edge = Edge {
-                source_location: location_pair_name(location),
-                target_location: location_pair_name(&target_location),
+                source_location: location.to_string(),
+                target_location: target_location.to_string(),
                 sync_type: if input {
                     SyncType::Input
                 } else {
@@ -154,10 +148,10 @@ fn collect_specific_edges_from_location<'a>(
 }
 
 fn get_pruned_edges_from_locations<'a>(
-    location: Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: LocationTuple<'a>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
-    passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
 ) {
     if passed_list.contains(&location) {
@@ -184,36 +178,34 @@ fn get_pruned_edges_from_locations<'a>(
 }
 
 fn get_pruned_specific_edges_from_locations<'a>(
-    location: Vec<DecoratedLocation<'a>>,
-    representation: &'a SystemRepresentation<'a>,
+    location: LocationTuple<'a>,
+    representation: &'a TransitionSystemPtr,
     decl: &SystemDeclarations,
-    passed_list: &mut Vec<Vec<DecoratedLocation<'a>>>,
+    passed_list: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
     input: bool,
 ) {
     for sync in if input {
-        representation.get_input_actions(decl)
+        representation.get_input_actions()
     } else {
-        representation.get_output_actions(decl)
+        representation.get_output_actions()
     } {
-        let mut transitions = vec![];
-        representation.collect_next_transitions(
+        let transitions = representation.next_transitions(
             &location,
-            &mut 0,
             &sync,
-            &mut transitions,
             &if input {
                 SyncType::Input
             } else {
                 SyncType::Output
             },
+            &mut 0,
         );
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
             let edge = Edge {
-                source_location: location_pair_name(&location),
-                target_location: location_pair_name(&target_location),
+                source_location: location.to_string(),
+                target_location: target_location.to_string(),
                 sync_type: if input {
                     SyncType::Input
                 } else {
@@ -234,17 +226,4 @@ fn get_pruned_specific_edges_from_locations<'a>(
             );
         }
     }
-}
-
-fn location_pair_name(locations: &Vec<DecoratedLocation>) -> String {
-    let len = locations.len();
-
-    let mut result = "(".to_string();
-    for i in 0..len - 1 {
-        let name = locations.get(i).unwrap().get_location().get_id();
-        result.push_str(&format!("{},", name));
-    }
-    let name = locations.get(len - 1).unwrap().get_location().get_id();
-    result.push_str(&format!("{})", name));
-    result
 }

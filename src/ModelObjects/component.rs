@@ -6,10 +6,10 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::state_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects;
-use crate::ModelObjects::component_view::ComponentView;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::TransitionSystems::LocationTuple;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt;
@@ -127,6 +127,9 @@ impl Component {
         let mut actions = vec![];
         for edge in self.input_edges.as_ref().unwrap() {
             if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
+                if edge.get_sync() == "*" {
+                    continue;
+                };
                 actions.push(Channel {
                     name: edge.get_sync().clone(),
                 });
@@ -139,6 +142,9 @@ impl Component {
         let mut actions = vec![];
         for edge in self.output_edges.as_ref().unwrap() {
             if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
+                if edge.get_sync() == "*" {
+                    continue;
+                };
                 actions.push(Channel {
                     name: edge.get_sync().clone(),
                 });
@@ -240,8 +246,8 @@ impl Component {
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
-    pub fn check_consistency(&self, prune: bool) -> bool {
-        if !self.is_deterministic() {
+    pub fn check_consistency(&self, dim: u32, prune: bool) -> bool {
+        if !self.is_deterministic(dim) {
             println!("NOT DETERMINISTIC");
             return false;
         }
@@ -250,18 +256,13 @@ impl Component {
 
         let initial_loc = self.get_initial_location();
 
-        let initial_location = DecoratedLocation {
-            location: initial_loc,
-            component: self,
-        };
-
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
+        let dimension = dim;
 
         let zone = Zone::init(dimension);
 
-        let mut state = create_state(initial_location, zone);
-        if let Some(update_i) = state.decorated_locations[0].location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(update_i, &mut state, 0);
+        let mut state = create_state(initial_loc, &self.declarations, zone);
+        if let Some(update_i) = state.get_location(0).get_invariant() {
+            constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
         }
 
         let bounds = self.get_max_bounds(dimension);
@@ -317,9 +318,8 @@ impl Component {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.zone.clone();
             let loc = self.get_location_by_name(&edge.target_location);
-            let location = DecoratedLocation::create(loc, self);
 
-            let mut new_state = create_state(location, full_new_zone);
+            let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
             if let Some(source_inv) = self
                 .get_location_by_name(edge.get_source_location())
@@ -383,9 +383,8 @@ impl Component {
                 let full_new_zone = currState.zone.clone();
 
                 let loc = self.get_location_by_name(&edge.target_location);
-                let location = DecoratedLocation::create(loc, self);
 
-                let mut new_state = create_state(location, full_new_zone);
+                let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
                 if let Some(source_inv) = self
                     .get_location_by_name(edge.get_source_location())
@@ -451,20 +450,15 @@ impl Component {
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
-    pub fn is_deterministic(&self) -> bool {
+    pub fn is_deterministic(&self, dim: u32) -> bool {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
         let initial_loc = self.get_initial_location();
 
-        let initial_location = DecoratedLocation {
-            location: initial_loc,
-            component: self,
-        };
+        let dimension = dim;
 
-        let dimension = (self.get_declarations().get_clocks().len() + 1) as u32;
-
-        let mut state = create_state(initial_location, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
+        let mut state = create_state(initial_loc, &self.declarations, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
         state.zone.zero();
         state.zone.up();
@@ -501,8 +495,7 @@ impl Component {
                         let full_new_zone = full_state.zone.clone();
                         //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
-                        let state = DecoratedLocation::create(loc, self);
-                        let mut new_state = create_state(state, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
+                        let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
                                 constraint_applyer::apply_constraints_to_state2(
@@ -573,8 +566,11 @@ impl Component {
                     .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
-                let location = DecoratedLocation::create(state.get_location(0), self);
-                let mut state_i = create_state(location, state.zone.clone());
+                let mut state_i = create_state(
+                    state.get_location(0),
+                    &self.declarations,
+                    state.zone.clone(),
+                );
                 if let Some(inv_source) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
                         constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
@@ -593,8 +589,11 @@ impl Component {
                     constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, 0);
                 }
 
-                let location = DecoratedLocation::create(state.get_location(0), self);
-                let mut state_j = create_state(location, state.zone.clone());
+                let mut state_j = create_state(
+                    state.get_location(0),
+                    &self.declarations,
+                    state.zone.clone(),
+                );
                 if let Some(update_j) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
                         constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
@@ -655,9 +654,9 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
+fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Zone) -> State<'a> {
     State {
-        decorated_locations: vec![decorated_location],
+        decorated_locations: LocationTuple::simple(location, decl),
         zone,
     }
 }
@@ -667,28 +666,23 @@ fn create_state(decorated_location: DecoratedLocation, zone: Zone) -> State {
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct State<'a> {
-    pub decorated_locations: DecoratedLocationTuple<'a>,
+    pub decorated_locations: LocationTuple<'a>,
     pub zone: Zone,
 }
 
 impl<'a> State<'a> {
-    pub fn create(decorated_locations: DecoratedLocationTuple<'a>, zone: Zone) -> Self {
+    pub fn create(decorated_locations: LocationTuple<'a>, zone: Zone) -> Self {
         State {
             decorated_locations,
             zone,
         }
     }
 
-    pub fn from_location(
-        decorated_locations: DecoratedLocationTuple<'a>,
-        dimensions: u32,
-    ) -> Option<Self> {
+    pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
         let mut zone = Zone::init(dimensions);
 
-        for location in &decorated_locations {
-            if !location.apply_invariant(&mut zone) {
-                return None;
-            }
+        if !decorated_locations.apply_invariants(&mut zone) {
+            return None;
         }
 
         Some(State {
@@ -706,11 +700,11 @@ impl<'a> State<'a> {
     }
 
     pub fn get_location(&self, index: usize) -> &Location {
-        self.decorated_locations[index].get_location()
+        self.decorated_locations.get_location(index)
     }
 
     pub fn get_declarations(&self, index: usize) -> &Declarations {
-        self.decorated_locations[index].get_declarations()
+        self.decorated_locations.get_decl(index)
     }
 }
 
@@ -760,20 +754,18 @@ pub enum SyncType {
     Output,
 }
 
-pub type DecoratedLocationTuple<'a> = Vec<DecoratedLocation<'a>>;
-
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition<'a> {
-    pub edges: Vec<(&'a ComponentView<'a>, &'a Edge, usize)>,
+    pub edges: Vec<(&'a Component, &'a Edge, usize)>, // TODO: If edges include a reference to the target location we can avoid having components here at all
 }
 impl<'a> Transition<'a> {
     pub fn use_transition(&self, state: &mut State<'a>) -> bool {
         if self.apply_guards(&state.decorated_locations, &mut state.zone) {
-            self.apply_updates(&state.decorated_locations, &mut state.zone);
+            self.apply_updates(&mut state.decorated_locations, &mut state.zone);
             self.move_locations(&mut state.decorated_locations);
             state.zone.up();
-            if self.apply_invariants(&mut state.decorated_locations, &mut state.zone) {
+            if state.decorated_locations.apply_invariants(&mut state.zone) {
                 return true;
             }
         }
@@ -785,7 +777,7 @@ impl<'a> Transition<'a> {
         let mut out = vec![];
         for l in left {
             for r in &*right {
-                let temp: Vec<(&'a ComponentView, &'a Edge, usize)> = l
+                let temp: Vec<(&'a Component, &'a Edge, usize)> = l
                     .edges
                     .iter()
                     .cloned()
@@ -798,52 +790,38 @@ impl<'a> Transition<'a> {
         out
     }
 
-    pub fn apply_updates(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) {
+    pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Zone) {
         for (_, edge, index) in &self.edges {
-            edge.apply_update(&locations[*index], zone);
+            edge.apply_update(locations.get_decl(*index), zone);
         }
     }
 
-    pub fn apply_guards(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
+    pub fn apply_guards(&self, locations: &LocationTuple, zone: &mut Zone) -> bool {
         let mut success = true;
         for (_, edge, index) in &self.edges {
-            success = success && edge.apply_guard(&locations[*index], zone);
+            success = success && edge.apply_guard(locations.get_decl(*index), zone);
         }
         success
     }
 
-    pub fn apply_invariants(&self, locations: &DecoratedLocationTuple, zone: &mut Zone) -> bool {
-        let mut success = true;
-        for location in locations {
-            success = success && location.apply_invariant(zone);
-        }
-        success
-    }
-
-    pub fn move_locations(&self, locations: &mut DecoratedLocationTuple<'a>) {
+    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
-            let next_location = comp.get_component().get_location_by_name(new_loc_name);
+            let next_location = comp.get_location_by_name(new_loc_name);
 
-            locations[*index].set_location(next_location);
+            locations.set_location(*index, next_location);
         }
     }
 
-    pub fn get_guard_federation(
-        &self,
-        locations: &DecoratedLocationTuple,
-        dim: u32,
-    ) -> Option<Federation> {
+    pub fn get_guard_federation(&self, locations: &LocationTuple, dim: u32) -> Option<Federation> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
-            let target_location = comp
-                .get_component()
-                .get_location_by_name(edge.get_target_location());
+            let target_location = comp.get_location_by_name(edge.get_target_location());
             let mut guard_zone = Zone::init(dim);
             if let Some(inv_source) = target_location.get_invariant() {
                 let dec_loc = DecoratedLocation {
                     location: target_location,
-                    component: *comp,
+                    decls: comp.get_declarations(),
                 };
                 dec_loc.apply_invariant(&mut guard_zone);
             }
@@ -851,9 +829,13 @@ impl<'a> Transition<'a> {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
                 guard_zone.free_clock(*(clock_index.unwrap()));
             }
-            edge.apply_guard(&locations[*index], &mut guard_zone);
+            let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
             let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
-            let mut inverse = full_fed.minus_fed(&Federation::new(vec![guard_zone], dim));
+            let mut inverse = if success {
+                full_fed.minus_fed(&Federation::new(vec![guard_zone], dim))
+            } else {
+                full_fed
+            };
             fed = fed.minus_fed(&inverse);
         }
         if !fed.is_empty() {
@@ -1034,15 +1016,19 @@ impl fmt::Display for Edge {
 }
 
 impl Edge {
-    pub fn apply_update(&self, location: &DecoratedLocation, zone: &mut Zone) {
+    pub fn apply_update(
+        &self,
+        decl: &Declarations, //Will eventually be mutable
+        zone: &mut Zone,
+    ) {
         if let Some(updates) = self.get_update() {
-            updater(updates, location, zone);
+            updater(updates, decl, zone);
         }
     }
 
-    pub fn apply_guard(&self, location: &DecoratedLocation, zone: &mut Zone) -> bool {
+    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> bool {
         return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, location, zone)
+            apply_constraints_to_state(guards, decl, zone)
         } else {
             true
         };
@@ -1098,7 +1084,7 @@ impl Channel {
 #[derive(Clone)]
 pub struct DecoratedLocation<'a> {
     pub location: &'a Location,
-    pub component: &'a dyn DeclarationProvider,
+    pub decls: &'a Declarations,
 }
 
 impl PartialEq for DecoratedLocation<'_> {
@@ -1109,19 +1095,13 @@ impl PartialEq for DecoratedLocation<'_> {
 
 #[allow(dead_code)]
 impl<'a> DecoratedLocation<'a> {
-    pub fn create(
-        location: &'a Location,
-        component: &'a dyn DeclarationProvider,
-    ) -> DecoratedLocation<'a> {
-        DecoratedLocation {
-            location,
-            component,
-        }
+    pub fn create(location: &'a Location, decls: &'a Declarations) -> DecoratedLocation<'a> {
+        DecoratedLocation { location, decls }
     }
 
     pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
-            apply_constraints_to_state(&inv, self, zone)
+            apply_constraints_to_state(&inv, self.decls, zone)
         } else {
             true
         }
@@ -1132,7 +1112,7 @@ impl<'a> DecoratedLocation<'a> {
     }
 
     pub fn get_declarations(&self) -> &Declarations {
-        &self.component.get_declarations()
+        &self.decls
     }
 
     pub fn get_location(&self) -> &Location {
