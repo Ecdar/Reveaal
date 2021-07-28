@@ -493,7 +493,6 @@ impl Component {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                         let full_new_zone = full_state.zone.clone();
-                        //let zone1 : &mut[i32] = &mut new_zone[0..len as usize];
                         let loc = self.get_location_by_name(&edge.target_location);
                         let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {

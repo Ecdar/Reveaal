@@ -28,16 +28,11 @@ extern crate serde_xml_rs;
 extern crate xml;
 
 pub fn main() {
-    //xml_parser::parse_xml("samples/xml/delayRefinement.xml");
     let (components, system_declarations, queries, checkInputOutput) = parse_args();
     let mut optimized_components = vec![];
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();
-        // println!("COMPONENT: {:?}", optimized_comp.name);
-        // println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
         input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
-        // println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
-        // println!("-------------------");
         optimized_components.push(optimized_comp);
     }
 

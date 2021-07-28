@@ -10,9 +10,6 @@ pub fn add_extra_inputs_outputs(
     components: &mut Vec<Component>,
 ) -> (TransitionSystemPtr, TransitionSystemPtr, SystemDeclarations) {
     let inputs1 = get_extra(&sys1, &sys2, sys_decls, true);
-    //let outputs1 = get_extra(&sys1, &sys2, sys_decls, false);
-
-    //let inputs2 = get_extra(&sys2, &sys1, sys_decls, true);
     let outputs2 = get_extra(&sys2, &sys1, sys_decls, false);
 
     if inputs1.is_empty() && outputs2.is_empty() {

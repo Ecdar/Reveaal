@@ -158,26 +158,13 @@ fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
 fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
-        // Rule::negation => {
-        //     build_negation_from_pair(pair)
-        // },
         Rule::parenthesizedExp => {
             let inner_pair = pair.into_inner().next().unwrap();
             BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
         }
-        // Rule::numNegation => {
-        //     let inner_pair = pair.into_inner().next().unwrap();
-        //     BoolExpression::Negate(Box::new(build_expression_from_pair(inner_pair)))
-        // },
         Rule::and => build_and_from_pair(pair),
         Rule::or => build_or_from_pair(pair),
         Rule::compareExpr => build_compareExpr_from_pair(pair),
-        // Rule::sub_add => {
-        //     build_sub_add_from_pair(pair)
-        // },
-        // Rule::mult_div_mod => {
-        //     build_mult_div_mod_from_pair(pair)
-        // },
         Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
         Rule::terms => build_expression_from_pair(pair.into_inner().next().unwrap()),
         unknown => panic!("Got unknown pair: {:?}", unknown),
@@ -257,50 +244,3 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpress
         }
     }
 }
-
-// fn build_sub_add_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression{
-//     let mut inner_pair = pair.into_inner();
-//     let left_side_pair = inner_pair.next().unwrap();
-
-//     match inner_pair.next() {
-//         None => build_expression_from_pair(left_side_pair),
-//         Some(operator_pair) => {
-//             let right_side_pair = inner_pair.next().unwrap();
-
-//             let lside = build_expression_from_pair(left_side_pair);
-//             let rside = build_expression_from_pair(right_side_pair);
-
-//             match operator_pair.as_str(){
-//                 "+" => {BoolExpression::Add(Box::new(lside), Box::new(rside))},
-//                 "-" => {BoolExpression::Subtract(Box::new(lside), Box::new(rside))},
-//                 unknown_operator => panic!("Got unknown arithmetic operator: {}. Only able to handle +,-,/,*,%", unknown_operator),
-//             }
-//         }
-//     }
-// }
-
-// fn build_mult_div_mod_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression{
-//     let mut inner_pair = pair.into_inner();
-//     let left_side_pair = inner_pair.next().unwrap();
-
-//     match inner_pair.next() {
-//         None => build_expression_from_pair(left_side_pair),
-//         Some(operator_pair) => {
-//             let right_side_pair = inner_pair.next().unwrap();
-
-//             let lside = build_expression_from_pair(left_side_pair);
-//             let rside = build_expression_from_pair(right_side_pair);
-
-//             match operator_pair.as_str(){
-//                 "/" => {BoolExpression::Divide(Box::new(lside), Box::new(rside))},
-//                 "*" => {BoolExpression::Mul(Box::new(lside), Box::new(rside))},
-//                 "%" => {BoolExpression::Modulo(Box::new(lside), Box::new(rside))}
-//                 unknown_operator => panic!("Got unknown arithmetic operator: {}. Only able to handle +,-,/,*,%", unknown_operator),
-//             }
-//         }
-//     }
-// }
-
-// fn build_negation_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression{
-//     BoolExpression::Not(Box::new(build_expression_from_pair(pair.into_inner().next().unwrap())))
-// }

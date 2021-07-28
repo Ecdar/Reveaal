@@ -10,8 +10,6 @@ use std::collections::HashMap;
 use std::{fs, io};
 
 pub fn setup(mut folder_path: String) -> (HashMap<String, Component>, SystemDeclarations) {
-    //let mut folder_path: String = "../samples/xml/delayRefinement.xml".to_string();
-    //let mut folder_path: String = "samples/json/AG".to_string();
     let mut paths = fs::read_dir(&folder_path)
         .unwrap()
         .map(|res| res.map(|e| e.path()))
@@ -44,8 +42,6 @@ pub fn setup(mut folder_path: String) -> (HashMap<String, Component>, SystemDecl
 }
 
 pub fn json_setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
-    //let mut folder_path: String = "../samples/xml/delayRefinement.xml".to_string();
-    //let mut folder_path: String = "samples/json/AG".to_string();
     let mut paths = fs::read_dir(&folder_path)
         .unwrap()
         .map(|res| res.map(|e| e.path()))

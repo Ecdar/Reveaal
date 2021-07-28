@@ -212,7 +212,6 @@ fn build_state_pair<'a>(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
-        //println!("Guard zone invalid");
         return false;
     }
 

@@ -823,3 +823,7 @@ pub fn libtest2() {
         println!("{:?}", dbm);
     }
 }
+
+pub fn rs_dbm_boundbool2raw(bound: i32, is_strict: bool) -> i32 {
+    unsafe { dbm_boundbool2raw(bound, is_strict) }
+}
