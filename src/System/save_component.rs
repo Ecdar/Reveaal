@@ -2,7 +2,6 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations::BoolExpression;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
@@ -133,87 +132,6 @@ fn collect_specific_edges_from_location<'a>(
                 sync: sync.clone(),
             };
             edges.push(edge);
-        }
-    }
-}
-
-fn get_pruned_edges_from_locations<'a>(
-    location: LocationTuple<'a>,
-    representation: &'a TransitionSystemPtr,
-    decl: &SystemDeclarations,
-    passed_list: &mut Vec<LocationTuple<'a>>,
-    edges: &mut Vec<Edge>,
-) {
-    if passed_list.contains(&location) {
-        return;
-    }
-
-    passed_list.push(location.clone());
-    get_pruned_specific_edges_from_locations(
-        location.clone(),
-        representation,
-        decl,
-        passed_list,
-        edges,
-        true,
-    );
-    get_pruned_specific_edges_from_locations(
-        location.clone(),
-        representation,
-        decl,
-        passed_list,
-        edges,
-        false,
-    );
-}
-
-fn get_pruned_specific_edges_from_locations<'a>(
-    location: LocationTuple<'a>,
-    representation: &'a TransitionSystemPtr,
-    decl: &SystemDeclarations,
-    passed_list: &mut Vec<LocationTuple<'a>>,
-    edges: &mut Vec<Edge>,
-    input: bool,
-) {
-    for sync in if input {
-        representation.get_input_actions()
-    } else {
-        representation.get_output_actions()
-    } {
-        let transitions = representation.next_transitions(
-            &location,
-            &sync,
-            &if input {
-                SyncType::Input
-            } else {
-                SyncType::Output
-            },
-            &mut 0,
-        );
-        for transition in transitions {
-            let mut target_location = location.clone();
-            transition.move_locations(&mut target_location);
-            let edge = Edge {
-                source_location: location.to_string(),
-                target_location: target_location.to_string(),
-                sync_type: if input {
-                    SyncType::Input
-                } else {
-                    SyncType::Output
-                },
-                guard: transition.get_guard_expression(true),
-                update: transition.get_updates(true),
-                sync: sync.clone(),
-            };
-            edges.push(edge);
-
-            get_pruned_edges_from_locations(
-                target_location,
-                representation,
-                decl,
-                passed_list,
-                edges,
-            );
         }
     }
 }

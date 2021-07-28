@@ -165,37 +165,3 @@ fn build_guard_from_zone_helper(
         representations::BoolExpression::Bool(false)
     }
 }
-
-fn get_inv_clocks<'a>(
-    invariant: &'a representations::BoolExpression,
-    component: &component::Component,
-    clock_vec: &mut Vec<&'a str>,
-) {
-    match invariant {
-        representations::BoolExpression::AndOp(left, right)
-        | representations::BoolExpression::OrOp(left, right)
-        | representations::BoolExpression::LessEQ(left, right)
-        | representations::BoolExpression::GreatEQ(left, right)
-        | representations::BoolExpression::EQ(left, right)
-        | representations::BoolExpression::LessT(left, right)
-        | representations::BoolExpression::GreatT(left, right) => {
-            get_inv_clocks(left, component, clock_vec);
-            get_inv_clocks(right, component, clock_vec);
-        }
-        representations::BoolExpression::Parentheses(inner) => {
-            get_inv_clocks(inner, component, clock_vec);
-        }
-        representations::BoolExpression::Clock(_)
-        | representations::BoolExpression::Bool(_)
-        | representations::BoolExpression::Int(_) => {}
-        representations::BoolExpression::VarName(varname) => {
-            if component
-                .get_declarations()
-                .get_clocks()
-                .contains_key(varname)
-            {
-                clock_vec.push(varname);
-            }
-        }
-    }
-}
