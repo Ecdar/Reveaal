@@ -5,7 +5,6 @@ use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::state_updater;
 use crate::EdgeEval::updater::updater;
-use crate::ModelObjects;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
@@ -817,7 +816,7 @@ impl<'a> Transition<'a> {
         for (comp, edge, index) in &self.edges {
             let target_location = comp.get_location_by_name(edge.get_target_location());
             let mut guard_zone = Zone::init(dim);
-            if let Some(inv_source) = target_location.get_invariant() {
+            if target_location.get_invariant().is_some() {
                 let dec_loc = DecoratedLocation {
                     location: target_location,
                     decls: comp.get_declarations(),
@@ -829,8 +828,8 @@ impl<'a> Transition<'a> {
                 guard_zone.free_clock(*(clock_index.unwrap()));
             }
             let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
-            let mut full_fed = Federation::new(vec![Zone::init(dim)], dim);
-            let mut inverse = if success {
+            let full_fed = Federation::new(vec![Zone::init(dim)], dim);
+            let inverse = if success {
                 full_fed.minus_fed(&Federation::new(vec![guard_zone], dim))
             } else {
                 full_fed
@@ -869,7 +868,7 @@ impl<'a> Transition<'a> {
             if let Some(update) = &edge.update {
                 let mut update = update.clone();
                 if add_id_to_vars {
-                    for mut u in &mut update {
+                    for u in &mut update {
                         u.add_component_id_to_vars(*comp_id);
                     }
                 }
@@ -1316,7 +1315,6 @@ where
     match sync_type {
         SyncType::Input => serializer.serialize_str("INPUT"),
         SyncType::Output => serializer.serialize_str("OUTPUT"),
-        _ => panic!("Unknown sync type in status {:?}", sync_type),
     }
 }
 

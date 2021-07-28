@@ -26,7 +26,7 @@ pub struct RefinementExecutor {
 impl ExecutableQuery for RefinementExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut extra_components = vec![];
-        let (sys1, sys2, decl) = extra_actions::add_extra_inputs_outputs(
+        let (sys1, sys2, _) = extra_actions::add_extra_inputs_outputs(
             self.sys1,
             self.sys2,
             &self.decls,
@@ -46,12 +46,11 @@ impl ExecutableQuery for RefinementExecutor {
 pub struct GetComponentExecutor {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
-    pub decls: SystemDeclarations,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system, &self.decls);
+        let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
         component_to_json(&comp);

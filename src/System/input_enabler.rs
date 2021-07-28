@@ -29,7 +29,7 @@ pub fn make_input_enabled(
             }
 
             // No constraints on any clocks
-            let mut full_federation =
+            let full_federation =
                 Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {

@@ -130,7 +130,7 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
                     Box::new(build_expression_from_pair(inner_pair)),
                     save_name,
                 ),
-                err => panic!("Could not parse save-as name"),
+                _ => panic!("Could not parse save-as name"),
             }
         }
         Rule::terms => {

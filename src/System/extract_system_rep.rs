@@ -51,7 +51,6 @@ pub fn create_executable_query<'a>(
                         GetComponentExecutor {
                             system: extract_side(query_expression, components, &mut clock_index),
                             comp_name: comp_name.clone(),
-                            decls: system_declarations.clone(),
                         }
                     )
                 }else{

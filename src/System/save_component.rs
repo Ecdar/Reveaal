@@ -6,16 +6,10 @@ use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
-pub fn combine_components(system: &TransitionSystemPtr, decl: &SystemDeclarations) -> Component {
+pub fn combine_components(system: &TransitionSystemPtr) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
-    collect_all_edges_and_locations(
-        //representation.get_initial_locations(),
-        system,
-        decl,
-        &mut location_tuples,
-        &mut edges,
-    );
+    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges);
 
     let clocks = get_clock_map(system);
     let locations = get_locations_from_tuples(&location_tuples);
@@ -69,7 +63,6 @@ fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Locati
 
 fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
-    let mut comp_id = 0;
 
     let initial = sysrep.get_initial_location();
     for comp_id in 0..initial.len() {
@@ -83,32 +76,29 @@ fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
 
 fn collect_all_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
-    decl: &SystemDeclarations,
     locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
 ) {
-    let mut l = representation.get_all_locations();
+    let l = representation.get_all_locations();
     println!("Found {} locations", l.len());
     locations.extend(l);
     for location in locations {
-        collect_edges_from_location(location, representation, decl, edges);
+        collect_edges_from_location(location, representation, edges);
     }
 }
 
 fn collect_edges_from_location<'a>(
     location: &LocationTuple<'a>,
     representation: &TransitionSystemPtr,
-    decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
 ) {
-    collect_specific_edges_from_location(location, representation, decl, edges, true);
-    collect_specific_edges_from_location(location, representation, decl, edges, false);
+    collect_specific_edges_from_location(location, representation, edges, true);
+    collect_specific_edges_from_location(location, representation, edges, false);
 }
 
 fn collect_specific_edges_from_location<'a>(
     location: &LocationTuple<'a>,
     representation: &TransitionSystemPtr,
-    decl: &SystemDeclarations,
     edges: &mut Vec<Edge>,
     input: bool,
 ) {

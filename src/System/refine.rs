@@ -130,7 +130,7 @@ fn has_valid_state_pair<'a>(
     let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
-    let mut pair_zone = curr_pair.zone.clone();
+    let pair_zone = curr_pair.zone.clone();
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {

@@ -28,7 +28,7 @@ extern crate serde_xml_rs;
 extern crate xml;
 
 pub fn main() {
-    let (components, system_declarations, queries, checkInputOutput) = parse_args();
+    let (components, system_declarations, queries, _) = parse_args();
     let mut optimized_components = vec![];
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();

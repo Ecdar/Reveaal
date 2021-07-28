@@ -9,8 +9,8 @@ pub fn add_extra_inputs_outputs(
     sys_decls: &SystemDeclarations,
     components: &mut Vec<Component>,
 ) -> (TransitionSystemPtr, TransitionSystemPtr, SystemDeclarations) {
-    let inputs1 = get_extra(&sys1, &sys2, sys_decls, true);
-    let outputs2 = get_extra(&sys2, &sys1, sys_decls, false);
+    let inputs1 = get_extra(&sys1, &sys2, true);
+    let outputs2 = get_extra(&sys2, &sys1, false);
 
     if inputs1.is_empty() && outputs2.is_empty() {
         return (sys1, sys2, sys_decls.clone());
@@ -44,7 +44,6 @@ pub fn add_extra_inputs_outputs(
 fn get_extra(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
-    sys_decls: &SystemDeclarations,
     is_input: bool,
 ) -> Vec<String> {
     let actions1 = if is_input {
