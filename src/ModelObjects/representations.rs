@@ -1,8 +1,4 @@
-use crate::ModelObjects::component::{DecoratedLocation, Location, SyncType, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
-use std::collections::HashSet;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap

@@ -5,7 +5,6 @@ use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::state_updater;
 use crate::EdgeEval::updater::updater;
-use crate::ModelObjects;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
@@ -823,7 +822,9 @@ impl<'a> Transition<'a> {
                     location: target_location,
                     decls: comp.get_declarations(),
                 };
-                dec_loc.apply_invariant(&mut guard_zone);
+                if !dec_loc.apply_invariant(&mut guard_zone) {
+                    continue;
+                }
             }
             for clock in edge.get_update_clocks() {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
