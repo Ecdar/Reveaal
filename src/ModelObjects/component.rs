@@ -15,8 +15,48 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Add;
 
+#[derive(Serialize)]
+pub struct DummyComponent {
+    pub name: String,
+
+    #[serde(
+        deserialize_with = "decode_declarations",
+        serialize_with = "encode_declarations"
+    )]
+    pub declarations: Declarations,
+    pub locations: Vec<Location>,
+    pub edges: Vec<Edge>,
+
+    pub description: String,
+    pub includeInPeriodicCheck: bool,
+    pub color: String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl From<Component> for DummyComponent {
+    fn from(item: Component) -> Self {
+        DummyComponent {
+            name: item.name,
+            declarations: item.declarations,
+            locations: item.locations,
+            edges: item.edges,
+            description: "".to_string(),
+            includeInPeriodicCheck: false,
+            color: 6.to_string(),
+            x: 5.0,
+            y: 5.0,
+            width: 450.0,
+            height: 600.0,
+        }
+    }
+}
+
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(into = "DummyComponent")]
 pub struct Component {
     pub name: String,
 
@@ -715,7 +755,52 @@ pub enum LocationType {
     Universal,
 }
 
+#[derive(Serialize)]
+struct DummyLocation {
+    pub id: String,
+    #[serde(
+        //deserialize_with = "decode_invariant",
+        serialize_with = "encode_opt_boolexpr"
+    )]
+    pub invariant: Option<representations::BoolExpression>,
+    #[serde(
+        //deserialize_with = "decode_location_type",
+        serialize_with = "encode_location_type",
+        rename = "type"
+    )]
+    pub location_type: LocationType,
+    pub urgency: String,
+    pub nickname: String,
+    pub x: f32,
+    pub y: f32,
+    pub color: u32,
+    pub nicknameX: f32,
+    pub nicknameY: f32,
+    pub invariantX: f32,
+    pub invariantY: f32,
+}
+
+impl From<Location> for DummyLocation {
+    fn from(item: Location) -> Self {
+        DummyLocation {
+            id: item.id,
+            invariant: item.invariant,
+            location_type: item.location_type,
+            urgency: item.urgency,
+            nickname: "".to_string(),
+            x: 100.0,
+            y: 100.0,
+            color: 6,
+            nicknameX: 30.0,
+            nicknameY: -10.0,
+            invariantX: 30.0,
+            invariantY: 10.0,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
+#[serde(into = "DummyLocation")]
 pub struct Location {
     pub id: String,
     #[serde(
@@ -726,7 +811,7 @@ pub struct Location {
     #[serde(
         deserialize_with = "decode_location_type",
         serialize_with = "encode_location_type",
-        alias = "type"
+        rename = "type"
     )]
     pub location_type: LocationType,
     pub urgency: String,
@@ -961,6 +1046,7 @@ where
                     update.get_variable_name(),
                     "=",
                     &update.get_expression().encode_expr(),
+                    ", ",
                 ]
                 .concat(),
             );
@@ -971,16 +1057,92 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Edge {
-    #[serde(alias = "sourceLocation")]
+#[derive(Serialize)]
+struct DummyNail {
+    pub x: f32,
+    pub y: f32,
+    pub propertyType: String,
+    pub propertyX: f32,
+    pub propertyY: f32,
+}
+
+impl DummyNail {
+    pub fn new(p_type: &str) -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            propertyType: p_type.to_string(),
+            propertyX: 10.0,
+            propertyY: -10.0,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct DummyEdge {
+    #[serde(rename = "sourceLocation")]
     pub source_location: String,
-    #[serde(alias = "targetLocation")]
+    #[serde(rename = "targetLocation")]
     pub target_location: String,
     #[serde(
         deserialize_with = "decode_sync_type",
         serialize_with = "encode_sync_type",
-        alias = "status"
+        rename = "status"
+    )]
+    pub sync_type: SyncType,
+    #[serde(
+        deserialize_with = "decode_guard",
+        serialize_with = "encode_opt_boolexpr"
+    )]
+    pub guard: Option<representations::BoolExpression>,
+    #[serde(
+        deserialize_with = "decode_update",
+        serialize_with = "encode_opt_updates"
+    )]
+    pub update: Option<Vec<parse_edge::Update>>,
+    #[serde(deserialize_with = "decode_sync")]
+    pub sync: String,
+    pub select: String,
+    pub nails: Vec<DummyNail>,
+}
+
+impl From<Edge> for DummyEdge {
+    fn from(item: Edge) -> Self {
+        let mut nails = vec![];
+        if item.guard.is_some() {
+            nails.push(DummyNail::new("GUARD"));
+        }
+
+        if item.update.is_some() {
+            nails.push(DummyNail::new("UPDATE"));
+        }
+
+        nails.push(DummyNail::new("SYNCHRONIZATION"));
+
+        DummyEdge {
+            source_location: item.source_location,
+            target_location: item.target_location,
+            sync_type: item.sync_type,
+            guard: item.guard,
+            update: item.update,
+            sync: item.sync,
+            select: "".to_string(),
+            nails,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(into = "DummyEdge")]
+pub struct Edge {
+    #[serde(rename = "sourceLocation")]
+    pub source_location: String,
+    #[serde(rename = "targetLocation")]
+    pub target_location: String,
+    #[serde(
+        deserialize_with = "decode_sync_type",
+        serialize_with = "encode_sync_type",
+        rename = "status"
     )]
     pub sync_type: SyncType,
     #[serde(
