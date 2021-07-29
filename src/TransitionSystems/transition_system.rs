@@ -132,7 +132,7 @@ pub trait TransitionSystem<'a>: DynClone {
     fn is_locally_consistent(&self, dimensions: u32) -> bool;
 
     fn set_clock_indices(&mut self, index: &mut u32);
-  
+
     fn get_initial_state(&self, dimensions: u32) -> State;
 }
 

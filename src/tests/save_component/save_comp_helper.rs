@@ -4,6 +4,7 @@ pub mod save_comp_helper {
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
+    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
     use crate::TransitionSystems::TransitionSystem;
@@ -22,7 +23,7 @@ pub mod save_comp_helper {
             panic!("Failed to create system")
         };
 
-        let new_comp = combine_components(&base_system.clone(), &decl.clone());
+        let new_comp = combine_components(&base_system.clone());
         let mut new_comp = Box::new(new_comp.create_edge_io_split());
         decl.add_component(&new_comp);
 
@@ -37,12 +38,8 @@ pub mod save_comp_helper {
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
-            assert!(
-                refine::check_refinement(new_comp.clone(), base_system.clone(), &decl).unwrap()
-            );
-            assert!(
-                refine::check_refinement(base_system.clone(), new_comp.clone(), &decl).unwrap()
-            );
+            assert!(refine::check_refinement(new_comp.clone(), base_system.clone()).unwrap());
+            assert!(refine::check_refinement(base_system.clone(), new_comp.clone()).unwrap());
         }
     }
 }
