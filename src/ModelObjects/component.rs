@@ -821,7 +821,9 @@ impl<'a> Transition<'a> {
                     location: target_location,
                     decls: comp.get_declarations(),
                 };
-                dec_loc.apply_invariant(&mut guard_zone);
+                if !dec_loc.apply_invariant(&mut guard_zone) {
+                    continue;
+                }
             }
             for clock in edge.get_update_clocks() {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);

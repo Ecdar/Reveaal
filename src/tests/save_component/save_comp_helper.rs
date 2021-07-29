@@ -6,6 +6,7 @@ pub mod save_comp_helper {
     use crate::System::extract_system_rep;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
+    use crate::TransitionSystems::TransitionSystem;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let (components, mut decl) = Helper::json_setup(String::from(input_path));
@@ -21,12 +22,27 @@ pub mod save_comp_helper {
             panic!("Failed to create system")
         };
 
-        let new_comp = combine_components(&base_system.clone());
-        let new_comp = new_comp.create_edge_io_split();
+        let new_comp = combine_components(&base_system.clone(), &decl.clone());
+        let mut new_comp = Box::new(new_comp.create_edge_io_split());
         decl.add_component(&new_comp);
 
-        let new_system = Box::new(new_comp);
-        assert!(refine::check_refinement(new_system.clone(), base_system.clone()).unwrap());
-        assert!(refine::check_refinement(base_system.clone(), new_system.clone()).unwrap());
+        input_enabler::make_input_enabled(&mut new_comp, &decl);
+
+        let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
+
+        let base_precheck = base_system.precheck_sys_rep(dimensions);
+        let new_precheck = new_comp.precheck_sys_rep(dimensions);
+        assert_eq!(base_precheck, new_precheck);
+        new_comp.set_clock_indices(&mut clock_index);
+
+        //Only do refinement check if both pass precheck
+        if base_precheck && new_precheck {
+            assert!(
+                refine::check_refinement(new_comp.clone(), base_system.clone(), &decl).unwrap()
+            );
+            assert!(
+                refine::check_refinement(base_system.clone(), new_comp.clone(), &decl).unwrap()
+            );
+        }
     }
 }
