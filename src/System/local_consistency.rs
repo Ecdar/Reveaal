@@ -3,9 +3,8 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::TransitionSystem;
 
 //Local consistency check WITH pruning
-pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
+pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
     let mut passed = vec![];
-    let dimensions = 1 + system.get_num_clocks();
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
 
@@ -13,9 +12,8 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
 }
 
 //Local consistency check WITHOUT pruning
-pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
+pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
     let mut passed = vec![];
-    let dimensions = 1 + system.get_num_clocks();
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
 

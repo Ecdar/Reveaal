@@ -129,7 +129,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn is_deterministic(&self, dim: u32) -> bool;
 
-    fn is_locally_consistent(&self) -> bool;
+    fn is_locally_consistent(&self, dimensions: u32) -> bool;
 
     fn set_clock_indices(&mut self, index: &mut u32);
 
@@ -216,8 +216,8 @@ impl TransitionSystem<'_> for Component {
         Component::is_deterministic(self, dim)
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
+    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+        local_consistency::is_least_consistent(self, dimensions)
     }
 
     fn get_initial_state(&self, dimensions: u32) -> State {

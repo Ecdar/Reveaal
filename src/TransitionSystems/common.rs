@@ -49,8 +49,12 @@ macro_rules! default_composition {
                 return false;
             }
 
-            //TODO: this is wrong as conjunction is not necessarily consistent
-            self.left.precheck_sys_rep(dim) && self.right.precheck_sys_rep(dim)
+            if !self.is_locally_consistent(dim) {
+                println!("NOT CONSISTENT");
+                return false;
+            }
+
+            true
         }
 
         fn is_deterministic(&self, dim: u32) -> bool {

@@ -34,6 +34,7 @@ pub mod save_comp_helper {
         let base_precheck = base_system.precheck_sys_rep(dimensions);
         let new_precheck = new_comp.precheck_sys_rep(dimensions);
         assert_eq!(base_precheck, new_precheck);
+        new_comp.set_clock_indices(&mut clock_index);
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {

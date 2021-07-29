@@ -55,7 +55,7 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         Transition::combinations(&mut left, &mut right)
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
+    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+        local_consistency::is_least_consistent(self, dimensions)
     }
 }
