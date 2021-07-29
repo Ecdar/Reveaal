@@ -1,16 +1,13 @@
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::{DecoratedLocation, Transition};
+use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
-use crate::ModelObjects::system_declarations;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use std::{collections::HashSet, hash::Hash};
 
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
     mut sys2: TransitionSystemPtr,
-    sys_decls: &system_declarations::SystemDeclarations,
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
@@ -133,7 +130,7 @@ fn has_valid_state_pair<'a>(
     let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
-    let mut pair_zone = curr_pair.zone.clone();
+    let pair_zone = curr_pair.zone.clone();
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {
@@ -215,7 +212,6 @@ fn build_state_pair<'a>(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
-        //println!("Guard zone invalid");
         return false;
     }
 

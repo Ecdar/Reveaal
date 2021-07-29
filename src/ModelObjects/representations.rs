@@ -52,7 +52,7 @@ impl BoolExpression {
             BoolExpression::Parentheses(expr) => {
                 [String::from("("), expr.encode_expr(), String::from(")")].concat()
             }
-            BoolExpression::Clock(clock) => [String::from("??")].concat(),
+            BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
             BoolExpression::Bool(boolean) => {
                 format!("{}", boolean)
@@ -108,10 +108,6 @@ impl BoolExpression {
                 left.add_component_id_to_vars(comp_id);
                 right.add_component_id_to_vars(comp_id);
             }
-            BoolExpression::LessEQ(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
             BoolExpression::EQ(left, right) => {
                 left.add_component_id_to_vars(comp_id);
                 right.add_component_id_to_vars(comp_id);
@@ -153,10 +149,6 @@ impl BoolExpression {
                 right.swap_var_name(from_name, to_name);
             }
             BoolExpression::LessT(left, right) => {
-                left.swap_var_name(from_name, to_name);
-                right.swap_var_name(from_name, to_name);
-            }
-            BoolExpression::LessEQ(left, right) => {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }

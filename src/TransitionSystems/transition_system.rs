@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
     Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
     SyncType, Transition,
@@ -134,12 +134,6 @@ pub trait TransitionSystem<'a>: DynClone {
     fn set_clock_indices(&mut self, index: &mut u32);
 
     fn get_initial_state(&self, dimensions: u32) -> State;
-    /*fn all_components<'b, F>(&'b self, func: &mut F)
-    where
-        F: FnMut(&'b Component) -> ();*/
-
-    //I think this should be implemented elsewhere
-    //fn check_consistency(&self) -> bool;
 }
 
 clone_trait_object!(TransitionSystem<'static>);

@@ -266,9 +266,9 @@ impl Federation {
     pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
-        let mut self_zones: Vec<*const i32> =
+        let self_zones: Vec<*const i32> =
             self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect();
-        let mut other_zones: Vec<*const i32> = other
+        let other_zones: Vec<*const i32> = other
             .zones
             .iter()
             .map(|zone| zone.matrix.as_ptr())
