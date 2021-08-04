@@ -259,3 +259,37 @@ pub enum QueryExpression {
     Bool(bool),
     Int(i32),
 }
+
+impl QueryExpression {
+    pub fn pretty_string(&self) -> String {
+        match self {
+            QueryExpression::Refinement(left, right) => format!(
+                "refinement: {} <= {}",
+                left.pretty_string(),
+                right.pretty_string()
+            ),
+            QueryExpression::Consistency(system) => {
+                format!("consistency: {}", system.pretty_string())
+            }
+            QueryExpression::GetComponent(comp) => {
+                format!("get-component: {}", comp.pretty_string())
+            }
+            QueryExpression::SaveAs(system, name) => {
+                format!("{} save-as {}", system.pretty_string(), name.clone())
+            }
+            QueryExpression::Conjunction(left, right) => {
+                format!("{} && {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Composition(left, right) => {
+                format!("{} || {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Quotient(left, right) => {
+                format!("{} \\\\ {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Parentheses(system) => format!("({})", system.pretty_string()),
+            QueryExpression::VarName(name) => name.clone(),
+
+            _ => panic!("Rule not implemented yet"),
+        }
+    }
+}

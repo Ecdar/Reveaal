@@ -36,6 +36,7 @@ pub fn main() {
         optimized_components.push(optimized_comp);
     }
 
+    let mut results = vec![];
     for query in &queries {
         let executable_query = Box::new(extract_system_rep::create_executable_query(
             query,
@@ -48,6 +49,13 @@ pub fn main() {
         if let QueryResult::Error(err) = result {
             panic!(err);
         }
+
+        results.push(result);
+    }
+
+    println!("\nQuery results:");
+    for index in 0..queries.len() {
+        results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
     }
 }
 
