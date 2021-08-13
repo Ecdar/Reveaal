@@ -9,13 +9,17 @@ This is a model checking engine for ECDAR (Environment for Compositional Design 
 - A folder containing the model components to check
 
 ## Building the DBM library
+
+Download and compile the [UDBM v2.0.10](https://github.com/UPPAALModelChecker/UDBM/tree/cbb68a4a47c04f7e4e68fe78e16ba2069d894a28) library then copy all the archive files from ```build-Release/udbm/lib/```
+into ```Reveaal/dbm/lib``` folder.
 Navigate to the dbm folder and run the following command:
 ```./recompile.sh```
+This compiles the library wrapper called libudbmwrapper.a.
 
-## Running the project
-- to run the project use `cargo run path_to_project_folder`
-- to run the project with backtrace use `RUST_BACKTRACE=1 cargo run path_to_project_folder`
-- to build the project use `cargo build`
+## Building the project
+- Build the project use `cargo build`
+- Optionally run the test `cargo test -- --test-threads 1`
+
 
 ## Contact
 Please contact any of the group members with any bugs/requests:
