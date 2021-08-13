@@ -17,8 +17,8 @@ Navigate to the dbm folder and run the following command:
 This compiles the library wrapper called libudbmwrapper.a.
 
 ## Building the project
-- Build the project use `cargo build`
-- Optionally run the test `cargo test -- --test-threads 1`
+- Build the project using `cargo build`
+- Optionally run the tests using `cargo test -- --test-threads 1`
 
 
 ## Contact
