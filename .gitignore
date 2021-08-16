@@ -4,4 +4,5 @@ target/
 .vscode/
 *.o
 *.a
+*.obj
 Cargo.lock
