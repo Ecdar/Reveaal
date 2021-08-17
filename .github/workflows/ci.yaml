@@ -17,20 +17,25 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'UPPAALModelChecker/UDBM'
-          ref: '26482eb64e74d75be5ee647587a35549d453bf43'
+          ref: 'cbb68a4a47c04f7e4e68fe78e16ba2069d894a28'
           path: 'udbm'
       - name: Compile UDBM
         run: |
           cd udbm
-          ./autogen.sh
-          ./configure
-          make
-          ./scripts/mergelibs.sh
-          cp ./lib/libudbm.a ../dbm/libudbm.a
+          cmake -DCMAKE_BUILD_TYPE=Release -S . -B build-Release
+          cmake --build build-Release/
       - name: Compile wrapper
         run: |
           cd dbm
-          ./recompile.sh
+          mkdir objectFiles
+          cd objectFiles
+          ar -x ../../udbm/build-Release/udbm/lib/libbase.a
+          ar -x ../../udbm/build-Release/udbm/lib/libdbm.a
+          ar -x ../../udbm/build-Release/udbm/lib/libhash.a
+          ar -x ../../udbm/build-Release/udbm/lib/libudebug.a
+          cd ..
+          g++ -c wrapper.cpp -I include/ -o objectFiles/wrapper.o
+          ar -rvs libudbmwrapper.a objectFiles/*.o
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

@@ -2,9 +2,32 @@
 #include "wrapper.h"
 #include "dbm/constraints.h"
 #include "dbm/dbm.h"
+#include "hash/compute.h"
+
+
 
 extern "C"
 {
+raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict)
+{
+    return (bound * 2) | (isStrict ^ 1);
+}
+
+void dbm_zero_wrapper(raw_t* dbm, cindex_t dim)
+{
+    base_fill(dbm, dbm + (dim * dim), dbm_LE_ZERO);
+}
+
+int32_t dbm_raw2bound_wrapper(raw_t raw) { return (raw >> 1); }
+bool dbm_rawIsStrict_wrapper(raw_t raw) { return ((raw & 1) ^ dbm_WEAK); }
+bool dbm_satisfies_wrapper(const raw_t* dbm, cindex_t dim, cindex_t i, cindex_t j,
+                                 raw_t constraint)
+{
+    assert(dbm && dim && i < dim && j < dim && dim > 0);
+    return !(dbm[i * dim + j] > constraint &&             /* tightening ? */
+             dbm_negRaw(constraint) >= dbm[j * dim + i]); /* too tight ? */
+}
+
     dbm::fed_t dbm_subtract1_exposed(const raw_t *arg1, const raw_t *arg2, cindex_t dim)
     {
         return dbm::fed_t::subtract(arg1, arg2, dim);
@@ -24,7 +47,7 @@ extern "C"
     {
         try
         {
-            if (dbm_isValid(dbm, dim) == BOOL::TRUE)
+            if (dbm_isValid(dbm, dim) == true)
             {
                 return 1;
             }
