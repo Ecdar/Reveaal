@@ -1,18 +1,38 @@
 #!/bin/sh
 set -xe
 
-mkdir objectFiles || true
-rm objectFiles/*.o libudbmwrapper.a || true
-
-if [ ! -e libudbm.a ]; then
-  echo "Missing libudbm.a"
+#Check for missing files
+if [ ! -e lib/libbase.a ]; then
+  echo "Missing lib/libbase.a"
   exit 1
 fi
 
-# Extract object files from libudbm.a
+if [ ! -e lib/libdbm.a ]; then
+  echo "Missing lib/libdbm.a"
+  exit 1
+fi
+
+if [ ! -e lib/libhash.a ]; then
+  echo "Missing lib/libhash.a"
+  exit 1
+fi
+
+if [ ! -e lib/libudebug.a ]; then
+  echo "Missing lib/libudebug.a"
+  exit 1
+fi
+
+#Clean
+mkdir objectFiles || true
+rm objectFiles/*.o libudbmwrapper.a || true
+
+# Extract object files from lib folder
 (
   cd objectFiles
-  ar x ../libudbm.a
+  ar x ../lib/libbase.a
+  ar x ../lib/libdbm.a
+  ar x ../lib/libhash.a
+  ar x ../lib/libudebug.a
 )
 
 # Compile wrapper

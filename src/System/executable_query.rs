@@ -13,6 +13,33 @@ pub enum QueryResult {
     Error(String),
 }
 
+impl QueryResult {
+    pub fn print_result(&self, query_str: &str) {
+        match self {
+            QueryResult::Refinement(true) => satisfied(query_str),
+            QueryResult::Refinement(false) => not_satisfied(query_str),
+
+            QueryResult::Consistency(true) => satisfied(query_str),
+            QueryResult::Consistency(false) => not_satisfied(query_str),
+
+            QueryResult::Determinism(true) => satisfied(query_str),
+            QueryResult::Determinism(false) => not_satisfied(query_str),
+
+            QueryResult::Error(_) => println!("{} -- Failed", query_str),
+
+            _ => (),
+        };
+    }
+}
+
+fn satisfied(query_str: &str) {
+    println!("{} -- Property is satisfied", query_str);
+}
+
+fn not_satisfied(query_str: &str) {
+    println!("{} -- Property is NOT satisfied", query_str);
+}
+
 pub trait ExecutableQuery {
     fn execute(self: Box<Self>) -> QueryResult;
 }

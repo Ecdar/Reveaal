@@ -1,5 +1,6 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
+#include "dbm/dbm.h"
 
 extern "C" {
     /// Subtract DBM arg1 - DBM arg2 wrapper functions.
@@ -30,6 +31,16 @@ extern "C" {
     int dbm_get_fed_size_2(dbm::fed_t fed);
 
     int dbm_check_validity(const raw_t *dbm, cindex_t dim);
+
+
+    raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict);
+void dbm_zero_wrapper(raw_t* dbm, cindex_t dim);
+int32_t dbm_raw2bound_wrapper(raw_t raw);
+bool dbm_rawIsStrict_wrapper(raw_t raw);
+bool dbm_satisfies_wrapper(const raw_t* dbm, cindex_t dim, cindex_t i, cindex_t j,
+                                 raw_t constraint);
 }
+
+
 
 #endif // WRAPPER_H
