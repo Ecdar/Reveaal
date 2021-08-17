@@ -1,5 +1,7 @@
 extern crate pest;
 use crate::ModelObjects::representations::QueryExpression;
+use pest::iterators::Pair;
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
 #[derive(Parser)]
@@ -99,7 +101,6 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
         }
-        Rule::specificationFeature => build_specificationFeature_from_pair(pair),
         Rule::possibly => {
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::Possibly(Box::new(build_boolExpr_from_pair(inner_pair)))
@@ -117,8 +118,26 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
             QueryExpression::Potentially(Box::new(build_boolExpr_from_pair(inner_pair)))
         }
         Rule::expr => {
-            let inner_pair = pair.into_inner().next().unwrap();
-            build_expression_from_pair(inner_pair)
+            //Set precedence in ascending order
+            let precedence_climber = PrecClimber::new(vec![
+                Operator::new(Rule::qoutient_op, Assoc::Left),
+                Operator::new(Rule::composition_op, Assoc::Left),
+                Operator::new(Rule::conjunction_op, Assoc::Left),
+            ]);
+            let primary = |pair| build_expression_from_pair(pair);
+            let inner: Vec<Pair<Rule>> = pair.into_inner().collect();
+            precedence_climber.climb(inner.into_iter(), primary, |lhs, op, rhs| {
+                match op.as_rule() {
+                    Rule::composition_op => {
+                        QueryExpression::Composition(Box::new(lhs), Box::new(rhs))
+                    }
+                    Rule::conjunction_op => {
+                        QueryExpression::Conjunction(Box::new(lhs), Box::new(rhs))
+                    }
+                    Rule::qoutient_op => QueryExpression::Quotient(Box::new(lhs), Box::new(rhs)),
+                    _ => unreachable!(),
+                }
+            })
         }
         Rule::saveExpr => {
             let mut inner: Vec<pest::iterators::Pair<Rule>> = pair.into_inner().collect();
@@ -150,28 +169,6 @@ fn build_refinement_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
     let rside = build_expression_from_pair(right_side_pair);
 
     QueryExpression::Refinement(Box::new(lside), Box::new(rside))
-}
-
-fn build_specificationFeature_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
-
-    match inner_pair.next() {
-        None => build_expression_from_pair(left_side_pair),
-        Some(operator_pair) => {
-            let right_side_pair = inner_pair.next().unwrap();
-
-            let lside = build_expression_from_pair(left_side_pair);
-            let rside = build_expression_from_pair(right_side_pair);
-
-            match operator_pair.as_str(){
-                "//" => {QueryExpression::Quotient(Box::new(lside), Box::new(rside))},
-                "&&" => {QueryExpression::Conjunction(Box::new(lside), Box::new(rside))},
-                "||" => {QueryExpression::Composition(Box::new(lside), Box::new(rside))},
-                unknown_operator => panic!("Got unknown specification feature operator: {}. Only able to match '//', '&&' or '||'", unknown_operator),
-            }
-        }
-    }
 }
 
 fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
