@@ -12,13 +12,11 @@ fn main() {
     let host = std::env::var("HOST").unwrap();
     let target = std::env::var("TARGET").unwrap();
 
-    
-
     // Tell cargo to tell rustc to link the DBM
     // shared library.
-    if host == target{
+    if host == target {
         println!("cargo:rustc-link-search=all=dbm/out/");
-    }else{
+    } else {
         println!("cargo:rustc-link-search=all=dbm/out/{}/", target);
     }
 
