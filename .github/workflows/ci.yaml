@@ -12,30 +12,12 @@ jobs:
       - name: Install compiler tools
         run: |
           sudo apt-get update
-          sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev
-      - name: Checkout UDBM
-        uses: actions/checkout@v2
-        with:
-          repository: 'UPPAALModelChecker/UDBM'
-          ref: 'cbb68a4a47c04f7e4e68fe78e16ba2069d894a28'
-          path: 'udbm'
-      - name: Compile UDBM
-        run: |
-          cd udbm
-          cmake -DCMAKE_BUILD_TYPE=Release -S . -B build-Release
-          cmake --build build-Release/
-      - name: Compile wrapper
+          sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev cmake make
+      - name: Compile UDBM wrapper
         run: |
           cd dbm
-          mkdir objectFiles
-          cd objectFiles
-          ar -x ../../udbm/build-Release/udbm/lib/libbase.a
-          ar -x ../../udbm/build-Release/udbm/lib/libdbm.a
-          ar -x ../../udbm/build-Release/udbm/lib/libhash.a
-          ar -x ../../udbm/build-Release/udbm/lib/libudebug.a
-          cd ..
-          g++ -c wrapper.cpp -I include/ -o objectFiles/wrapper.o
-          ar -rvs libudbmwrapper.a objectFiles/*.o
+          cmake -B build/
+          cmake --build build/
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
