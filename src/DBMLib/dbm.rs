@@ -1,5 +1,6 @@
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
+use colored::Colorize;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, std::cmp::PartialEq)]
@@ -238,13 +239,24 @@ impl Zone {
 
 impl Display for Zone {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("\n")?;
         for i in 0..self.dimension {
-            f.write_str("( ")?;
+            f.write_str("{")?;
             for j in 0..self.dimension {
-                let (rel, val) = self.get_constraint(i, j);
-                f.write_fmt(format_args!("({}, {})", rel, val))?;
+                if self.is_constraint_infinity(i, j) {
+                    f.write_fmt(format_args!("{}", "(<∞)".to_string().bright_blue()))?;
+                } else {
+                    let (rel, val) = self.get_constraint(i, j);
+                    let op = if rel { "<" } else { "≤" };
+
+                    if !rel && val == 0 {
+                        f.write_fmt(format_args!("{}", "(≤0)".to_string().bright_green()))?;
+                    } else {
+                        f.write_fmt(format_args!("({}{})", op, val))?;
+                    }
+                }
             }
-            f.write_str(")\n")?;
+            f.write_str("}\n")?;
         }
 
         Ok(())
