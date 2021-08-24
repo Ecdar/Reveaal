@@ -1,8 +1,10 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
-    Channel, Component, Declarations, DecoratedLocation, Location, SyncType, Transition,
+    Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
+    SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::System::local_consistency;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
 
@@ -127,13 +129,11 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn is_deterministic(&self, dim: u32) -> bool;
 
-    fn set_clock_indices(&mut self, index: &mut u32);
-    /*fn all_components<'b, F>(&'b self, func: &mut F)
-    where
-        F: FnMut(&'b Component) -> ();*/
+    fn is_locally_consistent(&self, dimensions: u32) -> bool;
 
-    //I think this should be implemented elsewhere
-    //fn check_consistency(&self) -> bool;
+    fn set_clock_indices(&mut self, index: &mut u32);
+
+    fn get_initial_state(&self, dimensions: u32) -> State;
 }
 
 clone_trait_object!(TransitionSystem<'static>);
@@ -208,5 +208,22 @@ impl TransitionSystem<'_> for Component {
 
     fn is_deterministic(&self, dim: u32) -> bool {
         Component::is_deterministic(self, dim)
+    }
+
+    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+        local_consistency::is_least_consistent(self, dimensions)
+    }
+
+    fn get_initial_state(&self, dimensions: u32) -> State {
+        let init_loc = LocationTuple::simple(self.get_initial_location(), self.get_declarations());
+        let mut zone = Zone::init(dimensions);
+        if !init_loc.apply_invariants(&mut zone) {
+            panic!("Invalid starting state");
+        }
+
+        State {
+            decorated_locations: init_loc,
+            zone,
+        }
     }
 }

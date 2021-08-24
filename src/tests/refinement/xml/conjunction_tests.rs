@@ -10,10 +10,10 @@ mod conjunction_tests {
     }
 
     #[test]
-    fn P3ConjP4CompP5RefP6() {
+    fn P5ConjP3CompP4RefP6() {
         assert!(!xml_refinement_check(
             PATH,
-            "refinement: P5 || (P3 && P4) <= P6"
+            "refinement: P5 || P3 && P4 <= P6"
         ));
     }
 

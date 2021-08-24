@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod Conjunction_refinement {
     use crate::tests::refinement::Helper::json_refinement_check;
-    use crate::System::refine;
-    use std::borrow::Borrow;
 
     static PATH: &str = "samples/json/Conjunction";
 

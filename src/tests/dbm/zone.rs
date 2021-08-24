@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::DBMLib::dbm::{Federation, Zone};
+    use crate::DBMLib::dbm::Zone;
     use crate::DBMLib::lib;
 
     #[test]
@@ -40,7 +40,7 @@ mod test {
     #[test]
     fn testZoneUp() {
         let mut zone = Zone::init(10);
-        //zone.zero();
+
         zone.up();
         for i in 1..10 {
             for j in 0..10 {

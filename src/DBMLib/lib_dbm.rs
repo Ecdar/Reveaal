@@ -98,22 +98,17 @@ pub fn rs_dbm_satisfies_i_LT_j(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, true);
+        let constraint = dbm_boundbool2raw_wrapper(bound, true);
 
-        let res = dbm_satisfies(
+        let res = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
         );
-        return if BOOL_TRUE == res {
-            true
-        } else if BOOL_FALSE == res {
-            false
-        } else {
-            panic!("Could not convert bool value from library, found {:?}", res)
-        };
+
+        res
     }
 }
 
@@ -146,22 +141,17 @@ pub fn rs_dbm_satisfies_i_LTE_j(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, false);
+        let constraint = dbm_boundbool2raw_wrapper(bound, false);
 
-        let res = dbm_satisfies(
+        let res = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
         );
-        return if BOOL_TRUE == res {
-            true
-        } else if BOOL_FALSE == res {
-            false
-        } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
-        };
+
+        res
     }
 }
 
@@ -192,27 +182,27 @@ pub fn rs_dbm_satisfies_i_EQUAL_j(
     var_index_j: u32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(0, false);
+        let constraint = dbm_boundbool2raw_wrapper(0, false);
 
-        let res_i_minus_j = dbm_satisfies(
+        let res_i_minus_j = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
         );
-        let res_j_minus_i = dbm_satisfies(
+        let res_j_minus_i = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_j,
             var_index_i,
             constraint,
         );
-        return if BOOL_TRUE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
+        return if res_i_minus_j && res_j_minus_i {
             true
-        } else if (BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i)
-            || (BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
-            || (BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+        } else if (!res_i_minus_j && res_j_minus_i)
+            || (res_i_minus_j && !res_j_minus_i)
+            || (!res_i_minus_j && !res_j_minus_i)
         {
             false
         } else {
@@ -255,28 +245,28 @@ pub fn rs_dbm_satisfies_i_EQUAL_j_bounds(
     bound_j: i32,
 ) -> bool {
     unsafe {
-        let constraint_i_minus_j = dbm_boundbool2raw(bound_j - bound_i, false);
-        let constraint_j_minus_i = dbm_boundbool2raw(bound_i - bound_j, false);
+        let constraint_i_minus_j = dbm_boundbool2raw_wrapper(bound_j - bound_i, false);
+        let constraint_j_minus_i = dbm_boundbool2raw_wrapper(bound_i - bound_j, false);
 
-        let res_i_minus_j = dbm_satisfies(
+        let res_i_minus_j = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint_i_minus_j,
         );
-        let res_j_minus_i = dbm_satisfies(
+        let res_j_minus_i = dbm_satisfies_wrapper(
             dbm.as_ptr(),
             dimension,
             var_index_j,
             var_index_i,
             constraint_j_minus_i,
         );
-        return if BOOL_TRUE == res_i_minus_j && BOOL_TRUE == res_j_minus_i {
+        return if res_i_minus_j && res_j_minus_i {
             true
-        } else if (BOOL_FALSE == res_i_minus_j && BOOL_TRUE == res_j_minus_i)
-            || (BOOL_TRUE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
-            || (BOOL_FALSE == res_i_minus_j && BOOL_FALSE == res_j_minus_i)
+        } else if (!res_i_minus_j && res_j_minus_i)
+            || (res_i_minus_j && !res_j_minus_i)
+            || (!res_i_minus_j && !res_j_minus_i)
         {
             false
         } else {
@@ -329,9 +319,9 @@ pub fn rs_dbm_constrain1(
             var_index_j,
             constraint,
         );
-        return if BOOL_TRUE == res {
+        return if true == res {
             true
-        } else if BOOL_FALSE == res {
+        } else if false == res {
             false
         } else {
             panic!("Could not convert bool value from libary, found {:?}", res)
@@ -373,7 +363,7 @@ pub fn rs_dbm_add_LTE_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, false);
+        let constraint = dbm_boundbool2raw_wrapper(bound, false);
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
 }
@@ -411,7 +401,7 @@ pub fn rs_dbm_add_LT_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(bound, true);
+        let constraint = dbm_boundbool2raw_wrapper(bound, true);
 
         rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint)
     }
@@ -450,7 +440,7 @@ pub fn rs_dbm_add_EQ_constraint(
     var_index_j: u32,
 ) -> bool {
     unsafe {
-        let constraint = dbm_boundbool2raw(0, false);
+        let constraint = dbm_boundbool2raw_wrapper(0, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index_i, var_index_j, constraint);
         let res2 = rs_dbm_constrain1(dbm, dimension, var_index_j, var_index_i, constraint);
@@ -483,8 +473,8 @@ pub fn rs_dbm_add_EQ_const_constraint(
     bound: i32,
 ) -> bool {
     unsafe {
-        let constraint1 = dbm_boundbool2raw(bound, false);
-        let constraint2 = dbm_boundbool2raw(-bound, false);
+        let constraint1 = dbm_boundbool2raw_wrapper(bound, false);
+        let constraint2 = dbm_boundbool2raw_wrapper(-bound, false);
 
         let res1 = rs_dbm_constrain1(dbm, dimension, var_index, 0, constraint1);
         let res2 = rs_dbm_constrain1(dbm, dimension, 0, var_index, constraint2);
@@ -563,9 +553,9 @@ pub fn rs_dbm_constrain_var_to_val(
 ) -> bool {
     unsafe {
         let res = dbm_constrainClock(dbm.as_mut_ptr(), dimension, var_index, value);
-        return if BOOL_TRUE == res {
+        return if true == res {
             true
-        } else if BOOL_FALSE == res {
+        } else if false == res {
             false
         } else {
             panic!("Could not convert bool value from libary, found {:?}", res)
@@ -577,9 +567,9 @@ pub fn rs_dbm_constrain_var_to_val(
 pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &[i32], dimension: u32) -> bool {
     unsafe {
         let res = dbm_intersection(dbm1.as_mut_ptr(), dbm2.as_ptr(), dimension);
-        return if BOOL_TRUE == res {
+        return if true == res {
             true
-        } else if BOOL_FALSE == res {
+        } else if false == res {
             false
         } else {
             panic!("Could not convert bool value from libary, found {:?}", res)
@@ -626,7 +616,7 @@ pub fn rs_dbm_freeClock(dbm: &mut [i32], dimension: u32, var_index: u32) {
  * @return TRUE if dbm1 <= dbm2, FALSE otherwise.
  */
 pub fn rs_dbm_isSubsetEq(dbm1: &[i32], dbm2: &[i32], dimension: u32) -> bool {
-    unsafe { BOOL_TRUE == dbm_isSubsetEq(dbm1.as_ptr(), dbm2.as_ptr(), dimension) }
+    unsafe { true == dbm_isSubsetEq(dbm1.as_ptr(), dbm2.as_ptr(), dimension) }
 }
 
 ///  oda federation minus federation
@@ -708,12 +698,12 @@ pub fn rs_dbm_get_constraint_from_dbm_ptr(
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: raw_t) -> bool {
-    unsafe { BOOL_TRUE == dbm_rawIsStrict(raw) }
+    unsafe { dbm_rawIsStrict_wrapper(raw) }
 }
 
 ///converts the bound from c++ to an usable rust type - used when input enabling
 pub fn rs_raw_to_bound(raw: raw_t) -> i32 {
-    unsafe { dbm_raw2bound(raw) }
+    unsafe { dbm_raw2bound_wrapper(raw) }
 }
 
 pub fn rs_vec_to_fed(dbm_vec: &mut Vec<*mut raw_t>, dim: u32) -> dbm_fed_t {
@@ -748,7 +738,7 @@ pub fn rs_dbm_up(dbm: &mut [i32], dimension: u32) {
 ///setup a slice to be a zero dbm
 pub fn rs_dbm_zero(dbm: &mut [i32], dimension: u32) {
     unsafe {
-        dbm_zero(dbm.as_mut_ptr(), dimension);
+        dbm_zero_wrapper(dbm.as_mut_ptr(), dimension);
     }
 }
 
@@ -781,15 +771,15 @@ pub fn libtest() {
 
         let raw = 3;
 
-        let bound = dbm_raw2bound(raw);
+        let bound = dbm_raw2bound_wrapper(raw);
         println!("raw: {:?}, bound: {:?}", raw, bound);
 
-        dbm_zero(arr2.as_mut_ptr(), 2);
+        dbm_zero_wrapper(arr2.as_mut_ptr(), 2);
         println!("{:?}", arr2);
 
         println!("dbm before constraint: {:?}", dbm);
 
-        let constraint = dbm_boundbool2raw(0, true);
+        let constraint = dbm_boundbool2raw_wrapper(0, true);
 
         rs_dbm_constrain1(dbm, 3, 1, 2, constraint);
 
@@ -822,4 +812,8 @@ pub fn libtest2() {
         dbm_up(dbm.as_mut_ptr(), 3);
         println!("{:?}", dbm);
     }
+}
+
+pub fn rs_dbm_boundbool2raw(bound: i32, is_strict: bool) -> i32 {
+    unsafe { dbm_boundbool2raw_wrapper(bound, is_strict) }
 }

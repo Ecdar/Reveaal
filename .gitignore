@@ -2,6 +2,8 @@
 target/
 .idea/*
 .vscode/
+dbm/build/
 *.o
 *.a
+*.obj
 Cargo.lock

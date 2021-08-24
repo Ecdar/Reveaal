@@ -1,21 +1,15 @@
 use crate::read_input;
-use crate::DataReader::{json_writer, parse_queries, xml_parser};
+use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
-use crate::System::executable_query::{QueryResult, RefinementExecutor};
-use crate::System::extra_actions;
+use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
 use crate::System::input_enabler;
-use crate::System::refine;
-use crate::System::save_component::combine_components;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::{fs, io};
 
 pub fn setup(mut folder_path: String) -> (HashMap<String, Component>, SystemDeclarations) {
-    //let mut folder_path: String = "../samples/xml/delayRefinement.xml".to_string();
-    //let mut folder_path: String = "samples/json/AG".to_string();
     let mut paths = fs::read_dir(&folder_path)
         .unwrap()
         .map(|res| res.map(|e| e.path()))
@@ -48,8 +42,6 @@ pub fn setup(mut folder_path: String) -> (HashMap<String, Component>, SystemDecl
 }
 
 pub fn json_setup(mut folder_path: String) -> (Vec<Component>, SystemDeclarations) {
-    //let mut folder_path: String = "../samples/xml/delayRefinement.xml".to_string();
-    //let mut folder_path: String = "samples/json/AG".to_string();
     let mut paths = fs::read_dir(&folder_path)
         .unwrap()
         .map(|res| res.map(|e| e.path()))

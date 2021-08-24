@@ -16,12 +16,11 @@ pub(crate) fn parse_xml(
     system_declarations::SystemDeclarations,
     Vec<queries::Query>,
 ) {
-    //Open file
+    //Open file and read xml
     let file = File::open(fileName).unwrap();
-    //read file
     let file = BufReader::new(file);
-    //store xml content in a form of a tree
     let root = Element::from_reader(file).unwrap();
+
     //storage of components
     let mut xml_components: Vec<component::Component> = vec![];
 
@@ -31,14 +30,6 @@ pub(crate) fn parse_xml(
             None => parse_declarations(""),
         };
         let edges = collect_edges(xml_comp.find_all("transition"));
-        // let input_edges: Vec<component::Edge> = edges.clone()
-        //     .into_iter()
-        //     .filter(|e| e.sync_type == SyncType::Input)
-        //     .collect();
-        // let output_edges: Vec<component::Edge> = edges.clone()
-        //     .into_iter()
-        //     .filter(|e| e.sync_type == SyncType::Output)
-        //     .collect();
         let comp = component::Component {
             name: xml_comp.find("name").unwrap().text().parse().unwrap(),
             declarations,

@@ -44,12 +44,34 @@ macro_rules! default_composition {
         }
 
         fn precheck_sys_rep(&self, dim: u32) -> bool {
-            //TODO: this is wrong as conjunction is not necessarily consistent
-            self.left.precheck_sys_rep(dim) && self.right.precheck_sys_rep(dim)
+            if !self.is_deterministic(dim) {
+                println!("NOT DETERMINISTIC");
+                return false;
+            }
+
+            if !self.is_locally_consistent(dim) {
+                println!("NOT CONSISTENT");
+                return false;
+            }
+
+            true
         }
 
         fn is_deterministic(&self, dim: u32) -> bool {
             self.left.is_deterministic(dim) && self.right.is_deterministic(dim)
+        }
+
+        fn get_initial_state(&self, dimensions: u32) -> State {
+            let init_loc = self.get_initial_location();
+            let mut zone = Zone::init(dimensions);
+            if !init_loc.apply_invariants(&mut zone) {
+                panic!("Invalid starting state");
+            }
+
+            State {
+                decorated_locations: init_loc,
+                zone,
+            }
         }
     };
 }

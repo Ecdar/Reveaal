@@ -10,8 +10,7 @@ mod tests;
 
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
-use crate::System::extra_actions;
-use crate::System::{extract_system_rep, input_enabler, refine};
+use crate::System::{extract_system_rep, input_enabler};
 use clap::{load_yaml, App};
 use std::env;
 use std::path::PathBuf;
@@ -24,24 +23,21 @@ use System::executable_query::QueryResult;
 
 #[macro_use]
 extern crate pest_derive;
+extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate xml;
 
 pub fn main() {
-    //xml_parser::parse_xml("samples/xml/delayRefinement.xml");
-    let (components, system_declarations, queries, checkInputOutput) = parse_args();
+    let (components, system_declarations, queries, _) = parse_args();
     let mut optimized_components = vec![];
     for comp in components {
         let mut optimized_comp = comp.create_edge_io_split();
-        // println!("COMPONENT: {:?}", optimized_comp.name);
-        // println!("edge len before: {:?}\n", optimized_comp.get_input_edges().len());
         input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
-        // println!("edge len after: {:?}\n", optimized_comp.get_input_edges().len());
-        // println!("-------------------");
         optimized_components.push(optimized_comp);
     }
 
+    let mut results = vec![];
     for query in &queries {
         let executable_query = Box::new(extract_system_rep::create_executable_query(
             query,
@@ -54,6 +50,13 @@ pub fn main() {
         if let QueryResult::Error(err) = result {
             panic!(err);
         }
+
+        results.push(result);
+    }
+
+    println!("\nQuery results:");
+    for index in 0..queries.len() {
+        results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
     }
 }
 

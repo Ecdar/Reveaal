@@ -9,10 +9,22 @@ fn main() {
         return;
     }
 
+    let host = std::env::var("HOST").unwrap();
+    let target = std::env::var("TARGET").unwrap();
+
     // Tell cargo to tell rustc to link the DBM
     // shared library.
-    println!("cargo:rustc-link-search=native=dbm/");
-    println!("cargo:rustc-link-lib=udbmwrapper");
+    if host == target {
+        println!("cargo:rustc-link-search=all=dbm/out/");
+    } else {
+        println!("cargo:rustc-link-search=all=dbm/out/{}/", target);
+    }
+
+    println!("cargo:rustc-link-lib=static=udbmwrapper");
+    println!("cargo:rustc-link-lib=static=base");
+    println!("cargo:rustc-link-lib=static=dbm");
+    println!("cargo:rustc-link-lib=static=udebug");
+    println!("cargo:rustc-link-lib=static=hash");
     println!("cargo:rustc-link-lib=stdc++");
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=dbm/wrapper.h");

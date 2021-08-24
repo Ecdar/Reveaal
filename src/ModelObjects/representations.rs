@@ -1,8 +1,4 @@
-use crate::ModelObjects::component::{DecoratedLocation, Location, SyncType, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::Deserialize;
-use std::collections::HashSet;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -56,7 +52,7 @@ impl BoolExpression {
             BoolExpression::Parentheses(expr) => {
                 [String::from("("), expr.encode_expr(), String::from(")")].concat()
             }
-            BoolExpression::Clock(clock) => [String::from("??")].concat(),
+            BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
             BoolExpression::Bool(boolean) => {
                 format!("{}", boolean)
@@ -112,10 +108,6 @@ impl BoolExpression {
                 left.add_component_id_to_vars(comp_id);
                 right.add_component_id_to_vars(comp_id);
             }
-            BoolExpression::LessEQ(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
             BoolExpression::EQ(left, right) => {
                 left.add_component_id_to_vars(comp_id);
                 right.add_component_id_to_vars(comp_id);
@@ -157,10 +149,6 @@ impl BoolExpression {
                 right.swap_var_name(from_name, to_name);
             }
             BoolExpression::LessT(left, right) => {
-                left.swap_var_name(from_name, to_name);
-                right.swap_var_name(from_name, to_name);
-            }
-            BoolExpression::LessEQ(left, right) => {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }
@@ -270,4 +258,38 @@ pub enum QueryExpression {
     VarName(String),
     Bool(bool),
     Int(i32),
+}
+
+impl QueryExpression {
+    pub fn pretty_string(&self) -> String {
+        match self {
+            QueryExpression::Refinement(left, right) => format!(
+                "refinement: {} <= {}",
+                left.pretty_string(),
+                right.pretty_string()
+            ),
+            QueryExpression::Consistency(system) => {
+                format!("consistency: {}", system.pretty_string())
+            }
+            QueryExpression::GetComponent(comp) => {
+                format!("get-component: {}", comp.pretty_string())
+            }
+            QueryExpression::SaveAs(system, name) => {
+                format!("{} save-as {}", system.pretty_string(), name.clone())
+            }
+            QueryExpression::Conjunction(left, right) => {
+                format!("{} && {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Composition(left, right) => {
+                format!("{} || {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Quotient(left, right) => {
+                format!("{} \\\\ {}", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Parentheses(system) => format!("({})", system.pretty_string()),
+            QueryExpression::VarName(name) => name.clone(),
+
+            _ => panic!("Rule not implemented yet"),
+        }
+    }
 }
