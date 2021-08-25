@@ -62,11 +62,9 @@ pub fn create_executable_query<'a>(
             ,
             QueryExpression::Prune(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    let ts = extract_side(query_expression, components, &mut clock_index);
-                    let comp = combine_components(&ts);
                     Box::new(
                         GetComponentExecutor {
-                            system: Box::new(pruning::prune(&comp, clock_index)),
+                            system: pruning::prune_system(extract_side(query_expression, components, &mut clock_index), clock_index),
                             comp_name: comp_name.clone(),
                         }
                     )

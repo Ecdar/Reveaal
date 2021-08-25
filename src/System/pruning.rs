@@ -2,15 +2,23 @@ use crate::input_enabler::build_guard_from_zone;
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::ModelObjects::component::{Component, Declarations, Location, State};
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
-use crate::TransitionSystems::TransitionSystem;
+use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
+
+pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> Box<Component> {
+    let comp = combine_components(&ts);
+
+    let result = Box::new(prune(&comp, clocks));
+
+    result
+}
 
 pub fn prune(comp: &Component, clocks: u32) -> Component {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
     let mut changed = false;
 
-    println!("Begin prune with {} clocks", clocks);
     loop {
         changed = false;
         for location in new_comp.get_locations().clone() {
