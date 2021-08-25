@@ -32,7 +32,8 @@ pub fn main() {
     let (components, system_declarations, queries, _) = parse_args();
     let mut optimized_components = vec![];
     for comp in components {
-        let mut optimized_comp = comp.create_edge_io_split();
+        let mut optimized_comp = comp;
+        optimized_comp.create_edge_io_split();
         input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
         optimized_components.push(optimized_comp);
     }

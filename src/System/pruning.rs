@@ -6,7 +6,8 @@ use crate::TransitionSystems::LocationTuple;
 use crate::TransitionSystems::TransitionSystem;
 
 pub fn prune(comp: &Component, clocks: u32) -> Component {
-    let mut new_comp = comp.clone().create_edge_io_split();
+    let mut new_comp = comp.clone();
+    new_comp.create_edge_io_split();
     let mut changed = false;
 
     println!("Begin prune with {} clocks", clocks);
@@ -20,7 +21,7 @@ pub fn prune(comp: &Component, clocks: u32) -> Component {
             break;
         }
     }
-    new_comp.create_edge_io_split()
+    new_comp
 }
 
 fn prune_to_consistent_part(

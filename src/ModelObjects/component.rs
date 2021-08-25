@@ -271,7 +271,7 @@ impl Component {
     }
 
     /// Used in initial setup to split edges based on their sync type
-    pub fn create_edge_io_split(mut self) -> Component {
+    pub fn create_edge_io_split(&mut self) {
         let mut o_edges = vec![];
         let mut i_edges = vec![];
 
@@ -284,8 +284,6 @@ impl Component {
 
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
-
-        self
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
