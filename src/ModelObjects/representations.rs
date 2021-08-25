@@ -286,6 +286,9 @@ impl QueryExpression {
             QueryExpression::Quotient(left, right) => {
                 format!("{} \\\\ {}", left.pretty_string(), right.pretty_string())
             }
+            QueryExpression::Prune(comp) => {
+                format!("prune: {}", comp.pretty_string())
+            }
             QueryExpression::Parentheses(system) => format!("({})", system.pretty_string()),
             QueryExpression::VarName(name) => name.clone(),
 

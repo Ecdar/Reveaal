@@ -6,10 +6,12 @@ use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     RefinementExecutor,
 };
-
+use crate::System::save_component::combine_components;
 use crate::TransitionSystems::{
     Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
 };
+
+use crate::System::pruning;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -50,6 +52,21 @@ pub fn create_executable_query<'a>(
                     Box::new(
                         GetComponentExecutor {
                             system: extract_side(query_expression, components, &mut clock_index),
+                            comp_name: comp_name.clone(),
+                        }
+                    )
+                }else{
+                    panic!("Unexpected expression type")
+                }
+            }
+            ,
+            QueryExpression::Prune(save_as_expression) => {
+                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+                    let ts = extract_side(query_expression, components, &mut clock_index);
+                    let comp = combine_components(&ts);
+                    Box::new(
+                        GetComponentExecutor {
+                            system: Box::new(pruning::prune(&comp, clock_index)),
                             comp_name: comp_name.clone(),
                         }
                     )
