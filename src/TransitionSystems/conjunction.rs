@@ -2,6 +2,7 @@ use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
+use crate::System::pruning;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
@@ -14,7 +15,7 @@ pub struct Conjunction {
 }
 
 impl Conjunction {
-    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Conjunction> {
+    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Component> {
         let outputs = left
             .get_output_actions()
             .intersection(&right.get_output_actions())
@@ -27,12 +28,14 @@ impl Conjunction {
             .cloned()
             .collect();
 
-        Box::new(Conjunction {
+        let ts = Box::new(Conjunction {
             left,
             right,
             inputs,
             outputs,
-        })
+        });
+        let num_clocks = ts.get_num_clocks();
+        pruning::prune_system(ts, num_clocks)
     }
 }
 
