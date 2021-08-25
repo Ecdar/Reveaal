@@ -100,7 +100,7 @@ pub fn make_input_enabled(
     component.add_input_edges(&mut new_edges);
 }
 
-fn build_guard_from_zone(
+pub fn build_guard_from_zone(
     zone: &Zone,
     clocks: &HashMap<String, u32>,
 ) -> Option<representations::BoolExpression> {
