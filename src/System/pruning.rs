@@ -44,14 +44,8 @@ fn prune_to_consistent_part(
     let inv_fed = Federation::new(vec![zone], dimensions);
 
     let cons_fed = get_consistent_part(location, new_comp, dimensions);
-    println!("Fed:");
-    for zone in cons_fed.iter_zones() {
-        println!("Zone: {}", zone);
-    }
-
     // If cons strictly less than inv
     if cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed) {
-        println!("Pruning...");
         if cons_fed.num_zones() > 1 {
             panic!("Implementation cannot handle disjunct invariants")
         }
@@ -77,9 +71,13 @@ fn prune_to_consistent_part(
             new_comp.get_mut_edges().retain(|e| {
                 e.target_location != *location.get_id() && e.source_location != *location.get_id()
             });
-
             let (num_locs2, num_edges2) = (new_comp.edges.len(), new_comp.locations.len());
-            return num_locs > num_locs2 || num_edges > num_edges2;
+            let changed = num_locs > num_locs2 || num_edges > num_edges2;
+
+            if changed {
+                new_comp.create_edge_io_split();
+            }
+            return changed;
         }
     }
 

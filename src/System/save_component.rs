@@ -79,7 +79,6 @@ fn collect_all_edges_and_locations<'a>(
     edges: &mut Vec<Edge>,
 ) {
     let l = representation.get_all_locations();
-    println!("Found {} locations", l.len());
     locations.extend(l);
     for location in locations {
         collect_edges_from_location(location, representation, edges);
