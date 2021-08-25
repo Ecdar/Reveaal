@@ -275,18 +275,18 @@ impl Federation {
         Self { zones, dimension }
     }
 
+    fn as_raw(&self) -> Vec<*const i32> {
+        self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect()
+    }
+
     pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
-        let self_zones: Vec<*const i32> =
-            self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect();
-        let other_zones: Vec<*const i32> = other
-            .zones
-            .iter()
-            .map(|zone| zone.matrix.as_ptr())
-            .collect();
+        lib::rs_dbm_fed_minus_fed(&self.as_raw(), &other.as_raw(), self.dimension)
+    }
 
-        lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
+    pub fn is_subset_eq(&self, other: &Self) -> bool {
+        self.minus_fed(other).is_empty()
     }
 
     pub fn add(&mut self, zone: Zone) {
@@ -299,6 +299,10 @@ impl Federation {
 
     pub fn iter_zones(&self) -> impl Iterator<Item = &Zone> + '_ {
         self.zones.iter()
+    }
+
+    pub fn num_zones(&self) -> usize {
+        self.zones.len()
     }
 
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
