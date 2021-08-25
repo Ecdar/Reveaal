@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod save_comp_helper {
     use crate::tests::refinement::Helper;
+    use crate::DataReader::component_loader::JsonComponentLoader;
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
@@ -10,7 +11,8 @@ pub mod save_comp_helper {
     use crate::TransitionSystems::TransitionSystem;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
-        let (components, mut decl) = Helper::json_setup(String::from(input_path));
+        let mut project_loader = JsonComponentLoader::new(String::from(input_path));
+        let mut decl = project_loader.get_declarations().clone();
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
@@ -18,7 +20,7 @@ pub mod save_comp_helper {
 
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
-            extract_system_rep::extract_side(expr.as_ref(), &components, &mut clock_index)
+            extract_system_rep::extract_side(expr.as_ref(), &mut project_loader, &mut clock_index)
         } else {
             panic!("Failed to create system")
         };

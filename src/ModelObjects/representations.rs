@@ -292,4 +292,51 @@ impl QueryExpression {
             _ => panic!("Rule not implemented yet"),
         }
     }
+
+    pub fn get_component_dependencies<'a>(&'a self) -> Vec<&'a String> {
+        let mut component_dependencies = vec![];
+
+        self.iterate_varnames(&mut |dependency_name| {
+            component_dependencies.push(dependency_name);
+        });
+
+        component_dependencies
+    }
+
+    fn iterate_varnames<'a, F>(&'a self, function: &mut F)
+    where
+        F: FnMut(&'a String),
+    {
+        match self {
+            QueryExpression::Refinement(left, right) => {
+                left.iterate_varnames(function);
+                right.iterate_varnames(function);
+            }
+            QueryExpression::Consistency(system) => {
+                system.iterate_varnames(function);
+            }
+            QueryExpression::GetComponent(comp) => {
+                comp.iterate_varnames(function);
+            }
+            QueryExpression::SaveAs(system, name) => {
+                system.iterate_varnames(function);
+            }
+            QueryExpression::Conjunction(left, right) => {
+                left.iterate_varnames(function);
+                right.iterate_varnames(function);
+            }
+            QueryExpression::Composition(left, right) => {
+                left.iterate_varnames(function);
+                right.iterate_varnames(function);
+            }
+            QueryExpression::Quotient(left, right) => {
+                left.iterate_varnames(function);
+                right.iterate_varnames(function);
+            }
+            QueryExpression::Parentheses(system) => system.iterate_varnames(function),
+            QueryExpression::VarName(name) => function(name),
+
+            _ => panic!("Rule not implemented yet"),
+        }
+    }
 }
