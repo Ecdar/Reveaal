@@ -87,6 +87,10 @@ impl Component {
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
     }
+    pub fn get_mut_locations(&mut self) -> &mut Vec<Location> {
+        &mut self.locations
+    }
+
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
             .locations
