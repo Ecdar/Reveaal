@@ -996,15 +996,17 @@ where
 {
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
-    let (first_clock, _) = it.next().unwrap();
-    output = output.add(&format!("{}", first_clock));
+    if let Some((first_clock, _)) = it.next() {
+        output = output.add(&format!("{}", first_clock));
 
-    for (clock, _) in it {
-        output = output.add(&format!(", {}", clock));
+        for (clock, _) in it {
+            output = output.add(&format!(", {}", clock));
+        }
+        output = output.add(";");
+
+        return serializer.serialize_str(&output);
     }
-    output = output.add(";");
-
-    serializer.serialize_str(&output)
+    serializer.serialize_str("")
 }
 
 pub fn encode_opt_boolexpr<S>(
