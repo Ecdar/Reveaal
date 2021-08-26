@@ -46,7 +46,7 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
 //Description:uses the filename to open the file and then reads the file.
 //Output: Result type, if more info about this type is need please go to: https://doc.rust-lang.org/std/result/
 pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
-    let mut file = File::open(filename.clone()).unwrap();
+    let mut file = File::open(filename).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
 
@@ -60,7 +60,7 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
 //Description:Transforms json into component type
 //Output:Result type
 fn json_to_component(filename: &str) -> serde_json::Result<component::Component> {
-    let json = match read_json(filename.clone()) {
+    let json = match read_json(filename) {
         Ok(json) => json,
         Err(error) => panic!(
             "We got error {}, and could not parse json file {} to component",
