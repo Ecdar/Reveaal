@@ -1,4 +1,4 @@
-use crate::DataReader::component_loader::ComponentLoader;
+use crate::DataReader::component_loader::ProjectLoader;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
 use crate::System::executable_query::{
@@ -14,7 +14,7 @@ use crate::TransitionSystems::{
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
 pub fn create_executable_query<'a>(
     full_query: &Query,
-    project_loader: &'a mut Box<dyn ComponentLoader + 'static>,
+    project_loader: &'a mut Box<dyn ProjectLoader + 'static>,
 ) -> Box<dyn ExecutableQuery + 'a> {
     let mut clock_index: u32 = 0;
 
@@ -67,7 +67,7 @@ pub fn create_executable_query<'a>(
 
 pub fn extract_side(
     side: &QueryExpression,
-    project_loader: &mut Box<dyn ComponentLoader>,
+    project_loader: &mut Box<dyn ProjectLoader>,
     clock_index: &mut u32,
 ) -> TransitionSystemPtr {
     match side {

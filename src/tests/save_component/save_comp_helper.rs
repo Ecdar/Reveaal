@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod save_comp_helper {
-    use crate::DataReader::component_loader::JsonComponentLoader;
+    use crate::DataReader::component_loader::JsonProjectLoader;
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
@@ -10,7 +10,7 @@ pub mod save_comp_helper {
     use crate::TransitionSystems::TransitionSystem;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
-        let mut project_loader = JsonComponentLoader::new(String::from(input_path));
+        let mut project_loader = JsonProjectLoader::new(String::from(input_path));
         let mut decl = project_loader.get_declarations().clone();
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions

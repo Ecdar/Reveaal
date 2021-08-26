@@ -6,7 +6,7 @@ use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
 use std::collections::HashMap;
 
-pub trait ComponentLoader {
+pub trait ProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component;
     fn unload_component(&mut self, component_name: &str);
     fn get_declarations(&self) -> &SystemDeclarations;
@@ -14,14 +14,14 @@ pub trait ComponentLoader {
     fn get_project_path(&self) -> &str;
 }
 
-pub struct JsonComponentLoader {
+pub struct JsonProjectLoader {
     project_path: String,
     loaded_components: HashMap<String, Component>,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
 }
 
-impl ComponentLoader for JsonComponentLoader {
+impl ProjectLoader for JsonProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name);
@@ -51,12 +51,12 @@ impl ComponentLoader for JsonComponentLoader {
     }
 }
 
-impl JsonComponentLoader {
-    pub fn new(project_path: String) -> Box<dyn ComponentLoader> {
+impl JsonProjectLoader {
+    pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
         let system_declarations = json_reader::read_system_declarations(&project_path).unwrap();
         let queries = json_reader::read_queries(&project_path).unwrap();
 
-        Box::new(JsonComponentLoader {
+        Box::new(JsonProjectLoader {
             project_path,
             loaded_components: HashMap::new(),
             system_declarations,
@@ -79,14 +79,14 @@ impl JsonComponentLoader {
     }
 }
 
-pub struct XmlComponentLoader {
+pub struct XmlProjectLoader {
     project_path: String,
     loaded_components: HashMap<String, Component>,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
 }
 
-impl ComponentLoader for XmlComponentLoader {
+impl ProjectLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
             &component
@@ -112,8 +112,8 @@ impl ComponentLoader for XmlComponentLoader {
     }
 }
 
-impl XmlComponentLoader {
-    pub fn new(project_path: String) -> Box<dyn ComponentLoader> {
+impl XmlProjectLoader {
+    pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
         let (comps, system_declarations, queries) = parse_xml(&project_path);
 
         let mut map = HashMap::<String, Component>::new();
@@ -125,7 +125,7 @@ impl XmlComponentLoader {
             map.insert(name, optimized_comp);
         }
 
-        Box::new(XmlComponentLoader {
+        Box::new(XmlProjectLoader {
             project_path,
             loaded_components: map,
             system_declarations,

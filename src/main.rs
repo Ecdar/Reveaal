@@ -8,9 +8,7 @@ mod System;
 mod TransitionSystems;
 mod tests;
 
-use crate::DataReader::component_loader::{
-    ComponentLoader, JsonComponentLoader, XmlComponentLoader,
-};
+use crate::DataReader::component_loader::{JsonProjectLoader, ProjectLoader, XmlProjectLoader};
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
@@ -51,7 +49,7 @@ pub fn main() {
     }
 }
 
-fn parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>, bool) {
+fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     let mut folder_path: String = "".to_string();
@@ -93,11 +91,11 @@ fn parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>, bool) {
     }
 }
 
-fn get_project_loader(project_path: String) -> Box<dyn ComponentLoader> {
+fn get_project_loader(project_path: String) -> Box<dyn ProjectLoader> {
     if xml_parser::is_xml_project(&project_path) {
-        XmlComponentLoader::new(project_path)
+        XmlProjectLoader::new(project_path)
     } else {
-        JsonComponentLoader::new(project_path)
+        JsonProjectLoader::new(project_path)
     }
 }
 

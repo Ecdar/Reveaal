@@ -1,4 +1,4 @@
-use crate::DataReader::component_loader::ComponentLoader;
+use crate::DataReader::component_loader::ProjectLoader;
 use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -31,8 +31,6 @@ impl QueryResult {
             }
 
             QueryResult::Error(_) => println!("{} -- Failed", query_str),
-
-            _ => (),
         };
     }
 }
@@ -72,7 +70,7 @@ impl ExecutableQuery for RefinementExecutor {
 pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
-    pub project_loader: &'a mut Box<dyn ComponentLoader>,
+    pub project_loader: &'a mut Box<dyn ProjectLoader>,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
