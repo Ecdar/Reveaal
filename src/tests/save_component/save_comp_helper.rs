@@ -1,6 +1,5 @@
 #[cfg(test)]
 pub mod save_comp_helper {
-    use crate::tests::refinement::Helper;
     use crate::DataReader::component_loader::JsonComponentLoader;
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;

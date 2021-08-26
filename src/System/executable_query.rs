@@ -26,6 +26,10 @@ impl QueryResult {
             QueryResult::Determinism(true) => satisfied(query_str),
             QueryResult::Determinism(false) => not_satisfied(query_str),
 
+            QueryResult::GetComponent(_) => {
+                println!("{} -- Component succesfully created", query_str)
+            }
+
             QueryResult::Error(_) => println!("{} -- Failed", query_str),
 
             _ => (),
@@ -76,7 +80,8 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        component_to_json(&comp);
+        let project_path = self.project_loader.get_project_path();
+        component_to_json(project_path, &comp);
         self.project_loader.unload_component(&comp.name);
 
         QueryResult::GetComponent(comp)

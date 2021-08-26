@@ -11,6 +11,7 @@ pub trait ComponentLoader {
     fn unload_component(&mut self, component_name: &str);
     fn get_declarations(&self) -> &SystemDeclarations;
     fn get_queries(&self) -> &Vec<Query>;
+    fn get_project_path(&self) -> &str;
 }
 
 pub struct JsonComponentLoader {
@@ -44,6 +45,10 @@ impl ComponentLoader for JsonComponentLoader {
     fn get_queries(&self) -> &Vec<Query> {
         &self.queries
     }
+
+    fn get_project_path(&self) -> &str {
+        &self.project_path
+    }
 }
 
 impl JsonComponentLoader {
@@ -75,6 +80,7 @@ impl JsonComponentLoader {
 }
 
 pub struct XmlComponentLoader {
+    project_path: String,
     loaded_components: HashMap<String, Component>,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
@@ -100,6 +106,10 @@ impl ComponentLoader for XmlComponentLoader {
     fn get_queries(&self) -> &Vec<Query> {
         &self.queries
     }
+
+    fn get_project_path(&self) -> &str {
+        &self.project_path
+    }
 }
 
 impl XmlComponentLoader {
@@ -116,6 +126,7 @@ impl XmlComponentLoader {
         }
 
         Box::new(XmlComponentLoader {
+            project_path,
             loaded_components: map,
             system_declarations,
             queries,

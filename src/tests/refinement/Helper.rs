@@ -1,14 +1,8 @@
-use crate::DataReader::component_loader::{
-    ComponentLoader, JsonComponentLoader, XmlComponentLoader,
-};
-use crate::DataReader::json_reader;
-use crate::DataReader::{parse_queries, xml_parser};
-use crate::ModelObjects::component::Component;
+use crate::DataReader::component_loader::{JsonComponentLoader, XmlComponentLoader};
+use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
-use crate::System::input_enabler;
 
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     match xml_run_query(PATH, QUERY) {
@@ -41,8 +35,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
 }
 
 pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
-    let project_path = String::from(PATH);
-    let mut project_loader = JsonComponentLoader::new(project_path);
+    let mut project_loader = JsonComponentLoader::new(String::from(PATH));
     let query = parse_queries::parse(QUERY).remove(0);
     let q = Query {
         query: Option::from(query),

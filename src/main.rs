@@ -13,15 +13,11 @@ use crate::DataReader::component_loader::{
 };
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
-use crate::System::{extract_system_rep, input_enabler};
+use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
 use std::env;
-use std::path::PathBuf;
-use std::{fs, io};
-use DataReader::json_reader;
 use ModelObjects::component;
 use ModelObjects::queries;
-use ModelObjects::system_declarations;
 use System::executable_query::QueryResult;
 
 #[macro_use]
@@ -69,9 +65,7 @@ fn parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>, bool) {
         query = query_arg.to_string();
     }
 
-    let project_loader = get_project_loader(folder_path.clone());
-
-    set_working_directory(&folder_path);
+    let project_loader = get_project_loader(folder_path);
 
     if query.is_empty() {
         let queries: Vec<Query> = project_loader.get_queries().clone();
@@ -99,7 +93,7 @@ fn parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>, bool) {
     }
 }
 
-fn get_project_loader(mut project_path: String) -> Box<dyn ComponentLoader> {
+fn get_project_loader(project_path: String) -> Box<dyn ComponentLoader> {
     if xml_parser::is_xml_project(&project_path) {
         XmlComponentLoader::new(project_path)
     } else {
@@ -107,8 +101,9 @@ fn get_project_loader(mut project_path: String) -> Box<dyn ComponentLoader> {
     }
 }
 
-fn set_working_directory(folder_path: &str) {
+pub fn set_working_directory(folder_path: &str) {
     let mut path = std::path::Path::new(folder_path);
+    println!("env {}", path.to_str().unwrap());
     if path.is_file() {
         path = path
             .parent()

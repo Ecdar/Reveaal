@@ -1,8 +1,6 @@
 use crate::DataReader::component_loader::ComponentLoader;
-use crate::ModelObjects::component;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     RefinementExecutor,
