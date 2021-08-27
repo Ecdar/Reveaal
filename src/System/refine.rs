@@ -12,10 +12,10 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
-    let dimensions = 1 + sys1.get_num_clocks() + sys2.get_num_clocks();
+    let dimensions = 1 + std::cmp::max(sys1.get_max_clock_index(), sys2.get_max_clock_index());
     sys1.initialize(dimensions);
     sys2.initialize(dimensions);
-
+    println!("Dimensions {}", dimensions);
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2, dimensions) {
         println!("preconditions failed - refinement false");
