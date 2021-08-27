@@ -40,9 +40,11 @@ fn prune_to_consistent_part(
 ) -> bool {
     let loc = LocationTuple::simple(location, decls);
     let mut zone = Zone::init(dimensions);
-    loc.apply_invariants(&mut zone);
-    let inv_fed = Federation::new(vec![zone], dimensions);
-
+    let inv_fed = if loc.apply_invariants(&mut zone) {
+        Federation::new(vec![zone], dimensions)
+    } else {
+        Federation::new(vec![], dimensions)
+    };
     let cons_fed = get_consistent_part(location, new_comp, dimensions);
     // If cons strictly less than inv
     if cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed) {
@@ -88,7 +90,9 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
     let loc = LocationTuple::simple(location, &comp.declarations);
     let mut zone = Zone::init(dimensions);
 
-    loc.apply_invariants(&mut zone);
+    if !loc.apply_invariants(&mut zone) {
+        return Federation::new(vec![], dimensions);
+    }
     if zone.canDelayIndefinitely() {
         return Federation::new(vec![zone], dimensions);
     }
@@ -98,8 +102,9 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
         for transition in comp.next_outputs(&loc, &output) {
             if let Some(fed) = transition.get_guard_federation(&loc, dimensions) {
                 for mut zone in fed.iter_zones().cloned() {
-                    loc.apply_invariants(&mut zone);
-                    federation.add(zone);
+                    if loc.apply_invariants(&mut zone) {
+                        federation.add(zone);
+                    }
                 }
             }
         }
