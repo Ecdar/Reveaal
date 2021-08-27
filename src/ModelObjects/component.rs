@@ -142,17 +142,14 @@ impl Component {
         }
     }
 
-    pub fn get_initial_location(&self) -> &Location {
+    pub fn get_initial_location(&self) -> Option<&Location> {
         let vec: Vec<&Location> = self
             .get_locations()
             .iter()
             .filter(|location| location.get_location_type() == &LocationType::Initial)
             .collect();
 
-        match vec.first() {
-            Some(initial_loc) => initial_loc,
-            None => panic!("Could not find initial location on component: {:?}", self),
-        }
+        vec.first().map(|l| *l)
     }
 
     pub fn get_actions(&self) -> Vec<Channel> {
@@ -295,22 +292,25 @@ impl Component {
 
         let mut passed_list: Vec<State> = vec![];
 
-        let initial_loc = self.get_initial_location();
+        if let Some(initial_loc) = self.get_initial_location() {
+            let dimension = dim;
 
-        let dimension = dim;
+            let zone = Zone::init(dimension);
 
-        let zone = Zone::init(dimension);
+            let mut state = create_state(initial_loc, &self.declarations, zone);
+            if let Some(update_i) = state.get_location(0).get_invariant() {
+                constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
+            }
 
-        let mut state = create_state(initial_loc, &self.declarations, zone);
-        if let Some(update_i) = state.get_location(0).get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
-        }
+            let bounds = self.get_max_bounds(dimension);
 
-        let bounds = self.get_max_bounds(dimension);
-
-        if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
-            println!("NOT CONSISTENT");
-            return false;
+            if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
+                println!("NOT CONSISTENT");
+                return false;
+            }
+        } else {
+            println!("Empty TS");
+            return false; //TODO: should empty TS be considered consistent?
         }
         true
     }
@@ -495,7 +495,11 @@ impl Component {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
-        let initial_loc = self.get_initial_location();
+        let maybe_loc = self.get_initial_location();
+        if maybe_loc.is_none() {
+            return true;
+        }
+        let initial_loc = maybe_loc.unwrap();
 
         let dimension = dim;
 

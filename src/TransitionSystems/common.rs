@@ -14,11 +14,13 @@ macro_rules! default_composition {
         fn get_num_clocks(&self) -> u32 {
             self.left.get_num_clocks() + self.right.get_num_clocks()
         }
-        fn get_initial_location<'b>(&'b self) -> LocationTuple<'b> {
-            LocationTuple::compose(
-                self.left.get_initial_location(),
-                self.right.get_initial_location(),
-            )
+        fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
+            if let Some(left) = self.left.get_initial_location() {
+                if let Some(right) = self.right.get_initial_location() {
+                    return Some(LocationTuple::compose(left, right));
+                }
+            }
+            None
         }
         fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
             let mut location_tuples = vec![];
@@ -69,7 +71,7 @@ macro_rules! default_composition {
         }
 
         fn get_initial_state(&self, dimensions: u32) -> State {
-            let init_loc = self.get_initial_location();
+            let init_loc = self.get_initial_location().unwrap();
             let mut zone = Zone::init(dimensions);
             if !init_loc.apply_invariants(&mut zone) {
                 panic!("Invalid starting state");

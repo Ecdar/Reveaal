@@ -28,6 +28,17 @@ pub fn check_refinement(
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
 
+    if initial_locations_1 == None {
+        return Ok(initial_locations_2 == None);
+    }
+
+    if initial_locations_2 == None {
+        return Ok(false); //The empty automata cannot implement
+    }
+
+    let initial_locations_1 = initial_locations_1.unwrap();
+    let initial_locations_2 = initial_locations_2.unwrap();
+
     let mut initial_pair = StatePair::create(
         dimensions,
         initial_locations_1.clone(),

@@ -115,7 +115,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_output_actions(&self) -> HashSet<String>;
 
-    fn get_initial_location<'b>(&'b self) -> LocationTuple<'b>;
+    fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
     fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>>;
 
@@ -175,8 +175,11 @@ impl TransitionSystem<'_> for Component {
         self.declarations.get_clock_count()
     }
 
-    fn get_initial_location<'b>(&'b self) -> LocationTuple<'b> {
-        LocationTuple::simple(self.get_initial_location(), &self.declarations)
+    fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
+        if let Some(loc) = self.get_initial_location() {
+            return Some(LocationTuple::simple(loc, &self.declarations));
+        }
+        None
     }
 
     fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
@@ -221,7 +224,10 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn get_initial_state(&self, dimensions: u32) -> State {
-        let init_loc = LocationTuple::simple(self.get_initial_location(), self.get_declarations());
+        let init_loc = LocationTuple::simple(
+            self.get_initial_location().unwrap(),
+            self.get_declarations(),
+        );
         let mut zone = Zone::init(dimensions);
         if !init_loc.apply_invariants(&mut zone) {
             panic!("Invalid starting state");

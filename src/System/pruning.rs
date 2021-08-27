@@ -1,6 +1,6 @@
 use crate::input_enabler::build_guard_from_zone;
 use crate::DBMLib::dbm::{Federation, Zone};
-use crate::ModelObjects::component::{Component, Declarations, Location, State};
+use crate::ModelObjects::component::{Component, Declarations, Location, LocationType, State};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
@@ -64,6 +64,8 @@ fn prune_to_consistent_part(
 
             return true;
         } else {
+            //TODO: check with Martijn & Ulrik whether we should prune the initial location
+
             //Remove the location / error state
             let (num_locs, num_edges) = (new_comp.edges.len(), new_comp.locations.len());
             new_comp

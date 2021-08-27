@@ -63,13 +63,16 @@ fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Locati
 fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
 
-    let initial = sysrep.get_initial_location();
-    for comp_id in 0..initial.len() {
-        for (k, v) in &initial.get_decl(comp_id).clocks {
-            clocks.insert(format!("{}{}", k, comp_id), *v);
+    if let Some(initial) = sysrep.get_initial_location() {
+        if initial.len() == 1 {
+            return initial.get_decl(0).clocks.clone();
+        }
+        for comp_id in 0..initial.len() {
+            for (k, v) in &initial.get_decl(comp_id).clocks {
+                clocks.insert(format!("{}{}", k, comp_id), *v);
+            }
         }
     }
-
     clocks
 }
 
