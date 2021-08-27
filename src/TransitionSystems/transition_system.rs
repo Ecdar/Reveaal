@@ -134,6 +134,8 @@ pub trait TransitionSystem<'a>: DynClone {
     fn set_clock_indices(&mut self, index: &mut u32);
 
     fn get_initial_state(&self, dimensions: u32) -> State;
+
+    fn get_max_clock_index(&self) -> u32;
 }
 
 clone_trait_object!(TransitionSystem<'static>);
@@ -143,6 +145,10 @@ impl TransitionSystem<'_> for Component {
         self.declarations.set_clock_indices(*index);
 
         *index += self.get_num_clocks();
+    }
+
+    fn get_max_clock_index(&self) -> u32 {
+        *(self.declarations.clocks.values().max().unwrap_or(&0))
     }
 
     fn get_components<'b>(&'b self) -> Vec<&'b Component> {

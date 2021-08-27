@@ -34,7 +34,7 @@ impl Conjunction {
             inputs,
             outputs,
         });
-        let num_clocks = ts.get_num_clocks();
+        let num_clocks = ts.get_max_clock_index();
         pruning::prune_system(ts, num_clocks)
     }
 }

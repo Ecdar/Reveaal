@@ -43,6 +43,13 @@ macro_rules! default_composition {
             self.right.set_clock_indices(index);
         }
 
+        fn get_max_clock_index(&self) -> u32 {
+            std::cmp::max(
+                self.left.get_max_clock_index(),
+                self.right.get_max_clock_index(),
+            )
+        }
+
         fn precheck_sys_rep(&self, dim: u32) -> bool {
             if !self.is_deterministic(dim) {
                 println!("NOT DETERMINISTIC");
