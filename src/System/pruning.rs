@@ -104,6 +104,7 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
         for transition in comp.next_outputs(&loc, &output) {
             if let Some(fed) = transition.get_guard_federation(&loc, dimensions) {
                 for mut zone in fed.iter_zones().cloned() {
+                    zone.down();
                     if loc.apply_invariants(&mut zone) {
                         federation.add(zone);
                     }

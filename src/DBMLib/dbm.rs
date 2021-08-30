@@ -205,6 +205,10 @@ impl Zone {
         lib::rs_dbm_up(self.matrix.as_mut_slice(), self.dimension)
     }
 
+    pub fn down(&mut self) {
+        lib::rs_dbm_down(self.matrix.as_mut_slice(), self.dimension)
+    }
+
     pub fn zero(&mut self) {
         lib::rs_dbm_zero(self.matrix.as_mut_slice(), self.dimension)
     }
