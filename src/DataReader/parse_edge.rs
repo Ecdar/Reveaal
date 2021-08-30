@@ -4,6 +4,7 @@ use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -42,9 +43,18 @@ impl Update {
         self.expression.swap_var_name(from_name, to_name);
     }
 
-    pub fn add_component_id_to_vars(&mut self, comp_id: usize) {
-        self.variable = format!("{}{}", self.variable, comp_id);
-        self.expression.add_component_id_to_vars(comp_id);
+    pub fn swap_clock_names(
+        &mut self,
+        from_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<String, u32>,
+    ) {
+        let index = from_vars.get(&self.variable).unwrap();
+        let new_name = to_vars
+            .iter()
+            .find_map(|(key, val)| if *val == *index { Some(key) } else { None })
+            .unwrap();
+        self.variable = new_name.clone();
+        self.expression = self.expression.swap_clock_names(from_vars, to_vars);
     }
 }
 

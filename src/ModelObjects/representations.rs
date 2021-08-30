@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -20,6 +21,56 @@ pub enum BoolExpression {
 }
 
 impl BoolExpression {
+    pub fn swap_clock_names(
+        &self,
+        from_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<String, u32>,
+    ) -> BoolExpression {
+        match self {
+            BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::OrOp(left, right) => BoolExpression::OrOp(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::LessEQ(left, right) => BoolExpression::LessEQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::LessT(left, right) => BoolExpression::LessT(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::EQ(left, right) => BoolExpression::EQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::GreatEQ(left, right) => BoolExpression::GreatEQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::GreatT(left, right) => BoolExpression::GreatT(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+
+            BoolExpression::Parentheses(body) => {
+                BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
+            }
+            BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
+            BoolExpression::VarName(name) => {
+                let index = from_vars.get(name).unwrap();
+                let new_name = to_vars.iter()
+                .find_map(|(key, val)| if *val == *index { Some(key) } else { None }).unwrap();
+                BoolExpression::VarName(new_name.clone())
+            },
+            BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
+            BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
+        }
+    }
+
     pub fn encode_expr(&self) -> String {
         match self {
             BoolExpression::AndOp(left, right) => [
@@ -77,50 +128,6 @@ impl BoolExpression {
 
         //Should this be strict or not? I have set it to be strict as it has a smaller solution space
         new_constraint * 2 + 1
-    }
-
-    pub fn add_component_id_to_vars(&mut self, comp_id: usize) {
-        match self {
-            BoolExpression::AndOp(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::OrOp(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::Parentheses(inner) => {
-                inner.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::LessEQ(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::GreatT(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::GreatEQ(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::LessT(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::EQ(left, right) => {
-                left.add_component_id_to_vars(comp_id);
-                right.add_component_id_to_vars(comp_id);
-            }
-            BoolExpression::Clock(_) => {
-                //Assuming ids are correctly offset we dont have to do anything here
-            }
-            BoolExpression::VarName(name) => {
-                *name = format!("{}{}", *name, comp_id);
-            }
-            BoolExpression::Bool(_) => {}
-            BoolExpression::Int(_) => {}
-        }
     }
 
     pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {

@@ -936,14 +936,14 @@ impl<'a> Transition<'a> {
         }
     }
 
-    pub fn get_guard_expression(&self, add_id_to_vars: bool) -> Option<BoolExpression> {
+    pub fn get_renamed_guard_expression(
+        &self,
+        naming: &HashMap<String, u32>,
+    ) -> Option<BoolExpression> {
         let mut guard: Option<BoolExpression> = None;
-        for (_, edge, comp_id) in &self.edges {
+        for (comp, edge, _) in &self.edges {
             if let Some(g) = &edge.guard {
-                let mut g = g.clone();
-                if add_id_to_vars {
-                    g.add_component_id_to_vars(*comp_id);
-                }
+                let g = g.swap_clock_names(&comp.declarations.clocks, naming);
                 if let Some(g_full) = guard {
                     guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g)));
                 } else {
@@ -955,15 +955,17 @@ impl<'a> Transition<'a> {
         guard
     }
 
-    pub fn get_updates(&self, add_id_to_vars: bool) -> Option<Vec<parse_edge::Update>> {
+    pub fn get_renamed_updates(
+        &self,
+        naming: &HashMap<String, u32>,
+    ) -> Option<Vec<parse_edge::Update>> {
         let mut updates = vec![];
-        for (_, edge, comp_id) in &self.edges {
+        for (comp, edge, _) in &self.edges {
             if let Some(update) = &edge.update {
                 let mut update = update.clone();
-                if add_id_to_vars {
-                    for u in &mut update {
-                        u.add_component_id_to_vars(*comp_id);
-                    }
+
+                for u in &mut update {
+                    u.swap_clock_names(&comp.declarations.clocks, naming);
                 }
 
                 updates.append(&mut update);

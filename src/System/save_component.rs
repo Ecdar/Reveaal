@@ -8,10 +8,10 @@ use std::collections::HashMap;
 pub fn combine_components(system: &TransitionSystemPtr) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
-    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges);
-
     let clocks = get_clock_map(system);
-    let locations = get_locations_from_tuples(&location_tuples);
+    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks);
+
+    let locations = get_locations_from_tuples(&location_tuples, &clocks);
     Component {
         name: "".to_string(),
         declarations: Declarations {
@@ -25,7 +25,10 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Component {
     }
 }
 
-fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Location> {
+fn get_locations_from_tuples(
+    location_tuples: &Vec<LocationTuple>,
+    clock_map: &HashMap<String, u32>,
+) -> Vec<Location> {
     location_tuples
         .iter()
         .cloned()
@@ -34,10 +37,9 @@ fn get_locations_from_tuples(location_tuples: &Vec<LocationTuple>) -> Vec<Locati
                 .iter()
                 .all(|loc| loc.location_type == LocationType::Initial);
             let mut invariant: Option<BoolExpression> = None;
-            for (comp_id, loc) in loc_vec.iter().enumerate() {
+            for (loc, decl) in loc_vec.iter_zipped() {
                 if let Some(inv) = &loc.invariant {
-                    let mut inv = inv.clone();
-                    inv.add_component_id_to_vars(comp_id);
+                    let inv = inv.swap_clock_names(&decl.clocks, clock_map);
                     if let Some(inv_full) = invariant {
                         invariant = Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
                     } else {
@@ -80,11 +82,12 @@ fn collect_all_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
     locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
+    clock_map: &HashMap<String, u32>,
 ) {
     let l = representation.get_all_locations();
     locations.extend(l);
     for location in locations {
-        collect_edges_from_location(location, representation, edges);
+        collect_edges_from_location(location, representation, edges, clock_map);
     }
 }
 
@@ -92,9 +95,10 @@ fn collect_edges_from_location<'a>(
     location: &LocationTuple<'a>,
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
+    clock_map: &HashMap<String, u32>,
 ) {
-    collect_specific_edges_from_location(location, representation, edges, true);
-    collect_specific_edges_from_location(location, representation, edges, false);
+    collect_specific_edges_from_location(location, representation, edges, true, clock_map);
+    collect_specific_edges_from_location(location, representation, edges, false, clock_map);
 }
 
 fn collect_specific_edges_from_location<'a>(
@@ -102,6 +106,7 @@ fn collect_specific_edges_from_location<'a>(
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     input: bool,
+    clock_map: &HashMap<String, u32>,
 ) {
     for sync in if input {
         representation.get_input_actions()
@@ -129,8 +134,8 @@ fn collect_specific_edges_from_location<'a>(
                 } else {
                     SyncType::Output
                 },
-                guard: transition.get_guard_expression(true),
-                update: transition.get_updates(true),
+                guard: transition.get_renamed_guard_expression(clock_map),
+                update: transition.get_renamed_updates(clock_map),
                 sync: sync.clone(),
             };
             edges.push(edge);
