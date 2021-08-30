@@ -4,13 +4,14 @@ use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations;
+use crate::TransitionSystems::TransitionSystem;
 use std::collections::HashMap;
 
 pub fn make_input_enabled(
     component: &mut component::Component,
     sys_decls: &system_declarations::SystemDeclarations,
 ) {
-    let dimension = component.get_declarations().get_clock_count() + 1;
+    let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
     if let Some(inputs) = sys_decls
         .get_declarations()
