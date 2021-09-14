@@ -1,8 +1,12 @@
 use crate::input_enabler::build_guard_from_zone;
 use crate::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::DBMLib::dbm::{Federation, Zone};
-use crate::ModelObjects::component::{Component, Declarations, Location, LocationType, State};
+use crate::EdgeEval::constraint_applyer::apply_constraint;
+use crate::ModelObjects::component::{
+    Component, Declarations, Edge, Location, LocationType, State, SyncType,
+};
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::System::input_enabler;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
@@ -40,21 +44,36 @@ pub fn prune(
 ) -> PrunedComponent {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
-    let mut changed = false;
 
+    //Find initial inconsistent locations
+    let mut consistent_parts = HashMap::new();
+    for location in new_comp.get_locations().clone() {
+        consistent_parts.insert(
+            location.get_id().clone(),
+            get_consistent_part(&location, &new_comp, clocks + 1),
+        );
+    }
+
+    //Prune locations to their consistent parts until fixed-point
+    let mut changed = false;
     loop {
         changed = false;
         for location in new_comp.get_locations().clone() {
-            changed |=
-                prune_to_consistent_part(&location, &mut new_comp, &comp.declarations, clocks + 1);
+            changed |= prune_to_consistent_part(
+                &location,
+                &mut new_comp,
+                &mut consistent_parts,
+                &comp.declarations,
+                clocks + 1,
+            );
         }
         if !changed {
             break;
         }
     }
 
-    //TODO: Maybe we ought not input enable here?
-    input_enabler::make_input_enabled(&mut new_comp, decl);
+    //Remove fully inconsistent locations and edges
+    cleanup(&mut new_comp, &consistent_parts, clocks + 1);
 
     PrunedComponent {
         component: Box::new(new_comp),
@@ -63,9 +82,43 @@ pub fn prune(
     }
 }
 
-fn prune_to_consistent_part(
+fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>, dimensions: u32) {
+    let decls = comp.declarations.clone();
+
+    //Set invariants to consistent part
+    for mut loc in comp.get_mut_locations() {
+        let id = loc.get_id().clone();
+        set_invariant(
+            &mut loc,
+            &decls,
+            dimensions,
+            consistent_parts.get(&id).unwrap(),
+        )
+    }
+    //Remove fully inconsistent locations
+    comp.get_mut_locations()
+        .retain(|l| l.invariant != Some(BoolExpression::Bool(false)));
+
+    let remaining_ids: Vec<String> = comp
+        .get_locations()
+        .iter()
+        .map(|l| l.get_id().clone())
+        .collect();
+
+    //Remove unsatisfiable edges or those referencing removed locations
+    comp.get_mut_edges().retain(|e| {
+        e.guard != Some(BoolExpression::Bool(false))
+            && remaining_ids.contains(&e.target_location)
+            && remaining_ids.contains(&e.source_location)
+    });
+
+    //Redo input and output split
+    comp.create_edge_io_split();
+}
+
+fn is_inconsistent(
     location: &Location,
-    new_comp: &mut Component,
+    consistent_parts: &HashMap<String, Federation>,
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
@@ -76,54 +129,110 @@ fn prune_to_consistent_part(
     } else {
         Federation::new(vec![], dimensions)
     };
-    let cons_fed = get_consistent_part(location, new_comp, dimensions);
-    // If cons strictly less than inv
-    if cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed) {
-        if cons_fed.num_zones() > 1 {
-            panic!("Implementation cannot handle disjunct invariants")
-        }
-        if let Some(zone) = cons_fed.iter_zones().next() {
-            if let Some(mut old_loc) = new_comp
-                .get_mut_locations()
-                .iter_mut()
-                .find(|l| l.get_id() == location.get_id())
-            {
-                old_loc.invariant = build_guard_from_zone(zone, &decls.clocks);
-            } else {
-                panic!();
+
+    let cons_fed = consistent_parts.get(location.get_id()).unwrap();
+
+    //Returns whether the consistent part is strictly less than the zone induced by the invariant
+    cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed)
+}
+
+fn prune_to_consistent_part(
+    location: &Location,
+    new_comp: &mut Component,
+    consistent_parts: &mut HashMap<String, Federation>,
+    decls: &Declarations,
+    dimensions: u32,
+) -> bool {
+    if !is_inconsistent(location, consistent_parts, decls, dimensions) {
+        return false;
+    }
+    let cons_fed = consistent_parts.get(location.get_id()).unwrap().clone();
+
+    let mut changed = false;
+    for edge in &mut new_comp.edges {
+        if edge.target_location == *location.get_id() {
+            let mut reachable_fed = Federation::new(vec![], dimensions);
+            for mut zone in cons_fed.iter_zones().cloned() {
+                for clock in edge.get_update_clocks() {
+                    let clock_index = decls.get_clock_index_by_name(clock);
+                    zone.free_clock(*(clock_index.unwrap()));
+                }
+                if edge.apply_guard(decls, &mut zone) {
+                    reachable_fed.add(zone);
+                }
             }
-
-            return true;
-        } else {
-            //TODO: check with Martijn & Ulrik whether we should prune the initial location
-
-            //Remove the location / error state
-            let (num_locs, num_edges) = (new_comp.edges.len(), new_comp.locations.len());
-            new_comp
-                .get_mut_locations()
-                .retain(|l| l.get_id() != location.get_id());
-            //Remove edges involving the error state
-            new_comp.get_mut_edges().retain(|e| {
-                e.target_location != *location.get_id() && e.source_location != *location.get_id()
-            });
-            let (num_locs2, num_edges2) = (new_comp.edges.len(), new_comp.locations.len());
-            let changed = num_locs > num_locs2 || num_edges > num_edges2;
-
-            if changed {
-                new_comp.create_edge_io_split();
+            if edge.sync_type == SyncType::Input {
+                changed |= handle_input(edge, consistent_parts, dimensions, reachable_fed);
+            } else if edge.sync_type == SyncType::Output {
+                changed |= handle_output(edge, decls, dimensions, reachable_fed);
             }
-            return changed;
         }
     }
+    changed
+}
 
-    false
+fn handle_input(
+    edge: &Edge,
+    consistent_parts: &mut HashMap<String, Federation>,
+    dimensions: u32,
+    cons_fed: Federation,
+) -> bool {
+    //Any zone that can reach an inconsistent state from this location is marked inconsistent
+    let incons_fed = cons_fed.inverse(dimensions);
+    let old_fed = consistent_parts.get(&edge.source_location).unwrap().clone();
+    let new_fed = old_fed.minus_fed(&incons_fed);
+    let is_changed = new_fed.is_subset_eq(&old_fed) && !old_fed.is_subset_eq(&new_fed);
+    consistent_parts.insert(edge.source_location.clone(), new_fed);
+    is_changed
+}
+
+fn handle_output(
+    edge: &mut Edge,
+    decls: &Declarations,
+    dimensions: u32,
+    cons_fed: Federation,
+) -> bool {
+    let mut prev_zone = Zone::init(dimensions);
+
+    if !edge.apply_guard(decls, &mut prev_zone) {
+        return false;
+    }
+
+    //Set the guard to enter only the consistent part
+    edge.guard = cons_fed
+        .intersect_zone(&prev_zone)
+        .as_invariant(&decls.clocks);
+
+    let mut new_zone = Zone::init(dimensions);
+    if apply_constraint(&edge.guard, decls, &mut new_zone) {
+        return new_zone != prev_zone;
+    }
+
+    true
+}
+
+fn set_invariant(
+    location: &mut Location,
+    decls: &Declarations,
+    dimensions: u32,
+    cons_fed: &Federation,
+) {
+    let mut prev_zone = Zone::init(dimensions);
+
+    if !apply_constraint(location.get_invariant(), decls, &mut prev_zone) {
+        return;
+    }
+
+    //Set the invariant to the consistent part
+    location.invariant = cons_fed
+        .intersect_zone(&prev_zone)
+        .as_invariant(&decls.clocks);
 }
 
 fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {
     let loc = LocationTuple::simple(location, &comp.declarations);
     let mut zone = Zone::init(dimensions);
-
-    if !loc.apply_invariants(&mut zone) {
+    if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone) {
         return Federation::new(vec![], dimensions);
     }
     if zone.canDelayIndefinitely() {
