@@ -638,6 +638,10 @@ pub fn rs_dbm_fed_minus_fed(
             &mut res,
         );
 
+        //May want to only do this optionally?
+        dbm_fed_t_expensiveReduce(&mut res);
+        //Maybe dbm_fed_t_reduce(&mut res); instead as it is cheaper?
+
         fed_to_federation(&mut res, dim)
     }
 }
