@@ -2,6 +2,18 @@ use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
 
+pub fn apply_constraint(
+    constraint: &Option<BoolExpression>,
+    decls: &component::Declarations,
+    zone: &mut Zone,
+) -> bool {
+    return if let Some(guards) = constraint {
+        apply_constraints_to_state(guards, decls, zone)
+    } else {
+        true
+    };
+}
+
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
     decls: &component::Declarations,
