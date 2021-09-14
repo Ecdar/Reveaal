@@ -862,7 +862,7 @@ impl<'a> Transition<'a> {
         false
     }
 
-    pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
+    pub fn combinations(left: &Vec<Self>, right: &Vec<Self>) -> Vec<Self> {
         let mut out = vec![];
         for l in left {
             for r in &*right {
