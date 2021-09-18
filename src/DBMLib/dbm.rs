@@ -1,5 +1,6 @@
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
+use std::f64;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, std::cmp::PartialEq)]
@@ -9,13 +10,18 @@ pub struct Zone {
 }
 
 impl Zone {
-    pub fn from(vec: Vec<i32>, dim: u32) -> Self {
+    pub fn from(vec: Vec<i32>) -> Self {
+        let size = vec.len() as f64;
+        let dim = size.sqrt().floor() as u32;
         assert_eq!((dim * dim) as usize, vec.len());
 
-        Self {
+        let mut zone = Self {
             dimension: dim,
             matrix: vec,
-        }
+        };
+        zone.close();
+
+        zone
     }
 
     pub fn new(dimension: u32) -> Self {
@@ -232,6 +238,10 @@ impl Zone {
         }
 
         true
+    }
+
+    pub fn close(&mut self) {
+        lib::rs_dbm_close(&mut self.matrix, self.dimension);
     }
 }
 
