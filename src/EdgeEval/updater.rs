@@ -39,7 +39,7 @@ pub fn state_updater(
                     .get_declarations(comp_index)
                     .get_clock_index_by_name(update.get_variable_name())
                 {
-                    state.zone.update(clock_index, *val);
+                    state.federation.update(clock_index, *val);
                 } else {
                     panic!("Attempting to update a clock which is not initialized")
                 }

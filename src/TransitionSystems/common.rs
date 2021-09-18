@@ -63,15 +63,16 @@ macro_rules! default_composition {
 
         fn get_initial_state(&self, dimensions: u32) -> State {
             let init_loc = self.get_initial_location();
-            let mut zone = Zone::init(dimensions);
-            if !init_loc.apply_invariants(&mut zone) {
+            let mut state = State {
+                decorated_locations: init_loc.clone(),
+                federation: Federation::zero(dimensions),
+            };
+            state.federation.up();
+
+            if !init_loc.apply_invariants_fed(&mut state.federation) {
                 panic!("Invalid starting state");
             }
-
-            State {
-                decorated_locations: init_loc,
-                zone,
-            }
+            state
         }
     };
 }

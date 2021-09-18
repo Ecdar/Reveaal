@@ -21,7 +21,7 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
 }
 
 pub fn consistency_least_helper<'b>(
-    state: State<'b>,
+    mut state: State<'b>,
     passed_list: &mut Vec<State<'b>>,
     system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
@@ -35,7 +35,7 @@ pub fn consistency_least_helper<'b>(
         for transition in &system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
+                new_state.federation.extrapolate_max_bounds(max_bounds);
 
                 if !consistency_least_helper(new_state, passed_list, system, max_bounds) {
                     return false;
@@ -44,7 +44,7 @@ pub fn consistency_least_helper<'b>(
         }
     }
 
-    if state.zone.canDelayIndefinitely() {
+    if state.federation.can_delay_indefinitely() {
         return true;
     }
 
@@ -52,7 +52,7 @@ pub fn consistency_least_helper<'b>(
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
+                new_state.federation.extrapolate_max_bounds(max_bounds);
 
                 if consistency_least_helper(new_state, passed_list, system, max_bounds) {
                     return true;
@@ -65,7 +65,7 @@ pub fn consistency_least_helper<'b>(
 }
 
 fn consistency_fully_helper<'b>(
-    state: State<'b>,
+    mut state: State<'b>,
     passed_list: &mut Vec<State<'b>>,
     system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
@@ -79,8 +79,8 @@ fn consistency_fully_helper<'b>(
         for transition in system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
-                if new_state.is_subset_of(&state) {
+                new_state.federation.extrapolate_max_bounds(max_bounds);
+                if new_state.is_subset_of(&mut state) {
                     continue;
                 }
 
@@ -96,8 +96,8 @@ fn consistency_fully_helper<'b>(
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
-                if new_state.is_subset_of(&state) {
+                new_state.federation.extrapolate_max_bounds(max_bounds);
+                if new_state.is_subset_of(&mut state) {
                     continue;
                 }
 
@@ -112,6 +112,10 @@ fn consistency_fully_helper<'b>(
     if output_existed {
         true
     } else {
-        passed_list.last().unwrap().zone.canDelayIndefinitely()
+        passed_list
+            .last_mut()
+            .unwrap()
+            .federation
+            .can_delay_indefinitely()
     }
 }

@@ -18,35 +18,34 @@ pub fn make_input_enabled(
         .get(component.get_name())
     {
         for location in component.get_locations() {
-            let mut location_inv_zone = Zone::init(dimension);
+            let mut location_inv_fed = Federation::full(dimension);
 
             if let Some(invariant) = location.get_invariant() {
-                constraint_applyer::apply_constraints_to_state_declarations(
+                constraint_applyer::apply_constraints_to_federation(
                     invariant,
                     component.get_declarations(),
-                    &mut location_inv_zone,
+                    &mut location_inv_fed,
                 );
             }
 
             // No constraints on any clocks
-            let full_federation =
-                Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
+            let full_federation = location_inv_fed.clone();
 
             for input in inputs {
                 let input_edges =
                     component.get_next_edges(location, input, component::SyncType::Input);
-                let mut zones = vec![];
+                let mut unused_federation = Federation::empty(dimension);
 
                 for edge in input_edges {
-                    let mut guard_zone = location_inv_zone.clone();
+                    let mut guard_fed = location_inv_fed.clone();
                     let has_inv = if let Some(target_invariant) = component
                         .get_location_by_name(edge.get_target_location())
                         .get_invariant()
                     {
-                        constraint_applyer::apply_constraints_to_state_declarations(
+                        constraint_applyer::apply_constraints_to_federation(
                             target_invariant,
                             component.get_declarations(),
-                            &mut guard_zone,
+                            &mut guard_fed,
                         )
                     } else {
                         false
@@ -57,29 +56,28 @@ pub fn make_input_enabled(
                         for clock in update_clocks {
                             let clock_index =
                                 component.get_declarations().clocks.get(clock).unwrap();
-                            guard_zone.free_clock(*clock_index);
+                            guard_fed.free_clock(*clock_index);
                         }
                     }
 
                     let has_guard = if let Some(guard) = edge.get_guard() {
-                        constraint_applyer::apply_constraints_to_state_declarations(
+                        constraint_applyer::apply_constraints_to_federation(
                             guard,
                             component.get_declarations(),
-                            &mut guard_zone,
+                            &mut guard_fed,
                         )
                     } else {
                         false
                     };
 
                     if !has_inv && !has_guard {
-                        zones.push(location_inv_zone.clone());
+                        unused_federation.add_fed(location_inv_fed.clone());
                     } else {
-                        zones.push(guard_zone);
+                        unused_federation.add_fed(guard_fed);
                     }
                 }
 
-                let zones_federation = Federation::new(zones, location_inv_zone.dimension);
-                let result_federation = full_federation.minus_fed(&zones_federation);
+                let result_federation = full_federation.minus_fed(&unused_federation);
 
                 for fed_zone in result_federation.iter_zones() {
                     new_edges.push(component::Edge {

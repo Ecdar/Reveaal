@@ -1,9 +1,11 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::{Federation, Zone};
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_federation;
 use crate::ModelObjects::component::{
     Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
     SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::statepair::StatePair;
 use crate::System::local_consistency;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
@@ -69,8 +71,30 @@ impl<'a> LocationTuple<'a> {
     ) -> std::iter::Zip<std::slice::Iter<&Location>, std::slice::Iter<Declarations>> {
         self.locations.iter().zip(self.declarations.iter())
     }
+    pub fn get_invariant_federation(&self, dimensions: u32) -> Federation {
+        let mut fed = Federation::full(dimensions);
 
-    pub fn apply_invariants(&self, zone: &mut Zone) -> bool {
+        for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
+            let decorated_loc = DecoratedLocation::create(location, decl);
+            if let Some(inv) = decorated_loc.get_invariant() {
+                apply_constraints_to_federation(inv, decl, &mut fed);
+            }
+        }
+
+        fed
+    }
+
+    pub fn apply_invariants(&self, statepair: &mut StatePair) -> bool {
+        let invariants = self.get_invariant_federation(statepair.get_dimensions());
+        statepair.federation.intersection(&invariants)
+    }
+
+    pub fn apply_invariants_fed(&self, federation: &mut Federation) -> bool {
+        let invariants = self.get_invariant_federation(federation.dimension);
+        federation.intersection(&invariants)
+    }
+
+    pub fn zone_apply_invariants(&self, zone: &mut Zone) -> bool {
         let mut success = true;
 
         for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
@@ -216,14 +240,17 @@ impl TransitionSystem<'_> for Component {
 
     fn get_initial_state(&self, dimensions: u32) -> State {
         let init_loc = LocationTuple::simple(self.get_initial_location(), self.get_declarations());
-        let mut zone = Zone::init(dimensions);
-        if !init_loc.apply_invariants(&mut zone) {
+
+        let mut state = State {
+            decorated_locations: init_loc.clone(),
+            federation: Federation::zero(dimensions),
+        };
+        state.federation.up();
+
+        if !init_loc.apply_invariants_fed(&mut state.federation) {
             panic!("Invalid starting state");
         }
 
-        State {
-            decorated_locations: init_loc,
-            zone,
-        }
+        state
     }
 }

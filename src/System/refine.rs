@@ -1,5 +1,5 @@
 use crate::DBMLib::dbm::Federation;
-use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_federation;
 use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
@@ -36,7 +36,7 @@ pub fn check_refinement(
 
     prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
     let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
-    initial_pair.zone.extrapolate_max_bounds(&max_bounds);
+    initial_pair.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
@@ -127,30 +127,25 @@ fn has_valid_state_pair<'a>(
     curr_pair: &StatePair<'a>,
     is_state1: bool,
 ) -> bool {
-    let dim = curr_pair.zone.dimension;
+    let dim = curr_pair.federation.dimension;
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
-    let pair_zone = curr_pair.zone.clone();
     //create guard zones left
-    let mut left_fed = Federation::new(vec![], dim);
+    let mut left_fed = Federation::empty(dim);
     for transition in transitions1 {
         if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    left_fed.add(zone.clone());
-                }
+            if fed.intersection(&curr_pair.federation) {
+                left_fed.add_fed(fed);
             }
         }
     }
 
     //Create guard zones right
-    let mut right_fed = Federation::new(vec![], dim);
+    let mut right_fed = Federation::empty(dim);
     for transition in transitions2 {
         if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    right_fed.add(zone.clone());
-                }
+            if fed.intersection(&curr_pair.federation) {
+                right_fed.add_fed(fed);
             }
         }
     }
@@ -194,21 +189,16 @@ fn build_state_pair<'a>(
     max_bounds: &MaxBounds,
     is_state1: bool,
 ) -> bool {
-    //Creates new state pair
-    let mut new_sp: StatePair = StatePair::create(
-        curr_pair.get_dimensions(),
-        curr_pair.locations1.clone(),
-        curr_pair.locations2.clone(),
-    );
     //Creates DBM for that state pair
-    let mut new_sp_zone = curr_pair.zone.clone();
+    let mut new_statepair = curr_pair.clone();
     //Apply guards on both sides
-    let (locations1, locations2) = new_sp.get_mut_states(is_state1);
+    let (locations1, locations2, fed) = new_statepair.get_mut_states(is_state1);
+
     //Applies the left side guards and checks if zone is valid
-    let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone);
+    let g1_success = transition1.apply_guards_fed(locations1, fed);
 
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone);
+    let g2_success = transition2.apply_guards_fed(locations2, fed);
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -216,8 +206,8 @@ fn build_state_pair<'a>(
     }
 
     //Apply updates on both sides
-    transition1.apply_updates(locations1, &mut new_sp_zone);
-    transition2.apply_updates(locations2, &mut new_sp_zone);
+    transition1.apply_updates_fed(locations1, fed);
+    transition2.apply_updates_fed(locations2, fed);
 
     //Update locations in states
 
@@ -225,35 +215,31 @@ fn build_state_pair<'a>(
     transition2.move_locations(locations2);
 
     //Perform a delay on the zone after the updates were applied
-    new_sp_zone.up();
+    fed.up();
 
     // Apply invariants on the left side of relation
-    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone);
+    let inv_success1 = locations1.apply_invariants_fed(fed);
     // Perform a copy of the zone and apply right side invariants on the copied zone
-    let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = locations2.apply_invariants(&mut invariant_test);
+    let mut inv_test_fed = fed.clone();
+    let inv_success2 = locations2.apply_invariants_fed(&mut inv_test_fed);
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
         return false;
     }
-    let dim = invariant_test.dimension;
-    let inv_test_fed = Federation::new(vec![invariant_test], dim);
-    let sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
-
-    let fed_res = sp_zone_fed.minus_fed(&inv_test_fed);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
-    if !fed_res.is_empty() {
+    if !fed.is_subset_eq(&mut inv_test_fed) {
         return false;
     }
 
-    new_sp.zone = new_sp_zone;
-    new_sp.zone.extrapolate_max_bounds(max_bounds);
+    new_statepair.extrapolate_max_bounds(max_bounds);
 
-    if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
-        waiting_list.push(new_sp.clone());
+    if is_new_state(&mut new_statepair, passed_list)
+        && is_new_state(&mut new_statepair, waiting_list)
+    {
+        waiting_list.push(new_statepair.clone());
     }
 
     true
@@ -267,7 +253,7 @@ fn prepare_init_state(
     for (location, decl) in initial_locations_1.iter_zipped() {
         let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
+            apply_constraints_to_federation(&inv1, decl, &mut initial_pair.federation)
         } else {
             true
         };
@@ -279,7 +265,7 @@ fn prepare_init_state(
     for (location, decl) in initial_locations_2.iter_zipped() {
         let init_inv2 = location.get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
+            apply_constraints_to_federation(&inv2, decl, &mut initial_pair.federation)
         } else {
             true
         };
@@ -327,7 +313,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
 }
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
-    'OuterFor: for passed_state_pair in passed_list {
+    'OuterFor: for mut passed_state_pair in passed_list {
         /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")
         }
@@ -354,7 +340,7 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             panic!("dimensions of dbm didn't match - fatal error")
         }
 
-        if state_pair.zone.is_subset_eq(&passed_state_pair.zone) {
+        if state_pair.is_subset_eq(&mut passed_state_pair) {
             return false;
         }
     }

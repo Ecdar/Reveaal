@@ -817,3 +817,176 @@ pub fn libtest2() {
 pub fn rs_dbm_boundbool2raw(bound: i32, is_strict: bool) -> i32 {
     unsafe { dbm_boundbool2raw_wrapper(bound, is_strict) }
 }
+
+pub fn rs_fed_extrapolate_max_bounds(
+    federation: &mut Vec<*mut raw_t>,
+    dim: u32,
+    max_bounds: &Vec<i32>,
+) -> Federation {
+    unsafe {
+        let mut fed = dbm_fed_t::new(dim);
+        dbm_vec_to_fed(
+            federation.as_mut_ptr(),
+            federation.len() as u32,
+            dim,
+            &mut fed,
+        );
+        dbm_fed_t_extrapolateMaxBounds(&mut fed, max_bounds.as_ptr());
+
+        fed_to_federation(&mut fed, dim)
+    }
+}
+
+pub fn rs_fed_update_clock_int_value(
+    federation: &mut Vec<*mut raw_t>,
+    dim: u32,
+    clock_index: u32,
+    value: i32,
+) -> Federation {
+    unsafe {
+        let mut fed = dbm_fed_t::new(dim);
+        dbm_vec_to_fed(
+            federation.as_mut_ptr(),
+            federation.len() as u32,
+            dim,
+            &mut fed,
+        );
+        dbm_fed_t_updateValue(&mut fed, clock_index, value);
+
+        fed_to_federation(&mut fed, dim)
+    }
+}
+
+pub fn rs_fed_is_subset_eq(
+    federation1: &mut Vec<*mut raw_t>,
+    federation2: &mut Vec<*mut raw_t>,
+    dim: u32,
+) -> bool {
+    unsafe {
+        let mut fed1 = dbm_fed_t::new(dim);
+        dbm_vec_to_fed(
+            federation1.as_mut_ptr(),
+            federation1.len() as u32,
+            dim,
+            &mut fed1,
+        );
+
+        let mut fed2 = dbm_fed_t::new(dim);
+        dbm_vec_to_fed(
+            federation2.as_mut_ptr(),
+            federation2.len() as u32,
+            dim,
+            &mut fed2,
+        );
+
+        let relation = dbm_fed_t_relation(&fed1, &fed2);
+
+        relation == relation_t_base_SUBSET || relation == relation_t_base_EQUAL
+    }
+}
+
+pub fn federation_to_cfed(federation: &mut Federation, dimension: u32) -> dbm_fed_t {
+    let mut zones: Vec<*mut i32> = federation
+        .zones
+        .iter_mut()
+        .map(|zone| zone.matrix.as_mut_ptr())
+        .collect();
+
+    unsafe {
+        let mut c_fed = dbm_fed_t::new(dimension);
+        dbm_vec_to_fed(
+            zones.as_mut_ptr(),
+            zones.len() as u32,
+            dimension,
+            &mut c_fed,
+        );
+        c_fed
+    }
+}
+
+pub fn rs_fed_constrain1(
+    fed: &mut Federation,
+    var_index_i: u32,
+    var_index_j: u32,
+    constraint: i32,
+) -> bool {
+    unsafe {
+        let mut cfed = federation_to_cfed(fed, fed.dimension);
+
+        let res = dbm_fed_t_constrain1(&mut cfed, var_index_i, var_index_j, constraint);
+
+        let new_fed = fed_to_federation(&mut cfed, fed.dimension);
+        fed.zones = new_fed.zones;
+
+        res
+    }
+}
+
+pub fn rs_fed_add_LTE_constraint(
+    fed: &mut Federation,
+    var_index_i: u32,
+    var_index_j: u32,
+    bound: i32,
+) -> bool {
+    unsafe {
+        let constraint = dbm_boundbool2raw_wrapper(bound, false);
+        rs_fed_constrain1(fed, var_index_i, var_index_j, constraint)
+    }
+}
+
+pub fn rs_fed_add_LT_constraint(
+    fed: &mut Federation,
+    var_index_i: u32,
+    var_index_j: u32,
+    bound: i32,
+) -> bool {
+    unsafe {
+        let constraint = dbm_boundbool2raw_wrapper(bound, true);
+
+        rs_fed_constrain1(fed, var_index_i, var_index_j, constraint)
+    }
+}
+
+pub fn rs_fed_add_EQ_constraint(fed: &mut Federation, var_index_i: u32, var_index_j: u32) -> bool {
+    unsafe {
+        let constraint = dbm_boundbool2raw_wrapper(0, false);
+
+        let res1 = rs_fed_constrain1(fed, var_index_i, var_index_j, constraint);
+        let res2 = rs_fed_constrain1(fed, var_index_j, var_index_i, constraint);
+        res1 && res2
+    }
+}
+
+pub fn rs_fed_add_EQ_const_constraint(fed: &mut Federation, var_index: u32, bound: i32) -> bool {
+    unsafe {
+        let constraint1 = dbm_boundbool2raw_wrapper(bound, false);
+        let constraint2 = dbm_boundbool2raw_wrapper(-bound, false);
+
+        let res1 = rs_fed_constrain1(fed, var_index, 0, constraint1);
+        let res2 = rs_fed_constrain1(fed, 0, var_index, constraint2);
+        res1 && res2
+    }
+}
+
+pub fn rs_fed_add_and_constraint(
+    fed: &mut Federation,
+    var_index_i: u32,
+    var_index_j: u32,
+    constraint1: i32,
+    constraint2: i32,
+) -> bool {
+    let res1 = rs_fed_constrain1(fed, var_index_i, var_index_j, constraint1);
+    let res2 = rs_fed_constrain1(fed, var_index_i, var_index_j, constraint2);
+    res1 && res2
+}
+
+pub fn rs_fed_free_clock(fed: &mut Federation, clock_index: u32) {
+    unsafe {
+        let mut cfed = federation_to_cfed(fed, fed.dimension);
+
+        let new_cfed = dbm_fed_t_freeClock(&mut cfed, clock_index);
+
+        let new_fed = fed_to_federation(&mut *new_cfed, fed.dimension);
+        fed.zones = new_fed.zones;
+    }
+}

@@ -21,7 +21,7 @@ impl Zone {
     pub fn new(dimension: u32) -> Self {
         Self {
             dimension,
-            matrix: vec![0; (dimension * dimension) as usize],
+            matrix: vec![1; (dimension * dimension) as usize],
         }
     }
 
@@ -209,7 +209,6 @@ impl Zone {
     }
 
     pub fn dbm_minus_dbm(&self, other: &Self) -> Federation {
-        // NOTE: this function is only used in crate::System::refine::build_state_pair
         // so the implement is just a copy past from that, and is not as generic as it should be.
 
         assert_eq!(self.dimension, other.dimension);
@@ -251,16 +250,130 @@ impl Display for Zone {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Federation {
-    zones: Vec<Zone>,
-    dimension: u32,
+    pub zones: Vec<Zone>,
+    pub dimension: u32,
 }
 
 impl Federation {
     pub fn new(zones: Vec<Zone>, dimension: u32) -> Self {
-        // TODO check zone's dimension
         Self { zones, dimension }
+    }
+
+    pub fn empty(dimension: u32) -> Self {
+        Self {
+            zones: vec![],
+            dimension,
+        }
+    }
+
+    pub fn zero(dimension: u32) -> Self {
+        let mut zone = Zone::new(dimension);
+        zone.zero();
+
+        Self {
+            zones: vec![zone],
+            dimension,
+        }
+    }
+
+    pub fn full(dimension: u32) -> Self {
+        Self {
+            zones: vec![Zone::init(dimension)],
+            dimension,
+        }
+    }
+
+    pub fn intersection(&mut self, other: &Self) -> bool {
+        assert_eq!(self.dimension, other.dimension);
+
+        let result = self.minus_fed(&other.inverse());
+        self.zones = result.zones;
+
+        !self.zones.is_empty()
+    }
+
+    pub fn inverse(&self) -> Federation {
+        let result = Federation::full(self.dimension);
+        result.minus_fed(self)
+    }
+
+    // self ⊆ other
+    // other not ⊂ self <=> self ⊆ other
+    pub fn is_subset_eq(&mut self, other: &mut Self) -> bool {
+        assert_eq!(self.dimension, other.dimension);
+
+        let mut zones_self: Vec<*mut i32> = self
+            .zones
+            .iter_mut()
+            .map(|zone| zone.matrix.as_mut_ptr())
+            .collect();
+        let mut zones_other: Vec<*mut i32> = other
+            .zones
+            .iter_mut()
+            .map(|zone| zone.matrix.as_mut_ptr())
+            .collect();
+
+        lib::rs_fed_is_subset_eq(&mut zones_self, &mut zones_other, self.dimension)
+    }
+
+    pub fn can_delay_indefinitely(&mut self) -> bool {
+        if self.zones.len() == 0 {
+            return false;
+        }
+
+        let mut delayed_fed = self.clone();
+        delayed_fed.up();
+
+        delayed_fed.is_subset_eq(self)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+
+        for zone in &self.zones {
+            if !zone.is_valid() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn extrapolate_max_bounds(&mut self, max_bounds: &MaxBounds) {
+        let mut zones: Vec<*mut i32> = self
+            .zones
+            .iter_mut()
+            .map(|zone| zone.matrix.as_mut_ptr())
+            .collect();
+
+        self.zones = lib::rs_fed_extrapolate_max_bounds(
+            &mut zones,
+            self.dimension,
+            &max_bounds.clock_bounds,
+        )
+        .zones;
+    }
+
+    pub fn update(&mut self, clock_index: u32, value: i32) {
+        let mut zones: Vec<*mut i32> = self
+            .zones
+            .iter_mut()
+            .map(|zone| zone.matrix.as_mut_ptr())
+            .collect();
+
+        let result =
+            lib::rs_fed_update_clock_int_value(&mut zones, self.dimension, clock_index, value);
+        self.zones = result.zones;
+    }
+
+    pub fn up(&mut self) {
+        for zone in &mut self.zones {
+            zone.up();
+        }
     }
 
     pub fn minus_fed(&self, other: &Self) -> Federation {
@@ -277,6 +390,12 @@ impl Federation {
         lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
     }
 
+    pub fn add_fed(&mut self, other: Self) {
+        for zone in other.zones {
+            self.add(zone);
+        }
+    }
+
     pub fn add(&mut self, zone: Zone) {
         self.zones.push(zone);
     }
@@ -291,5 +410,45 @@ impl Federation {
 
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
         self.zones.iter_mut()
+    }
+
+    pub fn add_lte_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+        lib::rs_fed_add_LTE_constraint(self, var_index_i, var_index_j, bound)
+    }
+
+    pub fn add_lt_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+        lib::rs_fed_add_LT_constraint(self, var_index_i, var_index_j, bound)
+    }
+
+    pub fn add_eq_constraint(&mut self, var_index_i: u32, var_index_j: u32) -> bool {
+        lib::rs_fed_add_EQ_constraint(self, var_index_i, var_index_j)
+    }
+
+    pub fn add_eq_const_constraint(&mut self, var_index: u32, bound: i32) -> bool {
+        lib::rs_fed_add_EQ_const_constraint(self, var_index, bound)
+    }
+
+    pub fn add_and_constraint(
+        &mut self,
+        var_index_i: u32,
+        var_index_j: u32,
+        constraint1: i32,
+        constraint2: i32,
+    ) -> bool {
+        lib::rs_fed_add_and_constraint(self, var_index_i, var_index_j, constraint1, constraint2)
+    }
+
+    pub fn free_clock(&mut self, clock_index: u32) {
+        lib::rs_fed_free_clock(self, clock_index);
+    }
+}
+impl Display for Federation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Federation[{}]{{", self.zones.len()))?;
+        for zone in &self.zones {
+            f.write_fmt(format_args!("\n{}", zone))?;
+        }
+        f.write_str("}")?;
+        Ok(())
     }
 }
