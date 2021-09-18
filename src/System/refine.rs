@@ -253,7 +253,7 @@ fn prepare_init_state(
     for (location, decl) in initial_locations_1.iter_zipped() {
         let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_federation(&inv1, decl, &mut initial_pair.federation)
+            apply_constraints_to_federation(inv1, decl, &mut initial_pair.federation)
         } else {
             true
         };
@@ -265,7 +265,7 @@ fn prepare_init_state(
     for (location, decl) in initial_locations_2.iter_zipped() {
         let init_inv2 = location.get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_federation(&inv2, decl, &mut initial_pair.federation)
+            apply_constraints_to_federation(inv2, decl, &mut initial_pair.federation)
         } else {
             true
         };

@@ -821,7 +821,7 @@ pub fn rs_dbm_boundbool2raw(bound: i32, is_strict: bool) -> i32 {
 pub fn rs_fed_extrapolate_max_bounds(
     federation: &mut Vec<*mut raw_t>,
     dim: u32,
-    max_bounds: &Vec<i32>,
+    max_bounds: &[i32],
 ) -> Federation {
     unsafe {
         let mut fed = dbm_fed_t::new(dim);

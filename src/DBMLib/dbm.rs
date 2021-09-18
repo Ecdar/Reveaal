@@ -319,7 +319,7 @@ impl Federation {
     }
 
     pub fn can_delay_indefinitely(&mut self) -> bool {
-        if self.zones.len() == 0 {
+        if self.is_empty() {
             return false;
         }
 
