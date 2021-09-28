@@ -22,9 +22,11 @@ xml-rs = "0.8.3"
 serde-xml-rs = "0.4.0"
 elementtree = "0"
 dyn-clone = "1.0"
+protobuf = "2.25.1"
 
 [build-dependencies]
 bindgen = "0.58.1"
 cc = "1.0.56"
+protoc-rust = "2.25.1"
 
 

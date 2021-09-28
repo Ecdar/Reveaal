@@ -1,9 +1,20 @@
 extern crate bindgen;
 
+extern crate protoc_rust;
+
+use protoc_rust::Customize;
+
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    protoc_rust::Codegen::new()
+        .out_dir("src/protos")
+        .inputs(&["protos/test.proto"])
+        .include("protos")
+        .run()
+        .expect("protoc");
+
     if cfg!(feature = "dbm-stub") {
         println!("cargo:warning=Using stub instead of DBM library");
         return;
@@ -77,4 +88,7 @@ fn main() {
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
+
+
+
 }

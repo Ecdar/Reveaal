@@ -6,7 +6,10 @@ mod EdgeEval;
 mod ModelObjects;
 mod System;
 mod TransitionSystems;
+mod network;
+mod protos;
 mod tests;
+mod server;
 
 use crate::DataReader::component_loader::{JsonProjectLoader, ProjectLoader, XmlProjectLoader};
 use crate::DataReader::{parse_queries, xml_parser};
@@ -17,6 +20,7 @@ use std::env;
 use ModelObjects::component;
 use ModelObjects::queries;
 use System::executable_query::QueryResult;
+use server::start_using_protobuf;
 
 #[macro_use]
 extern crate pest_derive;
@@ -25,7 +29,18 @@ extern crate serde_xml_rs;
 extern crate xml;
 
 pub fn main() {
-    let (mut project_loader, queries, _) = parse_args();
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from(yaml).get_matches();
+
+    if let Some(ip_endpoint) = matches.value_of("endpoint") {
+        start_using_protobuf(ip_endpoint);
+    }else{
+        start_using_cli(&matches);
+    }
+}
+
+fn start_using_cli(matches: &clap::ArgMatches) {
+    let (mut project_loader, queries) = parse_args(matches);
 
     let mut results = vec![];
     for query in &queries {
@@ -49,9 +64,7 @@ pub fn main() {
     }
 }
 
-fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from(yaml).get_matches();
+fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<queries::Query>) {
     let mut folder_path: String = "".to_string();
     let mut query = "".to_string();
 
@@ -71,7 +84,6 @@ fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
         (
             project_loader,
             queries,
-            matches.is_present("checkInputOutput"),
         )
     } else {
         let queries = parse_queries::parse(&query);
@@ -86,7 +98,6 @@ fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
         (
             project_loader,
             queries,
-            matches.is_present("checkInputOutput"),
         )
     }
 }
