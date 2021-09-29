@@ -22,8 +22,11 @@ pub fn start_using_protobuf(ip_endpoint: &str){
 
     loop {
         if let Ok(mut client) = accept_connection(&listener){
-            println!("Accepted connection");
-            handle_connection(&mut client)
+
+            client.send_response("Hello, world!").unwrap();
+
+            //println!("Accepted connection");
+            //handle_connection(&mut client)
         }else{
             println!("Connection attempt failed");
         }
