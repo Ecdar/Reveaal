@@ -22,30 +22,34 @@ impl ProtoBufConnection {
         }
     }
 
-    pub fn read_breh(&mut self) {
-        let mut buf = vec![0; 1024];
-
-        let count = self.stream.read(&mut buf).unwrap();
-        println!("Read {}", count);
-
-        for i in 0..count{
-            println!("{} ", buf[i]);
-        }
-
-        let request = Request::parse_from_bytes(&buf[0..count]).unwrap();
-        println!("Parsed '{}'", request.get_field_in());
-    }
-
-    pub fn read(&mut self) -> ProtobufResult<Request> {
+    pub fn read(&mut self) -> ProtobufResult<Any> {
         let mut reader = BufReader::new(&mut self.stream);
         let mut in_stream = CodedInputStream::from_buffered_reader(&mut reader);
-        let request = Request::parse_from(&mut in_stream).unwrap();
-        Ok(request)
+
+        println!("Reading!");
+
+        let message_size = in_stream.read_raw_varint32()?;
+
+        println!("Received length: {}", message_size);
+
+        let buffer = in_stream.read_raw_bytes(message_size)?;
+
+        println!("Buffer received");
+
+        Any::parse_from_bytes(&buffer)
     }
 
     pub fn send_raw(&mut self, message: &dyn Message) -> Result<()>{
         let mut out_stream = CodedOutputStream::new(&mut self.stream);
+
+        let message_size = message.compute_size();
+
+        println!("Sending size: {}", message_size);
+
+        out_stream.write_raw_varint32(message_size)?;
         message.write_to(&mut out_stream)?;
+
+        println!("Message sent");
 
         Ok(())
     }
