@@ -39,7 +39,7 @@ impl ProtoBufConnection {
         Any::parse_from_bytes(&buffer)
     }
 
-    pub fn send_raw(&mut self, message: &dyn Message) -> Result<()>{
+    pub fn send_raw(&mut self, message: &Any) -> Result<()>{
         let mut out_stream = CodedOutputStream::new(&mut self.stream);
 
         let message_size = message.compute_size();
@@ -47,9 +47,12 @@ impl ProtoBufConnection {
         println!("Sending size: {}", message_size);
 
         out_stream.write_raw_varint32(message_size)?;
+
         message.write_to(&mut out_stream)?;
 
         println!("Message sent");
+
+        out_stream.flush().unwrap();
 
         Ok(())
     }
@@ -57,14 +60,14 @@ impl ProtoBufConnection {
     pub fn send_request(&mut self, message: &str) -> Result<()> {
         let mut request = Request::new();
         request.set_field_in(String::from(message));
-
-        self.send_raw(&request)
+        let message = Any::pack::<Request>(&request).unwrap();
+        self.send_raw(&message)
     }
 
     pub fn send_response(&mut self, message: &str) -> Result<()> {
         let mut response = Response::new();
         response.set_out(String::from(message));
-
-        self.send_raw(&response)
+        let message = Any::pack::<Response>(&response).unwrap();
+        self.send_raw(&message)
     }
 }

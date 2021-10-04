@@ -6,17 +6,6 @@ use protobuf::Message;
 use crate::protos::test::Request;
 
 pub fn start_using_protobuf(ip_endpoint: &str){
-    let mut request = Request::new();
-    request.set_field_in(String::from("Hello world"));
-
-    let buf = request.write_to_bytes().expect("Failed to serialize");
-    let other = Request::parse_from_bytes(&buf).expect("Failed to deserialize");
-
-    for x in &buf{
-        println!("{} ", x);
-    }
-    println!("Other: '{}'", other.get_field_in());
-
     println!("Opening connection on {}", ip_endpoint);
     let listener = TcpListener::bind(ip_endpoint).unwrap();
 
@@ -52,4 +41,5 @@ fn handle_message(client: &mut ProtoBufConnection, message: Any){
 
 fn handle_request(client: &mut ProtoBufConnection, request: Request){
     println!("Received request: {}", request.get_field_in());
+    client.send_response("Hello from the Server, we received your message loud and clear!").unwrap();
 }
