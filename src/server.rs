@@ -1,5 +1,3 @@
-use crate::network::{accept_connection, ProtoBufConnection};
-use std::net::TcpListener;
 use test_service::my_service_server::{MyService, MyServiceServer};
 use test_service::{MyRequest, MyResponse};
 use tonic::transport::Server;

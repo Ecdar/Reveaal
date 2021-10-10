@@ -15,7 +15,7 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
-use server::start_using_protobuf;
+use server::start_grpc_server;
 use std::env;
 use ModelObjects::component;
 use ModelObjects::queries;
