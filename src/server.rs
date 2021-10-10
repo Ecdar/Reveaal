@@ -1,45 +1,37 @@
 use std::net::TcpListener;
 use crate::network::{accept_connection, ProtoBufConnection};
-use protobuf::ProtobufError;
-use protobuf::well_known_types::Any;
-use protobuf::Message;
-use crate::protos::test::Request;
+use test_service::{MyRequest, MyResponse};
+use test_service::my_service_server::{MyService, MyServiceServer};
+use tonic::{Response, Request, Status};
+use tonic::transport::Server;
+pub mod test_service {
+    tonic::include_proto!("test");
+}
 
-pub fn start_using_protobuf(ip_endpoint: &str){
-    println!("Opening connection on {}", ip_endpoint);
-    let listener = TcpListener::bind(ip_endpoint).unwrap();
+#[derive(Debug, Default)]
+pub struct ConcreteService {}
 
-    loop {
-        if let Ok(mut client) = accept_connection(&listener){
-            println!("Accepted connection");
-            handle_connection(&mut client)
-        }else{
-            println!("Connection attempt failed");
-        }
+#[tonic::async_trait]
+impl MyService for ConcreteService {
+    async fn send(
+        &self,
+        request: Request<MyRequest>,
+    ) -> Result<Response<MyResponse>, Status>{
+        println!("Received message: {:?}", request);
 
+        let reply = MyResponse {
+            message: String::from("Hello from the Reveaal server"),
+        };
+
+        Ok(Response::new(reply))
     }
 }
 
-fn handle_connection(client: &mut ProtoBufConnection) {
-    loop {
-        match client.read() {
-            Ok(message) => handle_message(client, message), //handle_message(client, message),
-            Err(ProtobufError::IoError(_)) => break, //Assume connection closed
-            Err(error) => {println!("{}", error); break},
-        }
-    }
-
-    println!("Connection closed");
-}
-
-fn handle_message(client: &mut ProtoBufConnection, message: Any){
-    println!("Handling message");
-    if message.is::<Request>() {
-        handle_request(client, message.unpack::<Request>().unwrap().unwrap());
-    }
-}
-
-fn handle_request(client: &mut ProtoBufConnection, request: Request){
-    println!("Received request: {}", request.get_field_in());
-    client.send_response("Hello from the Server, we received your message loud and clear!").unwrap();
+pub async fn start_using_protobuf(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>>{
+    Server::builder()
+        .add_service(MyServiceServer::new(ConcreteService::default()))
+        .serve(ip_endpoint.parse()?)
+        .await?;
+        
+    Ok(())
 }

@@ -28,15 +28,18 @@ extern crate serde;
 extern crate serde_xml_rs;
 extern crate xml;
 
-pub fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        start_using_protobuf(ip_endpoint);
+        start_using_protobuf(ip_endpoint).await?;
     }else{
         start_using_cli(&matches);
     }
+    
+    Ok(())
 }
 
 fn start_using_cli(matches: &clap::ArgMatches) {

@@ -1,10 +1,14 @@
-syntax = "proto2";
+syntax = "proto3";
 package test;
 
-message Request {
-  required string in = 1;
+service MyService{
+  rpc Send(MyRequest) returns (MyResponse);
 }
 
-message Response {
-  required string out = 2;
+message MyRequest {
+  string message = 1;
+}
+
+message MyResponse {
+  string message = 2;
 }
