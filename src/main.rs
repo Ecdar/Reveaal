@@ -6,21 +6,20 @@ mod EdgeEval;
 mod ModelObjects;
 mod System;
 mod TransitionSystems;
-mod network;
 mod protos;
-mod tests;
 mod server;
+mod tests;
 
 use crate::DataReader::component_loader::{JsonProjectLoader, ProjectLoader, XmlProjectLoader};
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
+use server::start_using_protobuf;
 use std::env;
 use ModelObjects::component;
 use ModelObjects::queries;
 use System::executable_query::QueryResult;
-use server::start_using_protobuf;
 
 #[macro_use]
 extern crate pest_derive;
@@ -34,11 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::from(yaml).get_matches();
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        start_using_protobuf(ip_endpoint).await?;
-    }else{
+        start_grpc_server(ip_endpoint).await?;
+    } else {
         start_using_cli(&matches);
     }
-    
+
     Ok(())
 }
 
@@ -84,10 +83,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<querie
     if query.is_empty() {
         let queries: Vec<Query> = project_loader.get_queries().clone();
 
-        (
-            project_loader,
-            queries,
-        )
+        (project_loader, queries)
     } else {
         let queries = parse_queries::parse(&query);
         let queries = queries
@@ -98,10 +94,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<querie
             })
             .collect();
 
-        (
-            project_loader,
-            queries,
-        )
+        (project_loader, queries)
     }
 }
 
