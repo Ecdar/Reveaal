@@ -6,7 +6,6 @@ mod EdgeEval;
 mod ModelObjects;
 mod System;
 mod TransitionSystems;
-mod protos;
 mod server;
 mod tests;
 
