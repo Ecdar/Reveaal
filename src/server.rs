@@ -23,9 +23,11 @@ impl MyService for ConcreteService {
 }
 
 pub async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Starting grpc server on '{}'", ip_endpoint.trim());
+
     Server::builder()
         .add_service(MyServiceServer::new(ConcreteService::default()))
-        .serve(ip_endpoint.parse()?)
+        .serve(ip_endpoint.trim().parse()?)
         .await?;
 
     Ok(())
