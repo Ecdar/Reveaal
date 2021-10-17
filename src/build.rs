@@ -11,8 +11,8 @@ fn main() {
         return;
     }
 
-    tonic_build::compile_protos("protos/test.proto").unwrap();
-    println!("cargo:rerun-if-changed=protos/test.proto");
+    tonic_build::compile_protos("EcdarProtoBuf/services.proto").unwrap();
+    println!("cargo:rerun-if-changed=EcdarProtobuf/*.proto");
 
     let host = std::env::var("HOST").unwrap();
     let target = std::env::var("TARGET").unwrap();

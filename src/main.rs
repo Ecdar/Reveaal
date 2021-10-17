@@ -14,7 +14,7 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
-use server::start_grpc_server;
+use server::start_grpc_server_with_tokio;
 use std::env;
 use ModelObjects::component;
 use ModelObjects::queries;
@@ -26,13 +26,12 @@ extern crate serde;
 extern crate serde_xml_rs;
 extern crate xml;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        start_grpc_server(ip_endpoint).await?;
+        start_grpc_server_with_tokio(ip_endpoint)?;
     } else {
         start_using_cli(&matches);
     }

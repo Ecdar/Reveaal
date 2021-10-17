@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package EcdarProtoBuf;
+
+option java_multiple_files = false;
+option java_package = "EcdarProtoBuf";
+option java_outer_classname = "ObjectProtos";
+
+message Zone {
+  int32 dimensions = 1;
+  repeated int32 matrix = 2;
+  // Maybe include a lookup table for the indices?
+}
+
+message StateTuple {
+  message LocationTuple {
+    string name = 1;
+    // Maybe the component name? or some comp id?
+  }
+  LocationTuple location = 1;
+  repeated Zone federation = 2;
+}
+
+message Transition {
+  // Figure out what we need here
+  // repeated Edge edges = 1; //?
+}

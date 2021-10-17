@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package EcdarProtoBuf;
+
+option java_multiple_files = false;
+option java_package = "EcdarProtoBuf";
+option java_outer_classname = "QueryProtos";
+
+import "component.proto";
+import "objects.proto";
+
+message IgnoredInputOutputs {
+  repeated string ignored_inputs = 1;
+  repeated string ignored_outputs = 2;
+}
+
+message Query {
+  int32 id = 1;
+  string query = 2;
+  IgnoredInputOutputs ignored_input_outputs = 3;
+}
+message QueryRequest { repeated Query queries = 1; }
+
+message ComponentsUpdateRequest {
+  repeated Component components = 2;
+  int32 etag = 3; // hash
+}
+
+message QueryResponse {
+  Query query = 1;
+
+  message RefinementResult {
+    bool success = 1;
+    repeated StateTuple relation = 2;
+  }
+
+  message ComponentResult { Component component = 1; }
+
+  oneof result {
+    RefinementResult refinement = 3;
+    ComponentResult component = 4;
+    string error = 5;
+  }
+}
+
+message SimulationStartRequest {
+  string system = 1; // e.g. "(A || B) && C" or "A<=B"
+}
+
+message SimulationStepRequest {
+  StateTuple state = 1;
+  Transition transition = 2;
+}
+
+message SimulationStepResponse {
+  StateTuple state = 1;
+  repeated Transition transitions = 2;
+}
