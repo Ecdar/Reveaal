@@ -9,7 +9,9 @@ mod TransitionSystems;
 mod server;
 mod tests;
 
-use crate::DataReader::component_loader::{JsonProjectLoader, ProjectLoader, XmlProjectLoader};
+use crate::DataReader::component_loader::{
+    ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
+};
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
@@ -40,13 +42,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn start_using_cli(matches: &clap::ArgMatches) {
-    let (mut project_loader, queries) = parse_args(matches);
+    let (mut comp_loader, queries) = parse_args(matches);
 
     let mut results = vec![];
     for query in &queries {
         let executable_query = Box::new(extract_system_rep::create_executable_query(
             query,
-            &mut project_loader,
+            &mut comp_loader,
         ));
 
         let result = executable_query.execute();
@@ -64,7 +66,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
     }
 }
 
-fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<queries::Query>) {
+fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<queries::Query>) {
     let mut folder_path: String = "".to_string();
     let mut query = "".to_string();
 
@@ -81,7 +83,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<querie
     if query.is_empty() {
         let queries: Vec<Query> = project_loader.get_queries().clone();
 
-        (project_loader, queries)
+        (project_loader.to_comp_loader(), queries)
     } else {
         let queries = parse_queries::parse(&query);
         let queries = queries
@@ -92,7 +94,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ProjectLoader>, Vec<querie
             })
             .collect();
 
-        (project_loader, queries)
+        (project_loader.to_comp_loader(), queries)
     }
 }
 

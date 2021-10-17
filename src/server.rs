@@ -36,6 +36,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<ComponentsUpdateRequest>,
     ) -> Result<Response<()>, tonic::Status> {
+        println!("Received message from {:?}", request.remote_addr());
         println!("Received component {:?}", request);
 
         Ok(Response::new(()))

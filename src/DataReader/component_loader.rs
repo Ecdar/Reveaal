@@ -1,17 +1,45 @@
 use crate::component::Component;
 use crate::DataReader::json_reader;
+use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::xml_parser::parse_xml;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
 use std::collections::HashMap;
 
-pub trait ProjectLoader {
+pub trait ComponentLoader {
     fn get_component(&mut self, component_name: &str) -> &Component;
+    fn save_component(&mut self, component: Component);
     fn unload_component(&mut self, component_name: &str);
+}
+
+pub struct ComponentContainer {
+    loaded_components: HashMap<String, Component>,
+}
+
+impl ComponentLoader for ComponentContainer {
+    fn get_component(&mut self, component_name: &str) -> &Component {
+        if let Some(component) = self.loaded_components.get(component_name) {
+            &component
+        } else {
+            panic!("The component '{}' could not be retrieved", component_name);
+        }
+    }
+    fn save_component(&mut self, component: Component) {
+        self.unload_component(&component.name);
+        self.loaded_components
+            .insert(component.get_name().clone(), component);
+    }
+    fn unload_component(&mut self, component_name: &str) {
+        self.loaded_components.remove(component_name);
+    }
+}
+
+pub trait ProjectLoader: ComponentLoader {
     fn get_declarations(&self) -> &SystemDeclarations;
     fn get_queries(&self) -> &Vec<Query>;
     fn get_project_path(&self) -> &str;
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader>;
 }
 
 pub struct JsonProjectLoader {
@@ -21,7 +49,7 @@ pub struct JsonProjectLoader {
     queries: Vec<Query>,
 }
 
-impl ProjectLoader for JsonProjectLoader {
+impl ComponentLoader for JsonProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name);
@@ -34,10 +62,19 @@ impl ProjectLoader for JsonProjectLoader {
         }
     }
 
+    fn save_component(&mut self, component: Component) {
+        self.unload_component(&component.name);
+        component_to_json(&self.project_path, &component);
+        self.loaded_components
+            .insert(component.get_name().clone(), component);
+    }
+
     fn unload_component(&mut self, component_name: &str) {
         self.loaded_components.remove(component_name);
     }
+}
 
+impl ProjectLoader for JsonProjectLoader {
     fn get_declarations(&self) -> &SystemDeclarations {
         &self.system_declarations
     }
@@ -48,6 +85,10 @@ impl ProjectLoader for JsonProjectLoader {
 
     fn get_project_path(&self) -> &str {
         &self.project_path
+    }
+
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader> {
+        self
     }
 }
 
@@ -86,7 +127,7 @@ pub struct XmlProjectLoader {
     queries: Vec<Query>,
 }
 
-impl ProjectLoader for XmlProjectLoader {
+impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
             &component
@@ -95,10 +136,16 @@ impl ProjectLoader for XmlProjectLoader {
         }
     }
 
+    fn save_component(&mut self, component: Component) {
+        panic!("Saving components is not supported for XML projects")
+    }
+
     fn unload_component(&mut self, _: &str) {
         panic!("unloading and loading individual components isnt permitted in XML")
     }
+}
 
+impl ProjectLoader for XmlProjectLoader {
     fn get_declarations(&self) -> &SystemDeclarations {
         &self.system_declarations
     }
@@ -109,6 +156,10 @@ impl ProjectLoader for XmlProjectLoader {
 
     fn get_project_path(&self) -> &str {
         &self.project_path
+    }
+
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader> {
+        self
     }
 }
 

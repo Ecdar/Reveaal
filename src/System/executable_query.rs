@@ -1,5 +1,4 @@
-use crate::DataReader::component_loader::ProjectLoader;
-use crate::DataReader::json_writer::component_to_json;
+use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
@@ -50,7 +49,6 @@ pub trait ExecutableQuery {
 pub struct RefinementExecutor {
     pub sys1: TransitionSystemPtr,
     pub sys2: TransitionSystemPtr,
-    pub decls: SystemDeclarations,
 }
 
 impl ExecutableQuery for RefinementExecutor {
@@ -70,7 +68,7 @@ impl ExecutableQuery for RefinementExecutor {
 pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
-    pub project_loader: &'a mut Box<dyn ProjectLoader>,
+    pub component_loader: &'a mut Box<dyn ComponentLoader>,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
@@ -78,9 +76,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        let project_path = self.project_loader.get_project_path();
-        component_to_json(project_path, &comp);
-        self.project_loader.unload_component(&comp.name);
+        self.component_loader.save_component(comp.clone());
 
         QueryResult::GetComponent(comp)
     }
