@@ -60,10 +60,7 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
     Ok(json_file)
 }
 
-//Input:Filename
-//Description:Transforms json into component type
-//Output:Result type
-fn json_to_component(json_str: &str) -> component::Component {
+pub fn json_to_component(json_str: &str) -> component::Component {
     serde_json::from_str(json_str).unwrap()
 }
 

@@ -68,7 +68,7 @@ impl ExecutableQuery for RefinementExecutor {
 pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
-    pub component_loader: &'a mut Box<dyn ComponentLoader>,
+    pub component_loader: &'a mut dyn ComponentLoader,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {

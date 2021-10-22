@@ -1,5 +1,6 @@
 extern crate pest;
 use crate::ModelObjects::representations::QueryExpression;
+use crate::ModelObjects::queries::Query;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
@@ -11,7 +12,17 @@ pub struct QueryParser;
 ///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
 
-pub fn parse(edge_attribute_str: &str) -> Vec<QueryExpression> {
+pub fn parse_to_query(query: &str) -> Vec<Query>{
+    let queries = parse_to_expression_tree(query);
+    queries.into_iter()
+        .map(|q| Query {
+            query: Option::from(q),
+            comment: "".to_string(),
+        })
+        .collect()
+}
+
+pub fn parse_to_expression_tree(edge_attribute_str: &str) -> Vec<QueryExpression> {
     let mut pairs = QueryParser::parse(Rule::queries, edge_attribute_str)
         .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
     let pair = pairs.next().unwrap();

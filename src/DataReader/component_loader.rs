@@ -1,6 +1,6 @@
 use crate::component::Component;
 use crate::DataReader::json_reader;
-use crate::DataReader::json_writer::component_to_json;
+use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -13,6 +13,7 @@ pub trait ComponentLoader {
     fn unload_component(&mut self, component_name: &str);
 }
 
+#[derive(Debug, Default)]
 pub struct ComponentContainer {
     loaded_components: HashMap<String, Component>,
 }
@@ -64,7 +65,7 @@ impl ComponentLoader for JsonProjectLoader {
 
     fn save_component(&mut self, component: Component) {
         self.unload_component(&component.name);
-        component_to_json(&self.project_path, &component);
+        component_to_json_file(&self.project_path, &component);
         self.loaded_components
             .insert(component.get_name().clone(), component);
     }

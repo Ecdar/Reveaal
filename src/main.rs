@@ -85,14 +85,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<quer
 
         (project_loader.to_comp_loader(), queries)
     } else {
-        let queries = parse_queries::parse(&query);
-        let queries = queries
-            .into_iter()
-            .map(|q| Query {
-                query: Option::from(q),
-                comment: "".to_string(),
-            })
-            .collect();
+        let queries = parse_queries::parse_to_query(&query);
 
         (project_loader.to_comp_loader(), queries)
     }
