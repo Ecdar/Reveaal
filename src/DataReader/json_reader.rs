@@ -34,7 +34,6 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
         component_name
     );
 
-    
     let component = match read_json(&component_path) {
         Ok(json) => json,
         Err(error) => panic!(
@@ -42,7 +41,7 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
             error, component_path
         ),
     };
-    
+
     component
 }
 

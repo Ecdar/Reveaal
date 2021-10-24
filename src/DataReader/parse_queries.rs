@@ -1,6 +1,6 @@
 extern crate pest;
-use crate::ModelObjects::representations::QueryExpression;
 use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::representations::QueryExpression;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
@@ -12,9 +12,10 @@ pub struct QueryParser;
 ///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
 
-pub fn parse_to_query(query: &str) -> Vec<Query>{
+pub fn parse_to_query(query: &str) -> Vec<Query> {
     let queries = parse_to_expression_tree(query);
-    queries.into_iter()
+    queries
+        .into_iter()
         .map(|q| Query {
             query: Option::from(q),
             comment: "".to_string(),

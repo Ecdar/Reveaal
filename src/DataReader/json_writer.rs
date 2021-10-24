@@ -13,7 +13,6 @@ pub fn component_to_json_file(project_path: &str, component: &Component) {
     serde_json::to_writer_pretty(&file, component).expect("Failed to serialize component");
 }
 
-
 pub fn component_to_json(component: &Component) -> String {
     serde_json::to_string(component).unwrap()
 }
