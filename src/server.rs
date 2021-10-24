@@ -60,7 +60,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
                         println!("json: {}", json);
                         let comp = json_to_component(&json);
                         let mut optimized_comp = comp.create_edge_io_split();
-                        //input_enabler::make_input_enabled(&mut optimized_comp, self.get_declarations());
+
                         {
                             let mut components = self.components.lock().unwrap();
                             (*components).borrow_mut().save_component(optimized_comp);
@@ -92,6 +92,27 @@ impl EcdarBackend for ConcreteEcdarBackend {
 
         let mut components = self.components.lock().unwrap();
         let mut x = (*components).borrow_mut();
+
+        if let Some(ignored_actions) = &query_request.ignored_input_outputs {
+            if !ignored_actions.ignored_inputs.is_empty() {
+                let mut loader = (*x).clone();
+
+                loader.input_enable_components(&ignored_actions.ignored_inputs);
+
+                let executable_query = Box::new(extract_system_rep::create_executable_query__2(
+                    &queries[0],
+                    &mut loader,
+                ));
+                let result = executable_query.execute();
+
+                let reply = QueryResponse {
+                    query: Some(query_request),
+                    result: convert_ecdar_result(&result),
+                };
+
+                return Ok(Response::new(reply));
+            }
+        }
 
         let executable_query = Box::new(extract_system_rep::create_executable_query__2(
             &queries[0],

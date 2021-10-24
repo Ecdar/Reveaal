@@ -13,7 +13,7 @@ pub trait ComponentLoader {
     fn unload_component(&mut self, component_name: &str);
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ComponentContainer {
     loaded_components: HashMap<String, Component>,
 }
@@ -33,6 +33,14 @@ impl ComponentLoader for ComponentContainer {
     }
     fn unload_component(&mut self, component_name: &str) {
         self.loaded_components.remove(component_name);
+    }
+}
+
+impl ComponentContainer {
+    pub fn input_enable_components(&mut self, inputs: &[String]) {
+        for (name, comp) in &mut self.loaded_components {
+            input_enabler::make_input_enabled(comp, inputs);
+        }
     }
 }
 
@@ -110,7 +118,13 @@ impl JsonProjectLoader {
         let component = json_reader::read_json_component(&self.project_path, component_name);
 
         let mut optimized_comp = component.create_edge_io_split();
-        input_enabler::make_input_enabled(&mut optimized_comp, self.get_declarations());
+
+        let opt_inputs = self
+            .get_declarations()
+            .get_component_inputs(optimized_comp.get_name());
+        if let Some(inputs) = opt_inputs {
+            input_enabler::make_input_enabled(&mut optimized_comp, &inputs);
+        }
 
         self.loaded_components
             .insert(String::from(component_name), optimized_comp);
@@ -171,7 +185,11 @@ impl XmlProjectLoader {
         let mut map = HashMap::<String, Component>::new();
         for component in comps {
             let mut optimized_comp = component.create_edge_io_split();
-            input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
+
+            let opt_inputs = system_declarations.get_component_inputs(optimized_comp.get_name());
+            if opt_inputs.is_some() {
+                input_enabler::make_input_enabled(&mut optimized_comp, opt_inputs.unwrap());
+            }
 
             let name = String::from(optimized_comp.get_name());
             map.insert(name, optimized_comp);
