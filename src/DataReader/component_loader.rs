@@ -1,7 +1,7 @@
 use crate::component::Component;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
-use crate::DataReader::xml_parser::parse_xml;
+use crate::DataReader::xml_parser::parse_xml_from_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
@@ -180,7 +180,7 @@ impl ProjectLoader for XmlProjectLoader {
 
 impl XmlProjectLoader {
     pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
-        let (comps, system_declarations, queries) = parse_xml(&project_path);
+        let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
 
         let mut map = HashMap::<String, Component>::new();
         for component in comps {
