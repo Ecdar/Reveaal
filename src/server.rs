@@ -1,12 +1,11 @@
-use crate::System::executable_query::{ExecutableQuery, QueryResult};
+use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
 use services::component::Rep;
 use services::ecdar_backend_server::{EcdarBackend, EcdarBackendServer};
 use services::query_response::{ComponentResult, RefinementResult};
 use services::{ComponentsUpdateRequest, Query, QueryResponse};
 use std::cell::RefCell;
-use std::ops::DerefMut;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use tokio::runtime;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -24,7 +23,7 @@ pub mod services {
 pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
     //For information on switching to a multithreaded server see:
     //https://docs.rs/tokio/1.12.0/tokio/runtime/index.html#multi-thread-scheduler
-    let mut single_threaded_runtime = runtime::Builder::new_current_thread().enable_io().build()?;
+    let single_threaded_runtime = runtime::Builder::new_current_thread().enable_io().build()?;
 
     single_threaded_runtime.block_on(async { start_grpc_server(ip_endpoint).await })
 }

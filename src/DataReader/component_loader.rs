@@ -38,7 +38,7 @@ impl ComponentLoader for ComponentContainer {
 
 impl ComponentContainer {
     pub fn input_enable_components(&mut self, inputs: &[String]) {
-        for (name, comp) in &mut self.loaded_components {
+        for (_, comp) in &mut self.loaded_components {
             input_enabler::make_input_enabled(comp, inputs);
         }
     }
@@ -151,7 +151,7 @@ impl ComponentLoader for XmlProjectLoader {
         }
     }
 
-    fn save_component(&mut self, component: Component) {
+    fn save_component(&mut self, _: Component) {
         panic!("Saving components is not supported for XML projects")
     }
 

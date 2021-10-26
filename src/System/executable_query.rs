@@ -1,6 +1,5 @@
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
 use crate::TransitionSystems::TransitionSystemPtr;
@@ -76,7 +75,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        let mut optimized_comp = comp.create_edge_io_split();
+        let optimized_comp = comp.create_edge_io_split();
 
         self.component_loader.save_component(optimized_comp.clone());
 

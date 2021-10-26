@@ -3,7 +3,6 @@ use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
-use crate::ModelObjects::system_declarations;
 use std::collections::HashMap;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
