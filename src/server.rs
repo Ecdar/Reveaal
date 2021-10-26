@@ -15,6 +15,7 @@ use crate::DataReader::component_loader::{ComponentContainer, ComponentLoader};
 use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
+use crate::DataReader::xml_parser::parse_xml_from_str;
 
 pub mod services {
     tonic::include_proto!("ecdar_proto_buf");
@@ -50,7 +51,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<ComponentsUpdateRequest>,
     ) -> Result<Response<()>, tonic::Status> {
-        let mut update = request.into_inner();
+        let update = request.into_inner();
 
         println!("Component count: {}", update.components.len());
         for comp in &update.components {
@@ -59,18 +60,24 @@ impl EcdarBackend for ConcreteEcdarBackend {
                     Rep::Json(json) => {
                         println!("json: {}", json);
                         let comp = json_to_component(&json);
-                        let mut optimized_comp = comp.create_edge_io_split();
+                        let optimized_comp = comp.create_edge_io_split();
 
+                        println!("Adding comp {} to container", optimized_comp.get_name());
                         {
-                            let mut components = self.components.lock().unwrap();
+                            let components = self.components.lock().unwrap();
                             (*components).borrow_mut().save_component(optimized_comp);
                         }
-                        println!("Added comp to container");
                     }
-                    Rep::Xml(_) => {
-                        return Err(Status::invalid_argument(
-                            "This procedure doesnt support XML",
-                        ))
+                    Rep::Xml(xml) => {
+                        let components = self.components.lock().unwrap();
+                        let (comps, _, _) = parse_xml_from_str(xml);
+
+                        for component in comps {
+                            println!("Adding comp {} to container", component.get_name());
+
+                            let optimized_comp = component.create_edge_io_split();
+                            (*components).borrow_mut().save_component(optimized_comp);
+                        }
                     }
                 }
             }
@@ -90,7 +97,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
             ));
         }
 
-        let mut components = self.components.lock().unwrap();
+        let components = self.components.lock().unwrap();
         let mut x = (*components).borrow_mut();
 
         if let Some(ignored_actions) = &query_request.ignored_input_outputs {
