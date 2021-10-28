@@ -41,7 +41,7 @@ pub async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::err
 
 #[derive(Debug, Default)]
 pub struct ConcreteEcdarBackend {
-    components: Mutex<RefCell<ComponentContainer>>,
+    pub components: Mutex<RefCell<ComponentContainer>>,
 }
 
 #[tonic::async_trait]

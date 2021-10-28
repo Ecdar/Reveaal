@@ -15,7 +15,7 @@ pub trait ComponentLoader {
 
 #[derive(Debug, Default, Clone)]
 pub struct ComponentContainer {
-    loaded_components: HashMap<String, Component>,
+    pub loaded_components: HashMap<String, Component>,
 }
 
 impl ComponentLoader for ComponentContainer {
