@@ -7,7 +7,7 @@ use services::query_response::{
 };
 use services::{ComponentsUpdateRequest, Query, QueryResponse};
 use std::cell::RefCell;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use tokio::runtime;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -46,6 +46,15 @@ pub struct ConcreteEcdarBackend {
     pub components: Mutex<RefCell<ComponentContainer>>,
 }
 
+impl ConcreteEcdarBackend{
+    fn get_components_lock(&self) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
+        match self.components.lock() {
+            Ok(mutex_guard) => Ok(mutex_guard),
+            Err(_) => Err(Status::internal("Failed to acquire internal mutex, server has likely crashed")),
+        }
+    }
+}
+
 #[tonic::async_trait]
 impl EcdarBackend for ConcreteEcdarBackend {
     async fn update_components(
@@ -65,12 +74,12 @@ impl EcdarBackend for ConcreteEcdarBackend {
 
                         println!("Adding comp {} to container", optimized_comp.get_name());
                         {
-                            let components = self.components.lock().unwrap();
+                            let components = self.get_components_lock()?;
                             (*components).borrow_mut().save_component(optimized_comp);
                         }
                     }
                     Rep::Xml(xml) => {
-                        let components = self.components.lock().unwrap();
+                        let components = self.get_components_lock()?;
                         let (comps, _, _) = parse_xml_from_str(xml);
 
                         for component in comps {
@@ -98,7 +107,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
             ));
         }
 
-        let components = self.components.lock().unwrap();
+        let components = self.get_components_lock()?;
         let mut x = (*components).borrow_mut();
 
         if let Some(ignored_actions) = &query_request.ignored_input_outputs {
