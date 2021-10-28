@@ -123,4 +123,41 @@ mod refinements {
             assert!(false);
         }
     }
+
+    #[tokio::test]
+    async fn send_determinism_query() {
+        let backend = ConcreteEcdarBackend::default();
+        let json =
+            std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
+        let update_request = Request::new(ComponentsUpdateRequest {
+            components: vec![Component {
+                rep: Some(Rep::Json(json)),
+            }],
+            etag: 0,
+        });
+
+        let update_response = backend.update_components(update_request).await;
+        assert!(update_response.is_ok());
+
+        let query = String::from("determinism: Machine");
+        let query_request = Request::new(Query {
+            id: 0,
+            query,
+            ignored_input_outputs: None,
+        });
+
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
+
+        let query_result = query_response.unwrap().into_inner();
+
+        if let Some(result) = query_result.result {
+            match result {
+                query_response::Result::Determinism(determinsm) => assert!(determinsm.success),
+                _ => assert!(false),
+            }
+        } else {
+            assert!(false);
+        }
+    }
 }

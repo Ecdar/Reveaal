@@ -36,12 +36,14 @@ message QueryResponse {
 
   message ComponentResult { Component component = 1; }
   message ConsistencyResult { bool success = 1; }
+  message DeterminismResult { bool success = 1; }
 
   oneof result {
     RefinementResult refinement = 3;
     ComponentResult component = 4;
     ConsistencyResult consistency = 5;
-    string error = 6;
+    DeterminismResult determinism = 6;
+    string error = 7;
   }
 }
 
