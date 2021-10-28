@@ -35,11 +35,13 @@ message QueryResponse {
   }
 
   message ComponentResult { Component component = 1; }
+  message ConsistencyResult { bool success = 1; }
 
   oneof result {
     RefinementResult refinement = 3;
     ComponentResult component = 4;
-    string error = 5;
+    ConsistencyResult consistency = 5;
+    string error = 6;
   }
 }
 

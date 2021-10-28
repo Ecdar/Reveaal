@@ -2,7 +2,7 @@ use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
 use services::component::Rep;
 use services::ecdar_backend_server::{EcdarBackend, EcdarBackendServer};
-use services::query_response::{ComponentResult, RefinementResult};
+use services::query_response::{ComponentResult, ConsistencyResult, RefinementResult};
 use services::{ComponentsUpdateRequest, Query, QueryResponse};
 use std::cell::RefCell;
 use std::sync::Mutex;
@@ -150,6 +150,11 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<services::query_re
                 }),
             },
         )),
+        QueryResult::Consistency(is_consistent) => Some(
+            services::query_response::Result::Consistency(ConsistencyResult {
+                success: *is_consistent,
+            }),
+        ),
         QueryResult::Error(message) => {
             Some(services::query_response::Result::Error(message.clone()))
         }

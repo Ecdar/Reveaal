@@ -51,74 +51,6 @@ mod refinements {
     }
 
     #[tokio::test]
-    async fn send_component() {
-        let backend = ConcreteEcdarBackend::default();
-        let json =
-            std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
-        let request = Request::new(ComponentsUpdateRequest {
-            components: vec![Component {
-                rep: Some(Rep::Json(json)),
-            }],
-            etag: 0,
-        });
-
-        let response = backend.update_components(request).await;
-        assert!(response.is_ok());
-
-        let components = backend.components.lock().unwrap();
-        let component_count = components.borrow_mut().loaded_components.len();
-
-        assert_eq!(component_count, 1);
-    }
-
-    #[tokio::test]
-    async fn send_two_components() {
-        let backend = ConcreteEcdarBackend::default();
-        let json1 =
-            std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
-        let json2 = std::fs::read_to_string(format!("{}/Components/Adm2.json", ECDAR_UNI)).unwrap();
-        let request = Request::new(ComponentsUpdateRequest {
-            components: vec![
-                Component {
-                    rep: Some(Rep::Json(json1)),
-                },
-                Component {
-                    rep: Some(Rep::Json(json2)),
-                },
-            ],
-            etag: 0,
-        });
-
-        let response = backend.update_components(request).await;
-        assert!(response.is_ok());
-
-        let components = backend.components.lock().unwrap();
-        let component_count = components.borrow_mut().loaded_components.len();
-
-        assert_eq!(component_count, 2);
-    }
-
-    #[tokio::test]
-    async fn send_xml_components() {
-        let backend = ConcreteEcdarBackend::default();
-        let xml = std::fs::read_to_string(CONJUN).unwrap();
-        let request = Request::new(ComponentsUpdateRequest {
-            components: vec![Component {
-                rep: Some(Rep::Xml(xml)),
-            }],
-            etag: 0,
-        });
-
-        let response = backend.update_components(request).await;
-        assert!(response.is_ok());
-
-        let components = backend.components.lock().unwrap();
-        let component_count = components.borrow_mut().loaded_components.len();
-
-        assert_eq!(component_count, 14);
-    }
-
-    #[tokio::test]
     async fn send_self_refinement_query() {
         let backend = ConcreteEcdarBackend::default();
         let json =
@@ -148,6 +80,43 @@ mod refinements {
         if let Some(result) = query_result.result {
             match result {
                 query_response::Result::Refinement(refine) => assert!(refine.success),
+                _ => assert!(false),
+            }
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[tokio::test]
+    async fn send_consistency_query() {
+        let backend = ConcreteEcdarBackend::default();
+        let json =
+            std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
+        let update_request = Request::new(ComponentsUpdateRequest {
+            components: vec![Component {
+                rep: Some(Rep::Json(json)),
+            }],
+            etag: 0,
+        });
+
+        let update_response = backend.update_components(update_request).await;
+        assert!(update_response.is_ok());
+
+        let query = String::from("consistency: Machine");
+        let query_request = Request::new(Query {
+            id: 0,
+            query,
+            ignored_input_outputs: None,
+        });
+
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
+
+        let query_result = query_response.unwrap().into_inner();
+
+        if let Some(result) = query_result.result {
+            match result {
+                query_response::Result::Consistency(consistent) => assert!(consistent.success),
                 _ => assert!(false),
             }
         } else {
