@@ -3,11 +3,9 @@ mod refinements {
     use crate::server::services::component::Rep;
     use crate::server::services::ecdar_backend_server::EcdarBackend;
     use crate::server::services::query_response;
-    use crate::server::services::query_response::RefinementResult;
-    use crate::server::services::{Component, ComponentsUpdateRequest, Query, QueryResponse};
+    use crate::server::services::{Component, ComponentsUpdateRequest, Query};
     use crate::server::ConcreteEcdarBackend;
-    use crate::tests::save_component::save_comp_helper::save_comp_helper::json_reconstructed_component_refines_base_self;
-    use tonic::{Request, Response, Status};
+    use tonic::Request;
 
     static CONJUN: &str = "samples/xml/conjun.xml";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
