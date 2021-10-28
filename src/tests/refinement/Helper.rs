@@ -30,7 +30,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     };
 
     let mut comp_loader = project_loader.to_comp_loader();
-    let query = create_executable_query(&q, &mut comp_loader);
+    let query = create_executable_query(&q, &mut *comp_loader);
 
     query.execute()
 }
@@ -44,7 +44,7 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     };
 
     let mut comp_loader = project_loader.to_comp_loader();
-    let query = create_executable_query(&q, &mut comp_loader);
+    let query = create_executable_query(&q, &mut *comp_loader);
 
     query.execute()
 }

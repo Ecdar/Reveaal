@@ -46,11 +46,15 @@ pub struct ConcreteEcdarBackend {
     pub components: Mutex<RefCell<ComponentContainer>>,
 }
 
-impl ConcreteEcdarBackend{
-    fn get_components_lock(&self) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
+impl ConcreteEcdarBackend {
+    fn get_components_lock(
+        &self,
+    ) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
         match self.components.lock() {
             Ok(mutex_guard) => Ok(mutex_guard),
-            Err(_) => Err(Status::internal("Failed to acquire internal mutex, server has likely crashed")),
+            Err(_) => Err(Status::internal(
+                "Failed to acquire internal mutex, server has likely crashed",
+            )),
         }
     }
 }
@@ -116,7 +120,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
 
                 loader.input_enable_components(&ignored_actions.ignored_inputs);
 
-                let executable_query = Box::new(extract_system_rep::create_executable_query__2(
+                let executable_query = Box::new(extract_system_rep::create_executable_query(
                     &queries[0],
                     &mut loader,
                 ));
@@ -131,7 +135,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
             }
         }
 
-        let executable_query = Box::new(extract_system_rep::create_executable_query__2(
+        let executable_query = Box::new(extract_system_rep::create_executable_query(
             &queries[0],
             &mut *x,
         ));

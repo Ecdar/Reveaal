@@ -48,7 +48,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
     for query in &queries {
         let executable_query = Box::new(extract_system_rep::create_executable_query(
             query,
-            &mut comp_loader,
+            &mut *comp_loader,
         ));
 
         let result = executable_query.execute();
