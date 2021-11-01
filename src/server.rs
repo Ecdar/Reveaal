@@ -17,6 +17,7 @@ use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::DataReader::xml_parser::parse_xml_from_str;
+use core::time::Duration;
 
 pub mod services {
     tonic::include_proto!("ecdar_proto_buf");
@@ -34,6 +35,7 @@ pub async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::err
     println!("Starting grpc server on '{}'", ip_endpoint.trim());
 
     Server::builder()
+        .http2_keepalive_interval(Some(Duration::from_secs(120)))
         .add_service(EcdarBackendServer::new(ConcreteEcdarBackend::default()))
         .serve(ip_endpoint.trim().parse()?)
         .await?;
