@@ -1,4 +1,5 @@
 mod ecdar_backend;
+mod ecdar_requests;
 pub mod server;
 
 pub mod services {
