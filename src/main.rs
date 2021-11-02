@@ -6,7 +6,7 @@ mod EdgeEval;
 mod ModelObjects;
 mod System;
 mod TransitionSystems;
-mod server;
+mod ProtobufServer;
 mod tests;
 
 use crate::DataReader::component_loader::{
@@ -16,7 +16,7 @@ use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
-use server::start_grpc_server_with_tokio;
+use ProtobufServer::start_grpc_server_with_tokio;
 use std::env;
 use ModelObjects::component;
 use ModelObjects::queries;

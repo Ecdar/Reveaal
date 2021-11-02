@@ -34,7 +34,7 @@ pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<(), Box<dyn std
     single_threaded_runtime.block_on(async { start_grpc_server(ip_endpoint).await })
 }
 
-pub async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting grpc server on '{}'", ip_endpoint.trim());
 
     Server::builder()
