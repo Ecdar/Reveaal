@@ -24,7 +24,7 @@ impl ConcreteEcdarBackend {
         let query = parse_query(&query_request)?;
 
         let components = self.get_components_lock()?;
-        let mut x = (*components).borrow_mut();
+        let mut component_container = components.borrow_mut();
 
         if query_request.ignored_input_outputs.is_some() {
             return Err(Status::unimplemented(
@@ -33,7 +33,7 @@ impl ConcreteEcdarBackend {
         }
 
         let executable_query =
-            Box::new(extract_system_rep::create_executable_query(&query, &mut *x));
+            extract_system_rep::create_executable_query(&query, &mut *component_container);
         let result = executable_query.execute();
 
         let reply = QueryResponse {
