@@ -26,25 +26,10 @@ impl ConcreteEcdarBackend {
         let components = self.get_components_lock()?;
         let mut x = (*components).borrow_mut();
 
-        if let Some(ignored_actions) = &query_request.ignored_input_outputs {
-            if !ignored_actions.ignored_inputs.is_empty() {
-                let mut loader = (*x).clone();
-
-                loader.input_enable_components(&ignored_actions.ignored_inputs);
-
-                let executable_query = Box::new(extract_system_rep::create_executable_query(
-                    &query,
-                    &mut loader,
-                ));
-                let result = executable_query.execute();
-
-                let reply = QueryResponse {
-                    query: Some(query_request),
-                    result: convert_ecdar_result(&result),
-                };
-
-                return Ok(Response::new(reply));
-            }
+        if query_request.ignored_input_outputs.is_some() {
+            return Err(Status::unimplemented(
+                "ignored input outputs are currently not supported",
+            ));
         }
 
         let executable_query =
