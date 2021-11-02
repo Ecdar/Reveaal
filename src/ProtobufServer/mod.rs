@@ -1,6 +1,6 @@
 mod ecdar_backend;
 mod ecdar_requests;
-pub mod server;
+mod server;
 
 pub mod services {
     tonic::include_proto!("ecdar_proto_buf");
