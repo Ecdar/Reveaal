@@ -1,11 +1,13 @@
-use crate::System::executable_query::QueryResult;
-use crate::System::extract_system_rep;
-use services::component::Rep;
-use services::ecdar_backend_server::{EcdarBackend, EcdarBackendServer};
-use services::query_response::{
+use crate::ProtobufServer::services::component::Rep;
+use crate::ProtobufServer::services::ecdar_backend_server::{EcdarBackend, EcdarBackendServer};
+use crate::ProtobufServer::services::query_response::Result as ProtobufResult;
+use crate::ProtobufServer::services::query_response::{
     ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
 };
-use services::{ComponentsUpdateRequest, Query, QueryResponse};
+use crate::ProtobufServer::services::{Component, ComponentsUpdateRequest, Query, QueryResponse};
+
+use crate::System::executable_query::QueryResult;
+use crate::System::extract_system_rep;
 use std::cell::RefCell;
 use std::sync::{Mutex, MutexGuard};
 use tokio::runtime;
@@ -18,10 +20,6 @@ use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::DataReader::xml_parser::parse_xml_from_str;
 use core::time::Duration;
-
-pub mod services {
-    tonic::include_proto!("ecdar_proto_buf");
-}
 
 pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
     //For information on switching to a multithreaded server see:
@@ -155,35 +153,29 @@ impl EcdarBackend for ConcreteEcdarBackend {
     }
 }
 
-fn convert_ecdar_result(query_result: &QueryResult) -> Option<services::query_response::Result> {
+fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
     match query_result {
-        QueryResult::Refinement(refines) => Some(services::query_response::Result::Refinement(
-            RefinementResult {
-                success: *refines,
-                relation: vec![],
-            },
-        )),
-        QueryResult::GetComponent(comp) => Some(services::query_response::Result::Component(
-            ComponentResult {
-                component: Some(services::Component {
-                    rep: Some(Rep::Json(component_to_json(&comp))),
-                }),
-            },
-        )),
-        QueryResult::Consistency(is_consistent) => Some(
-            services::query_response::Result::Consistency(ConsistencyResult {
+        QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
+            success: *refines,
+            relation: vec![],
+        })),
+        QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
+            component: Some(Component {
+                rep: Some(Rep::Json(component_to_json(&comp))),
+            }),
+        })),
+        QueryResult::Consistency(is_consistent) => {
+            Some(ProtobufResult::Consistency(ConsistencyResult {
                 success: *is_consistent,
-            }),
-        ),
-        QueryResult::Determinism(is_deterministic) => Some(
-            services::query_response::Result::Determinism(DeterminismResult {
-                success: *is_deterministic,
-            }),
-        ),
-        QueryResult::Error(message) => {
-            Some(services::query_response::Result::Error(message.clone()))
+            }))
         }
-        _ => Some(services::query_response::Result::Error(String::from(
+        QueryResult::Determinism(is_deterministic) => {
+            Some(ProtobufResult::Determinism(DeterminismResult {
+                success: *is_deterministic,
+            }))
+        }
+        QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
+        _ => Some(ProtobufResult::Error(String::from(
             "Unsupported query type",
         ))),
     }

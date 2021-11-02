@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod refinements {
-    use crate::server::services::component::Rep;
-    use crate::server::services::ecdar_backend_server::EcdarBackend;
-    use crate::server::services::query_response;
-    use crate::server::services::{Component, ComponentsUpdateRequest, Query};
-    use crate::server::ConcreteEcdarBackend;
+    use crate::ProtobufServer::server::ConcreteEcdarBackend;
+    use crate::ProtobufServer::services::component::Rep;
+    use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
+    use crate::ProtobufServer::services::query_response;
+    use crate::ProtobufServer::services::{Component, ComponentsUpdateRequest, Query};
     use tonic::Request;
 
     static CONJUN: &str = "samples/xml/conjun.xml";
