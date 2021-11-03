@@ -1,15 +1,52 @@
 use crate::ModelObjects::component;
 use crate::ModelObjects::queries;
+use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::de::DeserializeOwned;
-use serde_json::Result;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
+
+pub fn read_system_declarations(project_path: &str) -> Option<SystemDeclarations> {
+    let sysdecl_path = format!(
+        "{}{}SystemDeclarations.json",
+        project_path,
+        std::path::MAIN_SEPARATOR
+    );
+
+    if !Path::new(&sysdecl_path).exists() {
+        return None;
+    }
+
+    match read_json::<SystemDeclarations>(&sysdecl_path) {
+        Ok(sys_decls) => Some(sys_decls),
+        Err(error) => panic!(
+            "We got error {}, and could not parse json file {} to component",
+            error, &sysdecl_path
+        ),
+    }
+}
+
+pub fn read_json_component(project_path: &str, component_name: &str) -> component::Component {
+    let component_path = format!(
+        "{0}{1}Components{1}{2}.json",
+        project_path,
+        std::path::MAIN_SEPARATOR,
+        component_name
+    );
+
+    let json_component = json_to_component(&component_path);
+
+    match json_component {
+        Ok(result) => return result,
+        Err(e) => panic!("We failed to read {}. We got error {}", component_path, e),
+    }
+}
 
 //Input:File name
 //Description:uses the filename to open the file and then reads the file.
 //Output: Result type, if more info about this type is need please go to: https://doc.rust-lang.org/std/result/
-pub fn read_json<T: DeserializeOwned>(filename: String) -> Result<T> {
-    let mut file = File::open(filename.clone()).unwrap();
+pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
+    let mut file = File::open(filename).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
 
@@ -22,8 +59,8 @@ pub fn read_json<T: DeserializeOwned>(filename: String) -> Result<T> {
 //Input:Filename
 //Description:Transforms json into component type
 //Output:Result type
-pub fn json_to_component(filename: String) -> Result<component::Component> {
-    let json = match read_json(filename.clone()) {
+fn json_to_component(filename: &str) -> serde_json::Result<component::Component> {
+    let json = match read_json(filename) {
         Ok(json) => json,
         Err(error) => panic!(
             "We got error {}, and could not parse json file {} to component",
@@ -36,13 +73,18 @@ pub fn json_to_component(filename: String) -> Result<component::Component> {
 //Input:Filename
 //Description: transforms json into query type
 //Output:Result
-pub fn json_to_query(filename: String) -> Result<Vec<queries::Query>> {
-    let json = match read_json(filename.clone()) {
-        Ok(json) => json,
+pub fn read_queries(project_path: &str) -> Option<Vec<queries::Query>> {
+    let queries_path = format!("{}{}Queries.json", project_path, std::path::MAIN_SEPARATOR);
+
+    if !Path::new(&queries_path).exists() {
+        return None;
+    }
+
+    match read_json(&queries_path) {
+        Ok(json) => Some(json),
         Err(error) => panic!(
             "We got error {}, and could not parse json file {} to query",
-            error, filename
+            error, &queries_path
         ),
-    };
-    Ok(json)
+    }
 }

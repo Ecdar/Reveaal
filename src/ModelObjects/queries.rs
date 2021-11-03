@@ -3,7 +3,7 @@ use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer};
 
 /// The struct containing a single query
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Query {
     #[serde(deserialize_with = "decode_query")]
     pub query: Option<representations::QueryExpression>,

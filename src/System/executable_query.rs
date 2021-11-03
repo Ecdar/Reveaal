@@ -1,3 +1,4 @@
+use crate::DataReader::component_loader::ProjectLoader;
 use crate::DataReader::json_writer::component_to_json;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -25,9 +26,11 @@ impl QueryResult {
             QueryResult::Determinism(true) => satisfied(query_str),
             QueryResult::Determinism(false) => not_satisfied(query_str),
 
-            QueryResult::Error(_) => println!("{} -- Failed", query_str),
+            QueryResult::GetComponent(_) => {
+                println!("{} -- Component succesfully created", query_str)
+            }
 
-            _ => (),
+            QueryResult::Error(_) => println!("{} -- Failed", query_str),
         };
     }
 }
@@ -64,17 +67,20 @@ impl ExecutableQuery for RefinementExecutor {
     }
 }
 
-pub struct GetComponentExecutor {
+pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
+    pub project_loader: &'a mut Box<dyn ProjectLoader>,
 }
 
-impl<'a> ExecutableQuery for GetComponentExecutor {
+impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        component_to_json(&comp);
+        let project_path = self.project_loader.get_project_path();
+        component_to_json(project_path, &comp);
+        self.project_loader.unload_component(&comp.name);
 
         QueryResult::GetComponent(comp)
     }
