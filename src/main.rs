@@ -20,6 +20,7 @@ use System::executable_query::QueryResult;
 
 #[macro_use]
 extern crate pest_derive;
+extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate xml;
