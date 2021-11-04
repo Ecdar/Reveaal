@@ -1,6 +1,10 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::DataReader::parse_edge;
-use crate::DataReader::parse_invariant;
+
+use crate::DataReader::serialization::{
+    decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
+    decode_sync_type, decode_update, encode_boolexpr, DummyComponent, DummyEdge, DummyLocation,
+};
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::state_updater;
@@ -12,10 +16,10 @@ use crate::TransitionSystems::LocationTuple;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::Add;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(into = "DummyComponent")]
 pub struct Component {
     pub name: String,
 
@@ -714,6 +718,7 @@ pub enum LocationType {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
+#[serde(into = "DummyLocation")]
 pub struct Location {
     pub id: String,
     #[serde(
@@ -724,7 +729,7 @@ pub struct Location {
     #[serde(
         deserialize_with = "decode_location_type",
         serialize_with = "encode_location_type",
-        alias = "type"
+        rename = "type"
     )]
     pub location_type: LocationType,
     pub urgency: String,
@@ -905,82 +910,17 @@ impl fmt::Display for Transition<'_> {
     }
 }
 
-pub fn encode_declarations<S>(decls: &Declarations, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let mut output = String::from("clock ");
-    let mut it = decls.clocks.iter();
-    let (first_clock, _) = it.next().unwrap();
-    output = output.add(&format!("{}", first_clock));
-
-    for (clock, _) in it {
-        output = output.add(&format!(", {}", clock));
-    }
-    output = output.add(";");
-
-    serializer.serialize_str(&output)
-}
-
-pub fn encode_opt_boolexpr<S>(
-    opt_expr: &Option<representations::BoolExpression>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if let Some(expr) = opt_expr {
-        encode_boolexpr(expr, serializer)
-    } else {
-        serializer.serialize_str("")
-    }
-}
-
-pub fn encode_boolexpr<S>(
-    expr: &representations::BoolExpression,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&expr.encode_expr())
-}
-
-pub fn encode_opt_updates<S>(
-    opt_updates: &Option<Vec<parse_edge::Update>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let mut output = String::new();
-    if let Some(updates) = opt_updates {
-        for update in updates {
-            output = output.add(
-                &[
-                    update.get_variable_name(),
-                    "=",
-                    &update.get_expression().encode_expr(),
-                ]
-                .concat(),
-            );
-        }
-        serializer.serialize_str(&output)
-    } else {
-        serializer.serialize_str("")
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(into = "DummyEdge")]
 pub struct Edge {
-    #[serde(alias = "sourceLocation")]
+    #[serde(rename = "sourceLocation")]
     pub source_location: String,
-    #[serde(alias = "targetLocation")]
+    #[serde(rename = "targetLocation")]
     pub target_location: String,
     #[serde(
         deserialize_with = "decode_sync_type",
         serialize_with = "encode_sync_type",
-        alias = "status"
+        rename = "status"
     )]
     pub sync_type: SyncType,
     #[serde(
@@ -1183,191 +1123,12 @@ impl Declarations {
     }
 }
 
-/// Function used for deserializing declarations
-fn decode_declarations<'de, D>(deserializer: D) -> Result<Declarations, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    //Split string into vector of strings
-    let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
-    let mut ints: HashMap<String, i32> = HashMap::new();
-    let mut clocks: HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
-    for string in decls {
-        //skip comments
-        if string.starts_with("//") || string.is_empty() {
-            continue;
-        }
-        let sub_decls: Vec<String> = string.split(';').map(|s| s.into()).collect();
-
-        for sub_decl in sub_decls {
-            if !sub_decl.is_empty() {
-                let split_string: Vec<String> = sub_decl.split(' ').map(|s| s.into()).collect();
-                let variable_type = split_string[0].as_str();
-
-                if variable_type == "clock" {
-                    for split_str in split_string.iter().skip(1) {
-                        let comma_split: Vec<String> =
-                            split_str.split(',').map(|s| s.into()).collect();
-                        for var in comma_split {
-                            if !var.is_empty() {
-                                clocks.insert(var, counter);
-                                counter += 1;
-                            }
-                        }
-                    }
-                } else if variable_type == "int" {
-                    for split_str in split_string.iter().skip(1) {
-                        let comma_split: Vec<String> =
-                            split_str.split(',').map(|s| s.into()).collect();
-                        for var in comma_split {
-                            ints.insert(var, 0);
-                        }
-                    }
-                } else {
-                    let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(&variable_type.to_string());
-                    println!("Variable type: {:?}", variable_type);
-                    panic!("{}", error_string);
-                }
-            }
-        }
-    }
-
-    Ok(Declarations { ints, clocks })
-}
-
-/// Function used for deserializing guards
-fn decode_guard<'de, D>(
-    deserializer: D,
-) -> Result<Option<representations::BoolExpression>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    if s.is_empty() {
-        return Ok(None);
-    }
-    match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(guard_res) => Ok(Some(guard_res)),
-            parse_edge::EdgeAttribute::Updates(_) => {
-                panic!("We expected a guard but got an update? {:?}\n", s)
-            }
-        },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
-    }
-}
-
-//Function used for deserializing updates
-fn decode_update<'de, D>(deserializer: D) -> Result<Option<Vec<parse_edge::Update>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    if s.is_empty() {
-        return Ok(None);
-    }
-    match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(_) => {
-                panic!("We expected an update but got a guard? {:?}", s)
-            }
-            parse_edge::EdgeAttribute::Updates(update_vec) => Ok(Some(update_vec)),
-        },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
-    }
-}
-
-//Function used for deserializing invariants
-pub fn decode_invariant<'de, D>(
-    deserializer: D,
-) -> Result<Option<representations::BoolExpression>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    if s.is_empty() {
-        return Ok(None);
-    }
-    match parse_invariant::parse(&s) {
-        Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
-        Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
-    }
-}
-
-//Function used for deserializing sync types
-fn decode_sync_type<'de, D>(deserializer: D) -> Result<SyncType, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    match s.as_str() {
-        "INPUT" => Ok(SyncType::Input),
-        "OUTPUT" => Ok(SyncType::Output),
-        _ => panic!("Unknown sync type in status {:?}", s),
-    }
-}
-
-fn encode_sync_type<S>(sync_type: &SyncType, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match sync_type {
-        SyncType::Input => serializer.serialize_str("INPUT"),
-        SyncType::Output => serializer.serialize_str("OUTPUT"),
-    }
-}
-
-fn decode_sync<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    if s.contains('!') {
-        let res = s.replace("!", "");
-        Ok(res)
-    } else if s.contains('?') {
-        let res = s.replace("?", "");
-        Ok(res)
-    } else {
-        Ok(s)
-    }
-}
-
 fn add_state_to_wl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
     wl.push(state)
 }
 
 fn add_state_to_pl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
     wl.push(state)
-}
-
-// Function used for deserializing location types
-fn decode_location_type<'de, D>(deserializer: D) -> Result<LocationType, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    match s.as_str() {
-        "NORMAL" => Ok(LocationType::Normal),
-        "INITIAL" => Ok(LocationType::Initial),
-        "UNIVERSAL" => Ok(LocationType::Universal),
-        _ => panic!("Unknown sync type in status {:?}", s),
-    }
-}
-
-// Function used for deserializing location types
-fn encode_location_type<S>(location_type: &LocationType, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match location_type {
-        LocationType::Normal => serializer.serialize_str("NORMAL"),
-        LocationType::Initial => serializer.serialize_str("INITIAL"),
-        LocationType::Universal => serializer.serialize_str("UNIVERSAL"),
-    }
 }
 
 pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) -> Component {

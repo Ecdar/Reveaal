@@ -1,5 +1,5 @@
 extern crate pest;
-use crate::ModelObjects::component::encode_boolexpr;
+use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
 use pest::error::Error;
 use pest::Parser;
