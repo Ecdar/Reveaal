@@ -59,8 +59,8 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
     Ok(json_file)
 }
 
-pub fn json_to_component(json_str: &str) -> component::Component {
-    serde_json::from_str(json_str).unwrap()
+pub fn json_to_component(json_str: &str) -> Result<component::Component, serde_json::Error> {
+    serde_json::from_str(json_str)
 }
 
 //Input:Filename

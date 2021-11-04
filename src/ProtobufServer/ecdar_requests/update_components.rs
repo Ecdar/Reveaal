@@ -18,7 +18,7 @@ impl ConcreteEcdarBackend {
 
         let component_container = self.get_components_lock()?;
         for proto_component in &update.components {
-            let components = self.parse_components_if_some(proto_component);
+            let components = self.parse_components_if_some(proto_component)?;
 
             save_components(&component_container, components);
         }
@@ -26,28 +26,33 @@ impl ConcreteEcdarBackend {
         Ok(Response::new(()))
     }
 
-    fn parse_components_if_some(&self, proto_component: &ProtobufComponent) -> Vec<Component> {
+    fn parse_components_if_some(
+        &self,
+        proto_component: &ProtobufComponent,
+    ) -> Result<Vec<Component>, tonic::Status> {
         if let Some(rep) = &proto_component.rep {
-            self.parse_components(rep)
+            match rep {
+                Rep::Json(json) => parse_json_component(json),
+                Rep::Xml(xml) => Ok(parse_xml_components(xml)),
+            }
         } else {
-            vec![]
+            Ok(vec![])
         }
     }
+}
 
-    fn parse_components(&self, component_representation: &Rep) -> Vec<Component> {
-        match component_representation {
-            Rep::Json(json) => {
-                let comp = json_to_component(&json);
+fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
+    return match json_to_component(json) {
+        Ok(comp) => Ok(vec![comp]),
+        Err(_) => Err(tonic::Status::invalid_argument(
+            "Failed to parse json component",
+        )),
+    };
+}
 
-                vec![comp]
-            }
-            Rep::Xml(xml) => {
-                let (comps, _, _) = parse_xml_from_str(&xml);
-
-                comps
-            }
-        }
-    }
+fn parse_xml_components(xml: &str) -> Vec<Component> {
+    let (comps, _, _) = parse_xml_from_str(xml);
+    comps
 }
 
 fn save_components(component_container: &RefCell<ComponentContainer>, components: Vec<Component>) {
