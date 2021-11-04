@@ -7,7 +7,6 @@ args:
         long: proto
         required: false
         takes_value: true
-        default_value: 127.0.0.1:5141
     - folder:
         short: i
         long: input-folder
