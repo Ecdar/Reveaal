@@ -482,6 +482,12 @@ pub fn rs_dbm_add_EQ_const_constraint(
     }
 }
 
+pub fn rs_dbm_close(dbm: &mut [i32], dimension: u32) {
+    unsafe {
+        dbm_close(dbm.as_mut_ptr(), dimension);
+    }
+}
+
 /// Contrain DBM with two constraints both applied to the same variables.
 /// * DBM must be closed and non empty
 /// * dim > 1 induced by i < dim & j < dim & i != j

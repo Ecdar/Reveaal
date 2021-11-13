@@ -8,6 +8,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
+pub fn is_xml_project(project_path: &str) -> bool {
+    project_path.ends_with(".xml")
+}
+
 ///Used to parse systems described in xml
 pub(crate) fn parse_xml(
     fileName: &str,
