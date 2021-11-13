@@ -201,7 +201,7 @@ fn handle_output(
     //Set the guard to enter only the consistent part
     edge.guard = cons_fed
         .intersect_zone(&prev_zone)
-        .as_invariant(&decls.clocks);
+        .as_boolexpression(&decls.clocks);
 
     let mut new_zone = Zone::init(dimensions);
     if apply_constraint(&edge.guard, decls, &mut new_zone) {
@@ -226,7 +226,7 @@ fn set_invariant(
     //Set the invariant to the consistent part
     location.invariant = cons_fed
         .intersect_zone(&prev_zone)
-        .as_invariant(&decls.clocks);
+        .as_boolexpression(&decls.clocks);
 }
 
 fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {

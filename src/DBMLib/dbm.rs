@@ -335,7 +335,7 @@ impl Federation {
         self.zones.iter_mut()
     }
 
-    pub fn as_invariant(&self, clocks: &HashMap<String, u32>) -> Option<BoolExpression> {
+    pub fn as_boolexpression(&self, clocks: &HashMap<String, u32>) -> Option<BoolExpression> {
         if self.num_zones() > 1 {
             panic!("Implementation cannot handle disjunct invariants")
         }
