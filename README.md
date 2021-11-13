@@ -8,6 +8,7 @@ This is a model checking engine for ECDAR (Environment for Compositional Design 
 - [clang](https://clang.llvm.org/) for compiling the library (for linux, run the command ```apt install llvm-dev libclang-dev clang protobuf-compiler``` to properly install the clang dependencies)
 - A folder containing the model components to check
 - ProtoBuf compiler protoc (linux ```apt install protobuf-compiler```)
+- Download ProtoBuf definitions with ```git submodule update --init --recursive```
 
 ## Building the DBM library
 
