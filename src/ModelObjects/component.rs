@@ -976,7 +976,7 @@ impl Edge {
 
     pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> bool {
         return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, decl, zone)
+            apply_constraints_to_state(guards, decl, zone).unwrap()
         } else {
             true
         };
@@ -1049,7 +1049,7 @@ impl<'a> DecoratedLocation<'a> {
 
     pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
-            apply_constraints_to_state(&inv, self.decls, zone)
+            apply_constraints_to_state(&inv, self.decls, zone).unwrap()
         } else {
             true
         }
