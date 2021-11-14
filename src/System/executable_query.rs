@@ -75,11 +75,11 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        let optimized_comp = comp.create_edge_io_split();
+        comp.create_edge_io_split();
 
-        self.component_loader.save_component(optimized_comp.clone());
+        self.component_loader.save_component(comp.clone());
 
-        QueryResult::GetComponent(optimized_comp)
+        QueryResult::GetComponent(comp)
     }
 }
 

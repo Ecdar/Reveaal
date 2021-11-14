@@ -56,11 +56,11 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
 }
 
 fn save_components(component_container: &RefCell<ComponentContainer>, components: Vec<Component>) {
-    for component in components {
+    for mut component in components {
         println!("Adding comp {} to container", component.get_name());
-        let optimized_comp = component.create_edge_io_split();
+        component.create_edge_io_split();
         component_container
             .borrow_mut()
-            .save_component(optimized_comp);
+            .save_component(component);
     }
 }

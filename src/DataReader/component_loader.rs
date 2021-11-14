@@ -115,19 +115,19 @@ impl JsonProjectLoader {
     }
 
     fn load_component(&mut self, component_name: &str) {
-        let component = json_reader::read_json_component(&self.project_path, component_name);
+        let mut component = json_reader::read_json_component(&self.project_path, component_name);
 
-        let mut optimized_comp = component.create_edge_io_split();
+        component.create_edge_io_split();
 
         let opt_inputs = self
             .get_declarations()
-            .get_component_inputs(optimized_comp.get_name());
+            .get_component_inputs(component.get_name());
         if let Some(inputs) = opt_inputs {
-            input_enabler::make_input_enabled(&mut optimized_comp, &inputs);
+            input_enabler::make_input_enabled(&mut component, &inputs);
         }
 
         self.loaded_components
-            .insert(String::from(component_name), optimized_comp);
+            .insert(String::from(component_name), component);
     }
 
     fn is_component_loaded(&self, component_name: &str) -> bool {
@@ -183,16 +183,16 @@ impl XmlProjectLoader {
         let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
 
         let mut map = HashMap::<String, Component>::new();
-        for component in comps {
-            let mut optimized_comp = component.create_edge_io_split();
+        for mut component in comps {
+            component.create_edge_io_split();
 
-            let opt_inputs = system_declarations.get_component_inputs(optimized_comp.get_name());
+            let opt_inputs = system_declarations.get_component_inputs(component.get_name());
             if opt_inputs.is_some() {
-                input_enabler::make_input_enabled(&mut optimized_comp, opt_inputs.unwrap());
+                input_enabler::make_input_enabled(&mut component, opt_inputs.unwrap());
             }
 
-            let name = String::from(optimized_comp.get_name());
-            map.insert(name, optimized_comp);
+            let name = String::from(component.get_name());
+            map.insert(name, component);
         }
 
         Box::new(XmlProjectLoader {

@@ -3,10 +3,11 @@ use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
+use crate::TransitionSystems::TransitionSystem;
 use std::collections::HashMap;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
-    let dimension = component.get_declarations().get_clock_count() + 1;
+    let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
 
     for location in component.get_locations() {
@@ -90,13 +91,14 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
     component.add_input_edges(&mut new_edges);
 }
 
-fn build_guard_from_zone(
+pub fn build_guard_from_zone(
     zone: &Zone,
     clocks: &HashMap<String, u32>,
 ) -> Option<representations::BoolExpression> {
     let mut guards: Vec<representations::BoolExpression> = vec![];
 
-    for index in clocks.values() {
+    for clock in clocks.keys() {
+        let index = clocks.get(clock).unwrap();
         let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
         let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
 
@@ -105,12 +107,12 @@ fn build_guard_from_zone(
             if lower_is_strict {
                 guards.push(representations::BoolExpression::LessT(
                     Box::new(representations::BoolExpression::Int(-lower_val)),
-                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::VarName(clock.clone())),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
                     Box::new(representations::BoolExpression::Int(-lower_val)),
-                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::VarName(clock.clone())),
                 ));
             }
         }
@@ -118,12 +120,12 @@ fn build_guard_from_zone(
         if !zone.is_constraint_infinity(*index, 0) {
             if upper_is_strict {
                 guards.push(representations::BoolExpression::LessT(
-                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::VarName(clock.clone())),
                     Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             } else {
                 guards.push(representations::BoolExpression::LessEQ(
-                    Box::new(representations::BoolExpression::Clock(*index)),
+                    Box::new(representations::BoolExpression::VarName(clock.clone())),
                     Box::new(representations::BoolExpression::Int(upper_val)),
                 ));
             }
