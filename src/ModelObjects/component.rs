@@ -14,7 +14,9 @@ use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::LocationTuple;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
@@ -55,7 +57,7 @@ impl Component {
         &mut self.locations
     }
 
-    pub fn get_location_by_name(&self, name: &str) -> &Location {
+    pub fn get_location_by_name(&self, name: &str) -> Result<&Location, Box<dyn Error>> {
         let loc_vec = self
             .locations
             .iter()
@@ -63,9 +65,9 @@ impl Component {
             .collect::<Vec<&Location>>();
 
         if loc_vec.len() == 1 {
-            loc_vec[0]
+            Ok(loc_vec[0])
         } else {
-            panic!("Unable to retrieve location based on id: {}", name)
+            bail!("Unable to retrieve location based on id: {}", name)
         }
     }
     pub fn get_edges(&self) -> &Vec<Edge> {
@@ -322,12 +324,13 @@ impl Component {
         for edge in edges {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.zone.clone();
-            let loc = self.get_location_by_name(&edge.target_location);
+            let loc = self.get_location_by_name(&edge.target_location).unwrap();
 
             let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
             if let Some(source_inv) = self
                 .get_location_by_name(edge.get_source_location())
+                .unwrap()
                 .get_invariant()
             {
                 if let BoolExpression::Bool(false) =
@@ -353,6 +356,7 @@ impl Component {
 
             if let Some(target_inv) = self
                 .get_location_by_name(edge.get_target_location())
+                .unwrap()
                 .get_invariant()
             {
                 constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
@@ -387,12 +391,13 @@ impl Component {
                 //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                 let full_new_zone = currState.zone.clone();
 
-                let loc = self.get_location_by_name(&edge.target_location);
+                let loc = self.get_location_by_name(&edge.target_location).unwrap();
 
                 let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
                 if let Some(source_inv) = self
                     .get_location_by_name(edge.get_source_location())
+                    .unwrap()
                     .get_invariant()
                 {
                     if let BoolExpression::Bool(false) =
@@ -420,6 +425,7 @@ impl Component {
 
                 if let Some(target_inv) = self
                     .get_location_by_name(edge.get_target_location())
+                    .unwrap()
                     .get_invariant()
                 {
                     constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
@@ -502,7 +508,7 @@ impl Component {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                         let full_new_zone = full_state.zone.clone();
-                        let loc = self.get_location_by_name(&edge.target_location);
+                        let loc = self.get_location_by_name(&edge.target_location).unwrap();
                         let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
@@ -816,7 +822,7 @@ impl<'a> Transition<'a> {
     pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
-            let next_location = comp.get_location_by_name(new_loc_name);
+            let next_location = comp.get_location_by_name(new_loc_name).unwrap();
 
             locations.set_location(*index, next_location);
         }
@@ -825,7 +831,9 @@ impl<'a> Transition<'a> {
     pub fn get_guard_federation(&self, locations: &LocationTuple, dim: u32) -> Option<Federation> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
-            let target_location = comp.get_location_by_name(edge.get_target_location());
+            let target_location = comp
+                .get_location_by_name(edge.get_target_location())
+                .unwrap();
             let mut guard_zone = Zone::init(dim);
             if target_location.get_invariant().is_some() {
                 let dec_loc = DecoratedLocation {

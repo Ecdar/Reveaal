@@ -42,6 +42,7 @@ pub fn make_input_enabled(
                     let mut guard_zone = location_inv_zone.clone();
                     let has_inv = if let Some(target_invariant) = component
                         .get_location_by_name(edge.get_target_location())
+                        .unwrap()
                         .get_invariant()
                     {
                         constraint_applyer::apply_constraints_to_state_declarations(
