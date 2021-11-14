@@ -13,9 +13,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev cmake make protobuf-compiler
-      - name: Compile UDBM wrapper
       - name: Downloading protobuf definitions
         run: git submodule update --init --recursive
+      - name: Compile UDBM wrapper
         run: |
           cd dbm
           cmake -B build/
