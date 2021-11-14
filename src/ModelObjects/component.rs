@@ -51,6 +51,10 @@ impl Component {
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
     }
+    pub fn get_mut_locations(&mut self) -> &mut Vec<Location> {
+        &mut self.locations
+    }
+
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
             .locations
@@ -102,17 +106,14 @@ impl Component {
         }
     }
 
-    pub fn get_initial_location(&self) -> &Location {
+    pub fn get_initial_location(&self) -> Option<&Location> {
         let vec: Vec<&Location> = self
             .get_locations()
             .iter()
             .filter(|location| location.get_location_type() == &LocationType::Initial)
             .collect();
 
-        match vec.first() {
-            Some(initial_loc) => initial_loc,
-            None => panic!("Could not find initial location on component: {:?}", self),
-        }
+        vec.first().map(|l| *l)
     }
 
     pub fn get_actions(&self) -> Vec<Channel> {
@@ -231,7 +232,7 @@ impl Component {
     }
 
     /// Used in initial setup to split edges based on their sync type
-    pub fn create_edge_io_split(mut self) -> Component {
+    pub fn create_edge_io_split(&mut self) {
         let mut o_edges = vec![];
         let mut i_edges = vec![];
 
@@ -244,8 +245,6 @@ impl Component {
 
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
-
-        self
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
@@ -257,22 +256,25 @@ impl Component {
 
         let mut passed_list: Vec<State> = vec![];
 
-        let initial_loc = self.get_initial_location();
+        if let Some(initial_loc) = self.get_initial_location() {
+            let dimension = dim;
 
-        let dimension = dim;
+            let zone = Zone::init(dimension);
 
-        let zone = Zone::init(dimension);
+            let mut state = create_state(initial_loc, &self.declarations, zone);
+            if let Some(update_i) = state.get_location(0).get_invariant() {
+                constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
+            }
 
-        let mut state = create_state(initial_loc, &self.declarations, zone);
-        if let Some(update_i) = state.get_location(0).get_invariant() {
-            constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
-        }
+            let bounds = self.get_max_bounds(dimension);
 
-        let bounds = self.get_max_bounds(dimension);
-
-        if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
-            println!("NOT CONSISTENT");
-            return false;
+            if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
+                println!("NOT CONSISTENT");
+                return false;
+            }
+        } else {
+            println!("Empty TS");
+            return false; //TODO: should empty TS be considered consistent?
         }
         true
     }
@@ -457,7 +459,11 @@ impl Component {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
-        let initial_loc = self.get_initial_location();
+        let maybe_loc = self.get_initial_location();
+        if maybe_loc.is_none() {
+            return true;
+        }
+        let initial_loc = maybe_loc.unwrap();
 
         let dimension = dim;
 
@@ -776,7 +782,7 @@ impl<'a> Transition<'a> {
         false
     }
 
-    pub fn combinations(left: &mut Vec<Self>, right: &mut Vec<Self>) -> Vec<Self> {
+    pub fn combinations(left: &Vec<Self>, right: &Vec<Self>) -> Vec<Self> {
         let mut out = vec![];
         for l in left {
             for r in &*right {
@@ -850,14 +856,14 @@ impl<'a> Transition<'a> {
         }
     }
 
-    pub fn get_guard_expression(&self, add_id_to_vars: bool) -> Option<BoolExpression> {
+    pub fn get_renamed_guard_expression(
+        &self,
+        naming: &HashMap<String, u32>,
+    ) -> Option<BoolExpression> {
         let mut guard: Option<BoolExpression> = None;
-        for (_, edge, comp_id) in &self.edges {
+        for (comp, edge, _) in &self.edges {
             if let Some(g) = &edge.guard {
-                let mut g = g.clone();
-                if add_id_to_vars {
-                    g.add_component_id_to_vars(*comp_id);
-                }
+                let g = g.swap_clock_names(&comp.declarations.clocks, naming);
                 if let Some(g_full) = guard {
                     guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g)));
                 } else {
@@ -869,15 +875,17 @@ impl<'a> Transition<'a> {
         guard
     }
 
-    pub fn get_updates(&self, add_id_to_vars: bool) -> Option<Vec<parse_edge::Update>> {
+    pub fn get_renamed_updates(
+        &self,
+        naming: &HashMap<String, u32>,
+    ) -> Option<Vec<parse_edge::Update>> {
         let mut updates = vec![];
-        for (_, edge, comp_id) in &self.edges {
+        for (comp, edge, _) in &self.edges {
             if let Some(update) = &edge.update {
                 let mut update = update.clone();
-                if add_id_to_vars {
-                    for u in &mut update {
-                        u.add_component_id_to_vars(*comp_id);
-                    }
+
+                for u in &mut update {
+                    u.swap_clock_names(&comp.declarations.clocks, naming);
                 }
 
                 updates.append(&mut update);
