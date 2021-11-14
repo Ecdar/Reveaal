@@ -1,8 +1,8 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
-use std::error::Error;
 use simple_error::bail;
+use std::error::Error;
 
 pub fn apply_constraint(
     constraint: &Option<BoolExpression>,
@@ -23,7 +23,7 @@ pub fn apply_constraints_to_state(
 ) -> Result<bool, Box<dyn Error>> {
     if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, decls, zone, true).0
     {
-        Ok(val)   
+        Ok(val)
     } else {
         bail!("unexpected value returned when attempting to apply constraints to zone");
     }

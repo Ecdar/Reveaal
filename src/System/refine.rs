@@ -47,9 +47,7 @@ pub fn check_refinement(
     initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
 
-    while !waiting_list.is_empty() {
-        let curr_pair = waiting_list.pop().unwrap();
-
+    while let Some(curr_pair) = waiting_list.pop() {
         for output in &outputs {
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
