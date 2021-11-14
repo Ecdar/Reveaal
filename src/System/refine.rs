@@ -4,6 +4,8 @@ use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use simple_error::bail;
+use std::error::Error;
 
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
@@ -39,13 +41,8 @@ pub fn check_refinement(
     let initial_locations_1 = initial_locations_1.unwrap();
     let initial_locations_2 = initial_locations_2.unwrap();
 
-    let mut initial_pair = StatePair::create(
-        dimensions,
-        initial_locations_1.clone(),
-        initial_locations_2.clone(),
-    );
-
-    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    let mut initial_pair =
+        prepare_init_state(initial_locations_1, initial_locations_2, dimensions).unwrap();
     let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
     initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
@@ -270,11 +267,17 @@ fn build_state_pair<'a>(
     true
 }
 
-fn prepare_init_state(
-    initial_pair: &mut StatePair,
-    initial_locations_1: LocationTuple,
-    initial_locations_2: LocationTuple,
-) {
+fn prepare_init_state<'a>(
+    initial_locations_1: LocationTuple<'a>,
+    initial_locations_2: LocationTuple<'a>,
+    dimensions: u32,
+) -> Result<StatePair<'a>, Box<dyn Error>> {
+    let mut initial_pair = StatePair::create(
+        dimensions,
+        initial_locations_1.clone(),
+        initial_locations_2.clone(),
+    );
+
     for (location, decl) in initial_locations_1.iter_zipped() {
         let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
@@ -283,7 +286,7 @@ fn prepare_init_state(
             true
         };
         if !init_inv1_success {
-            panic!("Was unable to apply invariants to initial state")
+            bail!("Was unable to apply invariants to initial state");
         }
     }
 
@@ -295,9 +298,11 @@ fn prepare_init_state(
             true
         };
         if !init_inv2_success {
-            panic!("Was unable to apply invariants to initial state")
+            bail!("Was unable to apply invariants to initial state");
         }
     }
+
+    Ok(initial_pair)
 }
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {

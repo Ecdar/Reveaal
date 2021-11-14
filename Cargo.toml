@@ -23,6 +23,7 @@ serde-xml-rs = "0.4.0"
 elementtree = "0"
 dyn-clone = "1.0"
 colored = "2.0.0"
+simple-error = "0.2.3"
 
 
 [build-dependencies]

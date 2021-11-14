@@ -23,6 +23,7 @@ extern crate pest_derive;
 extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
+extern crate simple_error;
 extern crate xml;
 
 pub fn main() {
