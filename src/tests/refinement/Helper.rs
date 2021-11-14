@@ -31,7 +31,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
 
     let query = create_executable_query(&q, &mut project_loader);
 
-    query.execute()
+    query.execute().unwrap()
 }
 
 pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
@@ -44,5 +44,5 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
 
     let query = create_executable_query(&q, &mut project_loader);
 
-    query.execute()
+    query.execute().unwrap()
 }

@@ -10,7 +10,7 @@ use std::error::Error;
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
     mut sys2: TransitionSystemPtr,
-) -> Result<bool, String> {
+) -> Result<Result<bool, String>, Box<dyn Error>> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
@@ -21,7 +21,7 @@ pub fn check_refinement(
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2, dimensions) {
         println!("preconditions failed - refinement false");
-        return Ok(false);
+        return Ok(Ok(false));
     }
 
     let inputs = sys2.get_input_actions();
@@ -31,18 +31,20 @@ pub fn check_refinement(
     let initial_locations_2 = sys2.get_initial_location();
 
     if initial_locations_1 == None {
-        return Ok(initial_locations_2 == None);
+        return Ok(Ok(initial_locations_2 == None));
     }
 
     if initial_locations_2 == None {
-        return Ok(false); //The empty automata cannot implement
+        return Ok(Err(String::from(
+            "The empty automata cannot refine non empty automata",
+        )));
     }
 
     let initial_locations_1 = initial_locations_1.unwrap();
     let initial_locations_2 = initial_locations_2.unwrap();
 
     let mut initial_pair =
-        prepare_init_state(initial_locations_1, initial_locations_2, dimensions).unwrap();
+        prepare_init_state(initial_locations_1, initial_locations_2, dimensions)?;
     let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
     initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
@@ -78,7 +80,7 @@ pub fn check_refinement(
                     println!("{}", pair);
                 }
 
-                return Ok(false);
+                return Ok(Ok(false));
             }
         }
 
@@ -112,7 +114,7 @@ pub fn check_refinement(
                     println!("{}", pair);
                 }
 
-                return Ok(false);
+                return Ok(Ok(false));
             }
         }
 
@@ -124,7 +126,7 @@ pub fn check_refinement(
         println!("{}", pair)
     }
 
-    Ok(true)
+    Ok(Ok(true))
 }
 
 fn has_valid_state_pair<'a>(

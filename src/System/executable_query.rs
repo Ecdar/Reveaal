@@ -5,6 +5,7 @@ use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
 use crate::TransitionSystems::TransitionSystemPtr;
+use std::error::Error;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -44,7 +45,7 @@ fn not_satisfied(query_str: &str) {
 }
 
 pub trait ExecutableQuery {
-    fn execute(self: Box<Self>) -> QueryResult;
+    fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>>;
 }
 
 pub struct RefinementExecutor {
@@ -54,15 +55,15 @@ pub struct RefinementExecutor {
 }
 
 impl ExecutableQuery for RefinementExecutor {
-    fn execute(self: Box<Self>) -> QueryResult {
+    fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let (sys1, sys2) = extra_actions::add_extra_inputs_outputs(self.sys1, self.sys2);
 
-        match refine::check_refinement(sys1, sys2) {
+        match refine::check_refinement(sys1, sys2)? {
             Ok(res) => {
                 println!("Refinement result: {:?}", res);
-                QueryResult::Refinement(res)
+                Ok(QueryResult::Refinement(res))
             }
-            Err(err_msg) => QueryResult::Error(err_msg),
+            Err(err_msg) => Ok(QueryResult::Error(err_msg)),
         }
     }
 }
@@ -74,7 +75,7 @@ pub struct GetComponentExecutor<'a> {
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
-    fn execute(self: Box<Self>) -> QueryResult {
+    fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
@@ -82,7 +83,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
         component_to_json(project_path, &comp);
         self.project_loader.unload_component(&comp.name);
 
-        QueryResult::GetComponent(comp)
+        Ok(QueryResult::GetComponent(comp))
     }
 }
 
@@ -91,9 +92,9 @@ pub struct ConsistencyExecutor {
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {
-    fn execute(self: Box<Self>) -> QueryResult {
+    fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let dim = self.system.get_num_clocks() + 1;
-        QueryResult::Consistency(self.system.precheck_sys_rep(dim))
+        Ok(QueryResult::Consistency(self.system.precheck_sys_rep(dim)))
     }
 }
 
@@ -102,10 +103,10 @@ pub struct DeterminismExecutor {
 }
 
 impl<'a> ExecutableQuery for DeterminismExecutor {
-    fn execute(self: Box<Self>) -> QueryResult {
+    fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let dim = self.system.get_num_clocks() + 1;
         let is_deterministic = self.system.is_deterministic(dim);
 
-        QueryResult::Determinism(is_deterministic)
+        Ok(QueryResult::Determinism(is_deterministic))
     }
 }

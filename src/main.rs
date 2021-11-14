@@ -36,7 +36,7 @@ pub fn main() {
             &mut project_loader,
         ));
 
-        let result = executable_query.execute();
+        let result = executable_query.execute().unwrap();
 
         if let QueryResult::Error(err) = result {
             panic!(err);

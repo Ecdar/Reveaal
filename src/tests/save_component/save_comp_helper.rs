@@ -39,8 +39,16 @@ pub mod save_comp_helper {
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
-            assert!(refine::check_refinement(new_comp.clone(), base_system.clone()).unwrap());
-            assert!(refine::check_refinement(base_system.clone(), new_comp.clone()).unwrap());
+            assert!(
+                refine::check_refinement(new_comp.clone(), base_system.clone())
+                    .unwrap()
+                    .unwrap()
+            );
+            assert!(
+                refine::check_refinement(base_system.clone(), new_comp.clone())
+                    .unwrap()
+                    .unwrap()
+            );
         }
     }
 }
