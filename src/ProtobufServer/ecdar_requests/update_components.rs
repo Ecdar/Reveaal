@@ -59,8 +59,6 @@ fn save_components(component_container: &RefCell<ComponentContainer>, components
     for mut component in components {
         println!("Adding comp {} to container", component.get_name());
         component.create_edge_io_split();
-        component_container
-            .borrow_mut()
-            .save_component(component);
+        component_container.borrow_mut().save_component(component);
     }
 }
