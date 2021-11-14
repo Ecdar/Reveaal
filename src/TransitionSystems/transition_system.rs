@@ -212,7 +212,7 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn precheck_sys_rep(&self, dim: u32) -> bool {
-        self.check_consistency(dim, true)
+        self.check_consistency(dim, true).unwrap()
     }
 
     fn is_deterministic(&self, dim: u32) -> bool {

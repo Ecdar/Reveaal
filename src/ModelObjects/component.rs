@@ -250,10 +250,10 @@ impl Component {
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
-    pub fn check_consistency(&self, dim: u32, prune: bool) -> bool {
+    pub fn check_consistency(&self, dim: u32, prune: bool) -> Result<bool, Box<dyn Error>> {
         if !self.is_deterministic(dim) {
             println!("NOT DETERMINISTIC");
-            return false;
+            return Ok(false);
         }
 
         let mut passed_list: Vec<State> = vec![];
@@ -270,15 +270,15 @@ impl Component {
 
             let bounds = self.get_max_bounds(dimension);
 
-            if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
+            if !self.consistency_helper(state, prune, &mut passed_list, &bounds)? {
                 println!("NOT CONSISTENT");
-                return false;
+                return Ok(false);
             }
         } else {
             println!("Empty TS");
-            return false; //TODO: should empty TS be considered consistent?
+            return Ok(false); //TODO: should empty TS be considered consistent?
         }
-        true
+        Ok(true)
     }
 
     /// Method used to check if a state is contained in the passed list
@@ -305,10 +305,10 @@ impl Component {
         prune: bool,
         passed_list: &mut Vec<State<'a>>,
         bounds: &MaxBounds,
-    ) -> bool {
+    ) -> Result<bool, Box<dyn Error>> {
         currState.zone.extrapolate_max_bounds(bounds);
         if self.passed_contains_state(&mut currState, passed_list) {
-            return true;
+            return Ok(true);
         } else {
             add_state_to_pl(passed_list, currState.clone())
         }
@@ -366,15 +366,15 @@ impl Component {
                 continue;
             }
 
-            let inputConsistent = self.consistency_helper(new_state, prune, passed_list, bounds);
+            let inputConsistent = self.consistency_helper(new_state, prune, passed_list, bounds)?;
             if !inputConsistent {
-                return false;
+                return Ok(false);
             }
         }
         let mut outputExisted: bool = false;
         // If delaying indefinitely is possible -> Prune the rest
         if prune && currState.zone.canDelayIndefinitely() {
-            return true;
+            return Ok(true);
         } else {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions() {
@@ -436,24 +436,24 @@ impl Component {
                 }
 
                 let outputConsistent =
-                    self.consistency_helper(new_state, prune, passed_list, bounds);
+                    self.consistency_helper(new_state, prune, passed_list, bounds)?;
                 if outputConsistent && prune {
-                    return true;
+                    return Ok(true);
                 }
                 if !outputConsistent && !prune {
-                    return false;
+                    return Ok(false);
                 }
             }
             if !prune {
                 if outputExisted {
-                    return true;
+                    return Ok(true);
                 }
-                return currState.zone.canDelayIndefinitely();
+                return Ok(currState.zone.canDelayIndefinitely());
             }
             // If by now no locations reached by output edges managed to satisfy independent progress check
             // or there are no output edges from the current location -> Independent progress does not hold
             else {
-                false
+                Ok(false)
             }
         }
         // Else if independent progress does not hold through delaying indefinitely,
