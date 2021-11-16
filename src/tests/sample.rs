@@ -7,7 +7,7 @@ mod samples {
     #[test]
     fn test_locations_T1() {
         let mut project_loader = JsonProjectLoader::new(CONJUNCTION_SAMPLE.to_string());
-        let t1 = project_loader.get_component("Test1");
+        let t1 = project_loader.get_component("Test1").unwrap();
 
         assert_eq!(t1.get_name(), "Test1");
         assert_eq!(t1.get_locations().len(), 2);
@@ -16,7 +16,7 @@ mod samples {
     #[test]
     fn test_locations_T2() {
         let mut project_loader = JsonProjectLoader::new(CONJUNCTION_SAMPLE.to_string());
-        let t2 = project_loader.get_component("Test2");
+        let t2 = project_loader.get_component("Test2").unwrap();
 
         assert_eq!(t2.get_name(), "Test2");
         assert_eq!(t2.get_locations().len(), 2);
@@ -25,7 +25,7 @@ mod samples {
     #[test]
     fn test_locations_T3() {
         let mut project_loader = JsonProjectLoader::new(CONJUNCTION_SAMPLE.to_string());
-        let t3 = project_loader.get_component("Test3");
+        let t3 = project_loader.get_component("Test3").unwrap();
 
         assert_eq!(t3.get_name(), "Test3");
         assert_eq!(t3.get_locations().len(), 3);
@@ -36,7 +36,9 @@ mod samples {
         let mut project_loader = JsonProjectLoader::new(CONJUNCTION_SAMPLE.to_string());
 
         for i in 1..12 {
-            let t = project_loader.get_component(&format!("Test{}", i).to_string());
+            let t = project_loader
+                .get_component(&format!("Test{}", i).to_string())
+                .unwrap();
 
             assert_eq!(t.name, format!("Test{}", i));
         }

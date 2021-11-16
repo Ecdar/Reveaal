@@ -4,10 +4,12 @@ use crate::DataReader::xml_parser::parse_xml;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 
 pub trait ProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component;
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>>;
     fn unload_component(&mut self, component_name: &str);
     fn get_declarations(&self) -> &SystemDeclarations;
     fn get_queries(&self) -> &Vec<Query>;
@@ -22,15 +24,15 @@ pub struct JsonProjectLoader {
 }
 
 impl ProjectLoader for JsonProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name);
         }
 
         if let Some(component) = self.loaded_components.get(component_name) {
-            &component
+            Ok(&component)
         } else {
-            panic!("The component '{}' could not be retrieved", component_name);
+            bail!("The component '{}' could not be retrieved", component_name);
         }
     }
 
@@ -87,11 +89,11 @@ pub struct XmlProjectLoader {
 }
 
 impl ProjectLoader for XmlProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
         if let Some(component) = self.loaded_components.get(component_name) {
-            &component
+            Ok(&component)
         } else {
-            panic!("The component '{}' could not be retrieved", component_name);
+            bail!("The component '{}' could not be retrieved", component_name);
         }
     }
 

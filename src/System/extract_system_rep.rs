@@ -103,7 +103,7 @@ pub fn extract_side(
             extract_side(right, project_loader, clock_index),
         ),
         QueryExpression::VarName(name) => {
-            let mut component = project_loader.get_component(name).clone();
+            let mut component = project_loader.get_component(name).unwrap().clone();
             component.set_clock_indices(clock_index);
             return Box::new(component);
         }
