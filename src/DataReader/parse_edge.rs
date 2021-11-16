@@ -1,10 +1,11 @@
 extern crate pest;
 use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
-use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -58,15 +59,17 @@ impl Update {
     }
 }
 
-pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Error<Rule>> {
-    let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)
-        .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
-    let pair = pairs.next().unwrap();
-    match pair.as_rule() {
-        Rule::edgeAttribute => Ok(build_edgeAttribute_from_pair(pair)),
-        err => {
-            panic!("Unable to match edgeAttribute string as rule: {:?}", err)
+pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<dyn Error>> {
+    let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)?;
+    if let Some(pair) = pairs.next() {
+        match pair.as_rule() {
+            Rule::edgeAttribute => Ok(build_edgeAttribute_from_pair(pair)),
+            err => {
+                bail!("Unable to match edgeAttribute string as rule: {:?}", err)
+            }
         }
+    } else {
+        bail!("Expected a pair during parsing but found none")
     }
 }
 

@@ -4,6 +4,7 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
+use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -235,11 +236,15 @@ where
     match parse_edge::parse(&s) {
         Ok(edgeAttribute) => match edgeAttribute {
             parse_edge::EdgeAttribute::Guard(guard_res) => Ok(Some(guard_res)),
-            parse_edge::EdgeAttribute::Updates(_) => {
-                panic!("We expected a guard but got an update? {:?}\n", s)
-            }
+            parse_edge::EdgeAttribute::Updates(_) => Err(D::Error::custom(format_args!(
+                "Expected a guard but got an update: {:?}",
+                s
+            ))),
         },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
+        Err(e) => Err(D::Error::custom(format_args!(
+            "Failed to deserialize edges: {}",
+            e
+        ))),
     }
 }
 
@@ -254,12 +259,16 @@ where
     }
     match parse_edge::parse(&s) {
         Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(_) => {
-                panic!("We expected an update but got a guard? {:?}", s)
-            }
             parse_edge::EdgeAttribute::Updates(update_vec) => Ok(Some(update_vec)),
+            parse_edge::EdgeAttribute::Guard(_) => Err(D::Error::custom(format_args!(
+                "Expected an update but got a guard: {:?}",
+                s
+            ))),
         },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
+        Err(e) => Err(D::Error::custom(format_args!(
+            "Failed to deserialize edges: {}",
+            e
+        ))),
     }
 }
 
