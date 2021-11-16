@@ -26,7 +26,7 @@ pub struct JsonProjectLoader {
 impl ProjectLoader for JsonProjectLoader {
     fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
         if !self.is_component_loaded(component_name) {
-            self.load_component(component_name);
+            self.load_component(component_name)?;
         }
 
         if let Some(component) = self.loaded_components.get(component_name) {
@@ -66,14 +66,15 @@ impl JsonProjectLoader {
         })
     }
 
-    fn load_component(&mut self, component_name: &str) {
-        let mut component = json_reader::read_json_component(&self.project_path, component_name);
+    fn load_component(&mut self, component_name: &str) -> Result<(), Box<dyn Error>> {
+        let mut component = json_reader::read_json_component(&self.project_path, component_name)?;
 
         component.create_edge_io_split();
         input_enabler::make_input_enabled(&mut component, self.get_declarations());
 
         self.loaded_components
             .insert(String::from(component_name), component);
+        Ok(())
     }
 
     fn is_component_loaded(&self, component_name: &str) -> bool {

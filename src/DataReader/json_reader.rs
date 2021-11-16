@@ -29,7 +29,10 @@ pub fn read_system_declarations(project_path: &str) -> Result<SystemDeclarations
     }
 }
 
-pub fn read_json_component(project_path: &str, component_name: &str) -> component::Component {
+pub fn read_json_component(
+    project_path: &str,
+    component_name: &str,
+) -> Result<component::Component, Box<dyn Error>> {
     let component_path = format!(
         "{0}{1}Components{1}{2}.json",
         project_path,
@@ -40,8 +43,8 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
     let json_component = json_to_component(&component_path);
 
     match json_component {
-        Ok(result) => return result,
-        Err(e) => panic!("We failed to read {}. We got error {}", component_path, e),
+        Ok(result) => Ok(result),
+        Err(e) => bail!("We failed to read {}. We got error {}", component_path, e),
     }
 }
 
