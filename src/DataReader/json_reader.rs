@@ -75,18 +75,19 @@ fn json_to_component(filename: &str) -> Result<component::Component, Box<dyn Err
 //Input:Filename
 //Description: transforms json into query type
 //Output:Result
-pub fn read_queries(project_path: &str) -> Option<Vec<queries::Query>> {
+pub fn read_queries(project_path: &str) -> Result<Vec<queries::Query>, Box<dyn Error>> {
     let queries_path = format!("{}{}Queries.json", project_path, std::path::MAIN_SEPARATOR);
 
     if !Path::new(&queries_path).exists() {
-        return None;
+        bail!("No queries file found for xml project");
     }
 
     match read_json(&queries_path) {
-        Ok(json) => Some(json),
-        Err(error) => panic!(
+        Ok(json) => Ok(json),
+        Err(error) => bail!(
             "We got error {}, and could not parse json file {} to query",
-            error, &queries_path
+            error,
+            &queries_path
         ),
     }
 }
