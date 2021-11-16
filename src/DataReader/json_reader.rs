@@ -2,11 +2,13 @@ use crate::ModelObjects::component;
 use crate::ModelObjects::queries;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::de::DeserializeOwned;
+use simple_error::bail;
+use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-pub fn read_system_declarations(project_path: &str) -> Option<SystemDeclarations> {
+pub fn read_system_declarations(project_path: &str) -> Result<SystemDeclarations, Box<dyn Error>> {
     let sysdecl_path = format!(
         "{}{}SystemDeclarations.json",
         project_path,
@@ -14,14 +16,15 @@ pub fn read_system_declarations(project_path: &str) -> Option<SystemDeclarations
     );
 
     if !Path::new(&sysdecl_path).exists() {
-        return None;
+        bail!("No system declarations in project");
     }
 
     match read_json::<SystemDeclarations>(&sysdecl_path) {
-        Ok(sys_decls) => Some(sys_decls),
-        Err(error) => panic!(
+        Ok(sys_decls) => Ok(sys_decls),
+        Err(error) => bail!(
             "We got error {}, and could not parse json file {} to component",
-            error, &sysdecl_path
+            error,
+            &sysdecl_path
         ),
     }
 }
