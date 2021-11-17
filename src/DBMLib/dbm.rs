@@ -1,5 +1,9 @@
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::representations::BoolExpression;
+use crate::System::input_enabler::build_guard_from_zone;
+use colored::Colorize;
+use std::collections::HashMap;
 use std::f64;
 use std::fmt::{Display, Formatter};
 
@@ -210,6 +214,10 @@ impl Zone {
         lib::rs_dbm_up(self.matrix.as_mut_slice(), self.dimension)
     }
 
+    pub fn down(&mut self) {
+        lib::rs_dbm_down(self.matrix.as_mut_slice(), self.dimension)
+    }
+
     pub fn zero(&mut self) {
         lib::rs_dbm_zero(self.matrix.as_mut_slice(), self.dimension)
     }
@@ -248,13 +256,24 @@ impl Zone {
 
 impl Display for Zone {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("\n")?;
         for i in 0..self.dimension {
-            f.write_str("( ")?;
+            f.write_str("{")?;
             for j in 0..self.dimension {
-                let (rel, val) = self.get_constraint(i, j);
-                f.write_fmt(format_args!("({}, {})", rel, val))?;
+                if self.is_constraint_infinity(i, j) {
+                    f.write_fmt(format_args!("{}", "(<∞)".to_string().bright_blue()))?;
+                } else {
+                    let (rel, val) = self.get_constraint(i, j);
+                    let op = if rel { "<" } else { "≤" };
+
+                    if !rel && val == 0 {
+                        f.write_fmt(format_args!("{}", "(≤0)".to_string().bright_green()))?;
+                    } else {
+                        f.write_fmt(format_args!("({}{})", op, val))?;
+                    }
+                }
             }
-            f.write_str(")\n")?;
+            f.write_str("}\n")?;
         }
 
         Ok(())
@@ -268,23 +287,42 @@ pub struct Federation {
 }
 
 impl Federation {
+    pub fn universe(dimension: u32) -> Self {
+        Federation::new(vec![Zone::init(dimension)], dimension)
+    }
+
     pub fn new(zones: Vec<Zone>, dimension: u32) -> Self {
         // TODO check zone's dimension
         Self { zones, dimension }
     }
 
+    fn as_raw(&self) -> Vec<*const i32> {
+        self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect()
+    }
+
     pub fn minus_fed(&self, other: &Self) -> Federation {
         assert_eq!(self.dimension, other.dimension);
 
-        let self_zones: Vec<*const i32> =
-            self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect();
-        let other_zones: Vec<*const i32> = other
-            .zones
-            .iter()
-            .map(|zone| zone.matrix.as_ptr())
-            .collect();
+        lib::rs_dbm_fed_minus_fed(&self.as_raw(), &other.as_raw(), self.dimension)
+    }
 
-        lib::rs_dbm_fed_minus_fed(&self_zones, &other_zones, self.dimension)
+    pub fn is_subset_eq(&self, other: &Self) -> bool {
+        self.minus_fed(other).is_empty()
+    }
+
+    pub fn intersection(&self, other: &Self) -> Federation {
+        assert_eq!(self.dimension, other.dimension);
+
+        self.minus_fed(&self.minus_fed(other))
+    }
+
+    pub fn intersect_zone(&self, zone: &Zone) -> Federation {
+        let dim = zone.dimension;
+        self.intersection(&Federation::new(vec![zone.clone()], dim))
+    }
+
+    pub fn inverse(&self, dimensions: u32) -> Federation {
+        Federation::universe(dimensions).minus_fed(self)
     }
 
     pub fn add(&mut self, zone: Zone) {
@@ -299,7 +337,25 @@ impl Federation {
         self.zones.iter()
     }
 
+    pub fn num_zones(&self) -> usize {
+        self.zones.len()
+    }
+
     pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
         self.zones.iter_mut()
+    }
+
+    pub fn as_boolexpression(&self, clocks: &HashMap<String, u32>) -> Option<BoolExpression> {
+        if self.num_zones() > 1 {
+            panic!("Implementation cannot handle disjunct invariants")
+        }
+
+        let mut guard = Some(BoolExpression::Bool(false));
+
+        if let Some(zone) = self.iter_zones().next() {
+            guard = build_guard_from_zone(&zone, &clocks);
+        }
+
+        guard
     }
 }

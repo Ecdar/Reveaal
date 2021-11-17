@@ -12,10 +12,10 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
-    let dimensions = 1 + sys1.get_num_clocks() + sys2.get_num_clocks();
+    let dimensions = 1 + std::cmp::max(sys1.get_max_clock_index(), sys2.get_max_clock_index());
     sys1.initialize(dimensions);
     sys2.initialize(dimensions);
-
+    println!("Dimensions {}", dimensions);
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2, dimensions) {
         println!("preconditions failed - refinement false");
@@ -27,6 +27,17 @@ pub fn check_refinement(
 
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
+
+    if initial_locations_1 == None {
+        return Ok(initial_locations_2 == None);
+    }
+
+    if initial_locations_2 == None {
+        return Ok(false); //The empty automata cannot implement
+    }
+
+    let initial_locations_1 = initial_locations_1.unwrap();
+    let initial_locations_2 = initial_locations_2.unwrap();
 
     let mut initial_pair = StatePair::create(
         dimensions,

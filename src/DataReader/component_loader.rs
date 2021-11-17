@@ -65,13 +65,13 @@ impl JsonProjectLoader {
     }
 
     fn load_component(&mut self, component_name: &str) {
-        let component = json_reader::read_json_component(&self.project_path, component_name);
+        let mut component = json_reader::read_json_component(&self.project_path, component_name);
 
-        let mut optimized_comp = component.create_edge_io_split();
-        input_enabler::make_input_enabled(&mut optimized_comp, self.get_declarations());
+        component.create_edge_io_split();
+        input_enabler::make_input_enabled(&mut component, self.get_declarations());
 
         self.loaded_components
-            .insert(String::from(component_name), optimized_comp);
+            .insert(String::from(component_name), component);
     }
 
     fn is_component_loaded(&self, component_name: &str) -> bool {
@@ -117,12 +117,12 @@ impl XmlProjectLoader {
         let (comps, system_declarations, queries) = parse_xml(&project_path);
 
         let mut map = HashMap::<String, Component>::new();
-        for component in comps {
-            let mut optimized_comp = component.create_edge_io_split();
-            input_enabler::make_input_enabled(&mut optimized_comp, &system_declarations);
+        for mut component in comps {
+            component.create_edge_io_split();
+            input_enabler::make_input_enabled(&mut component, &system_declarations);
 
-            let name = String::from(optimized_comp.get_name());
-            map.insert(name, optimized_comp);
+            let name = String::from(component.get_name());
+            map.insert(name, component);
         }
 
         Box::new(XmlProjectLoader {

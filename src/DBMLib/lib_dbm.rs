@@ -644,6 +644,10 @@ pub fn rs_dbm_fed_minus_fed(
             &mut res,
         );
 
+        //May want to only do this optionally?
+        dbm_fed_t_expensiveReduce(&mut res);
+        //Maybe dbm_fed_t_reduce(&mut res); instead as it is cheaper?
+
         fed_to_federation(&mut res, dim)
     }
 }
@@ -738,6 +742,12 @@ pub fn rs_fed_to_vec(fed: &mut dbm_fed_t) -> Vec<*const i32> {
 pub fn rs_dbm_up(dbm: &mut [i32], dimension: u32) {
     unsafe {
         dbm_up(dbm.as_mut_ptr(), dimension);
+    }
+}
+
+pub fn rs_dbm_down(dbm: &mut [i32], dimension: u32) {
+    unsafe {
+        dbm_freeAllDown(dbm.as_mut_ptr(), dimension);
     }
 }
 
