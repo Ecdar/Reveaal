@@ -27,6 +27,7 @@ extern crate pest_derive;
 extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
+extern crate simple_error;
 extern crate xml;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,10 +48,9 @@ fn start_using_cli(matches: &clap::ArgMatches) {
 
     let mut results = vec![];
     for query in &queries {
-        let executable_query = Box::new(extract_system_rep::create_executable_query(
-            query,
-            &mut *comp_loader,
-        ));
+        let executable_query = Box::new(
+            extract_system_rep::create_executable_query(query, &mut *comp_loader).unwrap(),
+        );
 
         let result = executable_query.execute();
 

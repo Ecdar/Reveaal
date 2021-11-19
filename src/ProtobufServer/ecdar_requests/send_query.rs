@@ -33,7 +33,10 @@ impl ConcreteEcdarBackend {
         }
 
         let executable_query =
-            extract_system_rep::create_executable_query(&query, &mut *component_container);
+            match extract_system_rep::create_executable_query(&query, &mut *component_container) {
+                Ok(query) => query,
+                Err(_) => return Err(Status::unknown("Creation of query failed")),
+            };
         let result = executable_query.execute();
 
         let reply = QueryResponse {
