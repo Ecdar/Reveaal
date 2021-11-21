@@ -76,7 +76,7 @@ fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
             matches.is_present("checkInputOutput"),
         )
     } else {
-        let queries = parse_queries::parse(&query);
+        let queries = parse_queries::parse(&query).unwrap();
         let queries = queries
             .into_iter()
             .map(|q| Query {
