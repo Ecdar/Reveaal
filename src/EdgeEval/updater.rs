@@ -35,7 +35,7 @@ pub fn state_updater(
     updates: &[parse_edge::Update],
     state: &mut component::State,
     comp_index: usize,
-) {
+) -> Result<(), Box<dyn Error>> {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
@@ -45,12 +45,13 @@ pub fn state_updater(
                 {
                     state.zone.update(clock_index, *val);
                 } else {
-                    panic!("Attempting to update a clock which is not initialized")
+                    bail!("Attempting to update a clock which is not initialized")
                 }
             }
             _ => {
-                panic!("Should not be able to assign to {:?} in update", update)
+                bail!("Should not be able to assign to {:?} in update", update)
             }
         }
     }
+    Ok(())
 }

@@ -351,7 +351,7 @@ impl Component {
             }
 
             if let Some(update) = edge.get_update() {
-                state_updater(update, &mut new_state, 0);
+                state_updater(update, &mut new_state, 0)?;
             }
 
             new_state.zone.up();
@@ -424,7 +424,7 @@ impl Component {
                 }
 
                 if let Some(update) = edge.get_update() {
-                    state_updater(update, &mut new_state, 0);
+                    state_updater(update, &mut new_state, 0)?;
                 }
                 new_state.zone.up();
 
@@ -531,7 +531,7 @@ impl Component {
                             }
                         }
                         if let Some(updates) = edge.get_update() {
-                            state_updater(updates, &mut new_state, 0);
+                            state_updater(updates, &mut new_state, 0).unwrap();
                         }
 
                         if is_new_state(&mut new_state, &mut passed_list)
