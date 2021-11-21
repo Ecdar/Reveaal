@@ -26,7 +26,8 @@ pub fn make_input_enabled(
                     invariant,
                     component.get_declarations(),
                     &mut location_inv_zone,
-                );
+                )
+                .unwrap();
             }
 
             // No constraints on any clocks
@@ -50,6 +51,7 @@ pub fn make_input_enabled(
                             component.get_declarations(),
                             &mut guard_zone,
                         )
+                        .unwrap()
                     } else {
                         false
                     };
@@ -69,6 +71,7 @@ pub fn make_input_enabled(
                             component.get_declarations(),
                             &mut guard_zone,
                         )
+                        .unwrap()
                     } else {
                         false
                     };

@@ -199,7 +199,7 @@ fn handle_output(
         .as_boolexpression(&decls.clocks);
 
     let mut new_zone = Zone::init(dimensions);
-    if apply_constraint(&edge.guard, decls, &mut new_zone) {
+    if apply_constraint(&edge.guard, decls, &mut new_zone).unwrap() {
         return new_zone != prev_zone;
     }
 
@@ -214,7 +214,7 @@ fn set_invariant(
 ) {
     let mut prev_zone = Zone::init(dimensions);
 
-    if !apply_constraint(location.get_invariant(), decls, &mut prev_zone) {
+    if !apply_constraint(location.get_invariant(), decls, &mut prev_zone).unwrap() {
         return;
     }
 
