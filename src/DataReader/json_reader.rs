@@ -46,13 +46,12 @@ pub fn read_json_component(
 //Input:File name
 //Description:uses the filename to open the file and then reads the file.
 //Output: Result type, if more info about this type is need please go to: https://doc.rust-lang.org/std/result/
-pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
-    let mut file = File::open(filename).unwrap();
+pub fn read_json<T: DeserializeOwned>(filename: &str) -> Result<T, Box<dyn Error>> {
+    let mut file = File::open(filename)?;
     let mut data = String::new();
-    file.read_to_string(&mut data).unwrap();
+    file.read_to_string(&mut data)?;
 
-    let json_file = serde_json::from_str(&data)
-        .unwrap_or_else(|_| panic!("{}: Json format is not as expected", filename));
+    let json_file = serde_json::from_str(&data)?;
 
     Ok(json_file)
 }
