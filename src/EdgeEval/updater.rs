@@ -2,13 +2,15 @@ use crate::DBMLib::dbm::Zone;
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
+use simple_error::bail;
+use std::error::Error;
 
 /// Used to handle update expressions on edges
 pub fn updater(
     updates: &[parse_edge::Update],
-    decl: &component::Declarations, //Will eventually be mutable
+    decl: &component::Declarations,
     zone: &mut Zone,
-) {
+) -> Result<(), Box<dyn Error>> {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
@@ -16,14 +18,16 @@ pub fn updater(
                 {
                     zone.update(clock_index, *val);
                 } else {
-                    panic!("Attempting to update a clock which is not initialized")
+                    bail!("Attempting to update a clock which is not initialized")
                 }
             }
             _ => {
-                panic!("Should not be able to assign to {:?} in update", update)
+                bail!("Should not be able to assign to {:?} in update", update)
             }
         }
     }
+
+    Ok(())
 }
 
 /// Used to handle update expressions on edges

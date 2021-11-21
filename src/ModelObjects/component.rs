@@ -991,7 +991,7 @@ impl Edge {
         zone: &mut Zone,
     ) {
         if let Some(updates) = self.get_update() {
-            updater(updates, decl, zone);
+            updater(updates, decl, zone).unwrap();
         }
     }
 
