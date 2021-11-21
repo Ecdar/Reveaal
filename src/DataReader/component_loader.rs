@@ -117,7 +117,7 @@ impl ProjectLoader for XmlProjectLoader {
 
 impl XmlProjectLoader {
     pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
-        let (comps, system_declarations, queries) = parse_xml(&project_path);
+        let (comps, system_declarations, queries) = parse_xml(&project_path).unwrap();
 
         let mut map = HashMap::<String, Component>::new();
         for mut component in comps {

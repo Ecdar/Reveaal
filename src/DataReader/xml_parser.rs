@@ -4,7 +4,9 @@ use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType}
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
 use elementtree::{Element, FindChildren};
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -15,64 +17,75 @@ pub fn is_xml_project(project_path: &str) -> bool {
 ///Used to parse systems described in xml
 pub(crate) fn parse_xml(
     fileName: &str,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+) -> Result<
+    (
+        Vec<component::Component>,
+        system_declarations::SystemDeclarations,
+        Vec<queries::Query>,
+    ),
+    Box<dyn Error>,
+> {
     //Open file and read xml
-    let file = File::open(fileName).unwrap();
+    let file = File::open(fileName)?;
     let file = BufReader::new(file);
-    let root = Element::from_reader(file).unwrap();
+    let root = Element::from_reader(file)?;
 
     //storage of components
     let mut xml_components: Vec<component::Component> = vec![];
 
     for xml_comp in root.find_all("template") {
-        let declarations = match xml_comp.find("declaration") {
-            Some(e) => parse_declarations(e.text()),
-            None => parse_declarations(""),
-        };
-        let edges = collect_edges(xml_comp.find_all("transition"));
-        let comp = component::Component {
-            name: xml_comp.find("name").unwrap().text().parse().unwrap(),
-            declarations,
-            locations: collect_locations(
-                xml_comp.find_all("location"),
-                xml_comp
-                    .find("init")
-                    .expect("No initial location")
-                    .get_attr("ref")
-                    .unwrap(),
-            ),
-            edges,
-            input_edges: None,
-            output_edges: None,
-        };
+        let comp = parse_component(xml_comp)?;
         xml_components.push(comp);
     }
 
     let system_declarations = SystemDeclarations {
         name: "".to_string(),
-        declarations: decode_sync_type(root.find("system").unwrap().text()),
+        declarations: decode_sync_type(find_element(&root, "system")?.text())?,
     };
 
-    (xml_components, system_declarations, vec![])
+    Ok((xml_components, system_declarations, vec![]))
 }
 
-fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<component::Location> {
+fn parse_component(
+    xml_comp: &elementtree::Element,
+) -> Result<component::Component, Box<dyn Error>> {
+    let name: String = find_element(&xml_comp, "name")?.text().parse()?;
+
+    let init_elem = find_element(&xml_comp, "init")?;
+    let initial_loc_id = get_attribute(&init_elem, "ref")?;
+
+    let locations = collect_locations(xml_comp.find_all("location"), initial_loc_id)?;
+    let declarations = match xml_comp.find("declaration") {
+        Some(e) => parse_declarations(e.text())?,
+        None => parse_declarations("")?,
+    };
+    let edges = collect_edges(xml_comp.find_all("transition"))?;
+
+    Ok(component::Component {
+        name,
+        declarations,
+        locations,
+        edges,
+        input_edges: None,
+        output_edges: None,
+    })
+}
+
+fn collect_locations(
+    xml_locations: FindChildren,
+    initial_id: &str,
+) -> Result<Vec<component::Location>, Box<dyn Error>> {
     let mut locations: Vec<component::Location> = vec![];
     for loc in xml_locations {
+        let id = get_attribute(&loc, "id")?;
+
         let location = component::Location {
-            id: loc.get_attr("id").unwrap().parse().unwrap(),
+            id: String::from(id),
             invariant: match loc.find("label") {
-                Some(x) => match parse_invariant::parse(x.text()) {
-                    Ok(edgeAttribute) => Some(edgeAttribute),
-                    Err(e) => panic!("Could not parse invariant {} got error: {:?}", x.text(), e),
-                },
+                Some(x) => Some(parse_invariant::parse(x.text())?),
                 _ => None,
             },
-            location_type: match loc.get_attr("id").unwrap().eq(initial_id) {
+            location_type: match id == initial_id {
                 true => LocationType::Initial,
                 false => LocationType::Normal,
             },
@@ -81,25 +94,24 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
         locations.push(location);
     }
 
-    locations
+    Ok(locations)
 }
 
-fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
+fn collect_edges(xml_edges: FindChildren) -> Result<Vec<Edge>, Box<dyn Error>> {
     let mut edges: Vec<component::Edge> = vec![];
     for e in xml_edges {
         let mut guard: Option<representations::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
         let mut sync: String = "".to_string();
         for label in e.find_all("label") {
-            match label.get_attr("kind").unwrap() {
-                "guard" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
-                            guard = Some(guard_res);
-                        }
+            match get_attribute(&label, "kind")? {
+                "guard" => {
+                    if let parse_edge::EdgeAttribute::Guard(guard_res) =
+                        parse_edge::parse(label.text())?
+                    {
+                        guard = Some(guard_res);
                     }
-                    Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
-                },
+                }
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
@@ -109,24 +121,18 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                             updates = Some(update_vec)
                         }
                     }
-                    Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
+                    Err(e) => bail!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 _ => {}
             }
         }
+
+        let source_location_str = get_attribute(find_element(&e, "source")?, "ref")?;
+        let target_location_str = get_attribute(find_element(&e, "target")?, "ref")?;
+
         let edge = component::Edge {
-            source_location: e
-                .find("source")
-                .expect("source edge not found")
-                .get_attr("ref")
-                .expect("no source edge ID")
-                .to_string(),
-            target_location: e
-                .find("target")
-                .expect("target edge not found")
-                .get_attr("ref")
-                .expect("no target edge ID")
-                .to_string(),
+            source_location: String::from(source_location_str),
+            target_location: String::from(target_location_str),
             sync_type: match sync.contains('?') {
                 true => SyncType::Input,
                 false => SyncType::Output,
@@ -138,10 +144,10 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
         edges.push(edge);
     }
 
-    edges
+    Ok(edges)
 }
 
-fn parse_declarations(variables: &str) -> Declarations {
+fn parse_declarations(variables: &str) -> Result<Declarations, Box<dyn Error>> {
     //Split string into vector of strings
     let decls: Vec<String> = variables.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
@@ -179,18 +185,16 @@ fn parse_declarations(variables: &str) -> Declarations {
                         }
                     }
                 } else {
-                    let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(&variable_type.to_string());
-                    panic!("{}", error_string);
+                    bail!("XML parser not implemented to read type: {}", variable_type);
                 }
             }
         }
     }
 
-    Declarations { ints, clocks }
+    Ok(Declarations { ints, clocks })
 }
 
-fn decode_sync_type(global_decl: &str) -> SystemSpecification {
+fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification, Box<dyn Error>> {
     let mut first_run = true;
     let decls: Vec<String> = global_decl.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
@@ -224,7 +228,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                     }
                     first_run = false;
                 } else {
-                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)
+                    bail!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)
                 }
             }
 
@@ -258,19 +262,42 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                                     output_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else {
-                                panic!("Channel type not defined for Channel {:?}", action)
+                                bail!("Channel type not defined for Channel {:?}", action)
                             }
                         }
                     }
                 } else {
-                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    bail!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
                 }
             }
         }
     }
-    SystemSpecification {
+    Ok(SystemSpecification {
         components,
         input_actions,
         output_actions,
+    })
+}
+
+fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Element, Box<dyn Error>> {
+    match elem.find(search_str) {
+        Some(sub_element) => Ok(sub_element),
+        None => bail!(
+            "Expected element {} but got None instead while parsing XML",
+            search_str
+        ),
+    }
+}
+
+fn get_attribute<'a>(
+    elem: &'a Element,
+    attribute_name: &'a str,
+) -> Result<&'a str, Box<dyn Error>> {
+    match elem.get_attr(attribute_name) {
+        Some(attr) => Ok(attr),
+        None => bail!(
+            "Expected attribute {} but got None while parsing XML",
+            attribute_name
+        ),
     }
 }
