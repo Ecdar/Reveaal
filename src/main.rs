@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![deny(unused_must_use)] // Enforce handling of Results, to avoid accidentally hiding errors
 mod DBMLib;
 mod DataReader;
 mod EdgeEval;

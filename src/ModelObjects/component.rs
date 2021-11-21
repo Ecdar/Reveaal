@@ -906,7 +906,8 @@ impl<'a> Transition<'a> {
                 let mut update = update.clone();
 
                 for u in &mut update {
-                    u.swap_clock_names(&comp.declarations.clocks, naming);
+                    u.swap_clock_names(&comp.declarations.clocks, naming)
+                        .unwrap();
                 }
 
                 updates.append(&mut update);
