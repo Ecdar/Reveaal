@@ -1,8 +1,0 @@
-# Generated files
-target/
-.idea/*
-.vscode/
-.dockerignore
-Dockerfile
-/dbm/libdbmfull.a
-/dbm/objectFiles

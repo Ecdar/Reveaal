@@ -331,11 +331,6 @@ mod delay_refinement {
     }
 
     #[test]
-    fn N3NotRefinesN4() {
-        assert!(!xml_refinement_check(PATH, "refinement: N3 <= N4"));
-    }
-
-    #[test]
     fn D2RefinesD1() {
         assert!(xml_refinement_check(PATH, "refinement: D2 <= D1"));
     }
@@ -395,11 +390,6 @@ mod delay_refinement {
     }
 
     #[test]
-    fn L6NotRefinesL7() {
-        assert!(!xml_refinement_check(PATH, "refinement: L6 <= L7"));
-    }
-
-    #[test]
     fn Z1RefinesZ2() {
         assert!(xml_refinement_check(PATH, "refinement: Z1 <= Z2"));
     }
@@ -407,11 +397,6 @@ mod delay_refinement {
     #[test]
     fn Z3RefinesZ4() {
         assert!(xml_refinement_check(PATH, "refinement: Z3 <= Z4"));
-    }
-
-    #[test]
-    fn Z5Z6NotRefinesZ7() {
-        assert!(!xml_refinement_check(PATH, "refinement: Z3 || Z4 <= Z7"));
     }
 
     #[test]
