@@ -36,13 +36,6 @@ mod test {
         assert!(!lib::rs_dbm_is_valid([0, 0, 0, 0].as_mut(), 2));
     }
 
-    #[ignore] //Test has been ignored to highlight that this test is skipped for some reason
-    #[test]
-    fn testDbmNotValid2() {
-        //TODO returns true even tho should false
-        //assert!(!lib::rs_dbm_is_valid([-1, 0, 0, 0].as_mut(), 2));
-    }
-
     #[test]
     fn testRaw2Bound1() {
         assert_eq!(0, lib::rs_raw_to_bound(1));
