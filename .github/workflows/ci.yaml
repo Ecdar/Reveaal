@@ -9,10 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       - name: Install compiler tools
         run: |
           sudo apt-get update
-          sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev cmake make
+          sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev cmake make protobuf-compiler
       - name: Compile UDBM wrapper
         run: |
           cd dbm
@@ -33,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -48,9 +52,11 @@ jobs:
     name: Lint and check
     runs-on: ubuntu-latest
     steps:
-      - name: Install llvm-config
-        run: sudo apt-get install llvm
+      - name: Install llvm-config 
+        run: sudo apt-get install llvm protobuf-compiler
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

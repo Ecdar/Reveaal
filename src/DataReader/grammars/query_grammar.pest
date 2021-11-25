@@ -1,4 +1,4 @@
-queries = {SOI ~ queryList ~ EOI}
+queries = {SOI ~ queryList? ~ EOI}
 
 queryList = {query ~ ";" ~ queryList | query}
 

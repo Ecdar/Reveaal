@@ -7,13 +7,14 @@ use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::io::Read;
 
 pub fn is_xml_project(project_path: &str) -> bool {
     project_path.ends_with(".xml")
 }
 
 ///Used to parse systems described in xml
-pub(crate) fn parse_xml(
+pub(crate) fn parse_xml_from_file(
     fileName: &str,
 ) -> (
     Vec<component::Component>,
@@ -22,8 +23,31 @@ pub(crate) fn parse_xml(
 ) {
     //Open file and read xml
     let file = File::open(fileName).unwrap();
-    let file = BufReader::new(file);
-    let root = Element::from_reader(file).unwrap();
+    let reader = BufReader::new(file);
+
+    parse_xml(reader)
+}
+
+pub(crate) fn parse_xml_from_str(
+    xml: &str,
+) -> (
+    Vec<component::Component>,
+    system_declarations::SystemDeclarations,
+    Vec<queries::Query>,
+) {
+    let reader = BufReader::new(xml.as_bytes());
+
+    parse_xml(reader)
+}
+
+fn parse_xml<R: Read>(
+    xml_data: R,
+) -> (
+    Vec<component::Component>,
+    system_declarations::SystemDeclarations,
+    Vec<queries::Query>,
+) {
+    let root = Element::from_reader(xml_data).unwrap();
 
     //storage of components
     let mut xml_components: Vec<component::Component> = vec![];

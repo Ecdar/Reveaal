@@ -17,6 +17,10 @@ impl SystemDeclarations {
         &mut self.declarations
     }
 
+    pub fn get_component_inputs(&self, comp_name: &str) -> Option<&Vec<String>> {
+        self.get_declarations().get_input_actions().get(comp_name)
+    }
+
     pub fn add_component(&mut self, comp: &Component) {
         self.declarations.input_actions.insert(
             comp.get_name().clone(),

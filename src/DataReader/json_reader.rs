@@ -34,12 +34,15 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
         component_name
     );
 
-    let json_component = json_to_component(&component_path);
+    let component = match read_json(&component_path) {
+        Ok(json) => json,
+        Err(error) => panic!(
+            "We got error {}, and could not parse json file {} to component",
+            error, component_path
+        ),
+    };
 
-    match json_component {
-        Ok(result) => return result,
-        Err(e) => panic!("We failed to read {}. We got error {}", component_path, e),
-    }
+    component
 }
 
 //Input:File name
@@ -56,18 +59,8 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
     Ok(json_file)
 }
 
-//Input:Filename
-//Description:Transforms json into component type
-//Output:Result type
-fn json_to_component(filename: &str) -> serde_json::Result<component::Component> {
-    let json = match read_json(filename) {
-        Ok(json) => json,
-        Err(error) => panic!(
-            "We got error {}, and could not parse json file {} to component",
-            error, filename
-        ),
-    };
-    Ok(json)
+pub fn json_to_component(json_str: &str) -> Result<component::Component, serde_json::Error> {
+    serde_json::from_str(json_str)
 }
 
 //Input:Filename
