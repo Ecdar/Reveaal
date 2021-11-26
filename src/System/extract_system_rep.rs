@@ -9,6 +9,8 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::{
     Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
 };
+use simple_error::bail;
+use std::error::Error;
 
 use crate::System::pruning;
 
@@ -17,67 +19,67 @@ use crate::System::pruning;
 pub fn create_executable_query<'a>(
     full_query: &Query,
     project_loader: &'a mut Box<dyn ProjectLoader + 'static>,
-) -> Box<dyn ExecutableQuery + 'a> {
+) -> Result<Box<dyn ExecutableQuery + 'a>, Box<dyn Error>> {
     let mut clock_index: u32 = 0;
 
     if let Some(query) = full_query.get_query() {
         match query {
-            QueryExpression::Refinement(left_side, right_side) => Box::new(RefinementExecutor {
-                sys1: extract_side(left_side, project_loader, &mut clock_index),
+            QueryExpression::Refinement(left_side, right_side) => Ok(Box::new(RefinementExecutor {
+                sys1: extract_side(left_side, project_loader, &mut clock_index)?,
                 sys2: extract_side(
                     right_side,
                     project_loader,
                     &mut clock_index,
-                ),
+                )?,
                 decls: project_loader.get_declarations().clone(),
-            }),
-            QueryExpression::Consistency(query_expression) => Box::new(ConsistencyExecutor {
+            })),
+            QueryExpression::Consistency(query_expression) => Ok(Box::new(ConsistencyExecutor {
                 system: extract_side(
                     query_expression,
                     project_loader,
                     &mut clock_index,
-                ),
-            }),
-            QueryExpression::Determinism(query_expression) => Box::new(DeterminismExecutor {
+                )?,
+            })),
+            QueryExpression::Determinism(query_expression) => Ok(Box::new(DeterminismExecutor {
                 system: extract_side(
                     query_expression,
                     project_loader,
                     &mut clock_index,
-                ),
-            }),
+                )?,
+            })),
             QueryExpression::GetComponent(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    Box::new(
+                    Ok(Box::new(
                         GetComponentExecutor {
-                            system: extract_side(query_expression, project_loader, &mut clock_index),
+                            system: extract_side(query_expression, project_loader, &mut clock_index)?,
                             comp_name: comp_name.clone(),
                             project_loader,
                         }
-                    )
+                    ))
                 }else{
-                    panic!("Unexpected expression type")
+                    bail!("Unexpected expression type: GetComponent queries requires an - 'as some_name'")
                 }
             }
             ,
             QueryExpression::Prune(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    Box::new(
+                    Ok(Box::new(
                         GetComponentExecutor {
-                            system: pruning::prune_system(extract_side(query_expression, project_loader, &mut clock_index), clock_index),
+                            system: pruning::prune_system(extract_side(query_expression, project_loader, &mut clock_index)?, clock_index),
                             comp_name: comp_name.clone(),
                             project_loader
                         }
-                    )
+                    ))
                 }else{
-                    panic!("Unexpected expression type")
+                    bail!("Unexpected expression type: Prune queries requires an - 'as some_name'")
                 }
             }
             ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
-            _ => panic!("Not yet setup to handle {:?}", query),
+            _ => bail!("Not yet setup to handle {:?}", query),
         }
     } else {
-        panic!("No query was supplied for extraction")
+        bail!("No query was supplied for extraction")
     }
 }
 
@@ -85,29 +87,29 @@ pub fn extract_side(
     side: &QueryExpression,
     project_loader: &mut Box<dyn ProjectLoader>,
     clock_index: &mut u32,
-) -> TransitionSystemPtr {
+) -> Result<TransitionSystemPtr, Box<dyn Error>> {
     match side {
         QueryExpression::Parentheses(expression) => {
             extract_side(expression, project_loader, clock_index)
         }
-        QueryExpression::Composition(left, right) => Composition::new(
-            extract_side(left, project_loader, clock_index),
-            extract_side(right, project_loader, clock_index),
-        ),
-        QueryExpression::Conjunction(left, right) => Conjunction::new(
-            extract_side(left, project_loader, clock_index),
-            extract_side(right, project_loader, clock_index),
-        ),
-        QueryExpression::Quotient(left, right) => Quotient::new(
-            extract_side(left, project_loader, clock_index),
-            extract_side(right, project_loader, clock_index),
-        ),
+        QueryExpression::Composition(left, right) => Ok(Composition::new(
+            extract_side(left, project_loader, clock_index)?,
+            extract_side(right, project_loader, clock_index)?,
+        )),
+        QueryExpression::Conjunction(left, right) => Ok(Conjunction::new(
+            extract_side(left, project_loader, clock_index)?,
+            extract_side(right, project_loader, clock_index)?,
+        )),
+        QueryExpression::Quotient(left, right) => Ok(Quotient::new(
+            extract_side(left, project_loader, clock_index)?,
+            extract_side(right, project_loader, clock_index)?,
+        )),
         QueryExpression::VarName(name) => {
             let mut component = project_loader.get_component(name).unwrap().clone();
             component.set_clock_indices(clock_index);
-            return Box::new(component);
+            return Ok(Box::new(component));
         }
         QueryExpression::SaveAs(comp, _) => extract_side(comp, project_loader, clock_index), //TODO
-        _ => panic!("Got unexpected query side: {:?}", side),
+        _ => bail!("Got unexpected query side: {:?}", side),
     }
 }

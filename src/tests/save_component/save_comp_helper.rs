@@ -20,6 +20,7 @@ pub mod save_comp_helper {
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
             extract_system_rep::extract_side(expr.as_ref(), &mut project_loader, &mut clock_index)
+                .unwrap()
         } else {
             panic!("Failed to create system")
         };

@@ -29,7 +29,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
         comment: "".to_string(),
     };
 
-    let query = create_executable_query(&q, &mut project_loader);
+    let query = create_executable_query(&q, &mut project_loader).unwrap();
 
     query.execute().unwrap()
 }
@@ -42,7 +42,7 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
         comment: "".to_string(),
     };
 
-    let query = create_executable_query(&q, &mut project_loader);
+    let query = create_executable_query(&q, &mut project_loader).unwrap();
 
     query.execute().unwrap()
 }
