@@ -124,7 +124,7 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
     }
 
     fn is_deterministic(&self, dim: u32) -> bool {
-        self.component.is_deterministic(dim)
+        self.component.is_deterministic(dim).unwrap()
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> bool {

@@ -251,7 +251,7 @@ impl Component {
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
     pub fn check_consistency(&self, dim: u32, prune: bool) -> Result<bool, Box<dyn Error>> {
-        if !self.is_deterministic(dim) {
+        if !self.is_deterministic(dim)? {
             println!("NOT DETERMINISTIC");
             return Ok(false);
         }
@@ -467,17 +467,14 @@ impl Component {
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
-    pub fn is_deterministic(&self, dim: u32) -> bool {
+    pub fn is_deterministic(&self, dimension: u32) -> Result<bool, Box<dyn Error>> {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
-        let maybe_loc = self.get_initial_location();
-        if maybe_loc.is_none() {
-            return true;
-        }
-        let initial_loc = maybe_loc.unwrap();
-
-        let dimension = dim;
+        let initial_loc = match self.get_initial_location() {
+            Some(loc) => loc,
+            None => return Ok(true),
+        };
 
         let mut state = create_state(initial_loc, &self.declarations, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
 
@@ -490,39 +487,31 @@ impl Component {
                 let mut full_state = state;
                 let mut edges: Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
-                    edges.append(
-                        &mut self
-                            .get_next_edges(
-                                full_state.get_location(0),
-                                input_action.get_name(),
-                                SyncType::Input,
-                            )
-                            .unwrap(),
-                    );
+                    edges.append(&mut self.get_next_edges(
+                        full_state.get_location(0),
+                        input_action.get_name(),
+                        SyncType::Input,
+                    )?);
                 }
                 if self.check_moves_overlap(&edges, &mut full_state) {
-                    return false;
+                    return Ok(false);
                 }
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions() {
-                    edges.append(
-                        &mut self
-                            .get_next_edges(
-                                full_state.get_location(0),
-                                output_action.get_name(),
-                                SyncType::Output,
-                            )
-                            .unwrap(),
-                    );
+                    edges.append(&mut self.get_next_edges(
+                        full_state.get_location(0),
+                        output_action.get_name(),
+                        SyncType::Output,
+                    )?);
                 }
 
                 if self.check_moves_overlap(&edges, &mut full_state) {
-                    return false;
+                    return Ok(false);
                 } else {
                     for edge in edges {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                         let full_new_zone = full_state.zone.clone();
-                        let loc = self.get_location_by_name(&edge.target_location).unwrap();
+                        let loc = self.get_location_by_name(&edge.target_location)?;
                         let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
                             if let BoolExpression::Bool(true) =
@@ -530,8 +519,7 @@ impl Component {
                                     guard,
                                     &mut new_state,
                                     0,
-                                )
-                                .unwrap()
+                                )?
                             {
                             } else {
                                 //If the constraint cannot be applied, continue.
@@ -539,7 +527,7 @@ impl Component {
                             }
                         }
                         if let Some(updates) = edge.get_update() {
-                            state_updater(updates, &mut new_state, 0).unwrap();
+                            state_updater(updates, &mut new_state, 0)?;
                         }
 
                         if is_new_state(&mut new_state, &mut passed_list)
@@ -551,11 +539,11 @@ impl Component {
                 }
                 add_state_to_pl(&mut passed_list, full_state);
             } else {
-                panic!("Unable to pop state from waiting list")
+                bail!("Unable to pop state from waiting list")
             }
         }
 
-        true
+        Ok(true)
     }
 
     /// Method to check if moves are overlapping to for instance to verify that component is deterministic

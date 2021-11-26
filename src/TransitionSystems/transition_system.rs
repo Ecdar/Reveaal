@@ -216,7 +216,7 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn is_deterministic(&self, dim: u32) -> bool {
-        Component::is_deterministic(self, dim)
+        Component::is_deterministic(self, dim).unwrap()
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> bool {
