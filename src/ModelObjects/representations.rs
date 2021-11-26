@@ -304,10 +304,60 @@ impl QueryExpression {
             QueryExpression::Prune(comp) => {
                 format!("prune: {}", comp.pretty_string())
             }
+            QueryExpression::Implementation(system) => {
+                format!("implementation: {}", system.pretty_string())
+            }
+            QueryExpression::Determinism(system) => {
+                format!("determinism: {}", system.pretty_string())
+            }
+            QueryExpression::Specification(system) => {
+                format!("specification: {}", system.pretty_string())
+            }
+            QueryExpression::BisimMinimize(save_system) => {
+                format!("bisim-minim: {}", save_system.pretty_string())
+            }
             QueryExpression::Parentheses(system) => format!("({})", system.pretty_string()),
             QueryExpression::VarName(name) => name.clone(),
-
-            _ => panic!("Rule not implemented yet"),
+            QueryExpression::Possibly(bool_expr) => {
+                format!("E<>{}", bool_expr.pretty_string())
+            }
+            QueryExpression::Invariantly(bool_expr) => {
+                format!("A[]{}", bool_expr.pretty_string())
+            }
+            QueryExpression::EventuallyAlways(bool_expr) => {
+                format!("E[]{}", bool_expr.pretty_string())
+            }
+            QueryExpression::Potentially(bool_expr) => {
+                format!("A<>{}", bool_expr.pretty_string())
+            }
+            QueryExpression::AndOp(left, right) => {
+                format!("({} ∧ {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::OrOp(left, right) => {
+                format!("({} ∨ {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::LessEQ(left, right) => {
+                format!("({} <= {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::GreatEQ(left, right) => {
+                format!("({} >= {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::LessT(left, right) => {
+                format!("({} < {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::GreatT(left, right) => {
+                format!("({} > {})", left.pretty_string(), right.pretty_string())
+            }
+            QueryExpression::Not(bool_expr) => {
+                format!("!({})", bool_expr.pretty_string())
+            }
+            QueryExpression::Int(number) => {
+                format!("{}", number)
+            }
+            QueryExpression::Bool(boolean) => {
+                format!("{}", boolean)
+            }
+            _ => String::from("??"),
         }
     }
 }
