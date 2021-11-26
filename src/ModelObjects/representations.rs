@@ -1,5 +1,7 @@
 use serde::Deserialize;
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -25,49 +27,55 @@ impl BoolExpression {
         &self,
         from_vars: &HashMap<String, u32>,
         to_vars: &HashMap<String, u32>,
-    ) -> BoolExpression {
+    ) -> Result<BoolExpression, Box<dyn Error>> {
         match self {
-            BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::OrOp(left, right) => BoolExpression::OrOp(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::LessEQ(left, right) => BoolExpression::LessEQ(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::LessT(left, right) => BoolExpression::LessT(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::EQ(left, right) => BoolExpression::EQ(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::GreatEQ(left, right) => BoolExpression::GreatEQ(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::GreatT(left, right) => BoolExpression::GreatT(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
+            BoolExpression::AndOp(left, right) => Ok(BoolExpression::AndOp(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::OrOp(left, right) => Ok(BoolExpression::OrOp(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::LessEQ(left, right) => Ok(BoolExpression::LessEQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::LessT(left, right) => Ok(BoolExpression::LessT(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::EQ(left, right) => Ok(BoolExpression::EQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::GreatEQ(left, right) => Ok(BoolExpression::GreatEQ(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
+            BoolExpression::GreatT(left, right) => Ok(BoolExpression::GreatT(
+                Box::new(left.swap_clock_names(from_vars, to_vars)?),
+                Box::new(right.swap_clock_names(from_vars, to_vars)?),
+            )),
 
             BoolExpression::Parentheses(body) => {
-                BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
+                Ok(BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)?)))
             }
-            BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
+            BoolExpression::Clock(_) => bail!("Did not expect clock index in boolexpression, cannot swap clock names in misformed BoolExpression"),
             BoolExpression::VarName(name) => {
-                let index = from_vars.get(name).unwrap();
-                let new_name = to_vars.iter()
-                .find_map(|(key, val)| if *val == *index { Some(key) } else { None }).unwrap();
-                BoolExpression::VarName(new_name.clone())
+                if let Some(index) = from_vars.get(name){
+                    if let Some(new_name) = to_vars.iter()
+                    .find_map(|(key, val)| if *val == *index { Some(key) } else { None }){
+                        return Ok(BoolExpression::VarName(new_name.clone()));
+                    }else{
+                        bail!("Couldnt find index {} in to to_vars {:?}", index, to_vars);
+                    }
+                }else{
+                    bail!("Couldnt find the name {} in the set from_vars {:?}", name, from_vars);
+                }
             },
-            BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
-            BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
+            BoolExpression::Bool(val) => Ok(BoolExpression::Bool(val.clone())),
+            BoolExpression::Int(val) => Ok(BoolExpression::Int(val.clone())),
         }
     }
 

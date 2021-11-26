@@ -883,7 +883,9 @@ impl<'a> Transition<'a> {
         let mut guard: Option<BoolExpression> = None;
         for (comp, edge, _) in &self.edges {
             if let Some(g) = &edge.guard {
-                let g = g.swap_clock_names(&comp.declarations.clocks, naming);
+                let g = g
+                    .swap_clock_names(&comp.declarations.clocks, naming)
+                    .unwrap();
                 if let Some(g_full) = guard {
                     guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g)));
                 } else {

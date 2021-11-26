@@ -39,7 +39,7 @@ fn get_locations_from_tuples(
             let mut invariant: Option<BoolExpression> = None;
             for (loc, decl) in loc_vec.iter_zipped() {
                 if let Some(inv) = &loc.invariant {
-                    let inv = inv.swap_clock_names(&decl.clocks, clock_map);
+                    let inv = inv.swap_clock_names(&decl.clocks, clock_map).unwrap();
                     if let Some(inv_full) = invariant {
                         invariant = Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
                     } else {

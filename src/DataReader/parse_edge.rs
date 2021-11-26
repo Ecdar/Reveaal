@@ -58,7 +58,7 @@ impl Update {
                     .find_map(|(key, val)| if *val == *index { Some(key) } else { None })
             {
                 self.variable = new_name.clone();
-                self.expression = self.expression.swap_clock_names(from_vars, to_vars);
+                self.expression = self.expression.swap_clock_names(from_vars, to_vars)?;
                 return Ok(());
             }
         }
