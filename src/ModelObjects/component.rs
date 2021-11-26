@@ -530,8 +530,8 @@ impl Component {
                             state_updater(updates, &mut new_state, 0)?;
                         }
 
-                        if is_new_state(&mut new_state, &mut passed_list)
-                            && is_new_state(&mut new_state, &mut waiting_list)
+                        if is_new_state(&mut new_state, &mut passed_list)?
+                            && is_new_state(&mut new_state, &mut waiting_list)?
                         {
                             add_state_to_wl(&mut waiting_list, new_state);
                         }
@@ -649,7 +649,10 @@ impl Component {
 }
 
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
-fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> bool {
+fn is_new_state<'a>(
+    state: &mut State<'a>,
+    passed_list: &mut Vec<State<'a>>,
+) -> Result<bool, Box<dyn Error>> {
     assert_eq!(state.decorated_locations.len(), 1);
 
     for passed_state_pair in passed_list {
@@ -657,14 +660,14 @@ fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> 
             continue;
         }
         if state.zone.dimension != passed_state_pair.zone.dimension {
-            panic!("dimensions of dbm didn't match - fatal error")
+            bail!("dimensions of dbm didn't match - fatal error")
         }
         if state.zone.is_subset_eq(&passed_state_pair.zone) {
-            return false;
+            return Ok(false);
         }
     }
 
-    true
+    Ok(true)
 }
 
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
