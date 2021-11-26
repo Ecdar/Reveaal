@@ -197,7 +197,7 @@ impl TransitionSystem<'_> for Component {
         index: &mut usize,
     ) -> Vec<Transition<'b>> {
         let location = location.get_location(*index);
-        let next_edges = self.get_next_edges(location, action, *sync_type);
+        let next_edges = self.get_next_edges(location, action, *sync_type).unwrap();
 
         let mut open_transitions = vec![];
         for e in next_edges {

@@ -93,18 +93,18 @@ impl Component {
         &mut self.declarations
     }
 
-    pub fn get_input_edges(&self) -> &Vec<Edge> {
+    pub fn get_input_edges(&self) -> Result<&Vec<Edge>, Box<dyn Error>> {
         if let Some(input_edges) = &self.input_edges {
-            input_edges
+            Ok(input_edges)
         } else {
-            panic!("attempted to get input edges before they were created")
+            bail!("attempted to get input edges before they were created")
         }
     }
-    pub fn get_output_edges(&self) -> &Vec<Edge> {
+    pub fn get_output_edges(&self) -> Result<&Vec<Edge>, Box<dyn Error>> {
         if let Some(output_edges) = &self.output_edges {
-            output_edges
+            Ok(output_edges)
         } else {
-            panic!("attempted to get output edges before they were created")
+            bail!("attempted to get output edges before they were created")
         }
     }
 
@@ -167,11 +167,11 @@ impl Component {
         location: &Location,
         channel_name: &str,
         sync_type: SyncType,
-    ) -> Vec<&Edge> {
+    ) -> Result<Vec<&Edge>, Box<dyn Error>> {
         return match sync_type {
             SyncType::Input => {
                 let result: Vec<&Edge> = self
-                    .get_input_edges()
+                    .get_input_edges()?
                     .iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
@@ -179,11 +179,11 @@ impl Component {
                                 || e.get_sync() == "*")
                     })
                     .collect();
-                result
+                Ok(result)
             }
             SyncType::Output => {
                 let result: Vec<&Edge> = self
-                    .get_output_edges()
+                    .get_output_edges()?
                     .iter()
                     .filter(|e| {
                         (e.get_source_location() == location.get_id())
@@ -191,18 +191,18 @@ impl Component {
                                 || e.get_sync() == "*")
                     })
                     .collect();
-                result
+                Ok(result)
             }
         };
     }
 
-    pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
+    pub fn get_all_edges_from(&self, location: &Location) -> Result<Vec<&Edge>, Box<dyn Error>> {
         let result: Vec<&Edge> = self
-            .get_output_edges()
+            .get_output_edges()?
             .iter()
             .filter(|e| e.get_source_location() == location.get_id())
             .collect();
-        result
+        Ok(result)
     }
 
     pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
@@ -320,7 +320,7 @@ impl Component {
                 currState.get_location(0),
                 input_action.get_name(),
                 SyncType::Input,
-            ));
+            )?);
         }
         for edge in edges {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
@@ -385,7 +385,7 @@ impl Component {
                     currState.get_location(0),
                     output_action.get_name(),
                     SyncType::Output,
-                ));
+                )?);
             }
             for edge in edges {
                 if !outputExisted {
@@ -490,22 +490,30 @@ impl Component {
                 let mut full_state = state;
                 let mut edges: Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions() {
-                    edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
-                        input_action.get_name(),
-                        SyncType::Input,
-                    ));
+                    edges.append(
+                        &mut self
+                            .get_next_edges(
+                                full_state.get_location(0),
+                                input_action.get_name(),
+                                SyncType::Input,
+                            )
+                            .unwrap(),
+                    );
                 }
                 if self.check_moves_overlap(&edges, &mut full_state) {
                     return false;
                 }
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions() {
-                    edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
-                        output_action.get_name(),
-                        SyncType::Output,
-                    ));
+                    edges.append(
+                        &mut self
+                            .get_next_edges(
+                                full_state.get_location(0),
+                                output_action.get_name(),
+                                SyncType::Output,
+                            )
+                            .unwrap(),
+                    );
                 }
 
                 if self.check_moves_overlap(&edges, &mut full_state) {

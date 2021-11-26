@@ -35,8 +35,9 @@ pub fn make_input_enabled(
                 Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {
-                let input_edges =
-                    component.get_next_edges(location, input, component::SyncType::Input);
+                let input_edges = component
+                    .get_next_edges(location, input, component::SyncType::Input)
+                    .unwrap();
                 let mut zones = vec![];
 
                 for edge in input_edges {
