@@ -10,7 +10,10 @@ use simple_error::bail;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 
-pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr {
+pub fn prune_system(
+    ts: TransitionSystemPtr,
+    clocks: u32,
+) -> Result<TransitionSystemPtr, Box<dyn Error>> {
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
     let comp = combine_components(&ts);
@@ -27,9 +30,9 @@ pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr
         },
     };
 
-    let result = Box::new(prune(&comp, clocks, inputs, outputs, &sys_decl));
+    let result = Box::new(prune(&comp, clocks, inputs, outputs, &sys_decl)?);
 
-    result
+    Ok(result)
 }
 
 pub fn prune(
@@ -38,7 +41,7 @@ pub fn prune(
     inputs: HashSet<String>,
     outputs: HashSet<String>,
     decl: &SystemDeclarations,
-) -> PrunedComponent {
+) -> Result<PrunedComponent, Box<dyn Error>> {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
 
@@ -62,7 +65,7 @@ pub fn prune(
                 &mut consistent_parts,
                 &comp.declarations,
                 clocks + 1,
-            );
+            )?;
         }
         if !changed {
             break;
@@ -72,11 +75,11 @@ pub fn prune(
     //Remove fully inconsistent locations and edges
     cleanup(&mut new_comp, &consistent_parts, clocks + 1);
 
-    PrunedComponent {
+    Ok(PrunedComponent {
         component: Box::new(new_comp),
         inputs,
         outputs,
-    }
+    })
 }
 
 fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>, dimensions: u32) {
@@ -140,11 +143,17 @@ fn prune_to_consistent_part(
     consistent_parts: &mut HashMap<String, Federation>,
     decls: &Declarations,
     dimensions: u32,
-) -> bool {
-    if !is_inconsistent(location, consistent_parts, decls, dimensions).unwrap() {
-        return false;
+) -> Result<bool, Box<dyn Error>> {
+    if !is_inconsistent(location, consistent_parts, decls, dimensions)? {
+        return Ok(false);
     }
-    let cons_fed = consistent_parts.get(location.get_id()).unwrap().clone();
+    let cons_fed = match consistent_parts.get(location.get_id()) {
+        Some(fed) => fed.clone(),
+        None => bail!(
+            "Couldnt find the location {} in the consistent_parts map",
+            location.get_id()
+        ),
+    };
 
     let mut changed = false;
     for edge in &mut new_comp.edges {
@@ -152,10 +161,10 @@ fn prune_to_consistent_part(
             let mut reachable_fed = Federation::new(vec![], dimensions);
             for mut zone in cons_fed.iter_zones().cloned() {
                 for clock in edge.get_update_clocks() {
-                    let clock_index = decls.get_clock_index_by_name(clock).unwrap();
+                    let clock_index = decls.get_clock_index_by_name(clock)?;
                     zone.free_clock(clock_index);
                 }
-                if edge.apply_guard(decls, &mut zone).unwrap() {
+                if edge.apply_guard(decls, &mut zone)? {
                     reachable_fed.add(zone);
                 }
             }
@@ -166,7 +175,7 @@ fn prune_to_consistent_part(
             }
         }
     }
-    changed
+    Ok(changed)
 }
 
 fn handle_input(
