@@ -361,16 +361,16 @@ fn is_new_state<'a>(
         }*/
 
         for i in 0..passed_state_pair.get_locations1().len() {
-            if passed_state_pair.get_locations1().get_location(i).get_id()
-                != state_pair.get_locations1().get_location(i).get_id()
+            if passed_state_pair.get_locations1().get_location(i)?.get_id()
+                != state_pair.get_locations1().get_location(i)?.get_id()
             {
                 continue 'OuterFor;
             }
         }
 
         for i in 0..passed_state_pair.get_locations2().len() {
-            if passed_state_pair.get_locations2().get_location(i).get_id()
-                != state_pair.get_locations2().get_location(i).get_id()
+            if passed_state_pair.get_locations2().get_location(i)?.get_id()
+                != state_pair.get_locations2().get_location(i)?.get_id()
             {
                 continue 'OuterFor;
             }

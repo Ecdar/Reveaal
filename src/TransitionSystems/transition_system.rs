@@ -17,8 +17,11 @@ pub struct LocationTuple<'a> {
 }
 
 impl<'a> LocationTuple<'a> {
-    pub fn get_location(&self, index: usize) -> &Location {
-        self.locations.get(index).unwrap()
+    pub fn get_location(&self, index: usize) -> Result<&Location, Box<dyn Error>> {
+        match self.locations.get(index) {
+            Some(loc) => Ok(loc),
+            None => bail!("Index out of bounds during location tuple access"),
+        }
     }
 
     pub fn get_decl(&self, index: usize) -> &Declarations {
@@ -198,7 +201,7 @@ impl TransitionSystem<'_> for Component {
         sync_type: &SyncType,
         index: &mut usize,
     ) -> Vec<Transition<'b>> {
-        let location = location.get_location(*index);
+        let location = location.get_location(*index).unwrap();
         let next_edges = self.get_next_edges(location, action, *sync_type).unwrap();
 
         let mut open_transitions = vec![];

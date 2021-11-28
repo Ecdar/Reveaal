@@ -264,7 +264,7 @@ impl Component {
             let zone = Zone::init(dimension);
 
             let mut state = create_state(initial_loc, &self.declarations, zone);
-            if let Some(update_i) = state.get_location(0).get_invariant() {
+            if let Some(update_i) = state.get_location(0)?.get_invariant() {
                 constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0)?;
             }
 
@@ -288,7 +288,7 @@ impl Component {
         passed_list: &mut Vec<State>,
     ) -> bool {
         for state in passed_list {
-            if state.get_location(0).id == currState.get_location(0).id {
+            if state.get_location(0).unwrap().id == currState.get_location(0).unwrap().id {
                 if currState.zone.is_subset_eq(&state.zone) {
                     return true;
                 }
@@ -316,7 +316,7 @@ impl Component {
         let mut edges: Vec<&Edge> = vec![];
         for input_action in self.get_input_actions()? {
             edges.append(&mut self.get_next_edges(
-                currState.get_location(0),
+                currState.get_location(0)?,
                 input_action.get_name(),
                 SyncType::Input,
             )?);
@@ -377,7 +377,7 @@ impl Component {
             let mut edges: Vec<&Edge> = vec![];
             for output_action in self.get_output_actions()? {
                 edges.append(&mut self.get_next_edges(
-                    currState.get_location(0),
+                    currState.get_location(0)?,
                     output_action.get_name(),
                     SyncType::Output,
                 )?);
@@ -478,7 +478,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for input_action in self.get_input_actions()? {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
+                        full_state.get_location(0)?,
                         input_action.get_name(),
                         SyncType::Input,
                     )?);
@@ -489,7 +489,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions()? {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
+                        full_state.get_location(0)?,
                         output_action.get_name(),
                         SyncType::Output,
                     )?);
@@ -567,7 +567,7 @@ impl Component {
                 let location_j = self.get_location_by_name(edges[j].get_target_location())?;
 
                 let mut state_i = create_state(
-                    state.get_location(0),
+                    state.get_location(0)?,
                     &self.declarations,
                     state.zone.clone(),
                 );
@@ -594,7 +594,7 @@ impl Component {
                 }
 
                 let mut state_j = create_state(
-                    state.get_location(0),
+                    state.get_location(0)?,
                     &self.declarations,
                     state.zone.clone(),
                 );
@@ -637,7 +637,7 @@ fn is_new_state<'a>(
     assert_eq!(state.decorated_locations.len(), 1);
 
     for passed_state_pair in passed_list {
-        if state.get_location(0).get_id() != passed_state_pair.get_location(0).get_id() {
+        if state.get_location(0)?.get_id() != passed_state_pair.get_location(0)?.get_id() {
             continue;
         }
         if state.zone.dimension != passed_state_pair.zone.dimension {
@@ -693,7 +693,7 @@ impl<'a> State<'a> {
         self.zone.is_subset_eq(&other.zone)
     }
 
-    pub fn get_location(&self, index: usize) -> &Location {
+    pub fn get_location(&self, index: usize) -> Result<&Location, Box<dyn Error>> {
         self.decorated_locations.get_location(index)
     }
 
