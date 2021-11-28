@@ -312,20 +312,13 @@ pub fn rs_dbm_constrain1(
     constraint: i32,
 ) -> bool {
     unsafe {
-        let res = dbm_constrain1(
+        dbm_constrain1(
             dbm.as_mut_ptr(),
             dimension,
             var_index_i,
             var_index_j,
             constraint,
-        );
-        return if true == res {
-            true
-        } else if false == res {
-            false
-        } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
-        };
+        )
     }
 }
 
@@ -557,30 +550,12 @@ pub fn rs_dbm_constrain_var_to_val(
     var_index: u32,
     value: i32,
 ) -> bool {
-    unsafe {
-        let res = dbm_constrainClock(dbm.as_mut_ptr(), dimension, var_index, value);
-        return if true == res {
-            true
-        } else if false == res {
-            false
-        } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
-        };
-    }
+    unsafe { dbm_constrainClock(dbm.as_mut_ptr(), dimension, var_index, value) }
 }
 
 /// Used to perform an intersection of dbms, dbm1 is updated to the intersection, returns whether the dbms intersect
 pub fn rs_dmb_intersection(dbm1: &mut [i32], dbm2: &[i32], dimension: u32) -> bool {
-    unsafe {
-        let res = dbm_intersection(dbm1.as_mut_ptr(), dbm2.as_ptr(), dimension);
-        return if true == res {
-            true
-        } else if false == res {
-            false
-        } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
-        };
-    }
+    unsafe { dbm_intersection(dbm1.as_mut_ptr(), dbm2.as_ptr(), dimension) }
 }
 
 /// Former "reset" operation, properly called update.
