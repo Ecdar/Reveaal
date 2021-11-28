@@ -19,7 +19,7 @@ pub fn check_refinement(
     sys2.initialize(dimensions);
     println!("Dimensions {}", dimensions);
     //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2, dimensions) {
+    if !check_preconditions(&sys1, &sys2, dimensions)? {
         println!("preconditions failed - refinement false");
         return Ok(Ok(false));
     }
@@ -307,9 +307,13 @@ fn prepare_init_state<'a>(
     Ok(initial_pair)
 }
 
-fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
-    if !(sys2.precheck_sys_rep(dim).unwrap() && sys1.precheck_sys_rep(dim).unwrap()) {
-        return false;
+fn check_preconditions(
+    sys1: &TransitionSystemPtr,
+    sys2: &TransitionSystemPtr,
+    dim: u32,
+) -> Result<bool, Box<dyn Error>> {
+    if !(sys2.precheck_sys_rep(dim)? && sys1.precheck_sys_rep(dim)?) {
+        return Ok(false);
     }
     let outputs1 = sys1.get_output_actions();
     let outputs2 = sys2.get_output_actions();
@@ -327,7 +331,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
                 "right side could not match a output from left side o1: {:?}, o2 {:?}",
                 outputs1, outputs2
             );
-            return false;
+            return Ok(false);
         }
     }
 
@@ -339,9 +343,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
             "input of left side is not equal to input of right side i1: {:?}, i2 {:?}",
             inputs1, inputs2
         );
-        return false;
+        return Ok(false);
     }
-    true
+    Ok(true)
 }
 
 fn is_new_state<'a>(
