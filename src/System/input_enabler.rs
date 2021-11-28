@@ -5,12 +5,14 @@ use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations;
 use crate::TransitionSystems::TransitionSystem;
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 
 pub fn make_input_enabled(
     component: &mut component::Component,
     sys_decls: &system_declarations::SystemDeclarations,
-) {
+) -> Result<(), Box<dyn Error>> {
     let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
     if let Some(inputs) = sys_decls
@@ -26,8 +28,7 @@ pub fn make_input_enabled(
                     invariant,
                     component.get_declarations(),
                     &mut location_inv_zone,
-                )
-                .unwrap();
+                )?;
             }
 
             // No constraints on any clocks
@@ -35,24 +36,21 @@ pub fn make_input_enabled(
                 Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
 
             for input in inputs {
-                let input_edges = component
-                    .get_next_edges(location, input, component::SyncType::Input)
-                    .unwrap();
+                let input_edges =
+                    component.get_next_edges(location, input, component::SyncType::Input)?;
                 let mut zones = vec![];
 
                 for edge in input_edges {
                     let mut guard_zone = location_inv_zone.clone();
                     let has_inv = if let Some(target_invariant) = component
-                        .get_location_by_name(edge.get_target_location())
-                        .unwrap()
+                        .get_location_by_name(edge.get_target_location())?
                         .get_invariant()
                     {
                         constraint_applyer::apply_constraints_to_state_declarations(
                             target_invariant,
                             component.get_declarations(),
                             &mut guard_zone,
-                        )
-                        .unwrap()
+                        )?
                     } else {
                         false
                     };
@@ -60,9 +58,10 @@ pub fn make_input_enabled(
                     if edge.get_update().is_some() {
                         let update_clocks = edge.get_update_clocks();
                         for clock in update_clocks {
-                            let clock_index =
-                                component.get_declarations().clocks.get(clock).unwrap();
-                            guard_zone.free_clock(*clock_index);
+                            let clock_index = component
+                                .get_declarations()
+                                .get_clock_index_by_name(clock)?;
+                            guard_zone.free_clock(clock_index);
                         }
                     }
 
@@ -71,8 +70,7 @@ pub fn make_input_enabled(
                             guard,
                             component.get_declarations(),
                             &mut guard_zone,
-                        )
-                        .unwrap()
+                        )?
                     } else {
                         false
                     };
@@ -104,6 +102,7 @@ pub fn make_input_enabled(
         }
     }
     component.add_input_edges(&mut new_edges);
+    Ok(())
 }
 
 pub fn build_guard_from_zone(

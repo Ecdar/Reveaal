@@ -70,7 +70,7 @@ impl JsonProjectLoader {
         let mut component = json_reader::read_json_component(&self.project_path, component_name)?;
 
         component.create_edge_io_split();
-        input_enabler::make_input_enabled(&mut component, self.get_declarations());
+        input_enabler::make_input_enabled(&mut component, self.get_declarations())?;
 
         self.loaded_components
             .insert(String::from(component_name), component);
@@ -122,7 +122,7 @@ impl XmlProjectLoader {
         let mut map = HashMap::<String, Component>::new();
         for mut component in comps {
             component.create_edge_io_split();
-            input_enabler::make_input_enabled(&mut component, &system_declarations);
+            input_enabler::make_input_enabled(&mut component, &system_declarations)?;
 
             let name = String::from(component.get_name());
             map.insert(name, component);
