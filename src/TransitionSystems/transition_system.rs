@@ -233,7 +233,12 @@ impl TransitionSystem<'_> for Component {
 
     fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
         let init_loc = LocationTuple::simple(
-            self.get_initial_location().unwrap(),
+            match self.get_initial_location() {
+                Some(init_loc) => init_loc,
+                None => {
+                    bail!("Cannot create initial state because there exists no initial location")
+                }
+            },
             self.get_declarations(),
         );
         let mut zone = Zone::init(dimensions);
