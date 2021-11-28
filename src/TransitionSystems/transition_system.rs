@@ -6,7 +6,9 @@ use crate::ModelObjects::component::{
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use dyn_clone::{clone_trait_object, DynClone};
+use simple_error::bail;
 use std::collections::hash_set::HashSet;
+use std::error::Error;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocationTuple<'a> {
@@ -133,7 +135,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn set_clock_indices(&mut self, index: &mut u32);
 
-    fn get_initial_state(&self, dimensions: u32) -> State;
+    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>>;
 
     fn get_max_clock_index(&self) -> u32;
 }
@@ -223,19 +225,19 @@ impl TransitionSystem<'_> for Component {
         local_consistency::is_least_consistent(self, dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> State {
+    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
         let init_loc = LocationTuple::simple(
             self.get_initial_location().unwrap(),
             self.get_declarations(),
         );
         let mut zone = Zone::init(dimensions);
         if !init_loc.apply_invariants(&mut zone) {
-            panic!("Invalid starting state");
+            bail!("Invalid starting state");
         }
 
-        State {
+        Ok(State {
             decorated_locations: init_loc,
             zone,
-        }
+        })
     }
 }

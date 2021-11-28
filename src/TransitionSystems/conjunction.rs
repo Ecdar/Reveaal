@@ -4,7 +4,9 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::System::pruning;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use simple_error::bail;
 use std::collections::hash_set::HashSet;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct Conjunction {
@@ -131,7 +133,7 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.is_locally_consistent(dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> State {
+    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
         self.component.get_initial_state(dimensions)
     }
 }

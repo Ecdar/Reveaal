@@ -3,7 +3,9 @@ use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use simple_error::bail;
 use std::collections::hash_set::HashSet;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct Composition {
