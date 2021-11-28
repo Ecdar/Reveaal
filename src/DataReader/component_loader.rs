@@ -54,16 +54,16 @@ impl ProjectLoader for JsonProjectLoader {
 }
 
 impl JsonProjectLoader {
-    pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
-        let system_declarations = json_reader::read_system_declarations(&project_path).unwrap();
-        let queries = json_reader::read_queries(&project_path).unwrap();
+    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
+        let system_declarations = json_reader::read_system_declarations(&project_path)?;
+        let queries = json_reader::read_queries(&project_path)?;
 
-        Box::new(JsonProjectLoader {
+        Ok(Box::new(JsonProjectLoader {
             project_path,
             loaded_components: HashMap::new(),
             system_declarations,
             queries,
-        })
+        }))
     }
 
     fn load_component(&mut self, component_name: &str) -> Result<(), Box<dyn Error>> {
@@ -116,8 +116,8 @@ impl ProjectLoader for XmlProjectLoader {
 }
 
 impl XmlProjectLoader {
-    pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
-        let (comps, system_declarations, queries) = parse_xml(&project_path).unwrap();
+    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
+        let (comps, system_declarations, queries) = parse_xml(&project_path)?;
 
         let mut map = HashMap::<String, Component>::new();
         for mut component in comps {
@@ -128,11 +128,11 @@ impl XmlProjectLoader {
             map.insert(name, component);
         }
 
-        Box::new(XmlProjectLoader {
+        Ok(Box::new(XmlProjectLoader {
             project_path,
             loaded_components: map,
             system_declarations,
             queries,
-        })
+        }))
     }
 }

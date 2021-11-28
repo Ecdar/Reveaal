@@ -28,7 +28,7 @@ extern crate simple_error;
 extern crate xml;
 
 pub fn main() {
-    let (mut project_loader, queries, _) = parse_args();
+    let (mut project_loader, queries, _) = try_parse_args();
 
     let mut results = vec![];
     for query in &queries {
@@ -60,7 +60,19 @@ fn create_and_execute(
     Ok(executable_query.execute()?)
 }
 
-fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
+fn try_parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
+    match parse_args() {
+        Ok(results) => results,
+        Err(error) => {
+            panic!(
+                "Something failed while parsing arguments and loading input project: {}",
+                error
+            );
+        }
+    }
+}
+
+fn parse_args() -> Result<(Box<dyn ProjectLoader>, Vec<queries::Query>, bool), Box<dyn Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     let mut folder_path: String = "".to_string();
@@ -74,18 +86,18 @@ fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
         query = query_arg.to_string();
     }
 
-    let project_loader = get_project_loader(folder_path);
+    let project_loader = get_project_loader(folder_path)?;
 
     if query.is_empty() {
         let queries: Vec<Query> = project_loader.get_queries().clone();
 
-        (
+        Ok((
             project_loader,
             queries,
             matches.is_present("checkInputOutput"),
-        )
+        ))
     } else {
-        let queries = parse_queries::parse(&query).unwrap();
+        let queries = parse_queries::parse(&query)?;
         let queries = queries
             .into_iter()
             .map(|q| Query {
@@ -94,15 +106,15 @@ fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
             })
             .collect();
 
-        (
+        Ok((
             project_loader,
             queries,
             matches.is_present("checkInputOutput"),
-        )
+        ))
     }
 }
 
-fn get_project_loader(project_path: String) -> Box<dyn ProjectLoader> {
+fn get_project_loader(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
     if xml_parser::is_xml_project(&project_path) {
         XmlProjectLoader::new(project_path)
     } else {

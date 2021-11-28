@@ -22,7 +22,7 @@ pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
 
 pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let project_path = String::from(PATH);
-    let mut project_loader = XmlProjectLoader::new(project_path);
+    let mut project_loader = XmlProjectLoader::new(project_path).unwrap();
     let query = parse_queries::parse(QUERY).unwrap().remove(0);
     let q = Query {
         query: Option::from(query),
@@ -35,7 +35,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
 }
 
 pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
-    let mut project_loader = JsonProjectLoader::new(String::from(PATH));
+    let mut project_loader = JsonProjectLoader::new(String::from(PATH)).unwrap();
     let query = parse_queries::parse(QUERY).unwrap().remove(0);
     let q = Query {
         query: Option::from(query),
