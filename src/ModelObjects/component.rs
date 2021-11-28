@@ -800,7 +800,7 @@ impl<'a> Transition<'a> {
 
     pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Zone) {
         for (_, edge, index) in &self.edges {
-            edge.apply_update(locations.get_decl(*index), zone);
+            edge.apply_update(locations.get_decl(*index), zone).unwrap();
         }
     }
 
@@ -969,14 +969,12 @@ impl fmt::Display for Edge {
 }
 
 impl Edge {
-    pub fn apply_update(
-        &self,
-        decl: &Declarations, //Will eventually be mutable
-        zone: &mut Zone,
-    ) {
+    pub fn apply_update(&self, decl: &Declarations, zone: &mut Zone) -> Result<(), Box<dyn Error>> {
         if let Some(updates) = self.get_update() {
-            updater(updates, decl, zone).unwrap();
+            updater(updates, decl, zone)?;
         }
+
+        Ok(())
     }
 
     pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> bool {
