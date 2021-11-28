@@ -9,7 +9,7 @@ use std::error::Error;
 pub fn combine_components(system: &TransitionSystemPtr) -> Result<Component, Box<dyn Error>> {
     let mut location_tuples = vec![];
     let mut edges = vec![];
-    let clocks = get_clock_map(system);
+    let clocks = get_clock_map(system)?;
     collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks)?;
 
     let locations = get_locations_from_tuples(&location_tuples, &clocks)?;
@@ -63,20 +63,20 @@ fn get_locations_from_tuples(
     Ok(result)
 }
 
-fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> Result<HashMap<String, u32>, Box<dyn Error>> {
     let mut clocks = HashMap::new();
 
     if let Some(initial) = sysrep.get_all_locations().first() {
         if initial.len() == 1 {
-            return initial.get_decl(0).unwrap().clocks.clone();
+            return Ok(initial.get_decl(0)?.clocks.clone());
         }
         for comp_id in 0..initial.len() {
-            for (k, v) in &initial.get_decl(comp_id).unwrap().clocks {
+            for (k, v) in &initial.get_decl(comp_id)?.clocks {
                 clocks.insert(format!("{}{}", k, comp_id), *v);
             }
         }
     }
-    clocks
+    Ok(clocks)
 }
 
 fn collect_all_edges_and_locations<'a>(
