@@ -260,7 +260,9 @@ fn build_state_pair<'a>(
     new_sp.zone = new_sp_zone;
     new_sp.zone.extrapolate_max_bounds(max_bounds);
 
-    if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
+    if is_new_state(&mut new_sp, passed_list).unwrap()
+        && is_new_state(&mut new_sp, waiting_list).unwrap()
+    {
         waiting_list.push(new_sp.clone());
     }
 
@@ -342,7 +344,10 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
     true
 }
 
-fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
+fn is_new_state<'a>(
+    state_pair: &mut StatePair<'a>,
+    passed_list: &mut Vec<StatePair<'a>>,
+) -> Result<bool, Box<dyn Error>> {
     'OuterFor: for passed_state_pair in passed_list {
         /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")
@@ -367,12 +372,12 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             }
         }
         if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
-            panic!("dimensions of dbm didn't match - fatal error")
+            bail!("dimensions of dbm didn't match - fatal error")
         }
 
         if state_pair.zone.is_subset_eq(&passed_state_pair.zone) {
-            return false;
+            return Ok(false);
         }
     }
-    true
+    Ok(true)
 }
