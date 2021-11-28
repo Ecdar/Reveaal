@@ -99,7 +99,7 @@ pub fn extract_side(
         QueryExpression::Conjunction(left, right) => Ok(Conjunction::new(
             extract_side(left, project_loader, clock_index)?,
             extract_side(right, project_loader, clock_index)?,
-        )),
+        )?),
         QueryExpression::Quotient(left, right) => Ok(Quotient::new(
             extract_side(left, project_loader, clock_index)?,
             extract_side(right, project_loader, clock_index)?,

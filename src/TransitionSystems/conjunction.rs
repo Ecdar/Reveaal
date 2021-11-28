@@ -17,7 +17,10 @@ pub struct Conjunction {
 }
 
 impl Conjunction {
-    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> TransitionSystemPtr {
+    pub fn new(
+        left: TransitionSystemPtr,
+        right: TransitionSystemPtr,
+    ) -> Result<TransitionSystemPtr, Box<dyn Error>> {
         let outputs = left
             .get_output_actions()
             .intersection(&right.get_output_actions())
@@ -37,7 +40,7 @@ impl Conjunction {
             outputs,
         });
         let num_clocks = ts.get_max_clock_index();
-        pruning::prune_system(ts, num_clocks).unwrap()
+        pruning::prune_system(ts, num_clocks)
     }
 }
 
