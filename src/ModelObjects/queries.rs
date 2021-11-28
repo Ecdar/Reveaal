@@ -29,7 +29,15 @@ where
         return Ok(None);
     }
 
-    let queries = parse_queries::parse(&s).unwrap();
+    let queries = match parse_queries::parse(&s) {
+        Ok(queries) => queries,
+        Err(error) => {
+            return Err(D::Error::custom(format!(
+                "Failed to parse queries: {}",
+                error
+            )))
+        }
+    };
     if queries.len() > 1 {
         Err(D::Error::custom(format!(
             "Could not parse query {} contains multiple queries",
