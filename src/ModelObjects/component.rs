@@ -265,8 +265,7 @@ impl Component {
 
             let mut state = create_state(initial_loc, &self.declarations, zone);
             if let Some(update_i) = state.get_location(0).get_invariant() {
-                constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0)
-                    .unwrap();
+                constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0)?;
             }
 
             let bounds = self.get_max_bounds(dimension);
@@ -325,25 +324,23 @@ impl Component {
         for edge in edges {
             //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
             let full_new_zone = currState.zone.clone();
-            let loc = self.get_location_by_name(&edge.target_location).unwrap();
+            let loc = self.get_location_by_name(&edge.target_location)?;
 
             let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
             if let Some(source_inv) = self
-                .get_location_by_name(edge.get_source_location())
-                .unwrap()
+                .get_location_by_name(edge.get_source_location())?
                 .get_invariant()
             {
                 if let BoolExpression::Bool(false) =
-                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)
-                        .unwrap()
+                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)?
                 {
                     continue;
                 };
             }
 
             if let Some(guard) = edge.get_guard() {
-                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0).unwrap();
+                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0)?;
             }
 
             if !new_state.zone.is_valid() {
@@ -357,12 +354,10 @@ impl Component {
             new_state.zone.up();
 
             if let Some(target_inv) = self
-                .get_location_by_name(edge.get_target_location())
-                .unwrap()
+                .get_location_by_name(edge.get_target_location())?
                 .get_invariant()
             {
-                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0)
-                    .unwrap();
+                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0)?;
             }
 
             if !new_state.zone.is_valid() {
@@ -394,13 +389,12 @@ impl Component {
                 //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                 let full_new_zone = currState.zone.clone();
 
-                let loc = self.get_location_by_name(&edge.target_location).unwrap();
+                let loc = self.get_location_by_name(&edge.target_location)?;
 
                 let mut new_state = create_state(loc, &self.declarations, full_new_zone);
 
                 if let Some(source_inv) = self
-                    .get_location_by_name(edge.get_source_location())
-                    .unwrap()
+                    .get_location_by_name(edge.get_source_location())?
                     .get_invariant()
                 {
                     if let BoolExpression::Bool(false) =
@@ -408,16 +402,14 @@ impl Component {
                             source_inv,
                             &mut new_state,
                             0,
-                        )
-                        .unwrap()
+                        )?
                     {
                         continue;
                     };
                 }
 
                 if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0)
-                        .unwrap();
+                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0)?;
                 }
                 if !new_state.zone.is_valid() {
                     continue;
@@ -429,12 +421,10 @@ impl Component {
                 new_state.zone.up();
 
                 if let Some(target_inv) = self
-                    .get_location_by_name(edge.get_target_location())
-                    .unwrap()
+                    .get_location_by_name(edge.get_target_location())?
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0)
-                        .unwrap();
+                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0)?;
                 }
 
                 if !new_state.zone.is_valid() {
