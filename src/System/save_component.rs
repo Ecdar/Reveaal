@@ -135,7 +135,7 @@ fn collect_specific_edges_from_location<'a>(
                     SyncType::Output
                 },
                 guard: transition.get_renamed_guard_expression(clock_map).unwrap(),
-                update: transition.get_renamed_updates(clock_map),
+                update: transition.get_renamed_updates(clock_map).unwrap(),
                 sync: sync.clone(),
             };
             edges.push(edge);

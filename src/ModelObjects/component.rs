@@ -883,24 +883,23 @@ impl<'a> Transition<'a> {
     pub fn get_renamed_updates(
         &self,
         naming: &HashMap<String, u32>,
-    ) -> Option<Vec<parse_edge::Update>> {
+    ) -> Result<Option<Vec<parse_edge::Update>>, Box<dyn Error>> {
         let mut updates = vec![];
         for (comp, edge, _) in &self.edges {
             if let Some(update) = &edge.update {
                 let mut update = update.clone();
 
                 for u in &mut update {
-                    u.swap_clock_names(&comp.declarations.clocks, naming)
-                        .unwrap();
+                    u.swap_clock_names(&comp.declarations.clocks, naming)?;
                 }
 
                 updates.append(&mut update);
             }
         }
         if updates.is_empty() {
-            None
+            Ok(None)
         } else {
-            Some(updates)
+            Ok(Some(updates))
         }
     }
 
