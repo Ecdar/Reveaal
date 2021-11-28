@@ -162,13 +162,13 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn get_input_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_input_actions();
+        let channels: Vec<Channel> = self.get_input_actions().unwrap();
 
         channels.into_iter().map(|c| c.name).collect()
     }
 
     fn get_output_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_output_actions();
+        let channels: Vec<Channel> = self.get_output_actions().unwrap();
 
         channels.into_iter().map(|c| c.name).collect()
     }

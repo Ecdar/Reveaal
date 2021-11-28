@@ -22,6 +22,7 @@ impl SystemDeclarations {
         self.declarations.input_actions.insert(
             comp.get_name().clone(),
             comp.get_input_actions()
+                .unwrap()
                 .into_iter()
                 .map(|channel| channel.name)
                 .collect(),
@@ -29,6 +30,7 @@ impl SystemDeclarations {
         self.declarations.output_actions.insert(
             comp.get_name().clone(),
             comp.get_output_actions()
+                .unwrap()
                 .into_iter()
                 .map(|channel| channel.name)
                 .collect(),

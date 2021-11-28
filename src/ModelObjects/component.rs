@@ -129,9 +129,9 @@ impl Component {
         actions
     }
 
-    pub fn get_input_actions(&self) -> Vec<Channel> {
+    pub fn get_input_actions(&self) -> Result<Vec<Channel>, Box<dyn Error>> {
         let mut actions = vec![];
-        for edge in self.input_edges.as_ref().unwrap() {
+        for edge in self.get_input_edges()? {
             if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
@@ -141,12 +141,12 @@ impl Component {
                 });
             }
         }
-        actions
+        Ok(actions)
     }
 
-    pub fn get_output_actions(&self) -> Vec<Channel> {
+    pub fn get_output_actions(&self) -> Result<Vec<Channel>, Box<dyn Error>> {
         let mut actions = vec![];
-        for edge in self.output_edges.as_ref().unwrap() {
+        for edge in self.get_output_edges()? {
             if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
@@ -156,7 +156,7 @@ impl Component {
                 });
             }
         }
-        actions
+        Ok(actions)
     }
 
     /// End of basic methods
@@ -315,7 +315,7 @@ impl Component {
         }
 
         let mut edges: Vec<&Edge> = vec![];
-        for input_action in self.get_input_actions() {
+        for input_action in self.get_input_actions()? {
             edges.append(&mut self.get_next_edges(
                 currState.get_location(0),
                 input_action.get_name(),
@@ -380,7 +380,7 @@ impl Component {
             return Ok(true);
         } else {
             let mut edges: Vec<&Edge> = vec![];
-            for output_action in self.get_output_actions() {
+            for output_action in self.get_output_actions()? {
                 edges.append(&mut self.get_next_edges(
                     currState.get_location(0),
                     output_action.get_name(),
@@ -486,7 +486,7 @@ impl Component {
             if let Some(state) = waiting_list.pop() {
                 let mut full_state = state;
                 let mut edges: Vec<&Edge> = vec![];
-                for input_action in self.get_input_actions() {
+                for input_action in self.get_input_actions()? {
                     edges.append(&mut self.get_next_edges(
                         full_state.get_location(0),
                         input_action.get_name(),
@@ -497,7 +497,7 @@ impl Component {
                     return Ok(false);
                 }
                 let mut edges: Vec<&Edge> = vec![];
-                for output_action in self.get_output_actions() {
+                for output_action in self.get_output_actions()? {
                     edges.append(&mut self.get_next_edges(
                         full_state.get_location(0),
                         output_action.get_name(),
