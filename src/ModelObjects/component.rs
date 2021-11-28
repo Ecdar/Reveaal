@@ -864,13 +864,11 @@ impl<'a> Transition<'a> {
     pub fn get_renamed_guard_expression(
         &self,
         naming: &HashMap<String, u32>,
-    ) -> Option<BoolExpression> {
+    ) -> Result<Option<BoolExpression>, Box<dyn Error>> {
         let mut guard: Option<BoolExpression> = None;
         for (comp, edge, _) in &self.edges {
             if let Some(g) = &edge.guard {
-                let g = g
-                    .swap_clock_names(&comp.declarations.clocks, naming)
-                    .unwrap();
+                let g = g.swap_clock_names(&comp.declarations.clocks, naming)?;
                 if let Some(g_full) = guard {
                     guard = Some(BoolExpression::AndOp(Box::new(g_full), Box::new(g)));
                 } else {
@@ -879,7 +877,7 @@ impl<'a> Transition<'a> {
             }
         }
 
-        guard
+        Ok(guard)
     }
 
     pub fn get_renamed_updates(
