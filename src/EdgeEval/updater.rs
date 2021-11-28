@@ -14,12 +14,8 @@ pub fn updater(
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
-                if let Some(&clock_index) = decl.get_clock_index_by_name(update.get_variable_name())
-                {
-                    zone.update(clock_index, *val);
-                } else {
-                    bail!("Attempting to update a clock which is not initialized")
-                }
+                let clock_index = decl.get_clock_index_by_name(update.get_variable_name())?;
+                zone.update(clock_index, *val);
             }
             _ => {
                 bail!("Should not be able to assign to {:?} in update", update)
@@ -39,14 +35,10 @@ pub fn state_updater(
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
-                if let Some(&clock_index) = state
+                let clock_index = state
                     .get_declarations(comp_index)
-                    .get_clock_index_by_name(update.get_variable_name())
-                {
-                    state.zone.update(clock_index, *val);
-                } else {
-                    bail!("Attempting to update a clock which is not initialized")
-                }
+                    .get_clock_index_by_name(update.get_variable_name())?;
+                state.zone.update(clock_index, *val);
             }
             _ => {
                 bail!("Should not be able to assign to {:?} in update", update)

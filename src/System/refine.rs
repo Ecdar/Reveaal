@@ -142,7 +142,7 @@ fn has_valid_state_pair<'a>(
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {
-        if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
+        if let Some(mut fed) = transition.get_guard_federation(&states1, dim).unwrap() {
             for zone in fed.iter_mut_zones() {
                 if zone.intersection(&pair_zone) {
                     left_fed.add(zone.clone());
@@ -154,7 +154,7 @@ fn has_valid_state_pair<'a>(
     //Create guard zones right
     let mut right_fed = Federation::new(vec![], dim);
     for transition in transitions2 {
-        if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
+        if let Some(mut fed) = transition.get_guard_federation(&states2, dim).unwrap() {
             for zone in fed.iter_mut_zones() {
                 if zone.intersection(&pair_zone) {
                     right_fed.add(zone.clone());

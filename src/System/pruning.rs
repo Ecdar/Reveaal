@@ -149,8 +149,8 @@ fn prune_to_consistent_part(
             let mut reachable_fed = Federation::new(vec![], dimensions);
             for mut zone in cons_fed.iter_zones().cloned() {
                 for clock in edge.get_update_clocks() {
-                    let clock_index = decls.get_clock_index_by_name(clock);
-                    zone.free_clock(*(clock_index.unwrap()));
+                    let clock_index = decls.get_clock_index_by_name(clock).unwrap();
+                    zone.free_clock(clock_index);
                 }
                 if edge.apply_guard(decls, &mut zone) {
                     reachable_fed.add(zone);
@@ -239,7 +239,7 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
     let mut federation = Federation::new(vec![], dimensions);
     for output in (comp as &dyn TransitionSystem).get_output_actions() {
         for transition in comp.next_outputs(&loc, &output) {
-            if let Some(fed) = transition.get_guard_federation(&loc, dimensions) {
+            if let Some(fed) = transition.get_guard_federation(&loc, dimensions).unwrap() {
                 for mut zone in fed.iter_zones().cloned() {
                     zone.down();
                     if loc.apply_invariants(&mut zone) {

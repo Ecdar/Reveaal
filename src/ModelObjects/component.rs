@@ -823,12 +823,14 @@ impl<'a> Transition<'a> {
         Ok(())
     }
 
-    pub fn get_guard_federation(&self, locations: &LocationTuple, dim: u32) -> Option<Federation> {
+    pub fn get_guard_federation(
+        &self,
+        locations: &LocationTuple,
+        dim: u32,
+    ) -> Result<Option<Federation>, Box<dyn Error>> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
-            let target_location = comp
-                .get_location_by_name(edge.get_target_location())
-                .unwrap();
+            let target_location = comp.get_location_by_name(edge.get_target_location())?;
             let mut guard_zone = Zone::init(dim);
             if target_location.get_invariant().is_some() {
                 let dec_loc = DecoratedLocation {
@@ -840,8 +842,8 @@ impl<'a> Transition<'a> {
                 }
             }
             for clock in edge.get_update_clocks() {
-                let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
-                guard_zone.free_clock(*(clock_index.unwrap()));
+                let clock_index = comp.get_declarations().get_clock_index_by_name(clock)?;
+                guard_zone.free_clock(clock_index);
             }
             let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
             let full_fed = Federation::new(vec![Zone::init(dim)], dim);
@@ -853,9 +855,9 @@ impl<'a> Transition<'a> {
             fed = fed.minus_fed(&inverse);
         }
         if !fed.is_empty() {
-            Some(fed)
+            Ok(Some(fed))
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -1132,8 +1134,11 @@ impl Declarations {
         }
     }
 
-    pub fn get_clock_index_by_name(&self, name: &str) -> Option<&u32> {
-        self.get_clocks().get(name)
+    pub fn get_clock_index_by_name(&self, name: &str) -> Result<u32, Box<dyn Error>> {
+        match self.get_clocks().get(name) {
+            Some(clock) => Ok(*clock),
+            None => bail!("Failed to find clock index of clock {}", name),
+        }
     }
 }
 
