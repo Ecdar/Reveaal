@@ -286,16 +286,16 @@ impl Component {
         &self,
         currState: &mut State,
         passed_list: &mut Vec<State>,
-    ) -> bool {
+    ) -> Result<bool, Box<dyn Error>> {
         for state in passed_list {
-            if state.get_location(0).unwrap().id == currState.get_location(0).unwrap().id {
+            if state.get_location(0)?.id == currState.get_location(0)?.id {
                 if currState.zone.is_subset_eq(&state.zone) {
-                    return true;
+                    return Ok(true);
                 }
             }
         }
 
-        false
+        Ok(false)
     }
 
     /// helper method to check consistency
@@ -307,7 +307,7 @@ impl Component {
         bounds: &MaxBounds,
     ) -> Result<bool, Box<dyn Error>> {
         currState.zone.extrapolate_max_bounds(bounds);
-        if self.passed_contains_state(&mut currState, passed_list) {
+        if self.passed_contains_state(&mut currState, passed_list)? {
             return Ok(true);
         } else {
             add_state_to_pl(passed_list, currState.clone())
