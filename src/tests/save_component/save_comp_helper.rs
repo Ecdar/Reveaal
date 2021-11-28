@@ -33,8 +33,8 @@ pub mod save_comp_helper {
 
         let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
 
-        let base_precheck = base_system.precheck_sys_rep(dimensions);
-        let new_precheck = new_comp.precheck_sys_rep(dimensions);
+        let base_precheck = base_system.precheck_sys_rep(dimensions).unwrap();
+        let new_precheck = new_comp.precheck_sys_rep(dimensions).unwrap();
         assert_eq!(base_precheck, new_precheck);
         new_comp.set_clock_indices(&mut clock_index);
 

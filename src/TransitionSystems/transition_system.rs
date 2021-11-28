@@ -125,11 +125,11 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_components<'b>(&'b self) -> Vec<&'b Component>;
 
-    fn precheck_sys_rep(&self, dim: u32) -> bool;
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>>;
 
     fn initialize(&mut self, dimensions: u32) {}
 
-    fn is_deterministic(&self, dim: u32) -> bool;
+    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>>;
 
     fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>>;
 
@@ -213,12 +213,12 @@ impl TransitionSystem<'_> for Component {
         open_transitions
     }
 
-    fn precheck_sys_rep(&self, dim: u32) -> bool {
-        self.check_consistency(dim, true).unwrap()
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+        self.check_consistency(dim, true)
     }
 
-    fn is_deterministic(&self, dim: u32) -> bool {
-        Component::is_deterministic(self, dim).unwrap()
+    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+        Component::is_deterministic(self, dim)
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {

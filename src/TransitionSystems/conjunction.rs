@@ -121,12 +121,12 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
             .next_transitions(location, action, sync_type, index)
     }
 
-    fn precheck_sys_rep(&self, dim: u32) -> bool {
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
         self.component.precheck_sys_rep(dim)
     }
 
-    fn is_deterministic(&self, dim: u32) -> bool {
-        self.component.is_deterministic(dim).unwrap()
+    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+        self.component.is_deterministic(dim)
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {

@@ -52,22 +52,22 @@ macro_rules! default_composition {
             )
         }
 
-        fn precheck_sys_rep(&self, dim: u32) -> bool {
-            if !self.is_deterministic(dim) {
+        fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+            if !self.is_deterministic(dim)? {
                 println!("NOT DETERMINISTIC");
-                return false;
+                return Ok(false);
             }
 
-            if !self.is_locally_consistent(dim).unwrap() {
+            if !self.is_locally_consistent(dim)? {
                 println!("NOT CONSISTENT");
-                return false;
+                return Ok(false);
             }
 
-            true
+            Ok(true)
         }
 
-        fn is_deterministic(&self, dim: u32) -> bool {
-            self.left.is_deterministic(dim) && self.right.is_deterministic(dim)
+        fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+            Ok(self.left.is_deterministic(dim)? && self.right.is_deterministic(dim)?)
         }
 
         fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {

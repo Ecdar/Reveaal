@@ -94,7 +94,7 @@ pub struct ConsistencyExecutor {
 impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let dim = self.system.get_num_clocks() + 1;
-        Ok(QueryResult::Consistency(self.system.precheck_sys_rep(dim)))
+        Ok(QueryResult::Consistency(self.system.precheck_sys_rep(dim)?))
     }
 }
 
@@ -105,7 +105,7 @@ pub struct DeterminismExecutor {
 impl<'a> ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
         let dim = self.system.get_num_clocks() + 1;
-        let is_deterministic = self.system.is_deterministic(dim);
+        let is_deterministic = self.system.is_deterministic(dim)?;
 
         Ok(QueryResult::Determinism(is_deterministic))
     }

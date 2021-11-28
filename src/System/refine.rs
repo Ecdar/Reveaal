@@ -308,7 +308,7 @@ fn prepare_init_state<'a>(
 }
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
-    if !(sys2.precheck_sys_rep(dim) && sys1.precheck_sys_rep(dim)) {
+    if !(sys2.precheck_sys_rep(dim).unwrap() && sys1.precheck_sys_rep(dim).unwrap()) {
         return false;
     }
     let outputs1 = sys1.get_output_actions();
