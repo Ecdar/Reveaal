@@ -771,7 +771,7 @@ impl<'a> Transition<'a> {
     pub fn use_transition(&self, state: &mut State<'a>) -> bool {
         if self.apply_guards(&state.decorated_locations, &mut state.zone) {
             self.apply_updates(&mut state.decorated_locations, &mut state.zone);
-            self.move_locations(&mut state.decorated_locations);
+            self.move_locations(&mut state.decorated_locations).unwrap();
             state.zone.up();
             if state.decorated_locations.apply_invariants(&mut state.zone) {
                 return true;
@@ -812,13 +812,15 @@ impl<'a> Transition<'a> {
         success
     }
 
-    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
+    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) -> Result<(), Box<dyn Error>> {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
-            let next_location = comp.get_location_by_name(new_loc_name).unwrap();
+            let next_location = comp.get_location_by_name(new_loc_name)?;
 
             locations.set_location(*index, next_location);
         }
+
+        Ok(())
     }
 
     pub fn get_guard_federation(&self, locations: &LocationTuple, dim: u32) -> Option<Federation> {

@@ -125,7 +125,7 @@ fn collect_specific_edges_from_location<'a>(
         );
         for transition in transitions {
             let mut target_location = location.clone();
-            transition.move_locations(&mut target_location);
+            transition.move_locations(&mut target_location).unwrap();
             let edge = Edge {
                 source_location: location.to_string(),
                 target_location: target_location.to_string(),

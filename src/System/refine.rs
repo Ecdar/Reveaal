@@ -229,8 +229,8 @@ fn build_state_pair<'a>(
 
     //Update locations in states
 
-    transition1.move_locations(locations1);
-    transition2.move_locations(locations2);
+    transition1.move_locations(locations1).unwrap();
+    transition2.move_locations(locations2).unwrap();
 
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
