@@ -224,8 +224,12 @@ fn build_state_pair<'a>(
     }
 
     //Apply updates on both sides
-    transition1.apply_updates(locations1, &mut new_sp_zone);
-    transition2.apply_updates(locations2, &mut new_sp_zone);
+    transition1
+        .apply_updates(locations1, &mut new_sp_zone)
+        .unwrap();
+    transition2
+        .apply_updates(locations2, &mut new_sp_zone)
+        .unwrap();
 
     //Update locations in states
 
