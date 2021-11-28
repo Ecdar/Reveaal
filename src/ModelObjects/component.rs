@@ -685,19 +685,6 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
-        let mut zone = Zone::init(dimensions);
-
-        if !decorated_locations.apply_invariants(&mut zone).unwrap() {
-            return None;
-        }
-
-        Some(State {
-            decorated_locations,
-            zone,
-        })
-    }
-
     pub fn is_subset_of(&self, other: &Self) -> bool {
         if self.decorated_locations != other.decorated_locations {
             return false;
