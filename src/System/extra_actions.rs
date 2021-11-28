@@ -1,12 +1,13 @@
 use crate::ModelObjects::component::get_dummy_component;
 use crate::TransitionSystems::{Composition, TransitionSystemPtr};
+use std::error::Error;
 
 pub fn add_extra_inputs_outputs(
     sys1: TransitionSystemPtr,
     sys2: TransitionSystemPtr,
 ) -> (TransitionSystemPtr, TransitionSystemPtr) {
-    let inputs1 = get_extra(&sys1, &sys2, true);
-    let outputs2 = get_extra(&sys2, &sys1, false);
+    let inputs1 = get_extra(&sys1, &sys2, true).unwrap();
+    let outputs2 = get_extra(&sys2, &sys1, false).unwrap();
 
     if inputs1.is_empty() && outputs2.is_empty() {
         return (sys1, sys2);
@@ -15,8 +16,8 @@ pub fn add_extra_inputs_outputs(
     let comp1 = get_dummy_component("EXTRA_INPUT_OUTPUTS1".to_string(), &inputs1, &[]);
     let comp2 = get_dummy_component("EXTRA_INPUT_OUTPUTS2".to_string(), &[], &outputs2);
 
-    let new_sys1 = Composition::new(sys1, Box::new(comp1));
-    let new_sys2 = Composition::new(sys2, Box::new(comp2));
+    let new_sys1 = Composition::new(sys1, Box::new(comp1)).unwrap();
+    let new_sys2 = Composition::new(sys2, Box::new(comp2)).unwrap();
 
     (new_sys1, new_sys2)
 }
@@ -25,16 +26,16 @@ fn get_extra(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
     is_input: bool,
-) -> Vec<String> {
+) -> Result<Vec<String>, Box<dyn Error>> {
     let actions1 = if is_input {
-        sys1.get_input_actions()
+        sys1.get_input_actions()?
     } else {
-        sys1.get_output_actions()
+        sys1.get_output_actions()?
     };
     let actions2 = if is_input {
-        sys2.get_input_actions()
+        sys2.get_input_actions()?
     } else {
-        sys2.get_output_actions()
+        sys2.get_output_actions()?
     };
 
     let result = actions2
@@ -47,5 +48,5 @@ fn get_extra(
         result
     );
 
-    result
+    Ok(result)
 }

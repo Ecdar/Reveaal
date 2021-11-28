@@ -14,8 +14,8 @@ pub fn prune_system(
     ts: TransitionSystemPtr,
     clocks: u32,
 ) -> Result<TransitionSystemPtr, Box<dyn Error>> {
-    let inputs = ts.get_input_actions();
-    let outputs = ts.get_output_actions();
+    let inputs = ts.get_input_actions()?;
+    let outputs = ts.get_output_actions()?;
     let comp = combine_components(&ts)?;
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
@@ -258,7 +258,7 @@ fn get_consistent_part(
     }
 
     let mut federation = Federation::new(vec![], dimensions);
-    for output in (comp as &dyn TransitionSystem).get_output_actions() {
+    for output in (comp as &dyn TransitionSystem).get_output_actions()? {
         for transition in comp.next_outputs(&loc, &output) {
             if let Some(fed) = transition.get_guard_federation(&loc, dimensions)? {
                 for mut zone in fed.iter_zones().cloned() {

@@ -95,7 +95,7 @@ pub fn extract_side(
         QueryExpression::Composition(left, right) => Ok(Composition::new(
             extract_side(left, project_loader, clock_index)?,
             extract_side(right, project_loader, clock_index)?,
-        )),
+        )?),
         QueryExpression::Conjunction(left, right) => Ok(Conjunction::new(
             extract_side(left, project_loader, clock_index)?,
             extract_side(right, project_loader, clock_index)?,

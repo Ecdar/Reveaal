@@ -5,11 +5,11 @@ macro_rules! default_composition {
             bounds.add_bounds(&self.right.get_max_bounds(dim));
             bounds
         }
-        fn get_input_actions(&self) -> HashSet<String> {
-            self.inputs.clone()
+        fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+            Ok(self.inputs.clone())
         }
-        fn get_output_actions(&self) -> HashSet<String> {
-            self.outputs.clone()
+        fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+            Ok(self.outputs.clone())
         }
         fn get_num_clocks(&self) -> u32 {
             self.left.get_num_clocks() + self.right.get_num_clocks()

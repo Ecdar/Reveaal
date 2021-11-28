@@ -113,9 +113,9 @@ fn collect_specific_edges_from_location<'a>(
     clock_map: &HashMap<String, u32>,
 ) -> Result<(), Box<dyn Error>> {
     for sync in if input {
-        representation.get_input_actions()
+        representation.get_input_actions()?
     } else {
-        representation.get_output_actions()
+        representation.get_output_actions()?
     } {
         let transitions = representation.next_transitions(
             location,

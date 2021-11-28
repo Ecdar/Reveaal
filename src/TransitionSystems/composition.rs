@@ -16,12 +16,15 @@ pub struct Composition {
 }
 
 impl Composition {
-    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Composition> {
-        let left_out = left.get_output_actions();
-        let right_out = right.get_output_actions();
+    pub fn new(
+        left: TransitionSystemPtr,
+        right: TransitionSystemPtr,
+    ) -> Result<Box<Composition>, Box<dyn Error>> {
+        let left_out = left.get_output_actions()?;
+        let right_out = right.get_output_actions()?;
 
-        let left_in = left.get_input_actions();
-        let right_in = right.get_input_actions();
+        let left_in = left.get_input_actions()?;
+        let right_in = right.get_input_actions()?;
 
         let mut inputs = HashSet::new();
 
@@ -39,12 +42,12 @@ impl Composition {
 
         let outputs = left_out.union(&right_out).cloned().collect();
 
-        Box::new(Composition {
+        Ok(Box::new(Composition {
             left,
             right,
             inputs,
             outputs,
-        })
+        }))
     }
 }
 

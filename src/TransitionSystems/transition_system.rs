@@ -119,9 +119,9 @@ pub trait TransitionSystem<'a>: DynClone {
         self.next_transitions(location, action, &SyncType::Input, &mut index)
     }
 
-    fn get_input_actions(&self) -> HashSet<String>;
+    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>>;
 
-    fn get_output_actions(&self) -> HashSet<String>;
+    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>>;
 
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
@@ -167,16 +167,16 @@ impl TransitionSystem<'_> for Component {
         self.get_max_bounds(dim)
     }
 
-    fn get_input_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_input_actions().unwrap();
+    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        let channels: Vec<Channel> = self.get_input_actions()?;
 
-        channels.into_iter().map(|c| c.name).collect()
+        Ok(channels.into_iter().map(|c| c.name).collect())
     }
 
-    fn get_output_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_output_actions().unwrap();
+    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        let channels: Vec<Channel> = self.get_output_actions()?;
 
-        channels.into_iter().map(|c| c.name).collect()
+        Ok(channels.into_iter().map(|c| c.name).collect())
     }
 
     fn get_num_clocks(&self) -> u32 {

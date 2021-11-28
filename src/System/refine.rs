@@ -24,8 +24,8 @@ pub fn check_refinement(
         return Ok(Ok(false));
     }
 
-    let inputs = sys2.get_input_actions();
-    let outputs = sys1.get_output_actions();
+    let inputs = sys2.get_input_actions()?;
+    let outputs = sys1.get_output_actions()?;
 
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
@@ -335,8 +335,8 @@ fn check_preconditions(
         }
     }
 
-    let inputs1 = sys1.get_input_actions();
-    let inputs2 = sys2.get_input_actions();
+    let inputs1 = sys1.get_input_actions()?;
+    let inputs2 = sys2.get_input_actions()?;
 
     if inputs1 != inputs2 {
         println!(

@@ -22,14 +22,14 @@ impl Conjunction {
         right: TransitionSystemPtr,
     ) -> Result<TransitionSystemPtr, Box<dyn Error>> {
         let outputs = left
-            .get_output_actions()
-            .intersection(&right.get_output_actions())
+            .get_output_actions()?
+            .intersection(&right.get_output_actions()?)
             .cloned()
             .collect();
 
         let inputs = left
-            .get_input_actions()
-            .intersection(&right.get_input_actions())
+            .get_input_actions()?
+            .intersection(&right.get_input_actions()?)
             .cloned()
             .collect();
 
@@ -76,12 +76,12 @@ pub struct PrunedComponent {
 }
 
 impl<'a> TransitionSystem<'static> for PrunedComponent {
-    fn get_input_actions(&self) -> HashSet<String> {
-        self.inputs.clone()
+    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        Ok(self.inputs.clone())
     }
 
-    fn get_output_actions(&self) -> HashSet<String> {
-        self.outputs.clone()
+    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        Ok(self.outputs.clone())
     }
 
     // ---- Rest just call child
