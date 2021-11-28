@@ -152,7 +152,7 @@ fn prune_to_consistent_part(
                     let clock_index = decls.get_clock_index_by_name(clock).unwrap();
                     zone.free_clock(clock_index);
                 }
-                if edge.apply_guard(decls, &mut zone) {
+                if edge.apply_guard(decls, &mut zone).unwrap() {
                     reachable_fed.add(zone);
                 }
             }
@@ -189,7 +189,7 @@ fn handle_output(
 ) -> bool {
     let mut prev_zone = Zone::init(dimensions);
 
-    if !edge.apply_guard(decls, &mut prev_zone) {
+    if !edge.apply_guard(decls, &mut prev_zone).unwrap() {
         return false;
     }
 

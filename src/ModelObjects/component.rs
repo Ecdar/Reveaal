@@ -812,7 +812,7 @@ impl<'a> Transition<'a> {
     pub fn apply_guards(&self, locations: &LocationTuple, zone: &mut Zone) -> bool {
         let mut success = true;
         for (_, edge, index) in &self.edges {
-            success = success && edge.apply_guard(locations.get_decl(*index), zone);
+            success = success && edge.apply_guard(locations.get_decl(*index), zone).unwrap();
         }
         success
     }
@@ -850,7 +850,7 @@ impl<'a> Transition<'a> {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock)?;
                 guard_zone.free_clock(clock_index);
             }
-            let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
+            let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone)?;
             let full_fed = Federation::new(vec![Zone::init(dim)], dim);
             let inverse = if success {
                 full_fed.minus_fed(&Federation::new(vec![guard_zone], dim))
@@ -982,12 +982,16 @@ impl Edge {
         Ok(())
     }
 
-    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> bool {
-        return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, decl, zone).unwrap()
+    pub fn apply_guard(
+        &self,
+        decl: &Declarations,
+        zone: &mut Zone,
+    ) -> Result<bool, Box<dyn Error>> {
+        if let Some(guards) = self.get_guard() {
+            apply_constraints_to_state(guards, decl, zone)
         } else {
-            true
-        };
+            Ok(true)
+        }
     }
 
     pub fn get_source_location(&self) -> &String {
