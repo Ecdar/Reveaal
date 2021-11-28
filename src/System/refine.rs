@@ -54,7 +54,7 @@ pub fn check_refinement(
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
 
-            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
+            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)? {
                 create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
@@ -88,7 +88,7 @@ pub fn check_refinement(
             let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
             let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
+            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)? {
                 create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
@@ -134,7 +134,7 @@ fn has_valid_state_pair<'a>(
     transitions2: &[Transition<'a>],
     curr_pair: &StatePair<'a>,
     is_state1: bool,
-) -> bool {
+) -> Result<bool, Box<dyn Error>> {
     let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
@@ -142,7 +142,7 @@ fn has_valid_state_pair<'a>(
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {
-        if let Some(mut fed) = transition.get_guard_federation(&states1, dim).unwrap() {
+        if let Some(mut fed) = transition.get_guard_federation(&states1, dim)? {
             for zone in fed.iter_mut_zones() {
                 if zone.intersection(&pair_zone) {
                     left_fed.add(zone.clone());
@@ -154,7 +154,7 @@ fn has_valid_state_pair<'a>(
     //Create guard zones right
     let mut right_fed = Federation::new(vec![], dim);
     for transition in transitions2 {
-        if let Some(mut fed) = transition.get_guard_federation(&states2, dim).unwrap() {
+        if let Some(mut fed) = transition.get_guard_federation(&states2, dim)? {
             for zone in fed.iter_mut_zones() {
                 if zone.intersection(&pair_zone) {
                     right_fed.add(zone.clone());
@@ -165,7 +165,7 @@ fn has_valid_state_pair<'a>(
 
     let result_federation = left_fed.minus_fed(&right_fed);
 
-    result_federation.is_empty()
+    Ok(result_federation.is_empty())
 }
 
 fn create_new_state_pairs<'a>(
