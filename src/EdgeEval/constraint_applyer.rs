@@ -514,13 +514,13 @@ pub fn apply_constraints_to_state2(
         BoolExpression::Parentheses(expr) => apply_constraints_to_state2(expr, state, comp_index),
         BoolExpression::VarName(name) => {
             if let Some(clock_index) = state
-                .get_declarations(comp_index)
+                .get_declarations(comp_index)?
                 .get_clocks()
                 .get(name.as_str())
             {
                 Ok(BoolExpression::Clock(*clock_index))
             } else if let Some(val) = state
-                .get_declarations(comp_index)
+                .get_declarations(comp_index)?
                 .get_ints()
                 .get(name.as_str())
             {

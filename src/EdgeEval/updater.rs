@@ -36,7 +36,7 @@ pub fn state_updater(
         match update.get_expression() {
             BoolExpression::Int(val) => {
                 let clock_index = state
-                    .get_declarations(comp_index)
+                    .get_declarations(comp_index)?
                     .get_clock_index_by_name(update.get_variable_name())?;
                 state.zone.update(clock_index, *val);
             }

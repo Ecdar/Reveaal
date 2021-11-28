@@ -20,12 +20,15 @@ impl<'a> LocationTuple<'a> {
     pub fn get_location(&self, index: usize) -> Result<&Location, Box<dyn Error>> {
         match self.locations.get(index) {
             Some(loc) => Ok(loc),
-            None => bail!("Index out of bounds during location tuple access"),
+            None => bail!("Index out of bounds during location tuple access for location"),
         }
     }
 
-    pub fn get_decl(&self, index: usize) -> &Declarations {
-        self.declarations.get(index).unwrap()
+    pub fn get_decl(&self, index: usize) -> Result<&Declarations, Box<dyn Error>> {
+        match self.declarations.get(index) {
+            Some(decl) => Ok(decl),
+            None => bail!("Index out of bounds during location tuple access for declarations"),
+        }
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {

@@ -697,7 +697,7 @@ impl<'a> State<'a> {
         self.decorated_locations.get_location(index)
     }
 
-    pub fn get_declarations(&self, index: usize) -> &Declarations {
+    pub fn get_declarations(&self, index: usize) -> Result<&Declarations, Box<dyn Error>> {
         self.decorated_locations.get_decl(index)
     }
 }
@@ -794,7 +794,7 @@ impl<'a> Transition<'a> {
         zone: &mut Zone,
     ) -> Result<(), Box<dyn Error>> {
         for (_, edge, index) in &self.edges {
-            edge.apply_update(locations.get_decl(*index), zone)?;
+            edge.apply_update(locations.get_decl(*index)?, zone)?;
         }
         Ok(())
     }
@@ -806,7 +806,7 @@ impl<'a> Transition<'a> {
     ) -> Result<bool, Box<dyn Error>> {
         let mut success = true;
         for (_, edge, index) in &self.edges {
-            success = success && edge.apply_guard(locations.get_decl(*index), zone)?;
+            success = success && edge.apply_guard(locations.get_decl(*index)?, zone)?;
         }
         Ok(success)
     }
@@ -844,7 +844,7 @@ impl<'a> Transition<'a> {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock)?;
                 guard_zone.free_clock(clock_index);
             }
-            let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone)?;
+            let success = edge.apply_guard(locations.get_decl(*index)?, &mut guard_zone)?;
             let full_fed = Federation::new(vec![Zone::init(dim)], dim);
             let inverse = if success {
                 full_fed.minus_fed(&Federation::new(vec![guard_zone], dim))

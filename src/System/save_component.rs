@@ -68,10 +68,10 @@ fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
 
     if let Some(initial) = sysrep.get_all_locations().first() {
         if initial.len() == 1 {
-            return initial.get_decl(0).clocks.clone();
+            return initial.get_decl(0).unwrap().clocks.clone();
         }
         for comp_id in 0..initial.len() {
-            for (k, v) in &initial.get_decl(comp_id).clocks {
+            for (k, v) in &initial.get_decl(comp_id).unwrap().clocks {
                 clocks.insert(format!("{}{}", k, comp_id), *v);
             }
         }
