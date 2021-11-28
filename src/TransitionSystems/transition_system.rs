@@ -58,10 +58,10 @@ impl<'a> LocationTuple<'a> {
 
         let mut result = "(".to_string();
         for i in 0..len - 1 {
-            let name = self.locations.get(i).unwrap().get_id();
+            let name = self.locations[i].get_id();
             result.push_str(&format!("{},", name));
         }
-        let name = self.locations.get(len - 1).unwrap().get_id();
+        let name = self.locations[len - 1].get_id();
         result.push_str(&format!("{})", name));
         result
     }
