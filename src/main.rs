@@ -14,6 +14,7 @@ use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
 use std::env;
+use std::error::Error;
 use ModelObjects::component;
 use ModelObjects::queries;
 use System::executable_query::QueryResult;
@@ -31,23 +32,32 @@ pub fn main() {
 
     let mut results = vec![];
     for query in &queries {
-        let executable_query = Box::new(
-            extract_system_rep::create_executable_query(query, &mut project_loader).unwrap(),
-        );
-
-        let result = executable_query.execute().unwrap();
-
-        if let QueryResult::Error(err) = result {
-            panic!(err);
+        match create_and_execute(query, &mut project_loader) {
+            Ok(query_result) => results.push(query_result),
+            Err(error) => {
+                println!("Caught error: {}", error);
+                results.push(QueryResult::Error("Internal error".to_string()));
+                break;
+            }
         }
-
-        results.push(result);
     }
 
     println!("\nQuery results:");
     for index in 0..queries.len() {
         results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
     }
+}
+
+fn create_and_execute(
+    query: &Query,
+    project_loader: &mut Box<dyn ProjectLoader>,
+) -> Result<QueryResult, Box<dyn Error>> {
+    let executable_query = Box::new(extract_system_rep::create_executable_query(
+        query,
+        project_loader,
+    )?);
+
+    Ok(executable_query.execute()?)
 }
 
 fn parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
