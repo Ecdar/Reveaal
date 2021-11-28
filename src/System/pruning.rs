@@ -259,7 +259,7 @@ fn get_consistent_part(
 
     let mut federation = Federation::new(vec![], dimensions);
     for output in (comp as &dyn TransitionSystem).get_output_actions()? {
-        for transition in comp.next_outputs(&loc, &output) {
+        for transition in comp.next_outputs(&loc, &output)? {
             if let Some(fed) = transition.get_guard_federation(&loc, dimensions)? {
                 for mut zone in fed.iter_zones().cloned() {
                     zone.down();

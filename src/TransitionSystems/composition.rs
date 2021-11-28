@@ -59,15 +59,15 @@ impl<'a> TransitionSystem<'static> for Composition {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Vec<Transition<'b>> {
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
         let mut transitions = vec![];
 
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index)?;
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index)?;
 
         if left.is_empty() || right.is_empty() {
             transitions = left;
@@ -76,7 +76,7 @@ impl<'a> TransitionSystem<'static> for Composition {
             transitions.append(&mut Transition::combinations(&mut left, &mut right));
         }
 
-        transitions
+        Ok(transitions)
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {

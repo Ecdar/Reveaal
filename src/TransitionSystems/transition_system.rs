@@ -99,13 +99,13 @@ pub trait TransitionSystem<'a>: DynClone {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Vec<Transition<'b>>;
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>>;
 
     fn next_outputs<'b>(
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
-    ) -> Vec<Transition<'b>> {
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
         let mut index = 0;
         self.next_transitions(location, action, &SyncType::Output, &mut index)
     }
@@ -114,7 +114,7 @@ pub trait TransitionSystem<'a>: DynClone {
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
-    ) -> Vec<Transition<'b>> {
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
         let mut index = 0;
         self.next_transitions(location, action, &SyncType::Input, &mut index)
     }
@@ -203,9 +203,9 @@ impl TransitionSystem<'_> for Component {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Vec<Transition<'b>> {
-        let location = location.get_location(*index).unwrap();
-        let next_edges = self.get_next_edges(location, action, *sync_type).unwrap();
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+        let location = location.get_location(*index)?;
+        let next_edges = self.get_next_edges(location, action, *sync_type)?;
 
         let mut open_transitions = vec![];
         for e in next_edges {
@@ -216,7 +216,7 @@ impl TransitionSystem<'_> for Component {
 
         *index += 1;
 
-        open_transitions
+        Ok(open_transitions)
     }
 
     fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {

@@ -52,15 +52,15 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Vec<Transition<'b>> {
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index)?;
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index)?;
 
-        Transition::combinations(&mut left, &mut right)
+        Ok(Transition::combinations(&mut left, &mut right))
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
@@ -119,7 +119,7 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Vec<Transition<'b>> {
+    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
         self.component
             .next_transitions(location, action, sync_type, index)
     }

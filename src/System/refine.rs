@@ -51,8 +51,8 @@ pub fn check_refinement(
 
     while let Some(curr_pair) = waiting_list.pop() {
         for output in &outputs {
-            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
-            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
+            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output)?;
+            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output)?;
 
             if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)? {
                 create_new_state_pairs(
@@ -85,8 +85,8 @@ pub fn check_refinement(
         }
 
         for input in &inputs {
-            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
-            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
+            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input)?;
+            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input)?;
 
             if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)? {
                 create_new_state_pairs(

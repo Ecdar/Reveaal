@@ -126,7 +126,7 @@ fn collect_specific_edges_from_location<'a>(
                 SyncType::Output
             },
             &mut 0,
-        );
+        )?;
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location)?;
