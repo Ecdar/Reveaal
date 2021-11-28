@@ -213,10 +213,14 @@ fn build_state_pair<'a>(
     //Apply guards on both sides
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
     //Applies the left side guards and checks if zone is valid
-    let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone);
+    let g1_success = transition1
+        .apply_guards(&locations1, &mut new_sp_zone)
+        .unwrap();
 
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone);
+    let g2_success = transition2
+        .apply_guards(&locations2, &mut new_sp_zone)
+        .unwrap();
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {

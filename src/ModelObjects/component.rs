@@ -769,7 +769,7 @@ pub struct Transition<'a> {
 }
 impl<'a> Transition<'a> {
     pub fn use_transition(&self, state: &mut State<'a>) -> Result<bool, Box<dyn Error>> {
-        if self.apply_guards(&state.decorated_locations, &mut state.zone) {
+        if self.apply_guards(&state.decorated_locations, &mut state.zone)? {
             self.apply_updates(&mut state.decorated_locations, &mut state.zone)?;
             self.move_locations(&mut state.decorated_locations)?;
             state.zone.up();
@@ -809,12 +809,16 @@ impl<'a> Transition<'a> {
         Ok(())
     }
 
-    pub fn apply_guards(&self, locations: &LocationTuple, zone: &mut Zone) -> bool {
+    pub fn apply_guards(
+        &self,
+        locations: &LocationTuple,
+        zone: &mut Zone,
+    ) -> Result<bool, Box<dyn Error>> {
         let mut success = true;
         for (_, edge, index) in &self.edges {
-            success = success && edge.apply_guard(locations.get_decl(*index), zone).unwrap();
+            success = success && edge.apply_guard(locations.get_decl(*index), zone)?;
         }
-        success
+        Ok(success)
     }
 
     pub fn move_locations(&self, locations: &mut LocationTuple<'a>) -> Result<(), Box<dyn Error>> {
