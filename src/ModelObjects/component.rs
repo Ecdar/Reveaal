@@ -768,17 +768,17 @@ pub struct Transition<'a> {
     pub edges: Vec<(&'a Component, &'a Edge, usize)>, // TODO: If edges include a reference to the target location we can avoid having components here at all
 }
 impl<'a> Transition<'a> {
-    pub fn use_transition(&self, state: &mut State<'a>) -> bool {
+    pub fn use_transition(&self, state: &mut State<'a>) -> Result<bool, Box<dyn Error>> {
         if self.apply_guards(&state.decorated_locations, &mut state.zone) {
             self.apply_updates(&mut state.decorated_locations, &mut state.zone);
-            self.move_locations(&mut state.decorated_locations).unwrap();
+            self.move_locations(&mut state.decorated_locations)?;
             state.zone.up();
             if state.decorated_locations.apply_invariants(&mut state.zone) {
-                return true;
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 
     pub fn combinations(left: &Vec<Self>, right: &Vec<Self>) -> Vec<Self> {

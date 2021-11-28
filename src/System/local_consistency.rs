@@ -42,7 +42,7 @@ pub fn consistency_least_helper<'b>(
     for input in system.get_input_actions() {
         for transition in &system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
-            if transition.use_transition(&mut new_state) {
+            if transition.use_transition(&mut new_state).unwrap() {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
 
                 if !consistency_least_helper(new_state, passed_list, system, max_bounds) {
@@ -59,7 +59,7 @@ pub fn consistency_least_helper<'b>(
     for output in system.get_output_actions() {
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
-            if transition.use_transition(&mut new_state) {
+            if transition.use_transition(&mut new_state).unwrap() {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
 
                 if consistency_least_helper(new_state, passed_list, system, max_bounds) {
@@ -86,7 +86,7 @@ fn consistency_fully_helper<'b>(
     for input in system.get_input_actions() {
         for transition in system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
-            if transition.use_transition(&mut new_state) {
+            if transition.use_transition(&mut new_state).unwrap() {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
                 if new_state.is_subset_of(&state) {
                     continue;
@@ -103,7 +103,7 @@ fn consistency_fully_helper<'b>(
     for output in system.get_output_actions() {
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
-            if transition.use_transition(&mut new_state) {
+            if transition.use_transition(&mut new_state).unwrap() {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
                 if new_state.is_subset_of(&state) {
                     continue;
