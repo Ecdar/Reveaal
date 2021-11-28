@@ -483,7 +483,7 @@ impl Component {
                         SyncType::Input,
                     )?);
                 }
-                if self.check_moves_overlap(&edges, &mut full_state) {
+                if self.check_moves_overlap(&edges, &mut full_state)? {
                     return Ok(false);
                 }
                 let mut edges: Vec<&Edge> = vec![];
@@ -495,7 +495,7 @@ impl Component {
                     )?);
                 }
 
-                if self.check_moves_overlap(&edges, &mut full_state) {
+                if self.check_moves_overlap(&edges, &mut full_state)? {
                     return Ok(false);
                 } else {
                     for edge in edges {
@@ -537,9 +537,13 @@ impl Component {
     }
 
     /// Method to check if moves are overlapping to for instance to verify that component is deterministic
-    fn check_moves_overlap(&self, edges: &[&Edge], state: &mut State) -> bool {
+    fn check_moves_overlap(
+        &self,
+        edges: &[&Edge],
+        state: &mut State,
+    ) -> Result<bool, Box<dyn Error>> {
         if edges.len() < 2 {
-            return false;
+            return Ok(false);
         }
 
         for i in 0..edges.len() {
@@ -557,21 +561,10 @@ impl Component {
                 if edges[i].get_sync() != edges[j].get_sync() {
                     continue;
                 }
-                let location_source = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[i].get_source_location()))
-                    .unwrap();
-                let location_i = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[i].get_target_location()))
-                    .unwrap();
-                let location_j = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[j].get_target_location()))
-                    .unwrap();
+                let location_source = self.get_location_by_name(edges[i].get_source_location())?;
+
+                let location_i = self.get_location_by_name(edges[i].get_target_location())?;
+                let location_j = self.get_location_by_name(edges[j].get_target_location())?;
 
                 let mut state_i = create_state(
                     state.get_location(0),
@@ -580,23 +573,24 @@ impl Component {
                 );
                 if let Some(inv_source) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
-                            .unwrap()
+                        constraint_applyer::apply_constraints_to_state2(
+                            inv_source,
+                            &mut state_i,
+                            0,
+                        )?
                     {
                         continue;
                     };
                 }
                 if let Some(update_i) = &edges[i].guard {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, 0)
-                            .unwrap()
+                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, 0)?
                     {
                         continue;
                     };
                 }
                 if let Some(inv_target) = location_i.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, 0)
-                        .unwrap();
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, 0)?;
                 }
 
                 let mut state_j = create_state(
@@ -606,8 +600,7 @@ impl Component {
                 );
                 if let Some(update_j) = location_source.get_invariant() {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
-                            .unwrap()
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)?
                     {
                         continue;
                     };
@@ -615,26 +608,24 @@ impl Component {
 
                 if let Some(update_j) = &edges[j].guard {
                     if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
-                            .unwrap()
+                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)?
                     {
                         continue;
                     };
                 }
                 if let Some(inv_target) = location_j.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j, 0)
-                        .unwrap();
+                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j, 0)?;
                 }
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
                     if state_i.zone.intersection(&state_j.zone) {
-                        return true;
+                        return Ok(true);
                     }
                 }
             }
         }
 
-        false
+        Ok(false)
     }
 }
 
