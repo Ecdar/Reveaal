@@ -50,7 +50,7 @@ pub fn prune(
     for location in new_comp.get_locations().clone() {
         consistent_parts.insert(
             location.get_id().clone(),
-            get_consistent_part(&location, &new_comp, clocks + 1),
+            get_consistent_part(&location, &new_comp, clocks + 1)?,
         );
     }
 
@@ -73,7 +73,7 @@ pub fn prune(
     }
 
     //Remove fully inconsistent locations and edges
-    cleanup(&mut new_comp, &consistent_parts, clocks + 1);
+    cleanup(&mut new_comp, &consistent_parts, clocks + 1)?;
 
     Ok(PrunedComponent {
         component: Box::new(new_comp),
@@ -82,13 +82,17 @@ pub fn prune(
     })
 }
 
-fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>, dimensions: u32) {
+fn cleanup(
+    comp: &mut Component,
+    consistent_parts: &HashMap<String, Federation>,
+    dimensions: u32,
+) -> Result<(), Box<dyn Error>> {
     let decls = comp.declarations.clone();
 
     //Set invariants to consistent part
     for mut loc in comp.get_mut_locations() {
         let id = loc.get_id().clone();
-        set_invariant(&mut loc, &decls, dimensions, &consistent_parts[&id])
+        set_invariant(&mut loc, &decls, dimensions, &consistent_parts[&id])?
     }
     //Remove fully inconsistent locations
     comp.get_mut_locations()
@@ -109,6 +113,7 @@ fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>,
 
     //Redo input and output split
     comp.create_edge_io_split();
+    Ok(())
 }
 
 fn is_inconsistent(
@@ -171,7 +176,7 @@ fn prune_to_consistent_part(
             if edge.sync_type == SyncType::Input {
                 changed |= handle_input(edge, consistent_parts, dimensions, reachable_fed);
             } else if edge.sync_type == SyncType::Output {
-                changed |= handle_output(edge, decls, dimensions, reachable_fed);
+                changed |= handle_output(edge, decls, dimensions, reachable_fed)?;
             }
         }
     }
@@ -186,7 +191,7 @@ fn handle_input(
 ) -> bool {
     //Any zone that can reach an inconsistent state from this location is marked inconsistent
     let incons_fed = cons_fed.inverse(dimensions);
-    let old_fed = consistent_parts.get(&edge.source_location).unwrap().clone();
+    let old_fed = consistent_parts[&edge.source_location].clone();
     let new_fed = old_fed.minus_fed(&incons_fed);
     let is_changed = new_fed.is_subset_eq(&old_fed) && !old_fed.is_subset_eq(&new_fed);
     consistent_parts.insert(edge.source_location.clone(), new_fed);
@@ -198,25 +203,24 @@ fn handle_output(
     decls: &Declarations,
     dimensions: u32,
     cons_fed: Federation,
-) -> bool {
+) -> Result<bool, Box<dyn Error>> {
     let mut prev_zone = Zone::init(dimensions);
 
-    if !edge.apply_guard(decls, &mut prev_zone).unwrap() {
-        return false;
+    if !edge.apply_guard(decls, &mut prev_zone)? {
+        return Ok(false);
     }
 
     //Set the guard to enter only the consistent part
     edge.guard = cons_fed
         .intersect_zone(&prev_zone)
-        .as_boolexpression(&decls.clocks)
-        .unwrap();
+        .as_boolexpression(&decls.clocks)?;
 
     let mut new_zone = Zone::init(dimensions);
-    if apply_constraint(&edge.guard, decls, &mut new_zone).unwrap() {
-        return new_zone != prev_zone;
+    if apply_constraint(&edge.guard, decls, &mut new_zone)? {
+        return Ok(new_zone != prev_zone);
     }
 
-    true
+    Ok(true)
 }
 
 fn set_invariant(
@@ -224,37 +228,42 @@ fn set_invariant(
     decls: &Declarations,
     dimensions: u32,
     cons_fed: &Federation,
-) {
+) -> Result<(), Box<dyn Error>> {
     let mut prev_zone = Zone::init(dimensions);
 
-    if !apply_constraint(location.get_invariant(), decls, &mut prev_zone).unwrap() {
-        return;
+    if !apply_constraint(location.get_invariant(), decls, &mut prev_zone)? {
+        return Ok(());
     }
 
     //Set the invariant to the consistent part
     location.invariant = cons_fed
         .intersect_zone(&prev_zone)
-        .as_boolexpression(&decls.clocks)
-        .unwrap();
+        .as_boolexpression(&decls.clocks)?;
+
+    Ok(())
 }
 
-fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {
+fn get_consistent_part(
+    location: &Location,
+    comp: &Component,
+    dimensions: u32,
+) -> Result<Federation, Box<dyn Error>> {
     let loc = LocationTuple::simple(location, &comp.declarations);
     let mut zone = Zone::init(dimensions);
-    if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone).unwrap() {
-        return Federation::new(vec![], dimensions);
+    if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone)? {
+        return Ok(Federation::new(vec![], dimensions));
     }
     if zone.canDelayIndefinitely() {
-        return Federation::new(vec![zone], dimensions);
+        return Ok(Federation::new(vec![zone], dimensions));
     }
 
     let mut federation = Federation::new(vec![], dimensions);
     for output in (comp as &dyn TransitionSystem).get_output_actions() {
         for transition in comp.next_outputs(&loc, &output) {
-            if let Some(fed) = transition.get_guard_federation(&loc, dimensions).unwrap() {
+            if let Some(fed) = transition.get_guard_federation(&loc, dimensions)? {
                 for mut zone in fed.iter_zones().cloned() {
                     zone.down();
-                    if loc.apply_invariants(&mut zone).unwrap() {
+                    if loc.apply_invariants(&mut zone)? {
                         federation.add(zone);
                     }
                 }
@@ -262,5 +271,5 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
         }
     }
 
-    federation
+    Ok(federation)
 }
