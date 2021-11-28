@@ -28,7 +28,7 @@ pub mod save_comp_helper {
         let mut new_comp = combine_components(&base_system.clone());
         new_comp.create_edge_io_split();
         let mut new_comp = Box::new(new_comp);
-        decl.add_component(&new_comp);
+        decl.add_component(&new_comp).unwrap();
         //input_enabler::make_input_enabled(&mut new_comp, &decl);
 
         let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
