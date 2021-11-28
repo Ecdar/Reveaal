@@ -4,15 +4,16 @@ use crate::ModelObjects::component::{
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
+use std::error::Error;
 
-pub fn combine_components(system: &TransitionSystemPtr) -> Component {
+pub fn combine_components(system: &TransitionSystemPtr) -> Result<Component, Box<dyn Error>> {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
-    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks);
+    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks)?;
 
-    let locations = get_locations_from_tuples(&location_tuples, &clocks);
-    Component {
+    let locations = get_locations_from_tuples(&location_tuples, &clocks)?;
+    Ok(Component {
         name: "".to_string(),
         declarations: Declarations {
             ints: HashMap::new(),
@@ -22,44 +23,44 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Component {
         edges: edges,
         input_edges: None,
         output_edges: None,
-    }
+    })
 }
 
 fn get_locations_from_tuples(
     location_tuples: &Vec<LocationTuple>,
     clock_map: &HashMap<String, u32>,
-) -> Vec<Location> {
-    location_tuples
-        .iter()
-        .cloned()
-        .map(|loc_vec| {
-            let is_initial = loc_vec
-                .iter()
-                .all(|loc| loc.location_type == LocationType::Initial);
-            let mut invariant: Option<BoolExpression> = None;
-            for (loc, decl) in loc_vec.iter_zipped() {
-                if let Some(inv) = &loc.invariant {
-                    let inv = inv.swap_clock_names(&decl.clocks, clock_map).unwrap();
-                    if let Some(inv_full) = invariant {
-                        invariant = Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
-                    } else {
-                        invariant = Some(inv);
-                    }
+) -> Result<Vec<Location>, Box<dyn Error>> {
+    let mut result = vec![];
+
+    for loc_vec in location_tuples.iter() {
+        let is_initial = loc_vec
+            .iter()
+            .all(|loc| loc.location_type == LocationType::Initial);
+        let mut invariant: Option<BoolExpression> = None;
+        for (loc, decl) in loc_vec.iter_zipped() {
+            if let Some(inv) = &loc.invariant {
+                let inv = inv.swap_clock_names(&decl.clocks, clock_map)?;
+                if let Some(inv_full) = invariant {
+                    invariant = Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
+                } else {
+                    invariant = Some(inv);
                 }
             }
+        }
 
-            Location {
-                id: loc_vec.to_string(),
-                invariant,
-                location_type: if is_initial {
-                    LocationType::Initial
-                } else {
-                    LocationType::Normal
-                }, //TODO: Handle universal eventually
-                urgency: "NORMAL".to_string(), //TODO: Handle different urgencies eventually
-            }
+        result.push(Location {
+            id: loc_vec.to_string(),
+            invariant,
+            location_type: if is_initial {
+                LocationType::Initial
+            } else {
+                LocationType::Normal
+            }, //TODO: Handle universal eventually
+            urgency: "NORMAL".to_string(), //TODO: Handle different urgencies eventually
         })
-        .collect()
+    }
+
+    Ok(result)
 }
 
 fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
@@ -83,12 +84,13 @@ fn collect_all_edges_and_locations<'a>(
     locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
-) {
+) -> Result<(), Box<dyn Error>> {
     let l = representation.get_all_locations();
     locations.extend(l);
     for location in locations {
-        collect_edges_from_location(location, representation, edges, clock_map);
+        collect_edges_from_location(location, representation, edges, clock_map)?;
     }
+    Ok(())
 }
 
 fn collect_edges_from_location<'a>(
@@ -96,9 +98,11 @@ fn collect_edges_from_location<'a>(
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
-) {
-    collect_specific_edges_from_location(location, representation, edges, true, clock_map);
-    collect_specific_edges_from_location(location, representation, edges, false, clock_map);
+) -> Result<(), Box<dyn Error>> {
+    collect_specific_edges_from_location(location, representation, edges, true, clock_map)?;
+    collect_specific_edges_from_location(location, representation, edges, false, clock_map)?;
+
+    Ok(())
 }
 
 fn collect_specific_edges_from_location<'a>(
@@ -107,7 +111,7 @@ fn collect_specific_edges_from_location<'a>(
     edges: &mut Vec<Edge>,
     input: bool,
     clock_map: &HashMap<String, u32>,
-) {
+) -> Result<(), Box<dyn Error>> {
     for sync in if input {
         representation.get_input_actions()
     } else {
@@ -125,7 +129,7 @@ fn collect_specific_edges_from_location<'a>(
         );
         for transition in transitions {
             let mut target_location = location.clone();
-            transition.move_locations(&mut target_location).unwrap();
+            transition.move_locations(&mut target_location)?;
             let edge = Edge {
                 source_location: location.to_string(),
                 target_location: target_location.to_string(),
@@ -134,11 +138,12 @@ fn collect_specific_edges_from_location<'a>(
                 } else {
                     SyncType::Output
                 },
-                guard: transition.get_renamed_guard_expression(clock_map).unwrap(),
-                update: transition.get_renamed_updates(clock_map).unwrap(),
+                guard: transition.get_renamed_guard_expression(clock_map)?,
+                update: transition.get_renamed_updates(clock_map)?,
                 sync: sync.clone(),
             };
             edges.push(edge);
         }
     }
+    Ok(())
 }

@@ -16,7 +16,7 @@ pub fn prune_system(
 ) -> Result<TransitionSystemPtr, Box<dyn Error>> {
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
-    let comp = combine_components(&ts);
+    let comp = combine_components(&ts)?;
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());

@@ -25,7 +25,7 @@ pub mod save_comp_helper {
             panic!("Failed to create system")
         };
 
-        let mut new_comp = combine_components(&base_system.clone());
+        let mut new_comp = combine_components(&base_system.clone()).unwrap();
         new_comp.create_edge_io_split();
         let mut new_comp = Box::new(new_comp);
         decl.add_component(&new_comp).unwrap();

@@ -76,7 +76,7 @@ pub struct GetComponentExecutor<'a> {
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> Result<QueryResult, Box<dyn Error>> {
-        let mut comp = combine_components(&self.system);
+        let mut comp = combine_components(&self.system)?;
         comp.name = self.comp_name;
 
         let project_path = self.project_loader.get_project_path();
