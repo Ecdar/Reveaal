@@ -76,8 +76,10 @@ impl<'a> TransitionSystem<'static> for Composition {
         transitions
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
-        local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
-            && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+        Ok(
+            local_consistency::is_least_consistent(self.left.as_ref(), dimensions)?
+                && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)?,
+        )
     }
 }

@@ -33,7 +33,7 @@ impl TransitionSystem<'static> for Quotient {
         panic!("Not implemented");
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
         local_consistency::is_least_consistent(self, dimensions)
     }
 }

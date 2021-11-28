@@ -60,7 +60,7 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         Transition::combinations(&mut left, &mut right)
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
         local_consistency::is_least_consistent(self, dimensions)
     }
 }
@@ -129,7 +129,7 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.is_deterministic(dim).unwrap()
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
         self.component.is_locally_consistent(dimensions)
     }
 

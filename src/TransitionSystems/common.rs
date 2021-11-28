@@ -58,7 +58,7 @@ macro_rules! default_composition {
                 return false;
             }
 
-            if !self.is_locally_consistent(dim) {
+            if !self.is_locally_consistent(dim).unwrap() {
                 println!("NOT CONSISTENT");
                 return false;
             }
