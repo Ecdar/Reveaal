@@ -3,7 +3,9 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::System::input_enabler::build_guard_from_zone;
 use colored::Colorize;
+use simple_error::bail;
 use std::collections::HashMap;
+use std::error::Error;
 use std::f64;
 use std::fmt::{Display, Formatter};
 
@@ -345,9 +347,12 @@ impl Federation {
         self.zones.iter_mut()
     }
 
-    pub fn as_boolexpression(&self, clocks: &HashMap<String, u32>) -> Option<BoolExpression> {
+    pub fn as_boolexpression(
+        &self,
+        clocks: &HashMap<String, u32>,
+    ) -> Result<Option<BoolExpression>, Box<dyn Error>> {
         if self.num_zones() > 1 {
-            panic!("Implementation cannot handle disjunct invariants")
+            bail!("Implementation cannot handle disjunct invariants")
         }
 
         let mut guard = Some(BoolExpression::Bool(false));
@@ -356,6 +361,6 @@ impl Federation {
             guard = build_guard_from_zone(&zone, &clocks);
         }
 
-        guard
+        Ok(guard)
     }
 }
