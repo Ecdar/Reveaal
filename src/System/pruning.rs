@@ -6,7 +6,9 @@ use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecifi
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
 use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
+use simple_error::bail;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 
 pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr {
     let inputs = ts.get_input_actions();
@@ -83,12 +85,7 @@ fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>,
     //Set invariants to consistent part
     for mut loc in comp.get_mut_locations() {
         let id = loc.get_id().clone();
-        set_invariant(
-            &mut loc,
-            &decls,
-            dimensions,
-            consistent_parts.get(&id).unwrap(),
-        )
+        set_invariant(&mut loc, &decls, dimensions, &consistent_parts[&id])
     }
     //Remove fully inconsistent locations
     comp.get_mut_locations()
@@ -116,19 +113,25 @@ fn is_inconsistent(
     consistent_parts: &HashMap<String, Federation>,
     decls: &Declarations,
     dimensions: u32,
-) -> bool {
+) -> Result<bool, Box<dyn Error>> {
     let loc = LocationTuple::simple(location, decls);
     let mut zone = Zone::init(dimensions);
-    let inv_fed = if loc.apply_invariants(&mut zone).unwrap() {
+    let inv_fed = if loc.apply_invariants(&mut zone)? {
         Federation::new(vec![zone], dimensions)
     } else {
         Federation::new(vec![], dimensions)
     };
 
-    let cons_fed = consistent_parts.get(location.get_id()).unwrap();
+    let cons_fed = match consistent_parts.get(location.get_id()) {
+        Some(fed) => fed,
+        None => bail!(
+            "Couldnt find the location {} in the consistent_parts map",
+            location.get_id()
+        ),
+    };
 
     //Returns whether the consistent part is strictly less than the zone induced by the invariant
-    cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed)
+    Ok(cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed))
 }
 
 fn prune_to_consistent_part(
@@ -138,7 +141,7 @@ fn prune_to_consistent_part(
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
-    if !is_inconsistent(location, consistent_parts, decls, dimensions) {
+    if !is_inconsistent(location, consistent_parts, decls, dimensions).unwrap() {
         return false;
     }
     let cons_fed = consistent_parts.get(location.get_id()).unwrap().clone();
