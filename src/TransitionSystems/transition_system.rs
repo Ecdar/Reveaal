@@ -72,13 +72,13 @@ impl<'a> LocationTuple<'a> {
         self.locations.iter().zip(self.declarations.iter())
     }
 
-    pub fn apply_invariants(&self, zone: &mut Zone) -> bool {
+    pub fn apply_invariants(&self, zone: &mut Zone) -> Result<bool, Box<dyn Error>> {
         let mut success = true;
 
         for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
-            success = success && DecoratedLocation::create(location, decl).apply_invariant(zone);
+            success = success && DecoratedLocation::create(location, decl).apply_invariant(zone)?
         }
-        success
+        Ok(success)
     }
 }
 
@@ -231,7 +231,7 @@ impl TransitionSystem<'_> for Component {
             self.get_declarations(),
         );
         let mut zone = Zone::init(dimensions);
-        if !init_loc.apply_invariants(&mut zone) {
+        if !init_loc.apply_invariants(&mut zone)? {
             bail!("Invalid starting state");
         }
 

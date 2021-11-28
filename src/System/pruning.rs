@@ -119,7 +119,7 @@ fn is_inconsistent(
 ) -> bool {
     let loc = LocationTuple::simple(location, decls);
     let mut zone = Zone::init(dimensions);
-    let inv_fed = if loc.apply_invariants(&mut zone) {
+    let inv_fed = if loc.apply_invariants(&mut zone).unwrap() {
         Federation::new(vec![zone], dimensions)
     } else {
         Federation::new(vec![], dimensions)
@@ -229,7 +229,7 @@ fn set_invariant(
 fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {
     let loc = LocationTuple::simple(location, &comp.declarations);
     let mut zone = Zone::init(dimensions);
-    if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone) {
+    if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone).unwrap() {
         return Federation::new(vec![], dimensions);
     }
     if zone.canDelayIndefinitely() {
@@ -242,7 +242,7 @@ fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -
             if let Some(fed) = transition.get_guard_federation(&loc, dimensions).unwrap() {
                 for mut zone in fed.iter_zones().cloned() {
                     zone.down();
-                    if loc.apply_invariants(&mut zone) {
+                    if loc.apply_invariants(&mut zone).unwrap() {
                         federation.add(zone);
                     }
                 }

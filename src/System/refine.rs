@@ -244,10 +244,10 @@ fn build_state_pair<'a>(
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
-    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone);
+    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone).unwrap();
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = locations2.apply_invariants(&mut invariant_test);
+    let inv_success2 = locations2.apply_invariants(&mut invariant_test).unwrap();
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {

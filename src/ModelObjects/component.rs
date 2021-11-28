@@ -688,7 +688,7 @@ impl<'a> State<'a> {
     pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
         let mut zone = Zone::init(dimensions);
 
-        if !decorated_locations.apply_invariants(&mut zone) {
+        if !decorated_locations.apply_invariants(&mut zone).unwrap() {
             return None;
         }
 
@@ -773,7 +773,10 @@ impl<'a> Transition<'a> {
             self.apply_updates(&mut state.decorated_locations, &mut state.zone)?;
             self.move_locations(&mut state.decorated_locations)?;
             state.zone.up();
-            if state.decorated_locations.apply_invariants(&mut state.zone) {
+            if state
+                .decorated_locations
+                .apply_invariants(&mut state.zone)?
+            {
                 return Ok(true);
             }
         }
@@ -846,7 +849,7 @@ impl<'a> Transition<'a> {
                     location: target_location,
                     decls: comp.get_declarations(),
                 };
-                if !dec_loc.apply_invariant(&mut guard_zone) {
+                if !dec_loc.apply_invariant(&mut guard_zone)? {
                     continue;
                 }
             }
@@ -1063,11 +1066,11 @@ impl<'a> DecoratedLocation<'a> {
         DecoratedLocation { location, decls }
     }
 
-    pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
+    pub fn apply_invariant(&self, zone: &mut Zone) -> Result<bool, Box<dyn Error>> {
         if let Some(inv) = self.get_location().get_invariant() {
-            apply_constraints_to_state(&inv, self.decls, zone).unwrap()
+            apply_constraints_to_state(&inv, self.decls, zone)
         } else {
-            true
+            Ok(true)
         }
     }
 
