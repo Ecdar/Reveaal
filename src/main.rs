@@ -121,14 +121,3 @@ fn get_project_loader(project_path: String) -> Result<Box<dyn ProjectLoader>, Bo
         JsonProjectLoader::new(project_path)
     }
 }
-
-pub fn set_working_directory(folder_path: &str) {
-    let mut path = std::path::Path::new(folder_path);
-    println!("env {}", path.to_str().unwrap());
-    if path.is_file() {
-        path = path
-            .parent()
-            .expect("Failed to find parent directory of input file");
-    };
-    env::set_current_dir(path).expect("Failed to set working directory to input folder");
-}
