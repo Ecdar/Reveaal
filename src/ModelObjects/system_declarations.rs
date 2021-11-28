@@ -1,4 +1,5 @@
 use crate::ModelObjects::component::Component;
+use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
@@ -99,7 +100,7 @@ where
                     }
                     first_run = false;
                 } else {
-                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)
+                    return Err(D::Error::custom(format!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)));
                 }
             }
 
@@ -133,12 +134,15 @@ where
                                     output_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else {
-                                panic!("Channel type not defined for Channel {:?}", action)
+                                return Err(D::Error::custom(format!(
+                                    "Channel type not defined for Channel {:?}",
+                                    action
+                                )));
                             }
                         }
                     }
                 } else {
-                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    return Err(D::Error::custom(format!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)));
                 }
             }
         }

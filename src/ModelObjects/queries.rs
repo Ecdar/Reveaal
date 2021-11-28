@@ -1,5 +1,6 @@
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::representations;
+use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 
 /// The struct containing a single query
@@ -30,9 +31,15 @@ where
 
     let queries = parse_queries::parse(&s).unwrap();
     if queries.len() > 1 {
-        panic!("Could not parse query {} contains multiple queries", s);
+        Err(D::Error::custom(format!(
+            "Could not parse query {} contains multiple queries",
+            s
+        )))
     } else if queries.len() == 0 {
-        panic!("Could not parse query {} contains no queries", s);
+        Err(D::Error::custom(format!(
+            "Could not parse query {} contains no queries",
+            s
+        )))
     } else {
         Ok(queries.into_iter().next())
     }

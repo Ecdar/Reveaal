@@ -213,7 +213,7 @@ where
                     let mut error_string = "not implemented read for type: ".to_string();
                     error_string.push_str(&variable_type.to_string());
                     println!("Variable type: {:?}", variable_type);
-                    panic!("{}", error_string);
+                    return Err(D::Error::custom(error_string));
                 }
             }
         }
@@ -285,7 +285,10 @@ where
     }
     match parse_invariant::parse(&s) {
         Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
-        Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
+        Err(e) => Err(D::Error::custom(format!(
+            "Could not parse invariant {} got error: {:?}",
+            s, e
+        ))),
     }
 }
 
@@ -298,7 +301,10 @@ where
     match s.as_str() {
         "INPUT" => Ok(SyncType::Input),
         "OUTPUT" => Ok(SyncType::Output),
-        _ => panic!("Unknown sync type in status {:?}", s),
+        _ => Err(D::Error::custom(format!(
+            "Unknown sync type in status {:?}",
+            s
+        ))),
     }
 }
 
@@ -338,7 +344,10 @@ where
         "NORMAL" => Ok(LocationType::Normal),
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
-        _ => panic!("Unknown sync type in status {:?}", s),
+        _ => Err(D::Error::custom(format!(
+            "Unknown sync type in status {:?}",
+            s
+        ))),
     }
 }
 
