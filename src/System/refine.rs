@@ -63,7 +63,7 @@ pub fn check_refinement(
                     &mut passed_list,
                     &max_bounds,
                     true,
-                )
+                )?;
             } else {
                 println!("Refinement check failed for Output {:?}", output);
                 println!("Transitions1:");
@@ -97,7 +97,7 @@ pub fn check_refinement(
                     &mut passed_list,
                     &max_bounds,
                     false,
-                )
+                )?;
             } else {
                 println!("Refinement check failed for Input {:?}", input);
                 println!("Transitions1:");
@@ -176,7 +176,7 @@ fn create_new_state_pairs<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) {
+) -> Result<(), Box<dyn Error>> {
     for transition1 in transitions1 {
         for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
@@ -188,9 +188,11 @@ fn create_new_state_pairs<'a>(
                 passed_list,
                 max_bounds,
                 is_state1,
-            );
+            )?;
         }
     }
+
+    Ok(())
 }
 
 fn build_state_pair<'a>(
@@ -201,7 +203,7 @@ fn build_state_pair<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) -> bool {
+) -> Result<bool, Box<dyn Error>> {
     //Creates new state pair
     let mut new_sp: StatePair = StatePair::create(
         curr_pair.get_dimensions(),
@@ -213,45 +215,37 @@ fn build_state_pair<'a>(
     //Apply guards on both sides
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
     //Applies the left side guards and checks if zone is valid
-    let g1_success = transition1
-        .apply_guards(&locations1, &mut new_sp_zone)
-        .unwrap();
+    let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone)?;
 
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2
-        .apply_guards(&locations2, &mut new_sp_zone)
-        .unwrap();
+    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone)?;
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
-        return false;
+        return Ok(false);
     }
 
     //Apply updates on both sides
-    transition1
-        .apply_updates(locations1, &mut new_sp_zone)
-        .unwrap();
-    transition2
-        .apply_updates(locations2, &mut new_sp_zone)
-        .unwrap();
+    transition1.apply_updates(locations1, &mut new_sp_zone)?;
+    transition2.apply_updates(locations2, &mut new_sp_zone)?;
 
     //Update locations in states
 
-    transition1.move_locations(locations1).unwrap();
-    transition2.move_locations(locations2).unwrap();
+    transition1.move_locations(locations1)?;
+    transition2.move_locations(locations2)?;
 
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
 
     // Apply invariants on the left side of relation
-    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone).unwrap();
+    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone)?;
     // Perform a copy of the zone and apply right side invariants on the copied zone
     let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = locations2.apply_invariants(&mut invariant_test).unwrap();
+    let inv_success2 = locations2.apply_invariants(&mut invariant_test)?;
 
     // check if newly built zones are valid
     if !inv_success1 || !inv_success2 {
-        return false;
+        return Ok(false);
     }
     let dim = invariant_test.dimension;
     let inv_test_fed = Federation::new(vec![invariant_test], dim);
@@ -262,19 +256,17 @@ fn build_state_pair<'a>(
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
     if !fed_res.is_empty() {
-        return false;
+        return Ok(false);
     }
 
     new_sp.zone = new_sp_zone;
     new_sp.zone.extrapolate_max_bounds(max_bounds);
 
-    if is_new_state(&mut new_sp, passed_list).unwrap()
-        && is_new_state(&mut new_sp, waiting_list).unwrap()
-    {
+    if is_new_state(&mut new_sp, passed_list)? && is_new_state(&mut new_sp, waiting_list)? {
         waiting_list.push(new_sp.clone());
     }
 
-    true
+    Ok(true)
 }
 
 fn prepare_init_state<'a>(
