@@ -25,7 +25,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let mut project_loader = XmlProjectLoader::new(project_path).unwrap();
     let query = parse_queries::parse(QUERY).unwrap().remove(0);
     let q = Query {
-        query: Option::from(query),
+        query,
         comment: "".to_string(),
     };
 
@@ -38,7 +38,7 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let mut project_loader = JsonProjectLoader::new(String::from(PATH)).unwrap();
     let query = parse_queries::parse(QUERY).unwrap().remove(0);
     let q = Query {
-        query: Option::from(query),
+        query,
         comment: "".to_string(),
     };
 

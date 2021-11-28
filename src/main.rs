@@ -44,7 +44,7 @@ pub fn main() {
 
     println!("\nQuery results:");
     for index in 0..queries.len() {
-        results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
+        results[index].print_result(&queries[index].query.pretty_string())
     }
 }
 
@@ -101,7 +101,7 @@ fn parse_args() -> Result<(Box<dyn ProjectLoader>, Vec<queries::Query>, bool), B
         let queries = queries
             .into_iter()
             .map(|q| Query {
-                query: Option::from(q),
+                query: q,
                 comment: "".to_string(),
             })
             .collect();

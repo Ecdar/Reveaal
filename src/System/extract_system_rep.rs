@@ -22,64 +22,61 @@ pub fn create_executable_query<'a>(
 ) -> Result<Box<dyn ExecutableQuery + 'a>, Box<dyn Error>> {
     let mut clock_index: u32 = 0;
 
-    if let Some(query) = full_query.get_query() {
-        match query {
-            QueryExpression::Refinement(left_side, right_side) => Ok(Box::new(RefinementExecutor {
-                sys1: extract_side(left_side, project_loader, &mut clock_index)?,
-                sys2: extract_side(
-                    right_side,
-                    project_loader,
-                    &mut clock_index,
-                )?,
-                decls: project_loader.get_declarations().clone(),
-            })),
-            QueryExpression::Consistency(query_expression) => Ok(Box::new(ConsistencyExecutor {
-                system: extract_side(
-                    query_expression,
-                    project_loader,
-                    &mut clock_index,
-                )?,
-            })),
-            QueryExpression::Determinism(query_expression) => Ok(Box::new(DeterminismExecutor {
-                system: extract_side(
-                    query_expression,
-                    project_loader,
-                    &mut clock_index,
-                )?,
-            })),
-            QueryExpression::GetComponent(save_as_expression) => {
-                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    Ok(Box::new(
-                        GetComponentExecutor {
-                            system: extract_side(query_expression, project_loader, &mut clock_index)?,
-                            comp_name: comp_name.clone(),
-                            project_loader,
-                        }
-                    ))
-                }else{
-                    bail!("Unexpected expression type: GetComponent queries requires an - 'as some_name'")
-                }
+    let query = full_query.get_query();
+    match query {
+        QueryExpression::Refinement(left_side, right_side) => Ok(Box::new(RefinementExecutor {
+            sys1: extract_side(left_side, project_loader, &mut clock_index)?,
+            sys2: extract_side(
+                right_side,
+                project_loader,
+                &mut clock_index,
+            )?,
+            decls: project_loader.get_declarations().clone(),
+        })),
+        QueryExpression::Consistency(query_expression) => Ok(Box::new(ConsistencyExecutor {
+            system: extract_side(
+                query_expression,
+                project_loader,
+                &mut clock_index,
+            )?,
+        })),
+        QueryExpression::Determinism(query_expression) => Ok(Box::new(DeterminismExecutor {
+            system: extract_side(
+                query_expression,
+                project_loader,
+                &mut clock_index,
+            )?,
+        })),
+        QueryExpression::GetComponent(save_as_expression) => {
+            if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+                Ok(Box::new(
+                    GetComponentExecutor {
+                        system: extract_side(query_expression, project_loader, &mut clock_index)?,
+                        comp_name: comp_name.clone(),
+                        project_loader,
+                    }
+                ))
+            }else{
+                bail!("Unexpected expression type: GetComponent queries requires an - 'as some_name'")
             }
-            ,
-            QueryExpression::Prune(save_as_expression) => {
-                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    Ok(Box::new(
-                        GetComponentExecutor {
-                            system: pruning::prune_system(extract_side(query_expression, project_loader, &mut clock_index)?, clock_index)?,
-                            comp_name: comp_name.clone(),
-                            project_loader
-                        }
-                    ))
-                }else{
-                    bail!("Unexpected expression type: Prune queries requires an - 'as some_name'")
-                }
-            }
-            ,
-            // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
-            _ => bail!("Not yet setup to handle {:?}", query),
         }
-    } else {
-        bail!("No query was supplied for extraction")
+        ,
+        QueryExpression::Prune(save_as_expression) => {
+            if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+                Ok(Box::new(
+                    GetComponentExecutor {
+                        system: pruning::prune_system(extract_side(query_expression, project_loader, &mut clock_index)?, clock_index)?,
+                        comp_name: comp_name.clone(),
+                        project_loader
+                    }
+                ))
+            }else{
+                bail!("Unexpected expression type: Prune queries requires an - 'as some_name'")
+            }
+        }
+        ,
+        // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
+        _ => bail!("Not yet setup to handle {:?}", query),
     }
 }
 
