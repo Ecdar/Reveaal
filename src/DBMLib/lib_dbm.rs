@@ -33,13 +33,8 @@ pub fn rs_dbm_is_valid(dbm: &[i32], dimension: u32) -> bool {
     unsafe {
         let res = dbm_check_validity(dbm.as_ptr(), dimension);
 
-        return if 1 == res {
-            true
-        } else if 0 == res {
-            false
-        } else {
-            panic!("Could not convert bool value from libary, found {:?}", res)
-        };
+        // dbm_check_validity can only return 1 or 0
+        return res == 1;
     }
 }
 
