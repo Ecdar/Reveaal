@@ -111,8 +111,7 @@ pub fn build_guard_from_zone(
 ) -> Option<representations::BoolExpression> {
     let mut guards: Vec<representations::BoolExpression> = vec![];
 
-    for clock in clocks.keys() {
-        let index = clocks.get(clock).unwrap();
+    for (clock, index) in clocks.iter() {
         let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
         let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
 
