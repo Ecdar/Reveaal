@@ -2,8 +2,7 @@
 mod refinements {
     use crate::ProtobufServer::services::component::Rep;
     use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
-    use crate::ProtobufServer::services::query_response;
-    use crate::ProtobufServer::services::{Component, ComponentsUpdateRequest, Query};
+    use crate::ProtobufServer::services::{Component, ComponentsUpdateRequest};
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
 

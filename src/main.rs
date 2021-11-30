@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn start_using_cli(matches: &clap::ArgMatches) {
-    let (mut project_loader, queries) = try_parse_args();
+    let (mut project_loader, queries) = try_parse_args(matches);
 
     let mut results = vec![];
     for query in &queries {
@@ -76,8 +76,8 @@ fn create_and_execute(
     executable_query.execute()
 }
 
-fn try_parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>) {
-    match parse_args() {
+fn try_parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<queries::Query>) {
+    match parse_args(matches) {
         Ok(results) => results,
         Err(error) => {
             panic!(
@@ -88,9 +88,9 @@ fn try_parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>) {
     }
 }
 
-fn parse_args() -> Result<(Box<dyn ComponentLoader>, Vec<queries::Query>), Box<dyn Error>> {
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from(yaml).get_matches();
+fn parse_args(
+    matches: &clap::ArgMatches,
+) -> Result<(Box<dyn ComponentLoader>, Vec<queries::Query>), Box<dyn Error>> {
     let mut folder_path: String = "".to_string();
     let mut query = "".to_string();
 

@@ -7,7 +7,6 @@ mod refinements {
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
 
-    static CONJUN: &str = "samples/xml/conjun.xml";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
 
     #[tokio::test]

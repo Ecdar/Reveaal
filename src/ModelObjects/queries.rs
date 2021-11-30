@@ -2,7 +2,6 @@ use crate::DataReader::parse_queries;
 use crate::ModelObjects::representations;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
-use simple_error::bail;
 
 /// The struct containing a single query
 #[derive(Debug, Deserialize, Clone)]

@@ -4,7 +4,6 @@ use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
 use crate::TransitionSystems::TransitionSystem;
-use simple_error::bail;
 use std::collections::HashMap;
 use std::error::Error;
 
