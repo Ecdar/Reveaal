@@ -4,7 +4,6 @@ pub mod save_comp_helper {
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
-    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
     use crate::TransitionSystems::TransitionSystem;
@@ -15,11 +14,14 @@ pub mod save_comp_helper {
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
-        let query = parse_queries::parse(str_query.as_str()).unwrap().remove(0);
+        let query = parse_queries::parse_to_expression_tree(str_query.as_str())
+            .unwrap()
+            .remove(0);
 
         let mut clock_index: u32 = 0;
         let base_system = if let QueryExpression::GetComponent(expr) = &query {
-            extract_system_rep::extract_side(expr.as_ref(), &mut project_loader, &mut clock_index)
+            let mut comp_loader = project_loader.to_comp_loader();
+            extract_system_rep::extract_side(expr.as_ref(), &mut *comp_loader, &mut clock_index)
                 .unwrap()
         } else {
             panic!("Failed to create system")
@@ -29,7 +31,11 @@ pub mod save_comp_helper {
         new_comp.create_edge_io_split();
         let mut new_comp = Box::new(new_comp);
         decl.add_component(&new_comp).unwrap();
-        //input_enabler::make_input_enabled(&mut new_comp, &decl);
+
+        // let opt_inputs = decl.get_component_inputs(new_comp.get_name());
+        // if opt_inputs.is_some() {
+        //     input_enabler::make_input_enabled(&mut new_comp, opt_inputs.unwrap());
+        // }
 
         let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
 

@@ -4,19 +4,22 @@ mod DBMLib;
 mod DataReader;
 mod EdgeEval;
 mod ModelObjects;
+mod ProtobufServer;
 mod System;
 mod TransitionSystems;
 mod tests;
 
-use crate::DataReader::component_loader::{JsonProjectLoader, ProjectLoader, XmlProjectLoader};
+use crate::DataReader::component_loader::{
+    ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
+};
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
-use std::env;
 use std::error::Error;
 use ModelObjects::component;
 use ModelObjects::queries;
+use ProtobufServer::start_grpc_server_with_tokio;
 use System::executable_query::QueryResult;
 
 #[macro_use]
@@ -27,8 +30,21 @@ extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
 
-pub fn main() {
-    let (mut project_loader, queries, _) = try_parse_args();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from(yaml).get_matches();
+
+    if let Some(ip_endpoint) = matches.value_of("endpoint") {
+        start_grpc_server_with_tokio(ip_endpoint)?;
+    } else {
+        start_using_cli(&matches);
+    }
+
+    Ok(())
+}
+
+fn start_using_cli(matches: &clap::ArgMatches) {
+    let (mut project_loader, queries) = try_parse_args();
 
     let mut results = vec![];
     for query in &queries {
@@ -50,17 +66,17 @@ pub fn main() {
 
 fn create_and_execute(
     query: &Query,
-    project_loader: &mut Box<dyn ProjectLoader>,
+    project_loader: &mut Box<dyn ComponentLoader>,
 ) -> Result<QueryResult, Box<dyn Error>> {
     let executable_query = Box::new(extract_system_rep::create_executable_query(
         query,
-        project_loader,
+        &mut **project_loader,
     )?);
 
-    Ok(executable_query.execute()?)
+    executable_query.execute()
 }
 
-fn try_parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
+fn try_parse_args() -> (Box<dyn ComponentLoader>, Vec<queries::Query>) {
     match parse_args() {
         Ok(results) => results,
         Err(error) => {
@@ -72,7 +88,7 @@ fn try_parse_args() -> (Box<dyn ProjectLoader>, Vec<queries::Query>, bool) {
     }
 }
 
-fn parse_args() -> Result<(Box<dyn ProjectLoader>, Vec<queries::Query>, bool), Box<dyn Error>> {
+fn parse_args() -> Result<(Box<dyn ComponentLoader>, Vec<queries::Query>), Box<dyn Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     let mut folder_path: String = "".to_string();
@@ -91,26 +107,11 @@ fn parse_args() -> Result<(Box<dyn ProjectLoader>, Vec<queries::Query>, bool), B
     if query.is_empty() {
         let queries: Vec<Query> = project_loader.get_queries().clone();
 
-        Ok((
-            project_loader,
-            queries,
-            matches.is_present("checkInputOutput"),
-        ))
+        Ok((project_loader.to_comp_loader(), queries))
     } else {
-        let queries = parse_queries::parse(&query)?;
-        let queries = queries
-            .into_iter()
-            .map(|q| Query {
-                query: q,
-                comment: "".to_string(),
-            })
-            .collect();
+        let queries = parse_queries::parse_to_query(&query)?;
 
-        Ok((
-            project_loader,
-            queries,
-            matches.is_present("checkInputOutput"),
-        ))
+        Ok((project_loader.to_comp_loader(), queries))
     }
 }
 

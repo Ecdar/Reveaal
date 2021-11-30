@@ -23,26 +23,32 @@ pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
 pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let project_path = String::from(PATH);
     let mut project_loader = XmlProjectLoader::new(project_path).unwrap();
-    let query = parse_queries::parse(QUERY).unwrap().remove(0);
+    let query = parse_queries::parse_to_expression_tree(QUERY)
+        .unwrap()
+        .remove(0);
     let q = Query {
         query,
         comment: "".to_string(),
     };
 
-    let query = create_executable_query(&q, &mut project_loader).unwrap();
+    let mut comp_loader = project_loader.to_comp_loader();
+    let query = create_executable_query(&q, &mut *comp_loader).unwrap();
 
     query.execute().unwrap()
 }
 
 pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let mut project_loader = JsonProjectLoader::new(String::from(PATH)).unwrap();
-    let query = parse_queries::parse(QUERY).unwrap().remove(0);
+    let query = parse_queries::parse_to_expression_tree(QUERY)
+        .unwrap()
+        .remove(0);
     let q = Query {
         query,
         comment: "".to_string(),
     };
 
-    let query = create_executable_query(&q, &mut project_loader).unwrap();
+    let mut comp_loader = project_loader.to_comp_loader();
+    let query = create_executable_query(&q, &mut *comp_loader).unwrap();
 
     query.execute().unwrap()
 }

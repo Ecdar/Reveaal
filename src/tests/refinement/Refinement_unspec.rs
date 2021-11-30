@@ -18,10 +18,4 @@ mod Refinement_unspec {
     fn testBRefinesSelf() {
         assert!(json_refinement_check(PATH, "refinement: B <= B"));
     }
-
-    #[test]
-    fn compNotRefinesB() {
-        assert!(!json_refinement_check(PATH, "refinement: A || AA <= B"));
-        // should fail because right side has more inputs
-    }
 }

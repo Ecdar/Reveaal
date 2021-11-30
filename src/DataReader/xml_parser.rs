@@ -9,13 +9,14 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
+use std::io::Read;
 
 pub fn is_xml_project(project_path: &str) -> bool {
     project_path.ends_with(".xml")
 }
 
 ///Used to parse systems described in xml
-pub(crate) fn parse_xml(
+pub(crate) fn parse_xml_from_file(
     fileName: &str,
 ) -> Result<
     (
@@ -26,9 +27,38 @@ pub(crate) fn parse_xml(
     Box<dyn Error>,
 > {
     //Open file and read xml
-    let file = File::open(fileName)?;
-    let file = BufReader::new(file);
-    let root = Element::from_reader(file)?;
+    let file = File::open(fileName).unwrap();
+    let reader = BufReader::new(file);
+
+    parse_xml(reader)
+}
+
+pub(crate) fn parse_xml_from_str(
+    xml: &str,
+) -> Result<
+    (
+        Vec<component::Component>,
+        system_declarations::SystemDeclarations,
+        Vec<queries::Query>,
+    ),
+    Box<dyn Error>,
+> {
+    let reader = BufReader::new(xml.as_bytes());
+
+    parse_xml(reader)
+}
+
+fn parse_xml<R: Read>(
+    xml_data: R,
+) -> Result<
+    (
+        Vec<component::Component>,
+        system_declarations::SystemDeclarations,
+        Vec<queries::Query>,
+    ),
+    Box<dyn Error>,
+> {
+    let root = Element::from_reader(xml_data).unwrap();
 
     //storage of components
     let mut xml_components: Vec<component::Component> = vec![];

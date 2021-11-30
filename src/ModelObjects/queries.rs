@@ -30,7 +30,7 @@ where
         ));
     }
 
-    let mut queries = match parse_queries::parse(&s) {
+    let mut queries = match parse_queries::parse_to_expression_tree(&s) {
         Ok(queries) => queries,
         Err(error) => {
             return Err(D::Error::custom(format!(
