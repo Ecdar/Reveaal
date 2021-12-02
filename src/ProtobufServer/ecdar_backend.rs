@@ -40,7 +40,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
     }
 }
 
-pub trait ToGrpcResult<T> {
+pub trait ToGrpcResult<T>: Sized {
     fn as_grpc_result(self) -> Result<T, Status>;
 }
 

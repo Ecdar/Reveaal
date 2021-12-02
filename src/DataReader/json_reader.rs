@@ -56,8 +56,8 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> Result<T, Box<dyn Error
     Ok(json_file)
 }
 
-pub fn json_to_component(json_str: &str) -> Result<component::Component, serde_json::Error> {
-    serde_json::from_str(json_str)
+pub fn json_to_component(json_str: &str) -> Result<component::Component, Box<dyn Error>> {
+    Ok(serde_json::from_str(json_str)?)
 }
 
 //Input:Filename

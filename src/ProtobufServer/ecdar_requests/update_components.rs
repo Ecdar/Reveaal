@@ -6,6 +6,7 @@ use crate::ModelObjects::component::Component;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::{Component as ProtobufComponent, ComponentsUpdateRequest};
 use crate::ProtobufServer::ConcreteEcdarBackend;
+use crate::ProtobufServer::ToGrpcResult;
 use std::cell::RefCell;
 use tonic::{Request, Response};
 
@@ -33,7 +34,7 @@ impl ConcreteEcdarBackend {
         if let Some(rep) = &proto_component.rep {
             match rep {
                 Rep::Json(json) => parse_json_component(json),
-                Rep::Xml(xml) => Ok(parse_xml_components(xml)),
+                Rep::Xml(xml) => parse_xml_components(xml),
             }
         } else {
             Ok(vec![])
@@ -42,17 +43,13 @@ impl ConcreteEcdarBackend {
 }
 
 fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
-    return match json_to_component(json) {
-        Ok(comp) => Ok(vec![comp]),
-        Err(_) => Err(tonic::Status::invalid_argument(
-            "Failed to parse json component",
-        )),
-    };
+    let comp = json_to_component(json).as_grpc_result()?;
+    Ok(vec![comp])
 }
 
-fn parse_xml_components(xml: &str) -> Vec<Component> {
-    let (comps, _, _) = parse_xml_from_str(xml).unwrap();
-    comps
+fn parse_xml_components(xml: &str) -> Result<Vec<Component>, tonic::Status> {
+    let (comps, _, _) = parse_xml_from_str(xml).as_grpc_result()?;
+    Ok(comps)
 }
 
 fn save_components(component_container: &RefCell<ComponentContainer>, components: Vec<Component>) {
