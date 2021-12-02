@@ -52,8 +52,10 @@ pub fn make_input_enabled(
                 if edge.get_update().is_some() {
                     let update_clocks = edge.get_update_clocks();
                     for clock in update_clocks {
-                        let clock_index = component.get_declarations().clocks.get(clock).unwrap();
-                        guard_zone.free_clock(*clock_index);
+                        let clock_index = component
+                            .get_declarations()
+                            .get_clock_index_by_name(clock)?;
+                        guard_zone.free_clock(clock_index);
                     }
                 }
 
