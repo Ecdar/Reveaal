@@ -5,21 +5,21 @@ use std::error::Error;
 pub fn add_extra_inputs_outputs(
     sys1: TransitionSystemPtr,
     sys2: TransitionSystemPtr,
-) -> (TransitionSystemPtr, TransitionSystemPtr) {
-    let inputs1 = get_extra(&sys1, &sys2, true).unwrap();
-    let outputs2 = get_extra(&sys2, &sys1, false).unwrap();
+) -> Result<(TransitionSystemPtr, TransitionSystemPtr), Box<dyn Error>> {
+    let inputs1 = get_extra(&sys1, &sys2, true)?;
+    let outputs2 = get_extra(&sys2, &sys1, false)?;
 
     if inputs1.is_empty() && outputs2.is_empty() {
-        return (sys1, sys2);
+        return Ok((sys1, sys2));
     }
 
     let comp1 = get_dummy_component("EXTRA_INPUT_OUTPUTS1".to_string(), &inputs1, &[]);
     let comp2 = get_dummy_component("EXTRA_INPUT_OUTPUTS2".to_string(), &[], &outputs2);
 
-    let new_sys1 = Composition::new(sys1, Box::new(comp1)).unwrap();
-    let new_sys2 = Composition::new(sys2, Box::new(comp2)).unwrap();
+    let new_sys1 = Composition::new(sys1, Box::new(comp1))?;
+    let new_sys2 = Composition::new(sys2, Box::new(comp2))?;
 
-    (new_sys1, new_sys2)
+    Ok((new_sys1, new_sys2))
 }
 
 fn get_extra(
