@@ -27,7 +27,7 @@ pub(crate) fn parse_xml_from_file(
     Box<dyn Error>,
 > {
     //Open file and read xml
-    let file = File::open(fileName).unwrap();
+    let file = File::open(fileName)?;
     let reader = BufReader::new(file);
 
     parse_xml(reader)
@@ -58,7 +58,7 @@ fn parse_xml<R: Read>(
     ),
     Box<dyn Error>,
 > {
-    let root = Element::from_reader(xml_data).unwrap();
+    let root = Element::from_reader(xml_data)?;
 
     //storage of components
     let mut xml_components: Vec<component::Component> = vec![];

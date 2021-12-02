@@ -48,7 +48,7 @@ impl ConcreteEcdarBackend {
 }
 
 fn parse_query(query_request: &ProtobufQuery) -> Result<Query, Status> {
-    let mut queries = parse_queries::parse_to_query(&query_request.query).unwrap();
+    let mut queries = parse_queries::parse_to_query(&query_request.query).as_grpc_result()?;
 
     if queries.len() != 1 {
         Err(Status::invalid_argument(
