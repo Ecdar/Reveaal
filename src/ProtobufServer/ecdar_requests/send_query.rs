@@ -7,6 +7,7 @@ use crate::ProtobufServer::services::query_response::{
     ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
 };
 use crate::ProtobufServer::services::{Component, Query as ProtobufQuery, QueryResponse};
+use crate::ProtobufServer::ToGrpcResult;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
 use tonic::{Request, Response, Status};
@@ -33,15 +34,13 @@ impl ConcreteEcdarBackend {
         }
 
         let executable_query =
-            match extract_system_rep::create_executable_query(&query, &mut *component_container) {
-                Ok(query) => query,
-                Err(_) => return Err(Status::unknown("Creation of query failed")),
-            };
-        let result = executable_query.execute().unwrap();
+            extract_system_rep::create_executable_query(&query, &mut *component_container)
+                .as_grpc_result()?;
+        let result: QueryResult = executable_query.execute().as_grpc_result()?;
 
         let reply = QueryResponse {
             query: Some(query_request),
-            result: convert_ecdar_result(&result),
+            result: convert_ecdar_result(&result)?,
         };
 
         Ok(Response::new(reply))
@@ -60,27 +59,29 @@ fn parse_query(query_request: &ProtobufQuery) -> Result<Query, Status> {
     }
 }
 
-fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
+fn convert_ecdar_result(query_result: &QueryResult) -> Result<Option<ProtobufResult>, Status> {
     match query_result {
-        QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
-            success: *refines,
-            relation: vec![],
-        })),
-        QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
+        QueryResult::Refinement(refines) => {
+            Ok(Some(ProtobufResult::Refinement(RefinementResult {
+                success: *refines,
+                relation: vec![],
+            })))
+        }
+        QueryResult::GetComponent(comp) => Ok(Some(ProtobufResult::Component(ComponentResult {
             component: Some(Component {
-                rep: Some(Rep::Json(component_to_json(&comp).unwrap())),
+                rep: Some(Rep::Json(component_to_json(&comp).as_grpc_result()?)),
             }),
-        })),
+        }))),
         QueryResult::Consistency(is_consistent) => {
-            Some(ProtobufResult::Consistency(ConsistencyResult {
+            Ok(Some(ProtobufResult::Consistency(ConsistencyResult {
                 success: *is_consistent,
-            }))
+            })))
         }
         QueryResult::Determinism(is_deterministic) => {
-            Some(ProtobufResult::Determinism(DeterminismResult {
+            Ok(Some(ProtobufResult::Determinism(DeterminismResult {
                 success: *is_deterministic,
-            }))
+            })))
         }
-        QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
+        QueryResult::Error(message) => Ok(Some(ProtobufResult::Error(message.clone()))),
     }
 }

@@ -7,4 +7,5 @@ pub mod services {
 }
 
 pub use ecdar_backend::ConcreteEcdarBackend;
+use ecdar_backend::ToGrpcResult;
 pub use server::start_grpc_server_with_tokio;
