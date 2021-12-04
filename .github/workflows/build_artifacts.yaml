@@ -65,5 +65,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: reveaal-win
-          path: target/release/Reveaal.exe
+          path: target/x86_64-pc-windows-gnu/release/Reveaal.exe
           
