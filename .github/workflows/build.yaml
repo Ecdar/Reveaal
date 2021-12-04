@@ -1,8 +1,8 @@
+name: Build Windows and Linux artifacts
+
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  - push
+
 jobs:
   build-linux:
     name: Build Reveaal for Linux
@@ -58,5 +58,5 @@ jobs:
       - name: Upload artifacts 
         uses: actions/upload-artifact@v2
         with:
-          name: reveaal-linux
-          path: '${{runner.workspace}}/target/release/Reveaal
+          name: reveaal-win
+          path: '${{runner.workspace}}/target/release/Reveaal.exe
