@@ -4,9 +4,9 @@ on:
   - push
 
 jobs:
-  build-linux:
-    name: Build Reveaal for Linux
+  build:
     runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v2
         with:
