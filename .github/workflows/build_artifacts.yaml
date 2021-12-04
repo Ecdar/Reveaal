@@ -22,9 +22,12 @@ jobs:
           cmake --build build/
       - uses: actions-rs/toolchain@v1
         with:
-          profile: release
           toolchain: stable
           override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
       - name: Upload artifacts 
         uses: actions/upload-artifact@v2
         with:

@@ -5,9 +5,6 @@ build = "src/build.rs"
 authors = ["Peter Greve <Pgreve16@student.aau.dk>"]
 edition = "2018"
 
-[profile.release]
-opt-level = 3
-
 [features]
 dbm-stub = []
 
