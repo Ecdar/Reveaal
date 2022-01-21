@@ -54,15 +54,16 @@ impl<'a> TransitionSystem<'static> for Composition {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         let mut transitions = vec![];
 
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index, dim);
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index, dim);
 
         if left.is_empty() || right.is_empty() {
             transitions = left;

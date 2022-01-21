@@ -47,13 +47,14 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index, dim);
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index);
+            .next_transitions(location, action, sync_type, index, dim);
 
         Transition::combinations(&mut left, &mut right)
     }
@@ -114,9 +115,10 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         self.component
-            .next_transitions(location, action, sync_type, index)
+            .next_transitions(location, action, sync_type, index, dim)
     }
 
     fn precheck_sys_rep(&self, dim: u32) -> bool {

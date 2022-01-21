@@ -27,6 +27,7 @@ impl TransitionSystem<'static> for Quotient {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         panic!("Not implemented");
     }

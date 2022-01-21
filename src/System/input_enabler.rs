@@ -132,28 +132,9 @@ pub fn build_guard_from_zone(
         }
     }
 
-    let res = build_guard_from_zone_helper(&mut guards);
+    let res = representations::BoolExpression::conjunction(&mut guards);
     match res {
         representations::BoolExpression::Bool(false) => None,
         _ => Some(res),
-    }
-}
-
-fn build_guard_from_zone_helper(
-    guards: &mut Vec<representations::BoolExpression>,
-) -> representations::BoolExpression {
-    let num_guards = guards.len();
-
-    if let Some(guard) = guards.pop() {
-        if num_guards == 1 {
-            guard
-        } else {
-            representations::BoolExpression::AndOp(
-                Box::new(guard),
-                Box::new(build_guard_from_zone_helper(guards)),
-            )
-        }
-    } else {
-        representations::BoolExpression::Bool(false)
     }
 }

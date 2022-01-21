@@ -40,7 +40,11 @@ pub fn consistency_least_helper<'b>(
     passed_list.push(state.clone());
 
     for input in system.get_input_actions() {
-        for transition in &system.next_inputs(&state.decorated_locations, &input) {
+        for transition in &system.next_inputs(
+            &state.decorated_locations,
+            &input,
+            max_bounds.get_dimensions(),
+        ) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -57,7 +61,11 @@ pub fn consistency_least_helper<'b>(
     }
 
     for output in system.get_output_actions() {
-        for transition in system.next_outputs(&state.decorated_locations, &output) {
+        for transition in system.next_outputs(
+            &state.decorated_locations,
+            &output,
+            max_bounds.get_dimensions(),
+        ) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -84,7 +92,11 @@ fn consistency_fully_helper<'b>(
     passed_list.push(state.clone());
 
     for input in system.get_input_actions() {
-        for transition in system.next_inputs(&state.decorated_locations, &input) {
+        for transition in system.next_inputs(
+            &state.decorated_locations,
+            &input,
+            max_bounds.get_dimensions(),
+        ) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
@@ -101,7 +113,11 @@ fn consistency_fully_helper<'b>(
 
     let mut output_existed = false;
     for output in system.get_output_actions() {
-        for transition in system.next_outputs(&state.decorated_locations, &output) {
+        for transition in system.next_outputs(
+            &state.decorated_locations,
+            &output,
+            max_bounds.get_dimensions(),
+        ) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);

@@ -24,7 +24,7 @@ impl BoolExpression {
     pub fn swap_clock_names(
         &self,
         from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<u32, String>,
     ) -> BoolExpression {
         match self {
             BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
@@ -62,9 +62,8 @@ impl BoolExpression {
             BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
             BoolExpression::VarName(name) => {
                 let index = from_vars.get(name).unwrap();
-                let new_name = to_vars.iter()
-                .find_map(|(key, val)| if *val == *index { Some(key) } else { None }).unwrap();
-                BoolExpression::VarName(new_name.clone())
+                let new_name = to_vars[index].clone();
+                BoolExpression::VarName(new_name)
             },
             BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
             BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
@@ -173,6 +172,23 @@ impl BoolExpression {
             }
             BoolExpression::Bool(_) => {}
             BoolExpression::Int(_) => {}
+        }
+    }
+
+    pub fn conjunction(guards: &mut Vec<BoolExpression>) -> BoolExpression {
+        let num_guards = guards.len();
+
+        if let Some(guard) = guards.pop() {
+            if num_guards == 1 {
+                guard
+            } else {
+                BoolExpression::AndOp(
+                    Box::new(guard),
+                    Box::new(BoolExpression::conjunction(guards)),
+                )
+            }
+        } else {
+            BoolExpression::Bool(false)
         }
     }
 

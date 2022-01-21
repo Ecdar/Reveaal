@@ -91,24 +91,27 @@ pub trait TransitionSystem<'a>: DynClone {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>>;
 
     fn next_outputs<'b>(
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         let mut index = 0;
-        self.next_transitions(location, action, &SyncType::Output, &mut index)
+        self.next_transitions(location, action, &SyncType::Output, &mut index, dim)
     }
 
     fn next_inputs<'b>(
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
         let mut index = 0;
-        self.next_transitions(location, action, &SyncType::Input, &mut index)
+        self.next_transitions(location, action, &SyncType::Input, &mut index, dim)
     }
 
     fn get_input_actions(&self) -> HashSet<String>;
@@ -191,19 +194,20 @@ impl TransitionSystem<'_> for Component {
 
     fn next_transitions<'b>(
         &'b self,
-        location: &LocationTuple<'b>,
+        locations: &LocationTuple<'b>,
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
+        dim: u32,
     ) -> Vec<Transition<'b>> {
-        let location = location.get_location(*index);
+        let location = locations.get_location(*index);
         let next_edges = self.get_next_edges(location, action, *sync_type);
 
         let mut open_transitions = vec![];
-        for e in next_edges {
-            open_transitions.push(Transition {
-                edges: vec![(self, e, *index)],
-            });
+        for edge in next_edges {
+            let transition = Transition::from(&vec![(self, edge, *index)], locations, dim);
+
+            open_transitions.push(transition);
         }
 
         *index += 1;

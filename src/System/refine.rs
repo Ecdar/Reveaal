@@ -54,8 +54,10 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
 
         for output in &outputs {
-            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
-            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
+            let output_transition1 =
+                sys1.next_outputs(curr_pair.get_locations1(), output, dimensions);
+            let output_transition2 =
+                sys2.next_outputs(curr_pair.get_locations2(), output, dimensions);
 
             if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
                 create_new_state_pairs(
@@ -88,8 +90,10 @@ pub fn check_refinement(
         }
 
         for input in &inputs {
-            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
-            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
+            let input_transitions1 =
+                sys1.next_inputs(curr_pair.get_locations1(), input, dimensions);
+            let input_transitions2 =
+                sys2.next_inputs(curr_pair.get_locations2(), input, dimensions);
 
             if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
                 create_new_state_pairs(
@@ -145,24 +149,18 @@ fn has_valid_state_pair<'a>(
     //create guard zones left
     let mut left_fed = Federation::new(vec![], dim);
     for transition in transitions1 {
-        if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    left_fed.add(zone.clone());
-                }
-            }
+        let mut zone = transition.guard_zone.clone();
+        if zone.intersection(&pair_zone) {
+            left_fed.add(zone.clone());
         }
     }
 
     //Create guard zones right
     let mut right_fed = Federation::new(vec![], dim);
     for transition in transitions2 {
-        if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    right_fed.add(zone.clone());
-                }
-            }
+        let mut zone = transition.guard_zone.clone();
+        if zone.intersection(&pair_zone) {
+            right_fed.add(zone.clone());
         }
     }
 
@@ -216,10 +214,10 @@ fn build_state_pair<'a>(
     //Apply guards on both sides
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
     //Applies the left side guards and checks if zone is valid
-    let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone);
+    let g1_success = transition1.apply_guards(&mut new_sp_zone);
 
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone);
+    let g2_success = transition2.apply_guards(&mut new_sp_zone);
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {

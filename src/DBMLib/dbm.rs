@@ -252,6 +252,49 @@ impl Zone {
     pub fn close(&mut self) {
         lib::rs_dbm_close(&mut self.matrix, self.dimension);
     }
+
+    pub fn build_guard_from_zone(
+        &self,
+        clock_names: &HashMap<u32, String>,
+    ) -> Option<BoolExpression> {
+        let mut guards: Vec<BoolExpression> = vec![];
+        for (index, clock) in clock_names {
+            let (upper_is_strict, upper_val) = self.get_constraint(*index, 0);
+            let (lower_is_strict, lower_val) = self.get_constraint(0, *index);
+            // lower bound must be different from 1 (==0)
+            if lower_is_strict || lower_val != 0 {
+                if lower_is_strict {
+                    guards.push(BoolExpression::LessT(
+                        Box::new(BoolExpression::Int(-lower_val)),
+                        Box::new(BoolExpression::VarName(clock.clone())),
+                    ));
+                } else {
+                    guards.push(BoolExpression::LessEQ(
+                        Box::new(BoolExpression::Int(-lower_val)),
+                        Box::new(BoolExpression::VarName(clock.clone())),
+                    ));
+                }
+            }
+            if !self.is_constraint_infinity(*index, 0) {
+                if upper_is_strict {
+                    guards.push(BoolExpression::LessT(
+                        Box::new(BoolExpression::VarName(clock.clone())),
+                        Box::new(BoolExpression::Int(upper_val)),
+                    ));
+                } else {
+                    guards.push(BoolExpression::LessEQ(
+                        Box::new(BoolExpression::VarName(clock.clone())),
+                        Box::new(BoolExpression::Int(upper_val)),
+                    ));
+                }
+            }
+        }
+        let res = BoolExpression::conjunction(&mut guards);
+        match res {
+            BoolExpression::Bool(false) => None,
+            _ => Some(res),
+        }
+    }
 }
 
 impl Display for Zone {
