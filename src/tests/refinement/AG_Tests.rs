@@ -36,12 +36,6 @@ mod AG_Tests {
     }
 
     #[test]
-    fn AImpNotRefinesAG() {
-        assert!(!json_refinement_check(PATH, "refinement: A||Imp <= A||G"));
-        // should fail because the right side has more inputs
-    }
-
-    #[test]
     fn GNotRefinesImp() {
         assert!(!json_refinement_check(PATH, "refinement: G <= Imp"));
         // should fail because right side has more outputs
@@ -71,11 +65,5 @@ mod AG_Tests {
     #[test]
     fn ImpRefinesQ() {
         assert!(json_refinement_check(PATH, "refinement: Imp <= Q"));
-    }
-
-    #[test]
-    fn ANotRefinesAA() {
-        assert!(!json_refinement_check(PATH, "refinement: A <= AA"));
-        // should fail because right side has more inputs
     }
 }

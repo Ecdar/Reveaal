@@ -1,5 +1,7 @@
 extern crate bindgen;
 
+use tonic_build;
+
 use std::env;
 use std::path::PathBuf;
 
@@ -8,6 +10,9 @@ fn main() {
         println!("cargo:warning=Using stub instead of DBM library");
         return;
     }
+
+    tonic_build::compile_protos("Ecdar-ProtoBuf/services.proto").unwrap();
+    println!("cargo:rerun-if-changed=Ecdar-ProtoBuf/*.proto");
 
     let host = std::env::var("HOST").unwrap();
     let target = std::env::var("TARGET").unwrap();

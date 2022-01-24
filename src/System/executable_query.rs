@@ -1,6 +1,5 @@
-use crate::DataReader::json_writer::component_to_json;
+use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::save_component::combine_components;
 use crate::System::{extra_actions, refine};
 use crate::TransitionSystems::TransitionSystemPtr;
@@ -25,9 +24,11 @@ impl QueryResult {
             QueryResult::Determinism(true) => satisfied(query_str),
             QueryResult::Determinism(false) => not_satisfied(query_str),
 
-            QueryResult::Error(_) => println!("{} -- Failed", query_str),
+            QueryResult::GetComponent(_) => {
+                println!("{} -- Component succesfully created", query_str)
+            }
 
-            _ => (),
+            QueryResult::Error(_) => println!("{} -- Failed", query_str),
         };
     }
 }
@@ -47,7 +48,6 @@ pub trait ExecutableQuery {
 pub struct RefinementExecutor {
     pub sys1: TransitionSystemPtr,
     pub sys2: TransitionSystemPtr,
-    pub decls: SystemDeclarations,
 }
 
 impl ExecutableQuery for RefinementExecutor {
@@ -64,17 +64,20 @@ impl ExecutableQuery for RefinementExecutor {
     }
 }
 
-pub struct GetComponentExecutor {
+pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
+    pub component_loader: &'a mut dyn ComponentLoader,
 }
 
-impl<'a> ExecutableQuery for GetComponentExecutor {
+impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
         let mut comp = combine_components(&self.system);
         comp.name = self.comp_name;
 
-        component_to_json(&comp);
+        comp.create_edge_io_split();
+
+        self.component_loader.save_component(comp.clone());
 
         QueryResult::GetComponent(comp)
     }

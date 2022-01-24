@@ -4,6 +4,10 @@ use crate::TransitionSystems::TransitionSystem;
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
+    if system.get_initial_location() == None {
+        return false; //TODO: figure out whether we want empty TS to be consistent
+    }
+
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
@@ -13,6 +17,10 @@ pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
 
 //Local consistency check WITHOUT pruning
 pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
+    if system.get_initial_location() == None {
+        return false;
+    }
+
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
