@@ -1,48 +1,68 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
-    Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
-    SyncType, Transition,
+    Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location,
+    LocationType, State, SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocationTuple<'a> {
-    locations: Vec<&'a Location>,
-    declarations: Vec<Declarations>,
+    locations: HashMap<usize, (&'a Location, Declarations)>,
 }
 
 impl<'a> LocationTuple<'a> {
     pub fn get_location(&self, index: usize) -> &Location {
-        self.locations.get(index).unwrap()
+        let (loc, _) = self.locations.get(&index).unwrap();
+        loc
+    }
+
+    pub fn try_get_location(&self, index: usize) -> Option<&Location> {
+        let (loc, _) = self.locations.get(&index)?;
+        Some(loc)
     }
 
     pub fn get_decl(&self, index: usize) -> &Declarations {
-        self.declarations.get(index).unwrap()
+        let (_, decl) = self.locations.get(&index).unwrap();
+        decl
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
-        self.locations[index] = new_loc;
+        let (_, decl) = self.locations.remove(&index).unwrap();
+        self.locations.insert(index, (new_loc, decl));
     }
 
     pub fn simple(location: &'a Location, declaration: &Declarations) -> Self {
-        LocationTuple {
-            locations: vec![location],
-            declarations: vec![declaration.clone()],
-        }
+        let mut locations = HashMap::new();
+        locations.insert(0, (location, declaration.clone()));
+
+        LocationTuple { locations }
     }
 
-    pub fn compose(left: Self, right: Self) -> Self {
-        let mut locations = left.locations;
-        locations.extend(right.locations);
-        let mut declarations = left.declarations;
-        declarations.extend(right.declarations);
-        LocationTuple {
-            locations,
-            declarations,
+    pub fn compose(mut left: Self, right: Self) -> Self {
+        let offset = left.locations.len();
+        for (index, (loc, decl)) in right.locations {
+            left.locations.insert(index + offset, (loc, decl));
         }
+        left
+    }
+
+    pub fn compose_iter<T>(locations_iterator: T) -> Self
+    where
+        T: IntoIterator<Item = Self>,
+    {
+        let mut locations = LocationTuple {
+            locations: HashMap::new(),
+        };
+
+        for new_location in locations_iterator {
+            locations = LocationTuple::compose(locations, new_location);
+        }
+
+        locations
     }
 
     pub fn to_string(&self) -> String {
@@ -50,33 +70,42 @@ impl<'a> LocationTuple<'a> {
 
         let mut result = "(".to_string();
         for i in 0..len - 1 {
-            let name = self.locations.get(i).unwrap().get_id();
+            let name = self.locations.get(&i).unwrap().0.get_id();
             result.push_str(&format!("{},", name));
         }
-        let name = self.locations.get(len - 1).unwrap().get_id();
+        let name = self.locations.get(&(len - 1)).unwrap().0.get_id();
         result.push_str(&format!("{})", name));
         result
     }
     pub fn len(&self) -> usize {
         self.locations.len()
     }
-    pub fn iter(&self) -> std::slice::Iter<&Location> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, usize, (&Location, Declarations)> {
         self.locations.iter()
     }
 
-    pub fn iter_zipped(
+    pub fn iter_values(
         &self,
-    ) -> std::iter::Zip<std::slice::Iter<&Location>, std::slice::Iter<Declarations>> {
-        self.locations.iter().zip(self.declarations.iter())
+    ) -> std::collections::hash_map::Values<'_, usize, (&Location, Declarations)> {
+        self.locations.values()
     }
 
     pub fn apply_invariants(&self, zone: &mut Zone) -> bool {
         let mut success = true;
 
-        for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
+        for (location, decl) in self.iter_values() {
             success = success && DecoratedLocation::create(location, decl).apply_invariant(zone);
         }
         success
+    }
+
+    pub fn is_initial(&self) -> bool {
+        for (location, _) in self.iter_values() {
+            if location.location_type != LocationType::Initial {
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -118,6 +147,8 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_output_actions(&self) -> HashSet<String>;
 
+    fn get_actions(&self) -> HashSet<String>;
+
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
     fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>>;
@@ -139,6 +170,10 @@ pub trait TransitionSystem<'a>: DynClone {
     fn get_initial_state(&self, dimensions: u32) -> State;
 
     fn get_max_clock_index(&self) -> u32;
+
+    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr>;
+
+    fn get_children(&self) -> Vec<&TransitionSystemPtr>;
 }
 
 clone_trait_object!(TransitionSystem<'static>);
@@ -174,15 +209,19 @@ impl TransitionSystem<'_> for Component {
         channels.into_iter().map(|c| c.name).collect()
     }
 
+    fn get_actions(&self) -> HashSet<String> {
+        let channels: Vec<Channel> = self.get_actions();
+
+        channels.into_iter().map(|c| c.name).collect()
+    }
+
     fn get_num_clocks(&self) -> u32 {
         self.declarations.get_clock_count()
     }
 
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
-        if let Some(loc) = self.get_initial_location() {
-            return Some(LocationTuple::simple(loc, &self.declarations));
-        }
-        None
+        let loc = self.get_initial_location()?;
+        Some(LocationTuple::simple(loc, &self.declarations))
     }
 
     fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
@@ -241,5 +280,13 @@ impl TransitionSystem<'_> for Component {
             decorated_locations: init_loc,
             zone,
         }
+    }
+
+    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
+        vec![]
+    }
+
+    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
+        vec![]
     }
 }

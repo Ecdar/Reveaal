@@ -41,10 +41,10 @@ fn get_locations_from_tuples(
         .cloned()
         .map(|loc_vec| {
             let is_initial = loc_vec
-                .iter()
-                .all(|loc| loc.location_type == LocationType::Initial);
+                .iter_values()
+                .all(|(loc, _)| loc.location_type == LocationType::Initial);
             let mut invariant: Option<BoolExpression> = None;
-            for (loc, decl) in loc_vec.iter_zipped() {
+            for (loc, decl) in loc_vec.iter_values() {
                 if let Some(inv) = &loc.invariant {
                     let inv = inv.swap_clock_names(&decl.clocks, clock_map);
                     if let Some(inv_full) = invariant {

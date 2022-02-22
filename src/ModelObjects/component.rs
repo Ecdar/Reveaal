@@ -717,11 +717,12 @@ impl<'a> State<'a> {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum LocationType {
     Normal,
     Initial,
     Universal,
+    Inconsistent,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
@@ -772,6 +773,14 @@ pub struct Transition<'a> {
     pub updates: HashMap<usize, Vec<parse_edge::Update>>,
 }
 impl<'a> Transition<'a> {
+    pub fn new(dim: u32) -> Transition<'a> {
+        Transition {
+            guard_zone: Zone::init(dim),
+            target_locations: HashMap::new(),
+            updates: HashMap::new(),
+        }
+    }
+
     pub fn from(
         edges: &Vec<(&'a Component, &'a Edge, usize)>,
         current_location: &LocationTuple<'a>,
@@ -1112,6 +1121,13 @@ pub struct Declarations {
 
 #[allow(dead_code)]
 impl Declarations {
+    pub fn empty() -> Declarations {
+        Declarations {
+            ints: HashMap::new(),
+            clocks: HashMap::new(),
+        }
+    }
+
     pub fn get_ints(&self) -> &HashMap<String, i32> {
         &self.ints
     }

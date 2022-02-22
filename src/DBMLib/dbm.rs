@@ -325,7 +325,7 @@ impl Display for Zone {
 
 #[derive(Clone, Debug)]
 pub struct Federation {
-    zones: Vec<Zone>,
+    pub zones: Vec<Zone>,
     dimension: u32,
 }
 

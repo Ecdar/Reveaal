@@ -11,38 +11,30 @@ macro_rules! default_composition {
         fn get_output_actions(&self) -> HashSet<String> {
             self.outputs.clone()
         }
+        fn get_actions(&self) -> HashSet<String> {
+            self.inputs
+                .union(&self.outputs)
+                .map(|action| action.to_string())
+                .collect()
+        }
         fn get_num_clocks(&self) -> u32 {
-            self.left.get_num_clocks() + self.right.get_num_clocks()
+            self.get_children()
+                .iter()
+                .fold(0, |accumulator, child| accumulator + child.get_num_clocks())
         }
         fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
-            if let Some(left) = self.left.get_initial_location() {
-                if let Some(right) = self.right.get_initial_location() {
-                    return Some(LocationTuple::compose(left, right));
-                }
+            let mut locations = vec![];
+
+            for child in self.get_children() {
+                locations.push(child.get_initial_location()?);
             }
-            None
-        }
-        fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
-            let mut location_tuples = vec![];
-            let left = self.left.get_all_locations();
-            let right = self.right.get_all_locations();
-            for loc1 in left {
-                for loc2 in &right {
-                    location_tuples.push(LocationTuple::compose(loc1.clone(), loc2.clone()));
-                }
-            }
-            location_tuples
+            Some(LocationTuple::compose_iter(locations))
         }
 
         fn get_components<'b>(&'b self) -> Vec<&'b Component> {
             let mut comps = self.left.get_components();
             comps.extend(self.right.get_components());
             comps
-        }
-
-        fn set_clock_indices(&mut self, index: &mut u32) {
-            self.left.set_clock_indices(index);
-            self.right.set_clock_indices(index);
         }
 
         fn get_max_clock_index(&self) -> u32 {
@@ -80,6 +72,12 @@ macro_rules! default_composition {
             State {
                 decorated_locations: init_loc,
                 zone,
+            }
+        }
+
+        fn set_clock_indices(&mut self, index: &mut u32) {
+            for child in self.get_mut_children() {
+                child.set_clock_indices(index);
             }
         }
     };

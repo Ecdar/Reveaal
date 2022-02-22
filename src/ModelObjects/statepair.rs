@@ -76,11 +76,11 @@ impl<'b> StatePair<'b> {
 impl<'b> Display for StatePair<'b> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("Pair: ({{")?;
-        for l in self.locations1.iter() {
+        for (l, _) in self.locations1.iter_values() {
             f.write_fmt(format_args!("{}, ", l.get_id()))?;
         }
         f.write_str("}}, {{")?;
-        for l in self.locations2.iter() {
+        for (l, _) in self.locations2.iter_values() {
             f.write_fmt(format_args!("{}, ", l.get_id()))?;
         }
         f.write_str("}}")?;

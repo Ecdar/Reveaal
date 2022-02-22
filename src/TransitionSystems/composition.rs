@@ -79,4 +79,24 @@ impl<'a> TransitionSystem<'static> for Composition {
         local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
             && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
     }
+
+    fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
+        let mut location_tuples = vec![];
+        let left = self.left.get_all_locations();
+        let right = self.right.get_all_locations();
+        for loc1 in left {
+            for loc2 in &right {
+                location_tuples.push(LocationTuple::compose(loc1.clone(), loc2.clone()));
+            }
+        }
+        location_tuples
+    }
+
+    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
+        vec![&mut self.left, &mut self.right]
+    }
+
+    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
+        vec![&self.left, &self.right]
+    }
 }

@@ -62,6 +62,26 @@ impl<'a> TransitionSystem<'static> for Conjunction {
     fn is_locally_consistent(&self, dimensions: u32) -> bool {
         local_consistency::is_least_consistent(self, dimensions)
     }
+
+    fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
+        let mut location_tuples = vec![];
+        let left = self.left.get_all_locations();
+        let right = self.right.get_all_locations();
+        for loc1 in &left {
+            for loc2 in &right {
+                location_tuples.push(LocationTuple::compose(loc1.clone(), loc2.clone()));
+            }
+        }
+        location_tuples
+    }
+
+    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
+        vec![&mut self.left, &mut self.right]
+    }
+
+    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
+        vec![&self.left, &self.right]
+    }
 }
 
 #[derive(Clone)]
@@ -78,6 +98,10 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
 
     fn get_output_actions(&self) -> HashSet<String> {
         self.outputs.clone()
+    }
+
+    fn get_actions(&self) -> HashSet<String> {
+        self.inputs.union(&self.outputs).cloned().collect()
     }
 
     // ---- Rest just call child
@@ -135,5 +159,13 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
 
     fn get_initial_state(&self, dimensions: u32) -> State {
         self.component.get_initial_state(dimensions)
+    }
+
+    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
+        vec![]
+    }
+
+    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
+        vec![]
     }
 }

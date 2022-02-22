@@ -100,10 +100,14 @@ pub fn extract_side(
             extract_side(left, component_loader, clock_index),
             extract_side(right, component_loader, clock_index),
         ),
-        QueryExpression::Quotient(left, right) => Quotient::new(
-            extract_side(left, component_loader, clock_index),
-            extract_side(right, component_loader, clock_index),
-        ),
+        QueryExpression::Quotient(left, right) => {
+            let mut quotient = Quotient::new(
+                extract_side(left, component_loader, clock_index),
+                extract_side(right, component_loader, clock_index),
+            );
+            quotient.set_clock_indices(clock_index);
+            quotient
+        }
         QueryExpression::VarName(name) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);

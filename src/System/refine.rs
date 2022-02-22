@@ -12,6 +12,9 @@ pub fn check_refinement(
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
+    println!("Sys1: {}", sys1.get_max_clock_index() + 1);
+
+    println!("Sys2: {}", sys2.get_max_clock_index() + 1);
     let dimensions = 1 + std::cmp::max(sys1.get_max_clock_index(), sys2.get_max_clock_index());
     sys1.initialize(dimensions);
     sys2.initialize(dimensions);
@@ -273,7 +276,7 @@ fn prepare_init_state(
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
 ) {
-    for (location, decl) in initial_locations_1.iter_zipped() {
+    for (location, decl) in initial_locations_1.iter_values() {
         let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
             apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
@@ -285,7 +288,7 @@ fn prepare_init_state(
         }
     }
 
-    for (location, decl) in initial_locations_2.iter_zipped() {
+    for (location, decl) in initial_locations_2.iter_values() {
         let init_inv2 = location.get_invariant();
         let init_inv2_success = if let Some(inv2) = init_inv2 {
             apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)

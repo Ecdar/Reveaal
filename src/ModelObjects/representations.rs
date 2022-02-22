@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
 
-#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum BoolExpression {
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),
