@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
@@ -7,7 +7,7 @@ use crate::ModelObjects::representations::BoolExpression;
 pub fn updater(
     updates: &[parse_edge::Update],
     decl: &component::Declarations, //Will eventually be mutable
-    zone: &mut Zone,
+    zone: &mut Federation,
 ) {
     for update in updates {
         match update.get_expression() {

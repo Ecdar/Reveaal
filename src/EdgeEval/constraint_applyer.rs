@@ -1,11 +1,12 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
+use std::collections::HashMap;
 
 pub fn apply_constraint(
     constraint: &Option<BoolExpression>,
     decls: &component::Declarations,
-    zone: &mut Zone,
+    zone: &mut Federation,
 ) -> bool {
     return if let Some(guards) = constraint {
         apply_constraints_to_state(guards, decls, zone)
@@ -17,539 +18,219 @@ pub fn apply_constraint(
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
     decls: &component::Declarations,
-    zone: &mut Zone,
+    zone: &mut Federation,
 ) -> bool {
-    if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, decls, zone, true).0
-    {
-        val
-    } else {
-        panic!("unexpected value returned when attempting to apply constraints to zone")
-    }
-}
-
-pub fn apply_constraints_to_state_declarations(
-    guard: &BoolExpression,
-    decls: &component::Declarations,
-    zone: &mut Zone,
-) -> bool {
-    if let BoolExpression::Bool(val) = apply_constraints_to_state_helper(guard, decls, zone, true).0
-    {
-        val
-    } else {
-        panic!("unexpected value returned when attempting to apply constraints to zone")
-    }
+    apply_constraints_to_state_helper(guard, decls, zone)
 }
 
 pub fn apply_constraints_to_state_helper(
     guard: &BoolExpression,
     decls: &component::Declarations,
-    zone: &mut Zone,
-    should_apply: bool,
-) -> (BoolExpression, bool) {
+    zone: &mut Federation,
+) -> bool {
     match guard {
         BoolExpression::AndOp(left, right) => {
-            let (left, _contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, true);
-            if let BoolExpression::Bool(val) = left {
-                if !val {
-                    return (BoolExpression::Bool(false), false);
-                }
-            }
-            let (right, _contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, true);
-
-            match left {
-                BoolExpression::Bool(left_val) => match right {
-                    BoolExpression::Bool(right_val) => {
-                        (BoolExpression::Bool(left_val && right_val), false)
-                    }
-                    _ => {
-                        panic!("expected bool in apply guard && expression")
-                    }
-                },
-                _ => {
-                    panic!("expected bool in apply guard && expression")
-                }
-            }
+            apply_constraints_to_state_helper(left, decls, zone)
+                && apply_constraints_to_state_helper(right, decls, zone)
         }
         BoolExpression::OrOp(left, right) => {
-            let (mut left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (mut right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if contains_clock_left && contains_clock_right {
-                panic!("clock constrained on both sides of or operator, resulting in state that is not well defined")
-            }
-
-            if contains_clock_left {
-                left = apply_constraints_to_state_helper(&left, decls, zone, true).0;
-            } else if contains_clock_right {
-                right = apply_constraints_to_state_helper(&right, decls, zone, true).0;
-            }
-            match left {
-                BoolExpression::Bool(left_val) => match right {
-                    BoolExpression::Bool(right_val) => {
-                        (BoolExpression::Bool(left_val || right_val), false)
-                    }
-                    _ => {
-                        panic!("expected bool in apply guard || expression")
-                    }
-                },
-                _ => {
-                    panic!("expected bool in apply guard || expression")
-                }
-            }
+            let mut clone = zone.clone();
+            let res1 = apply_constraints_to_state_helper(left, decls, zone);
+            let res2 = apply_constraints_to_state_helper(right, decls, &mut clone);
+            *zone += clone;
+            res1 || res2
         }
         BoolExpression::LessEQ(left, right) => {
-            let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if !should_apply && (contains_clock_right || contains_clock_left) {
-                return (BoolExpression::LessEQ(left.clone(), right.clone()), true);
-            }
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lte_constraint(left_index, right_index, 0);
-
-                        println!("DBM: {}", zone);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = zone.add_lte_constraint(left_index, 0, right_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lte_constraint(0, right_index, -left_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        (BoolExpression::Bool(left_val <= right_val), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
+            let (i, j, c) = get_indices(left, right, decls, false);
+            // i-j<=c
+            zone.constrain(i, j, c, false)
         }
         BoolExpression::GreatEQ(left, right) => {
-            let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if !should_apply && (contains_clock_right || contains_clock_left) {
-                return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
-            }
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lte_constraint(right_index, left_index, 0);
-
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = zone.add_lte_constraint(0, left_index, -right_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lte_constraint(right_index, 0, left_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        (BoolExpression::Bool(left_val >= right_val), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
+            let (i, j, c) = get_indices(left, right, decls, true);
+            // j-i <= -c -> c <= i-j
+            zone.constrain(i, j, c, false)
         }
         BoolExpression::EQ(left, right) => {
-            let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if !should_apply && (contains_clock_right || contains_clock_left) {
-                return (BoolExpression::GreatEQ(left.clone(), right.clone()), true);
-            }
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_eq_constraint(right_index, left_index);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = zone.add_eq_const_constraint(left_index, right_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    _ => {
-                        panic!("invalid type in EQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_eq_const_constraint(right_index, left_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        (BoolExpression::Bool(left_val == right_val), false)
-                    }
-                    _ => {
-                        panic!("invalid type in EQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in EQ expression in guard")
-                }
-            }
+            let (i, j, c) = get_indices(left, right, decls, false);
+            // i-j <= c && j-i <= -c -> c <= i-j
+            zone.constrain(i, j, c, false) && zone.constrain(j, i, -c, false)
         }
         BoolExpression::LessT(left, right) => {
-            let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if !should_apply && (contains_clock_right || contains_clock_left) {
-                return (BoolExpression::LessT(left.clone(), right.clone()), true);
-            }
-
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lt_constraint(left_index, right_index, 0);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = zone.add_lt_constraint(left_index, 0, right_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lt_constraint(0, right_index, -left_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        (BoolExpression::Bool(left_val <= right_val), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
+            let (i, j, c) = get_indices(left, right, decls, false);
+            // i-j < c
+            zone.constrain(i, j, c, true)
         }
         BoolExpression::GreatT(left, right) => {
-            let (computed_left, contains_clock_left) =
-                apply_constraints_to_state_helper(&**left, decls, zone, false);
-            let (computed_right, contains_clock_right) =
-                apply_constraints_to_state_helper(&**right, decls, zone, false);
-
-            if !should_apply && (contains_clock_right || contains_clock_left) {
-                return (BoolExpression::GreatT(left.clone(), right.clone()), true);
-            }
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lt_constraint(right_index, left_index, 0);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = zone.add_lt_constraint(0, left_index, -right_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = zone.add_lt_constraint(right_index, 0, left_val);
-                        (BoolExpression::Bool(result), false)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        (BoolExpression::Bool(left_val >= right_val), false)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
+            let (i, j, c) = get_indices(left, right, decls, true);
+            // j-i < -c -> c < i-j
+            zone.constrain(i, j, c, true)
         }
-        BoolExpression::Parentheses(expr) => {
-            apply_constraints_to_state_helper(expr, decls, zone, should_apply)
-        }
-        BoolExpression::VarName(name) => {
-            if let Some(clock_index) = decls.get_clocks().get(name.as_str()) {
-                (BoolExpression::Clock(*clock_index), true)
-            } else if let Some(val) = decls.get_ints().get(name.as_str()) {
-                (BoolExpression::Int(*val), false)
-            } else {
-                panic!("No clock or variable named {:?} was found", name)
+        BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, zone),
+        BoolExpression::Bool(val) => {
+            if !*val {
+                *zone = Federation::empty(zone.get_dimensions());
             }
+            *val
         }
-        BoolExpression::Bool(val) => (BoolExpression::Bool(*val), false),
-        BoolExpression::Int(val) => (BoolExpression::Int(*val), false),
-        BoolExpression::Clock(index) => (BoolExpression::Clock(*index), false),
+        _ => {
+            panic!("Unexpected BoolExpression")
+        }
     }
 }
+
+#[test]
+fn test_get_indices_int_clock() {
+    let decl = component::Declarations {
+        clocks: HashMap::new(),
+        ints: HashMap::new(),
+    };
+
+    let left = BoolExpression::Int(3);
+    let right = BoolExpression::Clock(1);
+
+    //Testing: left < right
+    assert_eq!(get_indices(&left, &right, &decl, false), (0, 1, -3));
+    //Testing: right > left
+    assert_eq!(get_indices(&right, &left, &decl, true), (0, 1, -3));
+}
+
+#[test]
+fn test_get_indices_clock_int() {
+    let decl = component::Declarations {
+        clocks: HashMap::new(),
+        ints: HashMap::new(),
+    };
+
+    let left = BoolExpression::Clock(1);
+    let right = BoolExpression::Int(3);
+
+    //Testing: left < right
+    assert_eq!(get_indices(&left, &right, &decl, false), (1, 0, 3));
+    //Testing: right > left
+    assert_eq!(get_indices(&right, &left, &decl, true), (1, 0, 3));
+}
+
+#[test]
+fn test_get_indices_clock_clock() {
+    let decl = component::Declarations {
+        clocks: HashMap::new(),
+        ints: HashMap::new(),
+    };
+
+    // i-j <= 0 -> i can at most be the value of j
+    let left = BoolExpression::Clock(1);
+    let right = BoolExpression::Clock(2);
+
+    //Testing: left < right
+    assert_eq!(get_indices(&left, &right, &decl, false), (1, 2, 0));
+    //Testing: right > left
+    assert_eq!(get_indices(&right, &left, &decl, true), (1, 2, 0));
+}
+
+#[test]
+fn test_get_indices_diff_int() {
+    let decl = component::Declarations {
+        clocks: HashMap::new(),
+        ints: HashMap::new(),
+    };
+    // i-j < c -> c1-c2 < 3
+    let left = BoolExpression::BDif(BoolExpression::Clock(1), BoolExpression::Clock(2));
+    let right = BoolExpression::Int(3);
+
+    //Testing: left < right
+    assert_eq!(get_indices(&left, &right, &decl, false), (1, 2, 3));
+    //Testing: right > left
+    assert_eq!(get_indices(&right, &left, &decl, true), (1, 2, 3));
+}
+
+#[test]
+fn test_get_indices_int_diff() {
+    let decl = component::Declarations {
+        clocks: HashMap::new(),
+        ints: HashMap::new(),
+    };
+    // i-j < c -> c1-c2 > 3 -> c2-c1 < -3
+    let left = BoolExpression::Int(3);
+    let right = BoolExpression::BDif(BoolExpression::Clock(1), BoolExpression::Clock(2));
+
+    //Testing: left < right
+    assert_eq!(get_indices(&left, &right, &decl, false), (2, 1, -3));
+    //Testing: right > left
+    assert_eq!(get_indices(&right, &left, &decl, true), (2, 1, -3));
+}
+
+fn get_indices(
+    left: &BoolExpression,
+    right: &BoolExpression,
+    d: &component::Declarations,
+    swap: bool, //Swap if left > right as opposed to left < right
+) -> (u32, u32, i32) {
+    let (left, right) = if swap {
+        // i-j ?> c -> j-i < c if swap==true
+        (right, left)
+    } else {
+        // i-j <? c if swap==false
+        (left, right)
+    };
+
+    let result = if let BoolExpression::Difference(i, j) = left {
+        try_form_index(get_clock(i, d), get_clock(j, d), get_constant(right))
+    } else if let Some(c) = get_constant(left) {
+        if let BoolExpression::Difference(i, j) = right {
+            try_form_index(get_clock(j, d), get_clock(i, d), Some(-c))
+        } else {
+            try_form_index(Some(0), get_clock(right, d), Some(-c))
+        }
+    } else if let Some(clock) = get_clock(left, d) {
+        let i1 = try_form_index(Some(clock), Some(0), get_constant(right));
+        let i2 = try_form_index(Some(clock), get_clock(right, d), Some(0));
+        i1.or(i2)
+    } else {
+        None
+    };
+
+    result.unwrap()
+}
+
+fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {
+    if i.and(j).and(c).is_some() {
+        let res = (i.unwrap(), j.unwrap(), c.unwrap());
+        if res.0 == 0 && res.1 == 0 {
+            return None;
+        }
+
+        Some(res)
+    } else {
+        None
+    }
+}
+
+fn get_clock(expr: &BoolExpression, decls: &component::Declarations) -> Option<u32> {
+    match expr {
+        BoolExpression::Clock(id) => Some(*id),
+        BoolExpression::VarName(name) => decls.get_clocks().get(name).and_then(|o| Some(*o)),
+        _ => None,
+    }
+}
+
+fn get_constant(expr: &BoolExpression, //, decls: &component::Declarations
+) -> Option<i32> {
+    match expr {
+        BoolExpression::Int(i) => Some(*i),
+        //TODO: when integer variables/constants are introduced
+        //BoolExpression::VarName(name) => decls.get_ints().get(name).and_then(|o| Some(*o)),
+        _ => None,
+    }
+}
+
 pub fn apply_constraints_to_state2(
     guard: &BoolExpression,
     state: &mut component::State,
     comp_index: usize,
-) -> BoolExpression {
-    match guard {
-        BoolExpression::AndOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, state, comp_index);
-            if let BoolExpression::Bool(val) = left {
-                if !val {
-                    return BoolExpression::Bool(false);
-                }
-            }
-            let right = apply_constraints_to_state2(&**right, state, comp_index);
-
-            match left {
-                BoolExpression::Bool(left_val) => match right {
-                    BoolExpression::Bool(right_val) => {
-                        return BoolExpression::Bool(left_val && right_val)
-                    }
-                    _ => {
-                        panic!("expected bool in apply guard && expression")
-                    }
-                },
-                _ => {
-                    panic!("expected bool in apply guard && expression")
-                }
-            }
-        }
-        BoolExpression::OrOp(left, right) => {
-            let left = apply_constraints_to_state2(&**left, state, comp_index);
-            let right = apply_constraints_to_state2(&**right, state, comp_index);
-
-            match left {
-                BoolExpression::Bool(left_val) => match right {
-                    BoolExpression::Bool(right_val) => BoolExpression::Bool(left_val || right_val),
-                    _ => {
-                        panic!("expected bool in apply guard || expression")
-                    }
-                },
-                _ => {
-                    panic!("expected bool in apply guard || expression")
-                }
-            }
-        }
-        BoolExpression::LessEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, state, comp_index);
-            let computed_right = apply_constraints_to_state2(&**right, state, comp_index);
-
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lte_constraint(left_index, right_index, 0);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = state.zone.add_lte_constraint(left_index, 0, right_val);
-                        BoolExpression::Bool(result)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lte_constraint(0, right_index, -left_val);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => BoolExpression::Bool(left_val <= right_val),
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
-        }
-        BoolExpression::GreatEQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, state, comp_index);
-            let computed_right = apply_constraints_to_state2(&**right, state, comp_index);
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lte_constraint(right_index, left_index, 0);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = state.zone.add_lte_constraint(0, left_index, -right_val);
-                        BoolExpression::Bool(result)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lte_constraint(right_index, 0, left_val);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => BoolExpression::Bool(left_val >= right_val),
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
-        }
-        BoolExpression::LessT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, state, comp_index);
-            let computed_right = apply_constraints_to_state2(&**right, state, comp_index);
-
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lt_constraint(left_index, right_index, 0);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = state.zone.add_lt_constraint(left_index, 0, right_val);
-                        BoolExpression::Bool(result)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lt_constraint(0, right_index, -left_val);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => BoolExpression::Bool(left_val <= right_val),
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
-        }
-        BoolExpression::GreatT(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, state, comp_index);
-            let computed_right = apply_constraints_to_state2(&**right, state, comp_index);
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lt_constraint(right_index, left_index, 0);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = state.zone.add_lt_constraint(0, left_index, -right_val);
-                        BoolExpression::Bool(result)
-                    }
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_lt_constraint(right_index, 0, left_val);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => BoolExpression::Bool(left_val >= right_val),
-                    _ => {
-                        panic!("invalid type in LEQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in LEQ expression in guard")
-                }
-            }
-        }
-        BoolExpression::Parentheses(expr) => apply_constraints_to_state2(expr, state, comp_index),
-        BoolExpression::VarName(name) => {
-            if let Some(clock_index) = state
-                .get_declarations(comp_index)
-                .get_clocks()
-                .get(name.as_str())
-            {
-                BoolExpression::Clock(*clock_index)
-            } else if let Some(val) = state
-                .get_declarations(comp_index)
-                .get_ints()
-                .get(name.as_str())
-            {
-                BoolExpression::Int(*val)
-            } else {
-                panic!("no variable or clock named {:?}", name)
-            }
-        }
-        BoolExpression::Bool(val) => BoolExpression::Bool(*val),
-        BoolExpression::Int(val) => BoolExpression::Int(*val),
-        BoolExpression::Clock(index) => BoolExpression::Clock(*index),
-        BoolExpression::EQ(left, right) => {
-            let computed_left = apply_constraints_to_state2(&**left, state, comp_index);
-            let computed_right = apply_constraints_to_state2(&**right, state, comp_index);
-
-            match computed_left {
-                BoolExpression::Clock(left_index) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_eq_constraint(right_index, left_index);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => {
-                        let result = state.zone.add_eq_const_constraint(left_index, right_val);
-                        BoolExpression::Bool(result)
-                    }
-                    _ => {
-                        panic!("invalid type in EQ expression in guard")
-                    }
-                },
-                BoolExpression::Int(left_val) => match computed_right {
-                    BoolExpression::Clock(right_index) => {
-                        let result = state.zone.add_eq_const_constraint(right_index, left_val);
-                        BoolExpression::Bool(result)
-                    }
-                    BoolExpression::Int(right_val) => BoolExpression::Bool(left_val == right_val),
-                    _ => {
-                        panic!("invalid type in EQ expression in guard")
-                    }
-                },
-                _ => {
-                    panic!("invalid type in EQ expression in guard")
-                }
-            }
-        }
-    }
+) -> bool {
+    apply_constraints_to_state(
+        guard,
+        &state.get_declarations(comp_index).clone(),
+        &mut state.zone,
+    )
 }
