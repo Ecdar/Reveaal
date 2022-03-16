@@ -1,5 +1,4 @@
 pub mod ModelObjects;
-pub mod bindings_test;
 pub mod dbm;
 pub mod grpc;
 pub mod refinement;

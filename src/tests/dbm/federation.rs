@@ -2,7 +2,7 @@
 pub mod test {
     use crate::DBMLib::dbm::Federation;
 
-    const DIM: u32 = 50;
+    const DIM: u32 = 5;
 
     #[test]
     pub fn fed_is_empty() {
@@ -21,7 +21,7 @@ pub mod test {
         println!("fed2: {}", fed2);
         println!("fed3: {}", fed3);
 
-        assert_eq!(Federation::init(DIM), fed3);
+        assert_eq!(Federation::full(DIM), fed3);
         assert_eq!(fed3, fed1 + fed2);
     }
 
@@ -36,11 +36,11 @@ pub mod test {
         println!("fed1: {}", fed1);
         println!("fed2: {}", fed2);
 
-        assert_eq!(Federation::init(DIM), fed1);
+        assert_eq!(Federation::full(DIM), fed1);
     }
     #[test]
     fn fed_inverse() {
-        let fed1 = Federation::init(DIM);
+        let fed1 = Federation::full(DIM);
         let fed2 = fed1.inverse();
         // fed1 remains unchanged
 
@@ -53,7 +53,7 @@ pub mod test {
 
     #[test]
     fn fed_invert() {
-        let mut fed1 = Federation::init(DIM);
+        let mut fed1 = Federation::full(DIM);
         fed1.invert();
         // fed1 is changed to contain its inverse
 
@@ -64,7 +64,7 @@ pub mod test {
 
     #[test]
     fn fed_intersect() {
-        let mut fed1 = Federation::init(DIM);
+        let mut fed1 = Federation::full(DIM);
         let fed2 = Federation::zero(DIM);
 
         fed1.intersect(&fed2);
@@ -78,7 +78,7 @@ pub mod test {
 
     #[test]
     fn fed_intersection() {
-        let fed1 = Federation::init(DIM);
+        let fed1 = Federation::full(DIM);
         let fed2 = Federation::zero(DIM);
 
         let fed3 = fed1.intersection(&fed2);
@@ -95,7 +95,7 @@ pub mod test {
     #[test]
     fn fed_subtract() {
         let mut fed1 = Federation::zero(DIM);
-        let fed2 = Federation::init(DIM);
+        let fed2 = Federation::full(DIM);
 
         fed1.subtract(&fed2);
         // fed1 is changed and fed2 remains unchanged
@@ -109,7 +109,7 @@ pub mod test {
     #[test]
     fn fed_subtraction() {
         let fed1 = Federation::zero(DIM);
-        let fed2 = Federation::init(DIM);
+        let fed2 = Federation::full(DIM);
 
         let fed3 = fed1.subtraction(&fed2);
         // fed1 and fed2 remain unchanged
