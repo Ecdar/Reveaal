@@ -5,6 +5,43 @@ use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use std::collections::HashSet;
+
+fn common_actions(
+    sys1: &TransitionSystemPtr,
+    sys2: &TransitionSystemPtr,
+    is_input: bool,
+) -> HashSet<String> {
+    if is_input {
+        sys1.get_input_actions()
+            .intersection(&sys2.get_input_actions())
+            .cloned()
+            .collect()
+    } else {
+        sys1.get_output_actions()
+            .intersection(&sys2.get_output_actions())
+            .cloned()
+            .collect()
+    }
+}
+
+fn extra_actions(
+    sys1: &TransitionSystemPtr,
+    sys2: &TransitionSystemPtr,
+    is_input: bool,
+) -> HashSet<String> {
+    if is_input {
+        sys2.get_input_actions()
+            .difference(&sys1.get_input_actions())
+            .cloned()
+            .collect()
+    } else {
+        sys1.get_output_actions()
+            .difference(&sys2.get_output_actions())
+            .cloned()
+            .collect()
+    }
+}
 
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
@@ -16,18 +53,25 @@ pub fn check_refinement(
     let dimensions = 1 + std::cmp::max(sys1.get_max_clock_index(), sys2.get_max_clock_index());
     sys1.initialize(dimensions);
     sys2.initialize(dimensions);
-    println!("Dimensions {}", dimensions);
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2, dimensions) {
-        println!("preconditions failed - refinement false");
+        debug_print!("preconditions failed - refinement false");
         return Ok(false);
     }
 
-    let inputs = sys2.get_input_actions();
-    let outputs = sys1.get_output_actions();
+    // Common inputs and outputs
+    let inputs = common_actions(&sys1, &sys2, true);
+    let outputs = common_actions(&sys1, &sys2, false);
+
+    // Extra inputs and outputs are ignored by default
+    let extra_inputs = extra_actions(&sys1, &sys2, true);
+    let extra_outputs = extra_actions(&sys1, &sys2, false);
 
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
+
+    debug_print!("Extra inputs {:?}", extra_outputs);
+    debug_print!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
         return Ok(initial_locations_2 == None);
@@ -65,7 +109,11 @@ pub fn check_refinement(
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
 
-            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
+            let extra = output_transition2.is_empty() && extra_outputs.contains(output);
+
+            if extra
+                || has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
+            {
                 create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
@@ -99,7 +147,11 @@ pub fn check_refinement(
             let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
             let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
+            let extra = input_transitions1.is_empty() && extra_inputs.contains(input);
+
+            if extra
+                || has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
+            {
                 create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
@@ -210,24 +262,35 @@ fn create_new_state_pairs<'a>(
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
-        for transition2 in transitions2 {
-            //We currently don't use the bool returned here for anything
+        if transitions2.is_empty() {
             build_state_pair(
                 transition1,
-                transition2,
+                None,
                 curr_pair,
                 waiting_list,
                 passed_list,
                 max_bounds,
                 is_state1,
             );
+        } else {
+            for transition2 in transitions2 {
+                build_state_pair(
+                    transition1,
+                    Some(transition2),
+                    curr_pair,
+                    waiting_list,
+                    passed_list,
+                    max_bounds,
+                    is_state1,
+                );
+            }
         }
     }
 }
 
 fn build_state_pair<'a>(
     transition1: &Transition<'a>,
-    transition2: &Transition<'a>,
+    transition2: Option<&Transition<'a>>,
     curr_pair: &StatePair<'a>,
     waiting_list: &mut Vec<StatePair<'a>>,
     passed_list: &mut Vec<StatePair<'a>>,
@@ -248,7 +311,11 @@ fn build_state_pair<'a>(
     let g1_success = transition1.apply_guards(&locations1, &mut new_sp_zone);
 
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2.apply_guards(&locations2, &mut new_sp_zone);
+    let g2_success = if let Some(t) = transition2 {
+        t.apply_guards(&locations2, &mut new_sp_zone)
+    } else {
+        true
+    };
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -257,12 +324,16 @@ fn build_state_pair<'a>(
 
     //Apply updates on both sides
     transition1.apply_updates(locations1, &mut new_sp_zone);
-    transition2.apply_updates(locations2, &mut new_sp_zone);
+    if let Some(t) = transition2 {
+        t.apply_updates(locations2, &mut new_sp_zone)
+    };
 
     //Update locations in states
 
     transition1.move_locations(locations1);
-    transition2.move_locations(locations2);
+    if let Some(t) = transition2 {
+        t.move_locations(locations2)
+    };
 
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
@@ -342,34 +413,10 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
     let outputs1 = sys1.get_output_actions();
     let outputs2 = sys2.get_output_actions();
 
-    for o2 in &outputs2 {
-        let mut found_match = false;
-        for o1 in &outputs1 {
-            if *o1 == *o2 {
-                found_match = true;
-                break;
-            }
-        }
-        if !found_match {
-            println!(
-                "right side could not match a output from left side o1: {:?}, o2 {:?}",
-                outputs1, outputs2
-            );
-            return false;
-        }
-    }
-
     let inputs1 = sys1.get_input_actions();
     let inputs2 = sys2.get_input_actions();
 
-    if inputs1 != inputs2 {
-        println!(
-            "input of left side is not equal to input of right side i1: {:?}, i2 {:?}",
-            inputs1, inputs2
-        );
-        return false;
-    }
-    true
+    inputs1.is_subset(&inputs2) && outputs2.is_subset(&outputs1)
 }
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
