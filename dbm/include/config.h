@@ -17,4 +17,4 @@
 #define PACKAGE_BUGREPORT "uppaal@cs.aau.dk"
 #define COMPILER_STRING "Compiled using -DISABLE_ASSERTX"
 
-
+//#define ENABLE_DBM_NEW 1
