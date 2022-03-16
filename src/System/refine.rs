@@ -1,3 +1,4 @@
+use crate::debug_print;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::Transition;
@@ -45,14 +46,21 @@ pub fn check_refinement(
         initial_locations_2.clone(),
     );
 
-    prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2);
+    if !prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2) {
+        return Ok(false);
+    }
     let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
     initial_pair.zone.extrapolate_max_bounds(&max_bounds);
     waiting_list.push(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-
+        debug_print!(
+            "Pair: 1:{} 2:{} {}",
+            curr_pair.get_locations1().to_string(),
+            curr_pair.get_locations2().to_string(),
+            curr_pair.zone
+        );
         for output in &outputs {
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
@@ -68,19 +76,19 @@ pub fn check_refinement(
                     true,
                 )
             } else {
-                println!("Refinement check failed for Output {:?}", output);
-                println!("Transitions1:");
+                debug_print!("Refinement check failed for Output {:?}", output);
+                debug_print!("Transitions1:");
                 for t in &output_transition1 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
-                println!("Transitions2:");
-                for t in &output_transition1 {
-                    println!("{}", t);
+                debug_print!("Transitions2:");
+                for t in &output_transition2 {
+                    debug_print!("{}", t);
                 }
-                println!("Current pair: {}", curr_pair);
-                println!("Relation:");
+                debug_print!("Current pair: {}", curr_pair);
+                debug_print!("Relation:");
                 for pair in passed_list {
-                    println!("{}", pair);
+                    debug_print!("{}", pair);
                 }
 
                 return Ok(false);
@@ -102,19 +110,19 @@ pub fn check_refinement(
                     false,
                 )
             } else {
-                println!("Refinement check failed for Input {:?}", input);
-                println!("Transitions1:");
+                debug_print!("Refinement check failed for Input {:?}", input);
+                debug_print!("Transitions1:");
                 for t in &input_transitions1 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
-                println!("Transitions2:");
+                debug_print!("Transitions2:");
                 for t in &input_transitions2 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
-                println!("Current pair: {}", curr_pair);
-                println!("Relation:");
+                debug_print!("Current pair: {}", curr_pair);
+                debug_print!("Relation:");
                 for pair in passed_list {
-                    println!("{}", pair);
+                    debug_print!("{}", pair);
                 }
 
                 return Ok(false);
@@ -124,9 +132,9 @@ pub fn check_refinement(
         passed_list.push(curr_pair.clone());
     }
 
-    println!("Refinement check passed with relation:");
+    debug_print!("Refinement check passed with relation:");
     for pair in passed_list {
-        println!("{}", pair)
+        debug_print!("{}", pair);
     }
 
     Ok(true)
@@ -138,35 +146,56 @@ fn has_valid_state_pair<'a>(
     curr_pair: &StatePair<'a>,
     is_state1: bool,
 ) -> bool {
-    let dim = curr_pair.zone.dimension;
+    if transitions1.is_empty() {
+        return true;
+    }
+
+    //If there are left transitions but no right transitions there are no valid pairs
+    if transitions2.is_empty() {
+        return false;
+    };
+
+    let dim = curr_pair.zone.get_dimensions();
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
-    let pair_zone = curr_pair.zone.clone();
+    let pair_zone = &curr_pair.zone;
     //create guard zones left
-    let mut left_fed = Federation::new(vec![], dim);
+    let mut feds = Federation::empty(dim);
+    if is_state1 {
+        debug_print!("Left:");
+    } else {
+        debug_print!("Right:");
+    }
     for transition in transitions1 {
-        if let Some(mut fed) = transition.get_guard_federation(&states1, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    left_fed.add(zone.clone());
-                }
-            }
+        debug_print!("{}", transition);
+        if let Some(fed) = transition.get_guard_federation(&states1, dim) {
+            feds.add_fed(&fed);
         }
     }
+    let left_fed = feds.intersection(pair_zone);
+    debug_print!("{}", left_fed);
 
+    if is_state1 {
+        debug_print!("Right:");
+    } else {
+        debug_print!("Left:");
+    }
     //Create guard zones right
-    let mut right_fed = Federation::new(vec![], dim);
+    let mut feds = Federation::empty(dim);
     for transition in transitions2 {
-        if let Some(mut fed) = transition.get_guard_federation(&states2, dim) {
-            for zone in fed.iter_mut_zones() {
-                if zone.intersection(&pair_zone) {
-                    right_fed.add(zone.clone());
-                }
-            }
+        debug_print!("{}", transition);
+        if let Some(fed) = transition.get_guard_federation(&states2, dim) {
+            feds.add_fed(&fed);
         }
     }
+    let right_fed = feds.intersection(pair_zone);
+    debug_print!("{}", right_fed);
 
-    let result_federation = left_fed.minus_fed(&right_fed);
+    //left_fed.is_subset_eq(&right_fed)
+    //let result_federation = right_fed.subtraction(&left_fed);
+    let result_federation = left_fed.subtraction(&right_fed);
+
+    debug_print!("Valid = {}", result_federation.is_empty());
 
     result_federation.is_empty()
 }
@@ -248,11 +277,11 @@ fn build_state_pair<'a>(
     if !inv_success1 || !inv_success2 {
         return false;
     }
-    let dim = invariant_test.dimension;
-    let inv_test_fed = Federation::new(vec![invariant_test], dim);
-    let sp_zone_fed = Federation::new(vec![new_sp_zone.clone()], dim);
+    let dim = invariant_test.get_dimensions();
+    let inv_test_fed = invariant_test;
+    let sp_zone_fed = new_sp_zone.clone();
 
-    let fed_res = sp_zone_fed.minus_fed(&inv_test_fed);
+    let fed_res = sp_zone_fed.subtraction(&inv_test_fed);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
@@ -274,7 +303,7 @@ fn prepare_init_state(
     initial_pair: &mut StatePair,
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
-) {
+) -> bool {
     for (location, decl) in initial_locations_1.iter_zipped() {
         let init_inv1 = location.get_invariant();
         let init_inv1_success = if let Some(inv1) = init_inv1 {
@@ -283,7 +312,9 @@ fn prepare_init_state(
             true
         };
         if !init_inv1_success {
-            panic!("Was unable to apply invariants to initial state")
+            debug_print!("Was unable to apply invariants to initial state");
+            return false;
+            //panic!("Was unable to apply invariants to initial state")
         }
     }
 
@@ -295,9 +326,13 @@ fn prepare_init_state(
             true
         };
         if !init_inv2_success {
-            panic!("Was unable to apply invariants to initial state")
+            debug_print!("Was unable to apply invariants to initial state");
+            return false;
+            //panic!("Was unable to apply invariants to initial state")
         }
     }
+
+    true
 }
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {

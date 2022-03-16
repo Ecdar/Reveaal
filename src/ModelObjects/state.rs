@@ -1,16 +1,14 @@
-
-
 /// State is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct State<'a> {
     pub decorated_locations: LocationTuple<'a>,
-    pub zone: Zone,
+    pub zone: Federation,
 }
 
 impl<'a> State<'a> {
-    pub fn create(decorated_locations: LocationTuple<'a>, zone: Zone) -> Self {
+    pub fn create(decorated_locations: LocationTuple<'a>, zone: Federation) -> Self {
         State {
             decorated_locations,
             zone,
@@ -18,7 +16,7 @@ impl<'a> State<'a> {
     }
 
     pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
-        let mut zone = Zone::init(dimensions);
+        let mut zone = Federation::init(dimensions);
 
         if !decorated_locations.apply_invariants(&mut zone) {
             return None;
