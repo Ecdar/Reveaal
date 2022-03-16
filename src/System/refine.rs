@@ -13,15 +13,15 @@ fn common_actions(
     is_input: bool,
 ) -> HashSet<String> {
     if is_input {
-        sys1.get_input_actions()
-            .intersection(&sys2.get_input_actions())
-            .cloned()
-            .collect()
+        sys2.get_input_actions()
+    //.intersection(&sys1.get_input_actions())
+    //.cloned()
+    //.collect()
     } else {
         sys1.get_output_actions()
-            .intersection(&sys2.get_output_actions())
-            .cloned()
-            .collect()
+        //.intersection(&sys2.get_output_actions())
+        //.cloned()
+        //.collect()
     }
 }
 
@@ -70,7 +70,7 @@ pub fn check_refinement(
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
 
-    debug_print!("Extra inputs {:?}", extra_outputs);
+    debug_print!("Extra inputs {:?}", extra_inputs);
     debug_print!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
@@ -106,14 +106,19 @@ pub fn check_refinement(
             curr_pair.zone
         );
         for output in &outputs {
-            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
-            let output_transition2 = sys2.next_outputs(curr_pair.get_locations2(), output);
+            let extra = extra_outputs.contains(output);
 
-            let extra = output_transition2.is_empty() && extra_outputs.contains(output);
+            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
+            let output_transition2 = if extra {
+                vec![]
+            } else {
+                sys2.next_outputs(curr_pair.get_locations2(), output)
+            };
 
             if extra
                 || has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
             {
+                debug_print!("Creating state pairs for output {}", output);
                 create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
@@ -144,14 +149,19 @@ pub fn check_refinement(
         }
 
         for input in &inputs {
-            let input_transitions1 = sys1.next_inputs(curr_pair.get_locations1(), input);
-            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
+            let extra = extra_inputs.contains(input);
 
-            let extra = input_transitions1.is_empty() && extra_inputs.contains(input);
+            let input_transitions1 = if extra {
+                vec![]
+            } else {
+                sys1.next_inputs(curr_pair.get_locations1(), input)
+            };
+            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
             if extra
                 || has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
             {
+                debug_print!("Creating state pairs for input {}", input);
                 create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
@@ -416,7 +426,11 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
     let inputs1 = sys1.get_input_actions();
     let inputs2 = sys2.get_input_actions();
 
-    inputs1.is_subset(&inputs2) && outputs2.is_subset(&outputs1)
+    let disjoint = inputs1.is_disjoint(&outputs2) && inputs2.is_disjoint(&outputs1);
+
+    let subset = inputs1.is_subset(&inputs2) && outputs2.is_subset(&outputs1);
+
+    disjoint && subset
 }
 
 fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
