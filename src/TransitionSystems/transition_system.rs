@@ -1,10 +1,11 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{
     Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
     SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
+use crate::System::pruning;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
 
@@ -70,7 +71,7 @@ impl<'a> LocationTuple<'a> {
         self.locations.iter().zip(self.declarations.iter())
     }
 
-    pub fn apply_invariants(&self, zone: &mut Zone) -> bool {
+    pub fn apply_invariants(&self, zone: &mut Federation) -> bool {
         let mut success = true;
 
         for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
@@ -133,7 +134,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn set_clock_indices(&mut self, index: &mut u32);
 
-    fn get_initial_state(&self, dimensions: u32) -> State;
+    fn get_initial_state(&self, dimensions: u32) -> Option<State>;
 
     fn get_max_clock_index(&self) -> u32;
 }
@@ -212,7 +213,18 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn precheck_sys_rep(&self, dim: u32) -> bool {
-        self.check_consistency(dim, true)
+        if !self.is_deterministic(dim) {
+            println!("{} NOT DETERMINISTIC", self.get_name());
+            return false;
+        }
+
+        if !self.is_locally_consistent(dim) {
+            println!("NOT CONSISTENT");
+            return false;
+        }
+
+        true
+        //self.check_consistency(dim, true)
     }
 
     fn is_deterministic(&self, dim: u32) -> bool {
@@ -223,19 +235,22 @@ impl TransitionSystem<'_> for Component {
         local_consistency::is_least_consistent(self, dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> State {
+    fn get_initial_state(&self, dimensions: u32) -> Option<State> {
         let init_loc = LocationTuple::simple(
             self.get_initial_location().unwrap(),
             self.get_declarations(),
         );
-        let mut zone = Zone::init(dimensions);
+
+        State::from_location(init_loc, dimensions)
+        /*let mut zone = Federation::init(dimensions);
         if !init_loc.apply_invariants(&mut zone) {
-            panic!("Invalid starting state");
+            println!("Empty initial state");
+            return None;
         }
 
-        State {
+        Some(State {
             decorated_locations: init_loc,
             zone,
-        }
+        })*/
     }
 }

@@ -70,17 +70,18 @@ macro_rules! default_composition {
             self.left.is_deterministic(dim) && self.right.is_deterministic(dim)
         }
 
-        fn get_initial_state(&self, dimensions: u32) -> State {
+        fn get_initial_state(&self, dimensions: u32) -> Option<State> {
             let init_loc = self.get_initial_location().unwrap();
-            let mut zone = Zone::init(dimensions);
+            let mut zone = Federation::init(dimensions);
             if !init_loc.apply_invariants(&mut zone) {
-                panic!("Invalid starting state");
+                println!("Empty initial state");
+                return None;
             }
 
-            State {
+            Some(State {
                 decorated_locations: init_loc,
                 zone,
-            }
+            })
         }
     };
 }
