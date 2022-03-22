@@ -20,9 +20,9 @@ pub enum EdgeAttribute {
 
 #[derive(Debug, Clone, Deserialize, Serialize, std::cmp::PartialEq)]
 pub struct Update {
-    variable: String,
+    pub variable: String,
     #[serde(serialize_with = "encode_boolexpr")]
-    expression: BoolExpression,
+    pub expression: BoolExpression,
 }
 
 #[allow(dead_code)]

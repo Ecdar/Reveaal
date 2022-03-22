@@ -113,7 +113,7 @@ pub fn extract_side(
             component.set_clock_indices(clock_index);
             return Box::new(component);
         }
-        QueryExpression::SaveAs(comp, _) => extract_side(comp, component_loader, clock_index), //TODO
+        QueryExpression::SaveAs(comp, _) => extract_side(comp, component_loader, clock_index),
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }

@@ -276,27 +276,31 @@ fn prepare_init_state(
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
 ) {
-    for (location, decl) in initial_locations_1.iter_values() {
-        let init_inv1 = location.get_invariant();
-        let init_inv1_success = if let Some(inv1) = init_inv1 {
-            apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
-        } else {
-            true
-        };
-        if !init_inv1_success {
-            panic!("Was unable to apply invariants to initial state")
+    for (opt_location, decl) in initial_locations_1.iter_values() {
+        if let Some(location) = opt_location {
+            let init_inv1 = location.get_invariant();
+            let init_inv1_success = if let Some(inv1) = init_inv1 {
+                apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
+            } else {
+                true
+            };
+            if !init_inv1_success {
+                panic!("Was unable to apply invariants to initial state")
+            }
         }
     }
 
-    for (location, decl) in initial_locations_2.iter_values() {
-        let init_inv2 = location.get_invariant();
-        let init_inv2_success = if let Some(inv2) = init_inv2 {
-            apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
-        } else {
-            true
-        };
-        if !init_inv2_success {
-            panic!("Was unable to apply invariants to initial state")
+    for (opt_location, decl) in initial_locations_2.iter_values() {
+        if let Some(location) = opt_location {
+            let init_inv2 = location.get_invariant();
+            let init_inv2_success = if let Some(inv2) = init_inv2 {
+                apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
+            } else {
+                true
+            };
+            if !init_inv2_success {
+                panic!("Was unable to apply invariants to initial state")
+            }
         }
     }
 }
@@ -347,21 +351,14 @@ fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StateP
             panic!("state vectors should always have same length")
         }*/
 
-        for i in 0..passed_state_pair.get_locations1().len() {
-            if passed_state_pair.get_locations1().get_location(i).get_id()
-                != state_pair.get_locations1().get_location(i).get_id()
-            {
-                continue 'OuterFor;
-            }
+        if passed_state_pair.get_locations1() != state_pair.get_locations1() {
+            continue 'OuterFor;
         }
 
-        for i in 0..passed_state_pair.get_locations2().len() {
-            if passed_state_pair.get_locations2().get_location(i).get_id()
-                != state_pair.get_locations2().get_location(i).get_id()
-            {
-                continue 'OuterFor;
-            }
+        if passed_state_pair.get_locations2() != state_pair.get_locations2() {
+            continue 'OuterFor;
         }
+
         if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
         }

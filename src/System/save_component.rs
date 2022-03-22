@@ -40,17 +40,26 @@ fn get_locations_from_tuples(
         .iter()
         .cloned()
         .map(|loc_vec| {
-            let is_initial = loc_vec
-                .iter_values()
-                .all(|(loc, _)| loc.location_type == LocationType::Initial);
+            let is_initial = loc_vec.iter_values().all(|(opt_loc, _)| {
+                if let Some(loc) = opt_loc {
+                    loc.location_type == LocationType::Initial
+                } else {
+                    true
+                }
+            });
             let mut invariant: Option<BoolExpression> = None;
-            for (loc, decl) in loc_vec.iter_values() {
-                if let Some(inv) = &loc.invariant {
-                    let inv = inv.swap_clock_names(&decl.clocks, clock_map);
-                    if let Some(inv_full) = invariant {
-                        invariant = Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
-                    } else {
-                        invariant = Some(inv);
+            for (index, (opt_loc, decl)) in loc_vec.iter() {
+                if !loc_vec.ignore_invariants.contains(index) {
+                    if let Some(loc) = opt_loc {
+                        if let Some(inv) = &loc.invariant {
+                            let inv = inv.swap_clock_names(&decl.clocks, clock_map);
+                            if let Some(inv_full) = invariant {
+                                invariant =
+                                    Some(BoolExpression::AndOp(Box::new(inv_full), Box::new(inv)));
+                            } else {
+                                invariant = Some(inv);
+                            }
+                        }
                     }
                 }
             }
@@ -73,7 +82,7 @@ fn get_clock_map(sysrep: &TransitionSystemPtr) -> (HashMap<String, u32>, HashMap
     let mut from_name = HashMap::new();
     let mut to_name = HashMap::new();
 
-    if let Some(initial) = sysrep.get_all_locations().first() {
+    if let Some(initial) = sysrep.get_all_locations(&mut 0).first() {
         for comp_id in 0..initial.len() {
             for (k, v) in &initial.get_decl(comp_id).clocks {
                 from_name.insert(format!("{}{}", k, comp_id), *v);
@@ -91,7 +100,7 @@ fn collect_all_edges_and_locations<'a>(
     clock_map: &HashMap<u32, String>,
     dim: u32,
 ) {
-    let l = representation.get_all_locations();
+    let l = representation.get_all_locations(&mut 0);
     locations.extend(l);
     for location in locations {
         collect_edges_from_location(location, representation, edges, clock_map, dim);

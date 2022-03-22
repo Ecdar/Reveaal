@@ -61,13 +61,24 @@ impl<'a> TransitionSystem<'static> for Composition {
         let mut left = self
             .left
             .next_transitions(location, action, sync_type, index, dim);
+        let left_index_end = *index;
         let mut right = self
             .right
             .next_transitions(location, action, sync_type, index, dim);
+        let right_index_end = *index;
 
-        if left.is_empty() || right.is_empty() {
+        if right.is_empty() {
+            let right_loc = location.copy_range(left_index_end, right_index_end);
+            for transition in &mut left {
+                transition.target_locations.add_location_tuple(&right_loc);
+            }
             transitions = left;
-            transitions.append(&mut right);
+        } else if left.is_empty() {
+            let left_loc = location.copy_range(0, left_index_end);
+            for transition in &mut right {
+                transition.target_locations.add_location_tuple(&left_loc);
+            }
+            transitions = right;
         } else {
             transitions.append(&mut Transition::combinations(&mut left, &mut right));
         }
@@ -80,13 +91,13 @@ impl<'a> TransitionSystem<'static> for Composition {
             && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
     }
 
-    fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
+    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
         let mut location_tuples = vec![];
-        let left = self.left.get_all_locations();
-        let right = self.right.get_all_locations();
+        let left = self.left.get_all_locations(index);
+        let right = self.right.get_all_locations(index);
         for loc1 in left {
             for loc2 in &right {
-                location_tuples.push(LocationTuple::compose(loc1.clone(), loc2.clone()));
+                location_tuples.push(LocationTuple::merge(loc1.clone(), &loc2));
             }
         }
         location_tuples

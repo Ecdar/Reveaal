@@ -131,7 +131,7 @@ impl Component {
     pub fn get_input_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.input_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
+            if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
                 };
@@ -146,7 +146,7 @@ impl Component {
     pub fn get_output_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
         for edge in self.output_edges.as_ref().unwrap() {
-            if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
+            if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
                 };
@@ -769,14 +769,14 @@ pub enum SyncType {
 #[derive(Debug, Clone)]
 pub struct Transition<'a> {
     pub guard_zone: Zone,
-    pub target_locations: HashMap<usize, &'a Location>,
+    pub target_locations: LocationTuple<'a>,
     pub updates: HashMap<usize, Vec<parse_edge::Update>>,
 }
 impl<'a> Transition<'a> {
-    pub fn new(dim: u32) -> Transition<'a> {
+    pub fn new(target_locations: LocationTuple<'a>, dim: u32) -> Transition<'a> {
         Transition {
             guard_zone: Zone::init(dim),
-            target_locations: HashMap::new(),
+            target_locations,
             updates: HashMap::new(),
         }
     }
@@ -786,13 +786,17 @@ impl<'a> Transition<'a> {
         current_location: &LocationTuple<'a>,
         dim: u32,
     ) -> Transition<'a> {
-        let mut target_locations = HashMap::new();
+        let mut target_locations = LocationTuple::create_empty();
         let mut updates: HashMap<usize, Vec<parse_edge::Update>> = HashMap::new();
 
         for (comp, edge, index) in edges {
             let target_loc_name = &edge.target_location;
             let target_loc = comp.get_location_by_name(target_loc_name);
-            target_locations.insert(*index, target_loc);
+            target_locations.set_location(
+                *index,
+                Some(target_loc),
+                comp.get_declarations().clone(),
+            );
 
             if let Some(new_updates) = edge.get_update() {
                 match updates.get_mut(index) {
@@ -807,7 +811,12 @@ impl<'a> Transition<'a> {
         }
 
         Transition {
-            guard_zone: Transition::get_guard_federation(edges, current_location, dim),
+            guard_zone: Transition::get_guard_federation(
+                edges,
+                current_location,
+                &target_locations,
+                dim,
+            ),
             target_locations,
             updates,
         }
@@ -826,16 +835,19 @@ impl<'a> Transition<'a> {
         false
     }
 
-    pub fn combinations(left: &Vec<Self>, right: &Vec<Self>) -> Vec<Self> {
-        let mut out = vec![];
+    pub fn combinations(
+        left: &Vec<Transition<'a>>,
+        right: &Vec<Transition<'a>>,
+    ) -> Vec<Transition<'a>> {
+        let mut out: Vec<Transition<'a>> = vec![];
         for l in left {
             for r in &*right {
                 let mut guard_zone = l.guard_zone.clone();
                 guard_zone.intersection(&r.guard_zone);
 
-                let mut target_locations = l.target_locations.clone();
-                for (index, loc) in &r.target_locations {
-                    target_locations.insert(*index, loc);
+                let mut target_locations: LocationTuple<'a> = l.target_locations.clone();
+                for (index, (loc, decl)) in r.target_locations.iter() {
+                    target_locations.set_location(*index, *loc, decl.clone());
                 }
 
                 let mut updates = l.updates.clone();
@@ -872,34 +884,26 @@ impl<'a> Transition<'a> {
     }
 
     pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
-        for (index, location) in &self.target_locations {
-            locations.set_location(*index, location);
-        }
+        *locations = self.target_locations.clone();
     }
 
     pub fn get_guard_federation(
         edges: &Vec<(&'a Component, &'a Edge, usize)>,
-        locations: &LocationTuple,
+        starting_locations: &LocationTuple,
+        target_locations: &LocationTuple,
         dim: u32,
     ) -> Zone {
         let mut zone = Zone::init(dim);
         for (comp, edge, index) in edges {
-            let target_location = comp.get_location_by_name(edge.get_target_location());
             let mut guard_zone = Zone::init(dim);
-            if target_location.get_invariant().is_some() {
-                let dec_loc = DecoratedLocation {
-                    location: target_location,
-                    decls: comp.get_declarations(),
-                };
-                if !dec_loc.apply_invariant(&mut guard_zone) {
-                    continue;
-                }
+            if !target_locations.apply_invariant_for_location(*index, &mut guard_zone) {
+                continue;
             }
             for clock in edge.get_update_clocks() {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
                 guard_zone.free_clock(*(clock_index.unwrap()));
             }
-            let success = edge.apply_guard(locations.get_decl(*index), &mut guard_zone);
+            let success = edge.apply_guard(starting_locations.get_decl(*index), &mut guard_zone);
             if success {
                 zone.intersection(&guard_zone)
             } else {

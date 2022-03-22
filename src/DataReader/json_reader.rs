@@ -34,7 +34,7 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
         component_name
     );
 
-    let component = match read_json(&component_path) {
+    let component: component::Component = match read_json(&component_path) {
         Ok(json) => json,
         Err(error) => panic!(
             "We got error {}, and could not parse json file {} to component",

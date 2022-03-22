@@ -11,18 +11,71 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocationTuple<'a> {
-    locations: HashMap<usize, (&'a Location, Declarations)>,
+    pub locations: HashMap<usize, (Option<&'a Location>, Declarations)>,
+    pub ignore_invariants: HashSet<usize>,
 }
 
 impl<'a> LocationTuple<'a> {
+    pub fn create(locations: HashMap<usize, (Option<&'a Location>, Declarations)>) -> Self {
+        LocationTuple {
+            locations,
+            ignore_invariants: HashSet::new(),
+        }
+    }
+
+    pub fn create_empty() -> Self {
+        LocationTuple {
+            locations: HashMap::new(),
+            ignore_invariants: HashSet::new(),
+        }
+    }
+
+    pub fn copy_range(&self, start: usize, end: usize) -> Self {
+        let mut new_location = LocationTuple::create_empty();
+        for i in start..end {
+            if let Some((loc, decl)) = self.locations.get(&i) {
+                new_location.locations.insert(i, (*loc, decl.clone()));
+
+                if self.ignore_invariants.contains(&i) {
+                    new_location.ignore_invariants.insert(i);
+                }
+            }
+        }
+
+        new_location
+    }
+
+    pub fn add_location_tuple(&mut self, other: &Self) {
+        for (index, (loc, decl)) in other.iter() {
+            self.locations.insert(*index, (*loc, decl.clone()));
+        }
+
+        self.ignore_invariants = &self.ignore_invariants | &other.ignore_invariants;
+    }
+
+    pub fn set_location(
+        &mut self,
+        index: usize,
+        location: Option<&'a Location>,
+        decl: Declarations,
+    ) {
+        self.locations.insert(index, (location, decl));
+    }
+
     pub fn get_location(&self, index: usize) -> &Location {
         let (loc, _) = self.locations.get(&index).unwrap();
-        loc
+        loc.unwrap()
     }
 
     pub fn try_get_location(&self, index: usize) -> Option<&Location> {
         let (loc, _) = self.locations.get(&index)?;
-        Some(loc)
+        *loc
+    }
+
+    pub fn ignore_all_invariants(&mut self) {
+        for index in self.locations.keys() {
+            self.ignore_invariants.insert(*index);
+        }
     }
 
     pub fn get_decl(&self, index: usize) -> &Declarations {
@@ -30,16 +83,32 @@ impl<'a> LocationTuple<'a> {
         decl
     }
 
-    pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
-        let (_, decl) = self.locations.remove(&index).unwrap();
-        self.locations.insert(index, (new_loc, decl));
+    pub fn simple_indexed(
+        index: usize,
+        location: &'a Location,
+        declaration: &Declarations,
+    ) -> Self {
+        let mut locations = HashMap::new();
+        locations.insert(index, (Some(location), declaration.clone()));
+
+        LocationTuple::create(locations)
     }
 
     pub fn simple(location: &'a Location, declaration: &Declarations) -> Self {
-        let mut locations = HashMap::new();
-        locations.insert(0, (location, declaration.clone()));
+        Self::simple_indexed(0, location, declaration)
+    }
 
-        LocationTuple { locations }
+    //Merge two locations if overlapping locations right will override left
+    pub fn merge(mut left: Self, right: &Self) -> Self {
+        for (index, (loc, decl)) in &right.locations {
+            left.locations.insert(*index, (*loc, decl.clone()));
+        }
+        left.ignore_invariants = left
+            .ignore_invariants
+            .union(&right.ignore_invariants)
+            .cloned()
+            .collect();
+        left
     }
 
     pub fn compose(mut left: Self, right: Self) -> Self {
@@ -47,6 +116,11 @@ impl<'a> LocationTuple<'a> {
         for (index, (loc, decl)) in right.locations {
             left.locations.insert(index + offset, (loc, decl));
         }
+        left.ignore_invariants = left
+            .ignore_invariants
+            .union(&right.ignore_invariants)
+            .cloned()
+            .collect();
         left
     }
 
@@ -54,9 +128,7 @@ impl<'a> LocationTuple<'a> {
     where
         T: IntoIterator<Item = Self>,
     {
-        let mut locations = LocationTuple {
-            locations: HashMap::new(),
-        };
+        let mut locations = LocationTuple::create_empty();
 
         for new_location in locations_iterator {
             locations = LocationTuple::compose(locations, new_location);
@@ -66,43 +138,74 @@ impl<'a> LocationTuple<'a> {
     }
 
     pub fn to_string(&self) -> String {
-        let len = self.locations.len();
-
         let mut result = "(".to_string();
+        let mut key_vec: Vec<usize> = self.locations.keys().cloned().collect();
+        key_vec.sort();
+        let len = key_vec.len();
         for i in 0..len - 1 {
-            let name = self.locations.get(&i).unwrap().0.get_id();
-            result.push_str(&format!("{},", name));
+            if let Some(location) = self.try_get_location(key_vec[i]) {
+                let name = location.get_id();
+                result.push_str(&format!("{},", name));
+            }
         }
-        let name = self.locations.get(&(len - 1)).unwrap().0.get_id();
-        result.push_str(&format!("{})", name));
+        if let Some(location) = self.try_get_location(key_vec[len - 1]) {
+            let name = location.get_id();
+            result.push_str(&format!("{}", name));
+        }
+        result.push_str(")");
         result
     }
     pub fn len(&self) -> usize {
         self.locations.len()
     }
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, usize, (&Location, Declarations)> {
+    pub fn iter(
+        &self,
+    ) -> std::collections::hash_map::Iter<'_, usize, (Option<&'a Location>, Declarations)> {
         self.locations.iter()
     }
 
     pub fn iter_values(
         &self,
-    ) -> std::collections::hash_map::Values<'_, usize, (&Location, Declarations)> {
+    ) -> std::collections::hash_map::Values<'_, usize, (Option<&Location>, Declarations)> {
         self.locations.values()
     }
 
     pub fn apply_invariants(&self, zone: &mut Zone) -> bool {
         let mut success = true;
 
-        for (location, decl) in self.iter_values() {
-            success = success && DecoratedLocation::create(location, decl).apply_invariant(zone);
+        for (index, (opt_location, decl)) in self.iter() {
+            if let Some(location) = opt_location {
+                if !self.ignore_invariants.contains(index) {
+                    success =
+                        success && DecoratedLocation::create(location, decl).apply_invariant(zone);
+                }
+            }
         }
         success
     }
 
+    pub fn apply_invariant_for_location(&self, index: usize, zone: &mut Zone) -> bool {
+        if self.ignore_invariants.contains(&index) {
+            true
+        } else {
+            if let Some((opt_location, decl)) = self.locations.get(&index) {
+                if let Some(location) = opt_location {
+                    DecoratedLocation::create(location, decl).apply_invariant(zone)
+                } else {
+                    true
+                }
+            } else {
+                panic!("Couldnt find location in index {}", index)
+            }
+        }
+    }
+
     pub fn is_initial(&self) -> bool {
-        for (location, _) in self.iter_values() {
-            if location.location_type != LocationType::Initial {
-                return false;
+        for (opt_location, _) in self.iter_values() {
+            if let Some(location) = opt_location {
+                if location.location_type != LocationType::Initial {
+                    return false;
+                }
             }
         }
         true
@@ -151,7 +254,7 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
-    fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>>;
+    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>>;
 
     fn get_num_clocks(&self) -> u32;
 
@@ -224,11 +327,15 @@ impl TransitionSystem<'_> for Component {
         Some(LocationTuple::simple(loc, &self.declarations))
     }
 
-    fn get_all_locations<'b>(&'b self) -> Vec<LocationTuple<'b>> {
-        self.get_locations()
+    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
+        let locations = self
+            .get_locations()
             .iter()
-            .map(|loc| LocationTuple::simple(loc, &self.declarations))
-            .collect()
+            .map(|loc| LocationTuple::simple_indexed(*index, loc, &self.declarations))
+            .collect();
+        *index += 1;
+
+        locations
     }
 
     fn next_transitions<'b>(
@@ -239,19 +346,19 @@ impl TransitionSystem<'_> for Component {
         index: &mut usize,
         dim: u32,
     ) -> Vec<Transition<'b>> {
-        let location = locations.get_location(*index);
-        let next_edges = self.get_next_edges(location, action, *sync_type);
-
-        let mut open_transitions = vec![];
-        for edge in next_edges {
-            let transition = Transition::from(&vec![(self, edge, *index)], locations, dim);
-
-            open_transitions.push(transition);
+        if let Some(location) = locations.try_get_location(*index) {
+            let next_edges = self.get_next_edges(location, action, *sync_type);
+            let mut open_transitions = vec![];
+            for edge in next_edges {
+                let transition = Transition::from(&vec![(self, edge, *index)], locations, dim);
+                open_transitions.push(transition);
+            }
+            *index += 1;
+            open_transitions
+        } else {
+            *index += 1;
+            vec![]
         }
-
-        *index += 1;
-
-        open_transitions
     }
 
     fn precheck_sys_rep(&self, dim: u32) -> bool {
