@@ -229,7 +229,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
             continue;
         }
 
-        if !declaration.is_empty() {
+        if !declaration.trim().is_empty() {
             if first_run {
                 let component_decls = declaration;
 
@@ -258,7 +258,9 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
 
                 if component_names.contains(&component_name) {
                     for split_str in split_string.iter().skip(2) {
-                        let s = split_str.replace("{", "");
+                        let mut s = split_str.replace("{", "");
+                        s = s.replace("\r", "");
+                        s = s.replace("\n", "");
                         let p = s.replace("}", "");
                         let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {

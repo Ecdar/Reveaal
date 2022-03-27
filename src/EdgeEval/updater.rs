@@ -16,7 +16,10 @@ pub fn updater(
                 {
                     zone.update(clock_index, *val);
                 } else {
-                    panic!("Attempting to update a clock which is not initialized")
+                    panic!(
+                        "Attempting to update a clock \"{}\" which is not initialized",
+                        update.get_variable_name()
+                    )
                 }
             }
             _ => {

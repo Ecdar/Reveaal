@@ -543,8 +543,9 @@ fn get_resetted_invariant(
     for i in start..end {
         let location = DecoratedLocation::create(location.get_location(i), location.get_decl(i));
         location.apply_invariant(&mut zone);
-        for updates in updates_map.values() {
-            updater(updates, location.get_declarations(), &mut zone);
+        // For some reason nessecary with a check for None?
+        if let Some(updates) = updates_map.get(&i) {
+            updater(&updates, location.get_declarations(), &mut zone);
         }
     }
     zone
