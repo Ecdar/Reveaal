@@ -129,19 +129,14 @@ impl TransitionSystem<'static> for Quotient {
             }
         }
 
-        //Reused target locations
-        let mut universal_location = LocationTuple::create_empty();
-        universal_location.set_location(
-            quotient_index,
-            Some(&self.universal_location),
-            self.decls.clone(),
-        );
-        let mut inconsistent_location = LocationTuple::create_empty();
-        inconsistent_location.set_location(
-            quotient_index,
-            Some(&self.inconsistent_location),
-            self.decls.clone(),
-        );
+        let mut inconsistent_location =
+            LocationTuple::simple_indexed(*index, &self.inconsistent_location, &self.decls);
+        let mut universal_location =
+            LocationTuple::simple_indexed(*index, &self.universal_location, &self.decls);
+        for i in 0..location.len() {
+            inconsistent_location.set_default_decl(i, location.get_decl(i).clone());
+            universal_location.set_default_decl(i, location.get_decl(i).clone());
+        }
 
         //Rule 1
         if self.right.get_actions().contains(action) && self.left.get_actions().contains(action) {
@@ -183,7 +178,7 @@ impl TransitionSystem<'static> for Quotient {
                         left_transition.target_locations.clone(),
                         &right_transition.target_locations,
                     );
-                    target_locations.set_location(quotient_index, None, Declarations::empty());
+                    target_locations.set_default_decl(quotient_index, self.decls.clone());
 
                     //Union of left and right updates
                     let mut updates = left_transition.updates.clone();
@@ -406,16 +401,22 @@ impl TransitionSystem<'static> for Quotient {
         for loc1 in left {
             for loc2 in &right {
                 let mut location = LocationTuple::merge(loc1.clone(), &loc2);
-                location.set_location(*index, None, Declarations::empty());
+                location.set_location(*index, None, self.decls.clone());
                 location.ignore_all_invariants();
                 location_tuples.push(location);
             }
         }
 
-        let inconsistent =
+        let mut inconsistent =
             LocationTuple::simple_indexed(*index, &self.inconsistent_location, &self.decls);
-        let universal =
+        let mut universal =
             LocationTuple::simple_indexed(*index, &self.universal_location, &self.decls);
+        let location = &location_tuples[0];
+        for i in 0..*index {
+            inconsistent.set_default_decl(i, location.get_decl(i).clone());
+            universal.set_default_decl(i, location.get_decl(i).clone());
+        }
+
         *index += 1;
 
         location_tuples.push(inconsistent);
@@ -453,7 +454,8 @@ impl TransitionSystem<'static> for Quotient {
         for child in self.get_children() {
             locations.push(child.get_initial_location()?);
         }
-        let loc_tuple = LocationTuple::compose_iter(locations);
+        let mut loc_tuple = LocationTuple::compose_iter(locations);
+        loc_tuple.set_default_decl(loc_tuple.locations.len(), self.decls.clone());
 
         Some(loc_tuple)
     }
@@ -541,11 +543,13 @@ fn get_resetted_invariant(
 ) -> Zone {
     let mut zone = Zone::init(dim);
     for i in start..end {
-        let location = DecoratedLocation::create(location.get_location(i), location.get_decl(i));
-        location.apply_invariant(&mut zone);
-        // For some reason nessecary with a check for None?
+        if let Some(loc) = location.try_get_location(i) {
+            let location = DecoratedLocation::create(loc, location.get_decl(i));
+            location.apply_invariant(&mut zone);
+            // For some reason nessecary with a check for None?
+        }
         if let Some(updates) = updates_map.get(&i) {
-            updater(&updates, location.get_declarations(), &mut zone);
+            updater(&updates, location.get_decl(i), &mut zone);
         }
     }
     zone
@@ -554,8 +558,10 @@ fn get_resetted_invariant(
 fn get_invariant(start: usize, end: usize, location: &LocationTuple, dim: u32) -> Zone {
     let mut zone = Zone::init(dim);
     for i in start..end {
-        let location = DecoratedLocation::create(location.get_location(i), location.get_decl(i));
-        location.apply_invariant(&mut zone);
+        if let Some(loc) = location.try_get_location(i) {
+            let location = DecoratedLocation::create(loc, location.get_decl(i));
+            location.apply_invariant(&mut zone);
+        }
     }
     zone
 }

@@ -53,6 +53,12 @@ impl<'a> LocationTuple<'a> {
         self.ignore_invariants = &self.ignore_invariants | &other.ignore_invariants;
     }
 
+    pub fn set_default_decl(&mut self, index: usize, decl: Declarations) {
+        if !self.locations.contains_key(&index) {
+            self.set_location(index, None, decl);
+        }
+    }
+
     pub fn set_location(
         &mut self,
         index: usize,
