@@ -7,6 +7,7 @@ use crate::ModelObjects::component::Component;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::{Component as ProtobufComponent, ComponentsUpdateRequest};
 use crate::ProtobufServer::ConcreteEcdarBackend;
+use crate::System::input_enabler;
 use std::cell::RefCell;
 use tonic::{Request, Response};
 
@@ -60,6 +61,12 @@ fn save_components(component_container: &RefCell<ComponentContainer>, components
     for mut component in components {
         debug_print!("Adding comp {} to container", component.get_name());
         component.create_edge_io_split();
+        let inputs: Vec<_> = component
+            .get_input_actions()
+            .into_iter()
+            .map(|channel| channel.name)
+            .collect();
+        input_enabler::make_input_enabled(&mut component, &inputs);
         component_container.borrow_mut().save_component(component);
     }
 }
