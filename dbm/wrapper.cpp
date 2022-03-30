@@ -62,13 +62,10 @@ extern "C"
 
     void dbm_vec_to_fed(raw_t *dbm[], cindex_t len, cindex_t dim, dbm::fed_t *fed_out)
     {
-        dbm::fed_t fed = (*new dbm::fed_t(dim));
-
         for (int i = 0; i < len; i++)
         {
-            fed.add(dbm[i], dim);
+            fed_out->add(dbm[i], dim);
         }
-        fed_out->add(fed);
     }
 
     int dbm_get_fed_size(dbm::fed_t *fed)
@@ -136,22 +133,19 @@ extern "C"
 
     void dbm_fed_minus_fed(raw_t *dbm1[], raw_t *dbm2[], cindex_t len1, cindex_t len2, cindex_t dim, dbm::fed_t *fed_out)
     {
-
-        dbm::fed_t fed1 = (*new dbm::fed_t(dim));
         for (int i = 0; i < len1; i++)
         {
-            fed1.add(dbm1[i], dim);
+            fed_out->add(dbm1[i], dim);
         }
 
-        dbm::fed_t fed2 = (*new dbm::fed_t(dim));
+        dbm::fed_t fed2(dim);
         for (int i = 0; i < len2; i++)
         {
             fed2.add(dbm2[i], dim);
         }
 
-        fed1 -= fed2;
 
-        fed_out->add(fed1);
+        *fed_out -= fed2;
     }
 
     raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j)
