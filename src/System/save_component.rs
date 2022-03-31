@@ -71,7 +71,11 @@ fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
         }
         for comp_id in 0..initial.len() {
             for (k, v) in &initial.get_decl(comp_id).clocks {
-                clocks.insert(format!("{}{}", k, comp_id), *v);
+                if clocks.contains_key(k) {
+                    clocks.insert(format!("{}{}", k, comp_id), *v);
+                } else {
+                    clocks.insert(k.clone(), *v);
+                }
             }
         }
     }
