@@ -4,11 +4,12 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationID, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
+use crate::Simulation::graph_layout::layout_dummy_component;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::ops::Add;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DummyNail {
     pub x: f32,
     pub y: f32,
@@ -29,7 +30,7 @@ impl DummyNail {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DummyEdge {
     #[serde(rename = "sourceLocation")]
     pub source_location: String,
@@ -60,6 +61,7 @@ pub struct DummyEdge {
 impl From<Edge> for DummyEdge {
     fn from(item: Edge) -> Self {
         let mut nails = vec![];
+
         if item.guard.is_some() {
             nails.push(DummyNail::new("GUARD"));
         }
@@ -69,6 +71,10 @@ impl From<Edge> for DummyEdge {
         }
 
         nails.push(DummyNail::new("SYNCHRONIZATION"));
+
+        if nails.len() < 2 && item.source_location == item.target_location {
+            nails.push(DummyNail::new("NONE"));
+        }
 
         DummyEdge {
             source_location: item.source_location.to_string(),
@@ -92,8 +98,8 @@ pub struct DummyComponent {
         serialize_with = "encode_declarations"
     )]
     pub declarations: Declarations,
-    pub locations: Vec<Location>,
-    pub edges: Vec<Edge>,
+    pub locations: Vec<DummyLocation>,
+    pub edges: Vec<DummyEdge>,
 
     pub description: String,
     pub includeInPeriodicCheck: bool,
@@ -106,7 +112,7 @@ pub struct DummyComponent {
 
 impl From<Component> for DummyComponent {
     fn from(item: Component) -> Self {
-        DummyComponent {
+        let mut comp = DummyComponent {
             name: item.name,
             declarations: item.declarations,
             locations: item.locations.into_iter().map(|l| l.into()).collect(),
@@ -114,11 +120,15 @@ impl From<Component> for DummyComponent {
             description: "".to_string(),
             includeInPeriodicCheck: false,
             color: 6.to_string(),
-            x: 5.0,
-            y: 5.0,
-            width: 450.0,
-            height: 600.0,
-        }
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        };
+
+        layout_dummy_component(&mut comp);
+
+        comp
     }
 }
 
@@ -416,16 +426,19 @@ where
 {
     let mut output = String::new();
     if let Some(updates) = opt_updates {
-        for update in updates {
+        for (i, update) in updates.iter().enumerate() {
             output = output.add(
                 &[
                     update.get_variable_name(),
                     "=",
                     &update.get_expression().encode_expr(),
-                    ", ",
                 ]
                 .concat(),
             );
+
+            if i != updates.len() - 1 {
+                output = output.add(", ");
+            }
         }
         serializer.serialize_str(&output)
     } else {
