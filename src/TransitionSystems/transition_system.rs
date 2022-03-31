@@ -8,11 +8,17 @@ use crate::System::local_consistency;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct LocationTuple<'a> {
     locations: Vec<&'a Location>,
     declarations: Vec<Declarations>,
     id: LocationID,
+}
+
+impl<'a> PartialEq for LocationTuple<'a> {
+    fn eq(&self, other: &LocationTuple<'a>) -> bool {
+        self.to_location_id() == other.to_location_id()
+    }
 }
 
 impl<'a> LocationTuple<'a> {

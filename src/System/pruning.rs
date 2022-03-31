@@ -1,19 +1,22 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraint;
 use crate::ModelObjects::component::{
-    Component, Declarations, Edge, Location, LocationID, SyncType,
+    Component, Declarations, Edge, Location, LocationID, SyncType, Transition,
 };
+use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
-use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    CompositionType, PrunedComponent, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::{HashMap, HashSet};
 
 pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr {
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
-    let comp = combine_components(&ts);
+    let comp = combine_components(&ts).component;
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());

@@ -2,17 +2,17 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use std::collections::HashMap;
+use crate::TransitionSystems::{LocationTuple, PrunedComponent, TransitionSystemPtr};
+use std::collections::{HashMap, HashSet};
 
-pub fn combine_components(system: &TransitionSystemPtr) -> Component {
+pub fn combine_components(system: &TransitionSystemPtr) -> PrunedComponent {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
     collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks);
-
     let locations = get_locations_from_tuples(&location_tuples, &clocks);
-    Component {
+
+    let mut comp = Component {
         name: "".to_string(),
         declarations: Declarations {
             ints: HashMap::new(),
@@ -22,6 +22,13 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Component {
         edges: edges,
         input_edges: None,
         output_edges: None,
+    };
+    comp.create_edge_io_split();
+
+    PrunedComponent {
+        inputs: system.get_input_actions(),
+        outputs: system.get_output_actions(),
+        component: Box::new(comp),
     }
 }
 

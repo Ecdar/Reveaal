@@ -72,7 +72,7 @@ pub struct GetComponentExecutor<'a> {
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system);
+        let mut comp = *combine_components(&self.system).component;
         comp.name = self.comp_name;
 
         comp.create_edge_io_split();
