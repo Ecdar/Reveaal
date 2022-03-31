@@ -18,6 +18,8 @@ struct Config {
     LOCATION_SPACE: f32,
     /// Maximal aspect ratio of the component
     MAX_RATIO: f32,
+    LOCATION_MASS: f32,
+    EDGE_MASS: f32,
 }
 
 fn get_config() -> Config {
@@ -29,6 +31,8 @@ fn get_config() -> Config {
                 PADDING: 100.0,
                 LOCATION_SPACE: 200.0,
                 MAX_RATIO: 1.5,
+                LOCATION_MASS: 1.0,
+                EDGE_MASS: 1.0,
             }
         }
     }
@@ -80,7 +84,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
                 edge_number: 0,
                 nail_number: 0,
             },
-            mass: 1.0,
+            mass: CONFIG.LOCATION_MASS,
         });
 
         node_map.insert(location.id.clone(), node);
@@ -104,7 +108,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
                     edge_number: i,
                     nail_number: j,
                 },
-                mass: 1.0,
+                mass: CONFIG.EDGE_MASS,
             });
 
             if first.is_none() {
