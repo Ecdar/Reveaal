@@ -74,8 +74,8 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
 
             for fed_zone in result_federation.iter_zones() {
                 new_edges.push(component::Edge {
-                    source_location: location.get_id().to_string(),
-                    target_location: location.get_id().to_string(),
+                    source_location: location.get_id().clone(),
+                    target_location: location.get_id().clone(),
                     sync_type: component::SyncType::Input,
                     guard: build_guard_from_zone(
                         &fed_zone,

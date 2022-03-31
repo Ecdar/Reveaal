@@ -17,7 +17,11 @@ macro_rules! default_composition {
         fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
             if let Some(left) = self.left.get_initial_location() {
                 if let Some(right) = self.right.get_initial_location() {
-                    return Some(LocationTuple::compose(left, right));
+                    return Some(LocationTuple::compose(
+                        left,
+                        right,
+                        self.get_composition_type(),
+                    ));
                 }
             }
             None
@@ -28,7 +32,11 @@ macro_rules! default_composition {
             let right = self.right.get_all_locations();
             for loc1 in left {
                 for loc2 in &right {
-                    location_tuples.push(LocationTuple::compose(loc1.clone(), loc2.clone()));
+                    location_tuples.push(LocationTuple::compose(
+                        loc1.clone(),
+                        loc2.clone(),
+                        self.get_composition_type(),
+                    ));
                 }
             }
             location_tuples

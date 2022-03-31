@@ -1,7 +1,7 @@
 use crate::DataReader::parse_edge;
 use crate::DataReader::parse_invariant;
 use crate::ModelObjects::component::{
-    Component, Declarations, Edge, Location, LocationType, SyncType,
+    Component, Declarations, Edge, Location, LocationID, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -71,8 +71,8 @@ impl From<Edge> for DummyEdge {
         nails.push(DummyNail::new("SYNCHRONIZATION"));
 
         DummyEdge {
-            source_location: item.source_location,
-            target_location: item.target_location,
+            source_location: item.source_location.to_string(),
+            target_location: item.target_location.to_string(),
             sync_type: item.sync_type,
             guard: item.guard,
             update: item.update,
@@ -109,8 +109,8 @@ impl From<Component> for DummyComponent {
         DummyComponent {
             name: item.name,
             declarations: item.declarations,
-            locations: item.locations,
-            edges: item.edges,
+            locations: item.locations.into_iter().map(|l| l.into()).collect(),
+            edges: item.edges.into_iter().map(|l| l.into()).collect(),
             description: "".to_string(),
             includeInPeriodicCheck: false,
             color: 6.to_string(),
@@ -150,7 +150,7 @@ pub struct DummyLocation {
 impl From<Location> for DummyLocation {
     fn from(item: Location) -> Self {
         DummyLocation {
-            id: item.id,
+            id: item.id.to_string(),
             invariant: item.invariant,
             location_type: item.location_type,
             urgency: item.urgency,
@@ -241,6 +241,22 @@ where
         },
         Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
     }
+}
+
+/// Function used for deserializing location ids
+pub fn decode_loc_id<'de, D>(deserializer: D) -> Result<LocationID, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    return Ok(LocationID::Simple(s));
+}
+
+pub fn encode_loc_id<S>(id: &LocationID, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&id.to_string())
 }
 
 //Function used for deserializing updates

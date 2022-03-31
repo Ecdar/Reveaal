@@ -1,6 +1,8 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraint;
-use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
+use crate::ModelObjects::component::{
+    Component, Declarations, Edge, Location, LocationID, SyncType,
+};
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
@@ -77,7 +79,11 @@ pub fn prune(
     }
 }
 
-fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>, dimensions: u32) {
+fn cleanup(
+    comp: &mut Component,
+    consistent_parts: &HashMap<LocationID, Federation>,
+    dimensions: u32,
+) {
     let decls = comp.declarations.clone();
 
     //Set invariants to consistent part
@@ -94,7 +100,7 @@ fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>,
     comp.get_mut_locations()
         .retain(|l| l.invariant != Some(BoolExpression::Bool(false)));
 
-    let remaining_ids: Vec<String> = comp
+    let remaining_ids: Vec<LocationID> = comp
         .get_locations()
         .iter()
         .map(|l| l.get_id().clone())
@@ -113,7 +119,7 @@ fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>,
 
 fn is_inconsistent(
     location: &Location,
-    consistent_parts: &HashMap<String, Federation>,
+    consistent_parts: &HashMap<LocationID, Federation>,
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
@@ -134,7 +140,7 @@ fn is_inconsistent(
 fn prune_to_consistent_part(
     location: &Location,
     new_comp: &mut Component,
-    consistent_parts: &mut HashMap<String, Federation>,
+    consistent_parts: &mut HashMap<LocationID, Federation>,
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
@@ -168,7 +174,7 @@ fn prune_to_consistent_part(
 
 fn handle_input(
     edge: &Edge,
-    consistent_parts: &mut HashMap<String, Federation>,
+    consistent_parts: &mut HashMap<LocationID, Federation>,
     dimensions: u32,
     cons_fed: Federation,
 ) -> bool {

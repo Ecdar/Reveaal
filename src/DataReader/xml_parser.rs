@@ -1,6 +1,6 @@
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
-use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
+use crate::ModelObjects::component::{Declarations, Edge, LocationID, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
 use elementtree::{Element, FindChildren};
@@ -88,7 +88,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
     let mut locations: Vec<component::Location> = vec![];
     for loc in xml_locations {
         let location = component::Location {
-            id: loc.get_attr("id").unwrap().parse().unwrap(),
+            id: LocationID::Simple(loc.get_attr("id").unwrap().parse().unwrap()),
             invariant: match loc.find("label") {
                 Some(x) => match parse_invariant::parse(x.text()) {
                     Ok(edgeAttribute) => Some(edgeAttribute),
@@ -139,18 +139,20 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
             }
         }
         let edge = component::Edge {
-            source_location: e
-                .find("source")
-                .expect("source edge not found")
-                .get_attr("ref")
-                .expect("no source edge ID")
-                .to_string(),
-            target_location: e
-                .find("target")
-                .expect("target edge not found")
-                .get_attr("ref")
-                .expect("no target edge ID")
-                .to_string(),
+            source_location: LocationID::Simple(
+                e.find("source")
+                    .expect("source edge not found")
+                    .get_attr("ref")
+                    .expect("no source edge ID")
+                    .to_string(),
+            ),
+            target_location: LocationID::Simple(
+                e.find("target")
+                    .expect("target edge not found")
+                    .get_attr("ref")
+                    .expect("no target edge ID")
+                    .to_string(),
+            ),
             sync_type: match sync.contains('?') {
                 true => SyncType::Input,
                 false => SyncType::Output,

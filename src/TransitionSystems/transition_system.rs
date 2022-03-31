@@ -1,7 +1,7 @@
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
-    Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
-    SyncType, Transition,
+    Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, LocationID,
+    State, SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
@@ -12,6 +12,7 @@ use std::collections::hash_set::HashSet;
 pub struct LocationTuple<'a> {
     locations: Vec<&'a Location>,
     declarations: Vec<Declarations>,
+    id: LocationID,
 }
 
 impl<'a> LocationTuple<'a> {
@@ -24,6 +25,9 @@ impl<'a> LocationTuple<'a> {
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
+        let old = self.locations[index];
+        let replaced = self.id.replace(old.get_id(), new_loc.get_id());
+        assert!(replaced);
         self.locations[index] = new_loc;
     }
 
@@ -31,10 +35,23 @@ impl<'a> LocationTuple<'a> {
         LocationTuple {
             locations: vec![location],
             declarations: vec![declaration.clone()],
+            id: location.get_id().clone(),
         }
     }
 
-    pub fn compose(left: Self, right: Self) -> Self {
+    pub fn compose(left: Self, right: Self, kind: CompositionType) -> Self {
+        let id = match kind {
+            CompositionType::Quotient => {
+                LocationID::Quotient(Box::new(left.id), Box::new(right.id))
+            }
+            CompositionType::Composition => {
+                LocationID::Composition(Box::new(left.id), Box::new(right.id))
+            }
+            CompositionType::Conjunction => {
+                LocationID::Conjunction(Box::new(left.id), Box::new(right.id))
+            }
+            _ => panic!("Unknown composition type"),
+        };
         let mut locations = left.locations;
         locations.extend(right.locations);
         let mut declarations = left.declarations;
@@ -42,6 +59,7 @@ impl<'a> LocationTuple<'a> {
         LocationTuple {
             locations,
             declarations,
+            id,
         }
     }
 
@@ -78,12 +96,25 @@ impl<'a> LocationTuple<'a> {
         }
         success
     }
+
+    pub fn to_location_id(&self) -> LocationID {
+        self.id.clone()
+    }
+}
+
+pub enum CompositionType {
+    Quotient,
+    Composition,
+    Conjunction,
+    None,
 }
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem<'static>>;
 
 pub trait TransitionSystem<'a>: DynClone {
     fn get_max_bounds(&self, dim: u32) -> MaxBounds;
+
+    fn get_composition_type(&self) -> CompositionType;
 
     fn next_transitions<'b>(
         &'b self,
@@ -237,5 +268,8 @@ impl TransitionSystem<'_> for Component {
             decorated_locations: init_loc,
             zone,
         }
+    }
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::None
     }
 }

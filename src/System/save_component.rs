@@ -49,7 +49,7 @@ fn get_locations_from_tuples(
             }
 
             Location {
-                id: loc_vec.to_string(),
+                id: loc_vec.to_location_id(),
                 invariant,
                 location_type: if is_initial {
                     LocationType::Initial
@@ -123,12 +123,14 @@ fn collect_specific_edges_from_location<'a>(
             },
             &mut 0,
         );
+
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
+
             let edge = Edge {
-                source_location: location.to_string(),
-                target_location: target_location.to_string(),
+                source_location: location.to_location_id(),
+                target_location: target_location.to_location_id(),
                 sync_type: if input {
                     SyncType::Input
                 } else {

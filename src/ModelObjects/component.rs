@@ -2,8 +2,9 @@ use crate::DBMLib::dbm::{Federation, Zone};
 use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
-    decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
-    decode_sync_type, decode_update, encode_boolexpr, DummyComponent, DummyEdge, DummyLocation,
+    decode_declarations, decode_guard, decode_invariant, decode_loc_id, decode_location_type,
+    decode_sync, decode_sync_type, decode_update, encode_boolexpr, encode_loc_id, DummyComponent,
+    DummyEdge, DummyLocation,
 };
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
@@ -16,6 +17,8 @@ use crate::TransitionSystems::LocationTuple;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::hash::Hash;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -55,11 +58,11 @@ impl Component {
         &mut self.locations
     }
 
-    pub fn get_location_by_name(&self, name: &str) -> &Location {
+    pub fn get_location_by_name(&self, name: &LocationID) -> &Location {
         let loc_vec = self
             .locations
             .iter()
-            .filter(|l| l.id == name)
+            .filter(|l| l.id == *name)
             .collect::<Vec<&Location>>();
 
         if loc_vec.len() == 1 {
@@ -726,7 +729,8 @@ pub enum LocationType {
 #[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
 #[serde(into = "DummyLocation")]
 pub struct Location {
-    pub id: String,
+    #[serde(deserialize_with = "decode_loc_id", serialize_with = "encode_loc_id")]
+    pub id: LocationID,
     #[serde(
         deserialize_with = "decode_invariant",
         serialize_with = "encode_opt_boolexpr"
@@ -743,7 +747,7 @@ pub struct Location {
 
 #[allow(dead_code)]
 impl Location {
-    pub fn get_id(&self) -> &String {
+    pub fn get_id(&self) -> &LocationID {
         &self.id
     }
     pub fn get_invariant(&self) -> &Option<representations::BoolExpression> {
@@ -918,13 +922,97 @@ impl fmt::Display for Transition<'_> {
     }
 }
 
+#[derive(Debug, Clone, std::cmp::PartialEq, Eq, Hash)]
+pub enum LocationID {
+    Conjunction(Box<LocationID>, Box<LocationID>),
+    Composition(Box<LocationID>, Box<LocationID>),
+    Quotient(Box<LocationID>, Box<LocationID>),
+    Simple(String),
+}
+
+impl LocationID {
+    pub fn replace(&mut self, old: &Self, new: &Self) -> bool {
+        if *self == *old {
+            *self = new.clone();
+            true
+        } else {
+            match self {
+                LocationID::Conjunction(left, right) => {
+                    left.replace(old, new) || right.replace(old, new)
+                }
+                LocationID::Composition(left, right) => {
+                    left.replace(old, new) || right.replace(old, new)
+                }
+                LocationID::Quotient(left, right) => {
+                    left.replace(old, new) || right.replace(old, new)
+                }
+                _ => false,
+            }
+        }
+    }
+}
+
+impl Display for LocationID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LocationID::Conjunction(left, right) => {
+                match **left {
+                    LocationID::Conjunction(_, _) => write!(f, "{}", *left)?,
+                    LocationID::Simple(_) => write!(f, "{}", *left)?,
+                    _ => write!(f, "({})", *left)?,
+                };
+                write!(f, "&&")?;
+                match **right {
+                    LocationID::Conjunction(_, _) => write!(f, "{}", *right)?,
+                    LocationID::Simple(_) => write!(f, "{}", *right)?,
+                    _ => write!(f, "({})", *right)?,
+                };
+            }
+            LocationID::Composition(left, right) => {
+                match **left {
+                    LocationID::Composition(_, _) => write!(f, "{}", *left)?,
+                    LocationID::Simple(_) => write!(f, "{}", *left)?,
+                    _ => write!(f, "({})", *left)?,
+                };
+                write!(f, "||")?;
+                match **right {
+                    LocationID::Composition(_, _) => write!(f, "{}", *right)?,
+                    LocationID::Simple(_) => write!(f, "{}", *right)?,
+                    _ => write!(f, "({})", *right)?,
+                };
+            }
+            LocationID::Quotient(left, right) => {
+                match **left {
+                    LocationID::Simple(_) => write!(f, "{}", *left)?,
+                    _ => write!(f, "({})", *left)?,
+                };
+                write!(f, "\\\\")?;
+                match **right {
+                    LocationID::Simple(_) => write!(f, "{}", *right)?,
+                    _ => write!(f, "({})", *right)?,
+                };
+            }
+            LocationID::Simple(name) => write!(f, "{}", name)?,
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
-    #[serde(rename = "sourceLocation")]
-    pub source_location: String,
-    #[serde(rename = "targetLocation")]
-    pub target_location: String,
+    #[serde(
+        rename = "sourceLocation",
+        deserialize_with = "decode_loc_id",
+        serialize_with = "encode_loc_id"
+    )]
+    pub source_location: LocationID,
+    #[serde(
+        rename = "targetLocation",
+        deserialize_with = "decode_loc_id",
+        serialize_with = "encode_loc_id"
+    )]
+    pub target_location: LocationID,
     #[serde(
         deserialize_with = "decode_sync_type",
         serialize_with = "encode_sync_type",
@@ -982,11 +1070,11 @@ impl Edge {
         };
     }
 
-    pub fn get_source_location(&self) -> &String {
+    pub fn get_source_location(&self) -> &LocationID {
         &self.source_location
     }
 
-    pub fn get_target_location(&self) -> &String {
+    pub fn get_target_location(&self) -> &LocationID {
         &self.target_location
     }
 
@@ -1141,7 +1229,7 @@ fn add_state_to_pl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
 
 pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) -> Component {
     let location = Location {
-        id: "EXTRA".to_string(),
+        id: LocationID::Simple("EXTRA".to_string()),
         invariant: None,
         location_type: LocationType::Initial,
         urgency: "".to_string(),
@@ -1152,8 +1240,8 @@ pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) 
     for input in inputs {
         input_edges.push(Edge {
             guard: None,
-            source_location: "EXTRA".to_string(),
-            target_location: "EXTRA".to_string(),
+            source_location: LocationID::Simple("EXTRA".to_string()),
+            target_location: LocationID::Simple("EXTRA".to_string()),
             sync: input.clone(),
             sync_type: SyncType::Input,
             update: None,
@@ -1165,8 +1253,8 @@ pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) 
     for output in outputs {
         output_edges.push(Edge {
             guard: None,
-            source_location: "EXTRA".to_string(),
-            target_location: "EXTRA".to_string(),
+            source_location: LocationID::Simple("EXTRA".to_string()),
+            target_location: LocationID::Simple("EXTRA".to_string()),
             sync: output.clone(),
             sync_type: SyncType::Output,
             update: None,

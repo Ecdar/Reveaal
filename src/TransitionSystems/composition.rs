@@ -2,7 +2,9 @@ use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::hash_set::HashSet;
 
 #[derive(Clone)]
@@ -77,5 +79,9 @@ impl<'a> TransitionSystem<'static> for Composition {
     fn is_locally_consistent(&self, dimensions: u32) -> bool {
         local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
             && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
+    }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Composition
     }
 }
