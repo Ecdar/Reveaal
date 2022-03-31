@@ -84,16 +84,25 @@ fn collect_all_edges_and_locations<'a>(
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
 ) {
-    let l = representation.get_all_locations();
-    locations.extend(l);
-    for location in locations {
-        collect_edges_from_location(location, representation, edges, clock_map);
+    let l = representation.get_initial_location();
+
+    if l.is_none() {
+        return;
+    }
+    let l = l.unwrap();
+
+    locations.push(l.clone());
+
+    collect_reachable_locations(&l, representation, locations);
+
+    for loc in locations {
+        collect_edges_from_location(&loc, representation, edges, clock_map);
     }
 }
 
 fn collect_edges_from_location<'a>(
     location: &LocationTuple<'a>,
-    representation: &TransitionSystemPtr,
+    representation: &'a TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
 ) {
@@ -101,9 +110,44 @@ fn collect_edges_from_location<'a>(
     collect_specific_edges_from_location(location, representation, edges, false, clock_map);
 }
 
+fn collect_reachable_locations<'a>(
+    location: &LocationTuple<'a>,
+    representation: &'a TransitionSystemPtr,
+    locations: &mut Vec<LocationTuple<'a>>,
+) {
+    for input in [true, false].iter() {
+        for sync in if *input {
+            representation.get_input_actions()
+        } else {
+            representation.get_output_actions()
+        } {
+            let transitions = representation.next_transitions(
+                location,
+                &sync,
+                &if *input {
+                    SyncType::Input
+                } else {
+                    SyncType::Output
+                },
+                &mut 0,
+            );
+
+            for transition in transitions {
+                let mut target_location = location.clone();
+                transition.move_locations(&mut target_location);
+
+                if !locations.contains(&target_location) {
+                    locations.push(target_location.clone());
+                    collect_reachable_locations(&target_location, representation, locations);
+                }
+            }
+        }
+    }
+}
+
 fn collect_specific_edges_from_location<'a>(
     location: &LocationTuple<'a>,
-    representation: &TransitionSystemPtr,
+    representation: &'a TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     input: bool,
     clock_map: &HashMap<String, u32>,
