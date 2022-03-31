@@ -49,7 +49,6 @@ fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
 
 // Data object for force graph
 struct Data {
-    pub center: bool,
     pub location: bool,
     pub location_number: usize,
     pub edge_number: usize,
@@ -59,17 +58,22 @@ struct Data {
 pub fn layout_dummy_component(comp: &mut DummyComponent) {
     let CONFIG = get_config();
 
+    // Compute the grid size
     let locs = comp.locations.len();
     let loc_sqrt = (locs as f32).sqrt();
     let grid_size = f32::max(loc_sqrt * CONFIG.LOCATION_SPACE, 200.0);
 
+    // Construct the force graph with nodes in random locations
     let mut graph = <ForceGraph<Data>>::new(Default::default());
 
     let mut rng = rand::thread_rng();
     let range_max = 1000.0;
     let range_min = -range_max;
 
+    // Keep track of location node ids
     let mut node_map: HashMap<String, DefaultNodeIdx> = HashMap::new();
+
+    // We make the first node an anchor
     let mut first = true;
 
     for (i, location) in comp.locations.iter().enumerate() {
@@ -78,7 +82,6 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
             y: rng.gen_range(range_min..range_max),
             is_anchor: first,
             user_data: Data {
-                center: false,
                 location: true,
                 location_number: i,
                 edge_number: 0,
@@ -92,6 +95,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         first = false;
     }
 
+    // Iterate over nails in edges and treat them as nodes
     for (i, edge) in comp.edges.iter().enumerate() {
         let mut first = None;
         let mut last = None;
@@ -102,7 +106,6 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
                 y: rng.gen_range(range_min..range_max),
                 is_anchor: false,
                 user_data: Data {
-                    center: false,
                     location: false,
                     location_number: 0,
                     edge_number: i,
@@ -135,6 +138,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
             );
         }
 
+        // Add additional edge between locations
         graph.add_edge(
             *node_map.get(&edge.source_location).unwrap(),
             *node_map.get(&edge.target_location).unwrap(),
@@ -142,10 +146,12 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         );
     }
 
+    // Run the force based simulation
     for _ in 0..1000 {
         graph.update(0.01);
     }
 
+    // Compute the bounds on the node coordinates so we can normalize
     let mut max_x = f32::NEG_INFINITY;
     let mut max_y = f32::NEG_INFINITY;
     let mut min_x = f32::INFINITY;
@@ -158,12 +164,14 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         max_y = f32::max(node.y(), max_y);
     });
 
+    // Normalize bounds to grid size
     let normalize = {
         |num: f32, min: f32, max: f32, ratio: f32| {
             ((num - min) / (max - min)) * (grid_size * ratio) + CONFIG.PADDING / 2.0
         }
     };
 
+    // Ensure the aspect ratio
     fn clamp(num: f32, min: f32, max: f32) -> f32 {
         f32::max(f32::min(num, max), min)
     }
@@ -173,11 +181,13 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         1.0 / CONFIG.MAX_RATIO,
         CONFIG.MAX_RATIO,
     );
+
     let ratio_y = 1.0 / ratio_x;
 
     let normalize_x = { |num: f32| normalize(num, min_x, max_x, ratio_x) };
     let normalize_y = { |num: f32| normalize(num, min_y, max_y, ratio_y) };
 
+    // Set the location and nail coordinates
     graph.visit_nodes(|node| {
         let data = &node.data.user_data;
         if data.location {
@@ -189,15 +199,19 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         }
     });
 
+    // Set the component shape
     comp.width = grid_size * ratio_x + CONFIG.PADDING;
     comp.height = grid_size * ratio_y + CONFIG.PADDING;
 
+    // Translate so it is centered
     comp.x = -comp.width / 2.0;
     comp.y = -comp.height / 2.0;
 
+    // Choose a random color for the component
     let color = rng.gen_range(0..10);
     comp.color = color.to_string();
 
+    // Apply the color to all locations as well
     for loc in &mut comp.locations {
         loc.color = color;
     }
