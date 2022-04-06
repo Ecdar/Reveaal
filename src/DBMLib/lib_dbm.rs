@@ -43,6 +43,14 @@ unsafe fn syncw<T>(f: &mut dyn FnMut() -> T) -> T {
     f()
 }
 
+#[cfg(feature = "single-threaded")]
+macro_rules! sync {
+    ($arg:expr) => {
+        $arg
+    };
+}
+
+#[cfg(not(feature = "single-threaded"))]
 macro_rules! sync {
     ($arg:expr) => {
         syncw(&mut || $arg)
