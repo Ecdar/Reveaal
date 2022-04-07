@@ -1,14 +1,14 @@
+use crate::bail;
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 
 pub fn apply_constraint(
     constraint: &Option<BoolExpression>,
     decls: &component::Declarations,
     zone: &mut Zone,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if let Some(guards) = constraint {
         apply_constraints_to_state(guards, decls, zone)
     } else {
@@ -20,7 +20,7 @@ pub fn apply_constraints_to_state(
     guard: &BoolExpression,
     decls: &component::Declarations,
     zone: &mut Zone,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if let BoolExpression::Bool(val) =
         apply_constraints_to_state_helper(guard, decls, zone, true)?.0
     {
@@ -34,7 +34,7 @@ pub fn apply_constraints_to_state_declarations(
     guard: &BoolExpression,
     decls: &component::Declarations,
     zone: &mut Zone,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if let BoolExpression::Bool(val) =
         apply_constraints_to_state_helper(guard, decls, zone, true)?.0
     {
@@ -49,7 +49,7 @@ pub fn apply_constraints_to_state_helper(
     decls: &component::Declarations,
     zone: &mut Zone,
     should_apply: bool,
-) -> Result<(BoolExpression, bool), Box<dyn Error>> {
+) -> Result<(BoolExpression, bool)> {
     match guard {
         BoolExpression::AndOp(left, right) => {
             let (left, _contains_clock_left) =
@@ -330,7 +330,7 @@ pub fn apply_constraints_to_state2(
     guard: &BoolExpression,
     state: &mut component::State,
     comp_index: usize,
-) -> Result<BoolExpression, Box<dyn Error>> {
+) -> Result<BoolExpression> {
     match guard {
         BoolExpression::AndOp(left, right) => {
             let left = apply_constraints_to_state2(&**left, state, comp_index)?;

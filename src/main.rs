@@ -17,7 +17,6 @@ use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
 use anyhow::{Context, Result};
 use clap::{load_yaml, App};
-use std::error::Error;
 use ModelObjects::component;
 use ModelObjects::queries;
 use ProtobufServer::start_grpc_server_with_tokio;
@@ -53,7 +52,10 @@ fn main() -> Result<()> {
     let matches = App::from(yaml).get_matches();
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        start_grpc_server_with_tokio(ip_endpoint)?;
+        info!(
+            start_grpc_server_with_tokio(ip_endpoint),
+            "Failed to start GRPC server"
+        );
     } else {
         start_using_cli(&matches);
     }
@@ -85,7 +87,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
 fn create_and_execute(
     query: &Query,
     project_loader: &mut Box<dyn ComponentLoader>,
-) -> Result<QueryResult, Box<dyn Error>> {
+) -> Result<QueryResult> {
     let executable_query = Box::new(extract_system_rep::create_executable_query(
         query,
         &mut **project_loader,
@@ -108,7 +110,7 @@ fn try_parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<
 
 fn parse_args(
     matches: &clap::ArgMatches,
-) -> Result<(Box<dyn ComponentLoader>, Vec<queries::Query>), Box<dyn Error>> {
+) -> Result<(Box<dyn ComponentLoader>, Vec<queries::Query>)> {
     let mut folder_path: String = "".to_string();
     let mut query = "".to_string();
 
@@ -133,7 +135,7 @@ fn parse_args(
     }
 }
 
-fn get_project_loader(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
+fn get_project_loader(project_path: String) -> Result<Box<dyn ProjectLoader>> {
     if xml_parser::is_xml_project(&project_path) {
         XmlProjectLoader::new(project_path)
     } else {

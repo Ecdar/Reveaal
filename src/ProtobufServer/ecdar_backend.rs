@@ -1,8 +1,8 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
 use crate::ProtobufServer::services::{ComponentsUpdateRequest, Query, QueryResponse};
+use anyhow::Result;
 use std::cell::RefCell;
-use std::error::Error;
 use std::sync::{Mutex, MutexGuard};
 use tonic::{Request, Response, Status};
 
@@ -44,7 +44,7 @@ pub trait ToGrpcResult<T>: Sized {
     fn as_grpc_result(self) -> Result<T, Status>;
 }
 
-impl<T> ToGrpcResult<T> for Result<T, Box<dyn Error>> {
+impl<T> ToGrpcResult<T> for Result<T> {
     fn as_grpc_result(self) -> Result<T, Status> {
         match self {
             Ok(value) => Ok(value),

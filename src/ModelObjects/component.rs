@@ -1,6 +1,7 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::DataReader::parse_edge;
 
+use crate::bail;
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
     decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
@@ -13,10 +14,9 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::LocationTuple;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use simple_error::bail;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
@@ -57,7 +57,7 @@ impl Component {
         &mut self.locations
     }
 
-    pub fn get_location_by_name(&self, name: &str) -> Result<&Location, Box<dyn Error>> {
+    pub fn get_location_by_name(&self, name: &str) -> Result<&Location> {
         let loc_vec = self
             .locations
             .iter()
@@ -93,14 +93,14 @@ impl Component {
         &mut self.declarations
     }
 
-    pub fn get_input_edges(&self) -> Result<&Vec<Edge>, Box<dyn Error>> {
+    pub fn get_input_edges(&self) -> Result<&Vec<Edge>> {
         if let Some(input_edges) = &self.input_edges {
             Ok(input_edges)
         } else {
             bail!("attempted to get input edges before they were created")
         }
     }
-    pub fn get_output_edges(&self) -> Result<&Vec<Edge>, Box<dyn Error>> {
+    pub fn get_output_edges(&self) -> Result<&Vec<Edge>> {
         if let Some(output_edges) = &self.output_edges {
             Ok(output_edges)
         } else {
@@ -129,7 +129,7 @@ impl Component {
         actions
     }
 
-    pub fn get_input_actions(&self) -> Result<Vec<Channel>, Box<dyn Error>> {
+    pub fn get_input_actions(&self) -> Result<Vec<Channel>> {
         let mut actions = vec![];
         for edge in self.get_input_edges()? {
             if edge.get_sync_type() == &SyncType::Input && !contain(&actions, edge.get_sync()) {
@@ -144,7 +144,7 @@ impl Component {
         Ok(actions)
     }
 
-    pub fn get_output_actions(&self) -> Result<Vec<Channel>, Box<dyn Error>> {
+    pub fn get_output_actions(&self) -> Result<Vec<Channel>> {
         let mut actions = vec![];
         for edge in self.get_output_edges()? {
             if edge.get_sync_type() == &SyncType::Output && !contain(&actions, edge.get_sync()) {
@@ -167,7 +167,7 @@ impl Component {
         location: &Location,
         channel_name: &str,
         sync_type: SyncType,
-    ) -> Result<Vec<&Edge>, Box<dyn Error>> {
+    ) -> Result<Vec<&Edge>> {
         return match sync_type {
             SyncType::Input => {
                 let result: Vec<&Edge> = self
@@ -196,7 +196,7 @@ impl Component {
         };
     }
 
-    pub fn get_all_edges_from(&self, location: &Location) -> Result<Vec<&Edge>, Box<dyn Error>> {
+    pub fn get_all_edges_from(&self, location: &Location) -> Result<Vec<&Edge>> {
         let result: Vec<&Edge> = self
             .get_output_edges()?
             .iter()
@@ -250,7 +250,7 @@ impl Component {
     }
 
     /// method used to verify that the individual component is consistent e.i deterministic etc.
-    pub fn check_consistency(&self, dim: u32, prune: bool) -> Result<bool, Box<dyn Error>> {
+    pub fn check_consistency(&self, dim: u32, prune: bool) -> Result<bool> {
         if !self.is_deterministic(dim)? {
             println!("NOT DETERMINISTIC");
             return Ok(false);
@@ -286,7 +286,7 @@ impl Component {
         &self,
         currState: &mut State,
         passed_list: &mut Vec<State>,
-    ) -> Result<bool, Box<dyn Error>> {
+    ) -> Result<bool> {
         for state in passed_list {
             if state.get_location(0)?.id == currState.get_location(0)?.id {
                 if currState.zone.is_subset_eq(&state.zone) {
@@ -305,7 +305,7 @@ impl Component {
         prune: bool,
         passed_list: &mut Vec<State<'a>>,
         bounds: &MaxBounds,
-    ) -> Result<bool, Box<dyn Error>> {
+    ) -> Result<bool> {
         currState.zone.extrapolate_max_bounds(bounds);
         if self.passed_contains_state(&mut currState, passed_list)? {
             return Ok(true);
@@ -457,7 +457,7 @@ impl Component {
     }
 
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
-    pub fn is_deterministic(&self, dimension: u32) -> Result<bool, Box<dyn Error>> {
+    pub fn is_deterministic(&self, dimension: u32) -> Result<bool> {
         let mut passed_list: Vec<State> = vec![];
         let mut waiting_list: Vec<State> = vec![];
 
@@ -537,11 +537,7 @@ impl Component {
     }
 
     /// Method to check if moves are overlapping to for instance to verify that component is deterministic
-    fn check_moves_overlap(
-        &self,
-        edges: &[&Edge],
-        state: &mut State,
-    ) -> Result<bool, Box<dyn Error>> {
+    fn check_moves_overlap(&self, edges: &[&Edge], state: &mut State) -> Result<bool> {
         if edges.len() < 2 {
             return Ok(false);
         }
@@ -630,10 +626,7 @@ impl Component {
 }
 
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
-fn is_new_state<'a>(
-    state: &mut State<'a>,
-    passed_list: &mut Vec<State<'a>>,
-) -> Result<bool, Box<dyn Error>> {
+fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> Result<bool> {
     assert_eq!(state.decorated_locations.len(), 1);
 
     for passed_state_pair in passed_list {
@@ -693,11 +686,11 @@ impl<'a> State<'a> {
         self.zone.is_subset_eq(&other.zone)
     }
 
-    pub fn get_location(&self, index: usize) -> Result<&Location, Box<dyn Error>> {
+    pub fn get_location(&self, index: usize) -> Result<&Location> {
         self.decorated_locations.get_location(index)
     }
 
-    pub fn get_declarations(&self, index: usize) -> Result<&Declarations, Box<dyn Error>> {
+    pub fn get_declarations(&self, index: usize) -> Result<&Declarations> {
         self.decorated_locations.get_decl(index)
     }
 }
@@ -755,7 +748,7 @@ pub struct Transition<'a> {
     pub edges: Vec<(&'a Component, &'a Edge, usize)>, // TODO: If edges include a reference to the target location we can avoid having components here at all
 }
 impl<'a> Transition<'a> {
-    pub fn use_transition(&self, state: &mut State<'a>) -> Result<bool, Box<dyn Error>> {
+    pub fn use_transition(&self, state: &mut State<'a>) -> Result<bool> {
         if self.apply_guards(&state.decorated_locations, &mut state.zone)? {
             self.apply_updates(&mut state.decorated_locations, &mut state.zone)?;
             self.move_locations(&mut state.decorated_locations)?;
@@ -788,22 +781,14 @@ impl<'a> Transition<'a> {
         out
     }
 
-    pub fn apply_updates(
-        &self,
-        locations: &mut LocationTuple,
-        zone: &mut Zone,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Zone) -> Result<()> {
         for (_, edge, index) in &self.edges {
             edge.apply_update(locations.get_decl(*index)?, zone)?;
         }
         Ok(())
     }
 
-    pub fn apply_guards(
-        &self,
-        locations: &LocationTuple,
-        zone: &mut Zone,
-    ) -> Result<bool, Box<dyn Error>> {
+    pub fn apply_guards(&self, locations: &LocationTuple, zone: &mut Zone) -> Result<bool> {
         let mut success = true;
         for (_, edge, index) in &self.edges {
             success = success && edge.apply_guard(locations.get_decl(*index)?, zone)?;
@@ -811,7 +796,7 @@ impl<'a> Transition<'a> {
         Ok(success)
     }
 
-    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) -> Result<(), Box<dyn Error>> {
+    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) -> Result<()> {
         for (comp, edge, index) in &self.edges {
             let new_loc_name = edge.get_target_location();
             let next_location = comp.get_location_by_name(new_loc_name)?;
@@ -826,7 +811,7 @@ impl<'a> Transition<'a> {
         &self,
         locations: &LocationTuple,
         dim: u32,
-    ) -> Result<Option<Federation>, Box<dyn Error>> {
+    ) -> Result<Option<Federation>> {
         let mut fed = Federation::new(vec![Zone::init(dim)], dim);
         for (comp, edge, index) in &self.edges {
             let target_location = comp.get_location_by_name(edge.get_target_location())?;
@@ -863,7 +848,7 @@ impl<'a> Transition<'a> {
     pub fn get_renamed_guard_expression(
         &self,
         naming: &HashMap<String, u32>,
-    ) -> Result<Option<BoolExpression>, Box<dyn Error>> {
+    ) -> Result<Option<BoolExpression>> {
         let mut guard: Option<BoolExpression> = None;
         for (comp, edge, _) in &self.edges {
             if let Some(g) = &edge.guard {
@@ -882,7 +867,7 @@ impl<'a> Transition<'a> {
     pub fn get_renamed_updates(
         &self,
         naming: &HashMap<String, u32>,
-    ) -> Result<Option<Vec<parse_edge::Update>>, Box<dyn Error>> {
+    ) -> Result<Option<Vec<parse_edge::Update>>> {
         let mut updates = vec![];
         for (comp, edge, _) in &self.edges {
             if let Some(update) = &edge.update {
@@ -968,7 +953,7 @@ impl fmt::Display for Edge {
 }
 
 impl Edge {
-    pub fn apply_update(&self, decl: &Declarations, zone: &mut Zone) -> Result<(), Box<dyn Error>> {
+    pub fn apply_update(&self, decl: &Declarations, zone: &mut Zone) -> Result<()> {
         if let Some(updates) = self.get_update() {
             updater(updates, decl, zone)?;
         }
@@ -976,11 +961,7 @@ impl Edge {
         Ok(())
     }
 
-    pub fn apply_guard(
-        &self,
-        decl: &Declarations,
-        zone: &mut Zone,
-    ) -> Result<bool, Box<dyn Error>> {
+    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> Result<bool> {
         if let Some(guards) = self.get_guard() {
             apply_constraints_to_state(guards, decl, zone)
         } else {
@@ -1053,7 +1034,7 @@ impl<'a> DecoratedLocation<'a> {
         DecoratedLocation { location, decls }
     }
 
-    pub fn apply_invariant(&self, zone: &mut Zone) -> Result<bool, Box<dyn Error>> {
+    pub fn apply_invariant(&self, zone: &mut Zone) -> Result<bool> {
         if let Some(inv) = self.get_location().get_invariant() {
             apply_constraints_to_state(&inv, self.decls, zone)
         } else {
@@ -1132,7 +1113,7 @@ impl Declarations {
         }
     }
 
-    pub fn get_clock_index_by_name(&self, name: &str) -> Result<u32, Box<dyn Error>> {
+    pub fn get_clock_index_by_name(&self, name: &str) -> Result<u32> {
         match self.get_clocks().get(name) {
             Some(clock) => Ok(*clock),
             None => bail!("Failed to find clock index of clock {}", name),

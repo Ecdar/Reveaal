@@ -1,11 +1,11 @@
+use crate::bail;
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use simple_error::bail;
+use anyhow::Result;
 use std::collections::hash_set::HashSet;
-use std::error::Error;
 
 #[derive(Clone)]
 pub struct Composition {
@@ -16,10 +16,7 @@ pub struct Composition {
 }
 
 impl Composition {
-    pub fn new(
-        left: TransitionSystemPtr,
-        right: TransitionSystemPtr,
-    ) -> Result<Box<Composition>, Box<dyn Error>> {
+    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Result<Box<Composition>> {
         let left_out = left.get_output_actions()?;
         let right_out = right.get_output_actions()?;
 
@@ -59,7 +56,7 @@ impl<'a> TransitionSystem<'static> for Composition {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         let mut transitions = vec![];
 
         let mut left = self
@@ -79,7 +76,7 @@ impl<'a> TransitionSystem<'static> for Composition {
         Ok(transitions)
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool> {
         Ok(
             local_consistency::is_least_consistent(self.left.as_ref(), dimensions)?
                 && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)?,

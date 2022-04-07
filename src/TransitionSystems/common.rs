@@ -5,10 +5,10 @@ macro_rules! default_composition {
             bounds.add_bounds(&self.right.get_max_bounds(dim));
             bounds
         }
-        fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        fn get_input_actions(&self) -> Result<HashSet<String>> {
             Ok(self.inputs.clone())
         }
-        fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+        fn get_output_actions(&self) -> Result<HashSet<String>> {
             Ok(self.outputs.clone())
         }
         fn get_num_clocks(&self) -> u32 {
@@ -52,7 +52,7 @@ macro_rules! default_composition {
             )
         }
 
-        fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+        fn precheck_sys_rep(&self, dim: u32) -> Result<bool> {
             if !self.is_deterministic(dim)? {
                 println!("NOT DETERMINISTIC");
                 return Ok(false);
@@ -66,11 +66,11 @@ macro_rules! default_composition {
             Ok(true)
         }
 
-        fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+        fn is_deterministic(&self, dim: u32) -> Result<bool> {
             Ok(self.left.is_deterministic(dim)? && self.right.is_deterministic(dim)?)
         }
 
-        fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
+        fn get_initial_state(&self, dimensions: u32) -> Result<State> {
             let init_loc = match self.get_initial_location() {
                 Some(init_loc) => init_loc,
                 None => bail!("Cannot create initial state as there is no initial location"),

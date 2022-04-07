@@ -1,7 +1,7 @@
+use crate::bail;
+use anyhow::Result;
 use serde::Deserialize;
-use simple_error::bail;
 use std::collections::HashMap;
-use std::error::Error;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -27,7 +27,7 @@ impl BoolExpression {
         &self,
         from_vars: &HashMap<String, u32>,
         to_vars: &HashMap<String, u32>,
-    ) -> Result<BoolExpression, Box<dyn Error>> {
+    ) -> Result<BoolExpression> {
         match self {
             BoolExpression::AndOp(left, right) => Ok(BoolExpression::AndOp(
                 Box::new(left.swap_clock_names(from_vars, to_vars)?),

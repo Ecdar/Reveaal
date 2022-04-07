@@ -1,3 +1,4 @@
+use crate::bail;
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
@@ -9,15 +10,14 @@ use crate::System::pruning;
 use crate::TransitionSystems::{
     Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
 };
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
 pub fn create_executable_query<'a>(
     full_query: &Query,
     component_loader: &'a mut (dyn ComponentLoader + 'static),
-) -> Result<Box<dyn ExecutableQuery + 'a>, Box<dyn Error>> {
+) -> Result<Box<dyn ExecutableQuery + 'a>> {
     let mut clock_index: u32 = 0;
 
     let query = full_query.get_query();
@@ -81,7 +81,7 @@ pub fn extract_side(
     side: &QueryExpression,
     component_loader: &mut dyn ComponentLoader,
     clock_index: &mut u32,
-) -> Result<TransitionSystemPtr, Box<dyn Error>> {
+) -> Result<TransitionSystemPtr> {
     match side {
         QueryExpression::Parentheses(expression) => {
             extract_side(expression, component_loader, clock_index)

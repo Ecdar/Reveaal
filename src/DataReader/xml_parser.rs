@@ -1,12 +1,12 @@
+use crate::bail;
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
+use anyhow::Result;
 use elementtree::{Element, FindChildren};
-use simple_error::bail;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
@@ -18,14 +18,11 @@ pub fn is_xml_project(project_path: &str) -> bool {
 ///Used to parse systems described in xml
 pub(crate) fn parse_xml_from_file(
     fileName: &str,
-) -> Result<
-    (
-        Vec<component::Component>,
-        system_declarations::SystemDeclarations,
-        Vec<queries::Query>,
-    ),
-    Box<dyn Error>,
-> {
+) -> Result<(
+    Vec<component::Component>,
+    system_declarations::SystemDeclarations,
+    Vec<queries::Query>,
+)> {
     //Open file and read xml
     let file = File::open(fileName)?;
     let reader = BufReader::new(file);
@@ -35,14 +32,11 @@ pub(crate) fn parse_xml_from_file(
 
 pub(crate) fn parse_xml_from_str(
     xml: &str,
-) -> Result<
-    (
-        Vec<component::Component>,
-        system_declarations::SystemDeclarations,
-        Vec<queries::Query>,
-    ),
-    Box<dyn Error>,
-> {
+) -> Result<(
+    Vec<component::Component>,
+    system_declarations::SystemDeclarations,
+    Vec<queries::Query>,
+)> {
     let reader = BufReader::new(xml.as_bytes());
 
     parse_xml(reader)
@@ -50,14 +44,11 @@ pub(crate) fn parse_xml_from_str(
 
 fn parse_xml<R: Read>(
     xml_data: R,
-) -> Result<
-    (
-        Vec<component::Component>,
-        system_declarations::SystemDeclarations,
-        Vec<queries::Query>,
-    ),
-    Box<dyn Error>,
-> {
+) -> Result<(
+    Vec<component::Component>,
+    system_declarations::SystemDeclarations,
+    Vec<queries::Query>,
+)> {
     let root = Element::from_reader(xml_data)?;
 
     //storage of components
@@ -76,9 +67,7 @@ fn parse_xml<R: Read>(
     Ok((xml_components, system_declarations, vec![]))
 }
 
-fn parse_component(
-    xml_comp: &elementtree::Element,
-) -> Result<component::Component, Box<dyn Error>> {
+fn parse_component(xml_comp: &elementtree::Element) -> Result<component::Component> {
     let name: String = find_element(&xml_comp, "name")?.text().parse()?;
 
     let init_elem = find_element(&xml_comp, "init")?;
@@ -104,7 +93,7 @@ fn parse_component(
 fn collect_locations(
     xml_locations: FindChildren,
     initial_id: &str,
-) -> Result<Vec<component::Location>, Box<dyn Error>> {
+) -> Result<Vec<component::Location>> {
     let mut locations: Vec<component::Location> = vec![];
     for loc in xml_locations {
         let id = get_attribute(&loc, "id")?;
@@ -127,7 +116,7 @@ fn collect_locations(
     Ok(locations)
 }
 
-fn collect_edges(xml_edges: FindChildren) -> Result<Vec<Edge>, Box<dyn Error>> {
+fn collect_edges(xml_edges: FindChildren) -> Result<Vec<Edge>> {
     let mut edges: Vec<component::Edge> = vec![];
     for e in xml_edges {
         let mut guard: Option<representations::BoolExpression> = None;
@@ -177,7 +166,7 @@ fn collect_edges(xml_edges: FindChildren) -> Result<Vec<Edge>, Box<dyn Error>> {
     Ok(edges)
 }
 
-fn parse_declarations(variables: &str) -> Result<Declarations, Box<dyn Error>> {
+fn parse_declarations(variables: &str) -> Result<Declarations> {
     //Split string into vector of strings
     let decls: Vec<String> = variables.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
@@ -224,7 +213,7 @@ fn parse_declarations(variables: &str) -> Result<Declarations, Box<dyn Error>> {
     Ok(Declarations { ints, clocks })
 }
 
-fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification, Box<dyn Error>> {
+fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification> {
     let mut first_run = true;
     let decls: Vec<String> = global_decl.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
@@ -309,7 +298,7 @@ fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification, Box<dyn Er
     })
 }
 
-fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Element, Box<dyn Error>> {
+fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Element> {
     match elem.find(search_str) {
         Some(sub_element) => Ok(sub_element),
         None => bail!(
@@ -319,10 +308,7 @@ fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Elemen
     }
 }
 
-fn get_attribute<'a>(
-    elem: &'a Element,
-    attribute_name: &'a str,
-) -> Result<&'a str, Box<dyn Error>> {
+fn get_attribute<'a>(elem: &'a Element, attribute_name: &'a str) -> Result<&'a str> {
     match elem.get_attr(attribute_name) {
         Some(attr) => Ok(attr),
         None => bail!(

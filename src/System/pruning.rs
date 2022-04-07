@@ -1,3 +1,4 @@
+use crate::bail;
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraint;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
@@ -6,14 +7,10 @@ use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecifi
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
 use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
-use simple_error::bail;
+use anyhow::Result;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 
-pub fn prune_system(
-    ts: TransitionSystemPtr,
-    clocks: u32,
-) -> Result<TransitionSystemPtr, Box<dyn Error>> {
+pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> Result<TransitionSystemPtr> {
     let inputs = ts.get_input_actions()?;
     let outputs = ts.get_output_actions()?;
     let comp = combine_components(&ts)?;
@@ -41,7 +38,7 @@ pub fn prune(
     inputs: HashSet<String>,
     outputs: HashSet<String>,
     decl: &SystemDeclarations,
-) -> Result<PrunedComponent, Box<dyn Error>> {
+) -> Result<PrunedComponent> {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
 
@@ -86,7 +83,7 @@ fn cleanup(
     comp: &mut Component,
     consistent_parts: &HashMap<String, Federation>,
     dimensions: u32,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let decls = comp.declarations.clone();
 
     //Set invariants to consistent part
@@ -121,7 +118,7 @@ fn is_inconsistent(
     consistent_parts: &HashMap<String, Federation>,
     decls: &Declarations,
     dimensions: u32,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     let loc = LocationTuple::simple(location, decls);
     let mut zone = Zone::init(dimensions);
     let inv_fed = if loc.apply_invariants(&mut zone)? {
@@ -148,7 +145,7 @@ fn prune_to_consistent_part(
     consistent_parts: &mut HashMap<String, Federation>,
     decls: &Declarations,
     dimensions: u32,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if !is_inconsistent(location, consistent_parts, decls, dimensions)? {
         return Ok(false);
     }
@@ -203,7 +200,7 @@ fn handle_output(
     decls: &Declarations,
     dimensions: u32,
     cons_fed: Federation,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     let mut prev_zone = Zone::init(dimensions);
 
     if !edge.apply_guard(decls, &mut prev_zone)? {
@@ -228,7 +225,7 @@ fn set_invariant(
     decls: &Declarations,
     dimensions: u32,
     cons_fed: &Federation,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let mut prev_zone = Zone::init(dimensions);
 
     if !apply_constraint(location.get_invariant(), decls, &mut prev_zone)? {
@@ -247,7 +244,7 @@ fn get_consistent_part(
     location: &Location,
     comp: &Component,
     dimensions: u32,
-) -> Result<Federation, Box<dyn Error>> {
+) -> Result<Federation> {
     let loc = LocationTuple::simple(location, &comp.declarations);
     let mut zone = Zone::init(dimensions);
     if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone)? {

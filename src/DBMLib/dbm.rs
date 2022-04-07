@@ -1,11 +1,11 @@
+use crate::bail;
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::System::input_enabler::build_guard_from_zone;
+use anyhow::Result;
 use colored::Colorize;
-use simple_error::bail;
 use std::collections::HashMap;
-use std::error::Error;
 use std::f64;
 use std::fmt::{Display, Formatter};
 
@@ -350,7 +350,7 @@ impl Federation {
     pub fn as_boolexpression(
         &self,
         clocks: &HashMap<String, u32>,
-    ) -> Result<Option<BoolExpression>, Box<dyn Error>> {
+    ) -> Result<Option<BoolExpression>> {
         if self.num_zones() > 1 {
             bail!("Implementation cannot handle disjunct invariants")
         }

@@ -1,16 +1,16 @@
+use crate::bail;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 
 pub fn check_refinement(
     mut sys1: TransitionSystemPtr,
     mut sys2: TransitionSystemPtr,
-) -> Result<Result<bool, String>, Box<dyn Error>> {
+) -> Result<Result<bool, String>> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
     // Add extra inputs/outputs
@@ -134,7 +134,7 @@ fn has_valid_state_pair<'a>(
     transitions2: &[Transition<'a>],
     curr_pair: &StatePair<'a>,
     is_state1: bool,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     let dim = curr_pair.zone.dimension;
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
@@ -176,7 +176,7 @@ fn create_new_state_pairs<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     for transition1 in transitions1 {
         for transition2 in transitions2 {
             //We currently don't use the bool returned here for anything
@@ -203,7 +203,7 @@ fn build_state_pair<'a>(
     passed_list: &mut Vec<StatePair<'a>>,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     //Creates new state pair
     let mut new_sp: StatePair = StatePair::create(
         curr_pair.get_dimensions(),
@@ -273,7 +273,7 @@ fn prepare_init_state<'a>(
     initial_locations_1: LocationTuple<'a>,
     initial_locations_2: LocationTuple<'a>,
     dimensions: u32,
-) -> Result<StatePair<'a>, Box<dyn Error>> {
+) -> Result<StatePair<'a>> {
     let mut initial_pair = StatePair::create(
         dimensions,
         initial_locations_1.clone(),
@@ -311,7 +311,7 @@ fn check_preconditions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
     dim: u32,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if !(sys2.precheck_sys_rep(dim)? && sys1.precheck_sys_rep(dim)?) {
         return Ok(false);
     }
@@ -351,7 +351,7 @@ fn check_preconditions(
 fn is_new_state<'a>(
     state_pair: &mut StatePair<'a>,
     passed_list: &mut Vec<StatePair<'a>>,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     'OuterFor: for passed_state_pair in passed_list {
         /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")

@@ -1,6 +1,6 @@
+use crate::bail;
 use crate::ModelObjects::component::Component;
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 use std::fs::File;
 
 pub fn component_to_json_file(project_path: &str, component: &Component) {
@@ -15,7 +15,7 @@ pub fn component_to_json_file(project_path: &str, component: &Component) {
     serde_json::to_writer_pretty(&file, component).expect("Failed to serialize component");
 }
 
-pub fn component_to_json(component: &Component) -> Result<String, Box<dyn Error>> {
+pub fn component_to_json(component: &Component) -> Result<String> {
     match serde_json::to_string(component) {
         Ok(res) => Ok(res),
         Err(error) => bail!(

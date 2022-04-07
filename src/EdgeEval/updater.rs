@@ -1,16 +1,16 @@
+use crate::bail;
 use crate::DBMLib::dbm::Zone;
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 
 /// Used to handle update expressions on edges
 pub fn updater(
     updates: &[parse_edge::Update],
     decl: &component::Declarations,
     zone: &mut Zone,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {
@@ -31,7 +31,7 @@ pub fn state_updater(
     updates: &[parse_edge::Update],
     state: &mut component::State,
     comp_index: usize,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     for update in updates {
         match update.get_expression() {
             BoolExpression::Int(val) => {

@@ -1,12 +1,12 @@
 extern crate pest;
+use crate::bail;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
+use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
-use simple_error::bail;
-use std::error::Error;
 
 #[derive(Parser)]
 #[grammar = "DataReader/grammars/query_grammar.pest"]
@@ -15,7 +15,7 @@ pub struct QueryParser;
 ///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
 
-pub fn parse_to_query(query: &str) -> Result<Vec<Query>, Box<dyn Error>> {
+pub fn parse_to_query(query: &str) -> Result<Vec<Query>> {
     let query_expressions = parse_to_expression_tree(query)?;
     let queries = query_expressions
         .into_iter()
@@ -27,9 +27,7 @@ pub fn parse_to_query(query: &str) -> Result<Vec<Query>, Box<dyn Error>> {
     Ok(queries)
 }
 
-pub fn parse_to_expression_tree(
-    edge_attribute_str: &str,
-) -> Result<Vec<QueryExpression>, Box<dyn Error>> {
+pub fn parse_to_expression_tree(edge_attribute_str: &str) -> Result<Vec<QueryExpression>> {
     let mut pairs = QueryParser::parse(Rule::queries, edge_attribute_str)?;
     let pair = try_next(&mut pairs)?;
     let mut queries = vec![];
@@ -47,7 +45,7 @@ pub fn parse_to_expression_tree(
 pub fn build_queries(
     pair: pest::iterators::Pair<Rule>,
     list: &mut Vec<QueryExpression>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     match pair.as_rule() {
         Rule::queryList => {
             for p in pair.into_inner() {
@@ -67,9 +65,7 @@ pub fn build_queries(
     Ok(())
 }
 
-pub fn build_query_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let pair = try_next(&mut pair.into_inner())?;
     let pair_span = pair.as_span();
 
@@ -131,9 +127,7 @@ pub fn build_query_from_pair(
     }
 }
 
-fn build_expression_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
@@ -211,9 +205,7 @@ fn build_expression_from_pair(
     }
 }
 
-fn build_refinement_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_refinement_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
     let right_side_pair = try_next(&mut inner_pair)?;
@@ -227,9 +219,7 @@ fn build_refinement_from_pair(
     ))
 }
 
-fn build_term_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let inner_pair = try_next(&mut pair.into_inner())?;
     match inner_pair.as_rule() {
         Rule::atom => {
@@ -246,9 +236,7 @@ fn build_term_from_pair(
     }
 }
 
-fn build_var_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_var_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -268,9 +256,7 @@ fn build_var_from_pair(
     }
 }
 
-fn build_boolExpr_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_boolExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     match pair.as_rule() {
         Rule::boolExpr => {
             let inner_pair = try_next(&mut pair.into_inner())?;
@@ -284,9 +270,7 @@ fn build_boolExpr_from_pair(
     }
 }
 
-fn build_subExpression_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_subExpression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedSubExp => {
@@ -310,9 +294,7 @@ fn build_subExpression_from_pair(
     }
 }
 
-fn build_and_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -327,9 +309,7 @@ fn build_and_from_pair(
     }
 }
 
-fn build_or_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -344,9 +324,7 @@ fn build_or_from_pair(
     }
 }
 
-fn build_compareExpr_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<QueryExpression, Box<dyn Error>> {
+fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -372,7 +350,7 @@ fn build_compareExpr_from_pair(
     }
 }
 
-fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>, Box<dyn Error>> {
+fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
     if let Some(pair) = iterator.next() {
         Ok(pair)
     } else {
