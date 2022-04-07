@@ -15,6 +15,7 @@ use crate::DataReader::component_loader::{
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
+use anyhow::{Context, Result};
 use clap::{load_yaml, App};
 use std::error::Error;
 use ModelObjects::component;
@@ -24,13 +25,30 @@ use System::executable_query::QueryResult;
 
 #[macro_use]
 extern crate pest_derive;
+extern crate anyhow;
 extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[doc(hidden)]
+pub fn _add_info_to_result<T>(res: Result<T>, info: String) -> Result<T> {
+    res.with_context(|| info)
+}
+
+#[macro_export]
+macro_rules! info {
+    ($result:expr) => { info!($result, "") };
+    ($result:expr, $($args:expr ),*) => { $crate::_add_info_to_result($result, format!("{}: {}", concat!(file!(), ":", line!(), ":", column!()) ,format!( $( $args ),* )))? };
+}
+
+#[macro_export]
+macro_rules! bail {
+    ($($args:expr ),*) => {$crate::anyhow::bail!(format!("{}: {}", concat!(file!(), ":", line!(), ":", column!()) ,format!( $( $args ),* )))}
+}
+
+fn main() -> Result<()> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
