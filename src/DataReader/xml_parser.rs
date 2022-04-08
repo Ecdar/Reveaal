@@ -1,9 +1,9 @@
-use crate::bail;
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
+use crate::{bail, info, open};
 use anyhow::Result;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -134,14 +134,16 @@ fn collect_edges(xml_edges: FindChildren) -> Result<Vec<Edge>> {
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
-                "assignment" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
-                            updates = Some(update_vec)
-                        }
+                "assignment" => {
+                    if let parse_edge::EdgeAttribute::Updates(update_vec) = info!(
+                        parse_edge::parse(label.text()),
+                        "Could not parse edge {}",
+                        label.text()
+                    )? {
+                        updates = Some(update_vec)
                     }
-                    Err(e) => bail!("Could not parse {} got error: {:?}", label.text(), e),
-                },
+                }
+
                 _ => {}
             }
         }
@@ -299,21 +301,17 @@ fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification> {
 }
 
 fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Element> {
-    match elem.find(search_str) {
-        Some(sub_element) => Ok(sub_element),
-        None => bail!(
-            "Expected element {} but got None instead while parsing XML",
-            search_str
-        ),
-    }
+    open!(
+        elem.find(search_str),
+        "Expected element {} but got None instead while parsing XML",
+        search_str
+    )
 }
 
 fn get_attribute<'a>(elem: &'a Element, attribute_name: &'a str) -> Result<&'a str> {
-    match elem.get_attr(attribute_name) {
-        Some(attr) => Ok(attr),
-        None => bail!(
-            "Expected attribute {} but got None while parsing XML",
-            attribute_name
-        ),
-    }
+    open!(
+        elem.get_attr(attribute_name),
+        "Expected attribute {} but got None while parsing XML",
+        attribute_name
+    )
 }

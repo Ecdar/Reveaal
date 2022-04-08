@@ -1,5 +1,5 @@
-use crate::bail;
 use crate::component::Component;
+use crate::open;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
@@ -22,11 +22,11 @@ pub struct ComponentContainer {
 
 impl ComponentLoader for ComponentContainer {
     fn get_component(&mut self, component_name: &str) -> Result<&Component> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+        open!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
     fn save_component(&mut self, component: Component) {
         self.unload_component(&component.name);
@@ -58,11 +58,11 @@ impl ComponentLoader for JsonProjectLoader {
             self.load_component(component_name)?;
         }
 
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+        open!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
 
     fn save_component(&mut self, component: Component) {
@@ -139,11 +139,11 @@ pub struct XmlProjectLoader {
 
 impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> Result<&Component> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+        open!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
 
     fn save_component(&mut self, _: Component) {

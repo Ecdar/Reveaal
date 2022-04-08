@@ -18,17 +18,19 @@ pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<()> {
     info!(
         single_threaded_runtime.block_on(async { start_grpc_server(ip_endpoint).await }),
         "Failed to start grpc server on address \"{}\"", ip_endpoint
-    );
-    Ok(())
+    )
 }
 
 async fn start_grpc_server(ip_endpoint: &str) -> Result<()> {
     println!("Starting grpc server on '{}'", ip_endpoint.trim());
-    Server::builder()
-        .http2_keepalive_interval(Some(Duration::from_secs(120)))
-        .add_service(EcdarBackendServer::new(ConcreteEcdarBackend::default()))
-        .serve(ip_endpoint.trim().parse()?)
-        .await?;
+    let addr = ip_endpoint.trim().parse()?;
+    info!(
+        Server::builder()
+            .http2_keepalive_interval(Some(Duration::from_secs(120)))
+            .add_service(EcdarBackendServer::new(ConcreteEcdarBackend::default()))
+            .serve(addr)
+            .await
+    )?;
 
     Ok(())
 }

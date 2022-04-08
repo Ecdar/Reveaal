@@ -1,7 +1,6 @@
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::DataReader::parse_edge;
 
-use crate::bail;
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
     decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
@@ -14,6 +13,7 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::LocationTuple;
+use crate::{bail, open};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -67,7 +67,7 @@ impl Component {
         if loc_vec.len() == 1 {
             Ok(loc_vec[0])
         } else {
-            bail!("Unable to retrieve location based on id: {}", name)
+            bail!("Unable to retrieve unique location based on id: {}", name)
         }
     }
     pub fn get_edges(&self) -> &Vec<Edge> {
@@ -94,18 +94,16 @@ impl Component {
     }
 
     pub fn get_input_edges(&self) -> Result<&Vec<Edge>> {
-        if let Some(input_edges) = &self.input_edges {
-            Ok(input_edges)
-        } else {
-            bail!("attempted to get input edges before they were created")
-        }
+        open!(
+            self.input_edges.as_ref(),
+            "attempted to get input edges before they were created"
+        )
     }
     pub fn get_output_edges(&self) -> Result<&Vec<Edge>> {
-        if let Some(output_edges) = &self.output_edges {
-            Ok(output_edges)
-        } else {
-            bail!("attempted to get output edges before they were created")
-        }
+        open!(
+            self.output_edges.as_ref(),
+            "attempted to get output edges before they were created"
+        )
     }
 
     pub fn get_initial_location(&self) -> Option<&Location> {
@@ -473,64 +471,61 @@ impl Component {
         add_state_to_wl(&mut waiting_list, state);
 
         while !waiting_list.is_empty() {
-            if let Some(state) = waiting_list.pop() {
-                let mut full_state = state;
-                let mut edges: Vec<&Edge> = vec![];
-                for input_action in self.get_input_actions()? {
-                    edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0)?,
-                        input_action.get_name(),
-                        SyncType::Input,
-                    )?);
-                }
-                if self.check_moves_overlap(&edges, &mut full_state)? {
-                    return Ok(false);
-                }
-                let mut edges: Vec<&Edge> = vec![];
-                for output_action in self.get_output_actions()? {
-                    edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0)?,
-                        output_action.get_name(),
-                        SyncType::Output,
-                    )?);
-                }
+            let state = open!(waiting_list.pop(), "unable to pop from waiting list")?;
+            let mut full_state = state;
+            let mut edges: Vec<&Edge> = vec![];
+            for input_action in self.get_input_actions()? {
+                edges.append(&mut self.get_next_edges(
+                    full_state.get_location(0)?,
+                    input_action.get_name(),
+                    SyncType::Input,
+                )?);
+            }
+            if self.check_moves_overlap(&edges, &mut full_state)? {
+                return Ok(false);
+            }
+            let mut edges: Vec<&Edge> = vec![];
+            for output_action in self.get_output_actions()? {
+                edges.append(&mut self.get_next_edges(
+                    full_state.get_location(0)?,
+                    output_action.get_name(),
+                    SyncType::Output,
+                )?);
+            }
 
-                if self.check_moves_overlap(&edges, &mut full_state)? {
-                    return Ok(false);
-                } else {
-                    for edge in edges {
-                        //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                        let full_new_zone = full_state.zone.clone();
-                        let loc = self.get_location_by_name(&edge.target_location)?;
-                        let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
-                        if let Some(guard) = edge.get_guard() {
-                            if let BoolExpression::Bool(true) =
-                                constraint_applyer::apply_constraints_to_state2(
-                                    guard,
-                                    &mut new_state,
-                                    0,
-                                )?
-                            {
-                            } else {
-                                //If the constraint cannot be applied, continue.
-                                continue;
-                            }
-                        }
-                        if let Some(updates) = edge.get_update() {
-                            state_updater(updates, &mut new_state, 0)?;
-                        }
-
-                        if is_new_state(&mut new_state, &mut passed_list)?
-                            && is_new_state(&mut new_state, &mut waiting_list)?
+            if self.check_moves_overlap(&edges, &mut full_state)? {
+                return Ok(false);
+            } else {
+                for edge in edges {
+                    //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
+                    let full_new_zone = full_state.zone.clone();
+                    let loc = self.get_location_by_name(&edge.target_location)?;
+                    let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
+                    if let Some(guard) = edge.get_guard() {
+                        if let BoolExpression::Bool(true) =
+                            constraint_applyer::apply_constraints_to_state2(
+                                guard,
+                                &mut new_state,
+                                0,
+                            )?
                         {
-                            add_state_to_wl(&mut waiting_list, new_state);
+                        } else {
+                            //If the constraint cannot be applied, continue.
+                            continue;
                         }
                     }
+                    if let Some(updates) = edge.get_update() {
+                        state_updater(updates, &mut new_state, 0)?;
+                    }
+
+                    if is_new_state(&mut new_state, &mut passed_list)?
+                        && is_new_state(&mut new_state, &mut waiting_list)?
+                    {
+                        add_state_to_wl(&mut waiting_list, new_state);
+                    }
                 }
-                add_state_to_pl(&mut passed_list, full_state);
-            } else {
-                bail!("Unable to pop state from waiting list")
             }
+            add_state_to_pl(&mut passed_list, full_state);
         }
 
         Ok(true)
@@ -1114,10 +1109,11 @@ impl Declarations {
     }
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Result<u32> {
-        match self.get_clocks().get(name) {
-            Some(clock) => Ok(*clock),
-            None => bail!("Failed to find clock index of clock {}", name),
-        }
+        open!(
+            self.get_clocks().get(name).copied(),
+            "Failed to find clock index of clock {}",
+            name
+        )
     }
 }
 

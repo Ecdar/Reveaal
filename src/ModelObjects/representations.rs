@@ -61,7 +61,7 @@ impl BoolExpression {
             BoolExpression::Parentheses(body) => {
                 Ok(BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)?)))
             }
-            BoolExpression::Clock(_) => bail!("Did not expect clock index in boolexpression, cannot swap clock names in misformed BoolExpression"),
+            BoolExpression::Clock(_) => bail!("Did not expect clock index in boolexpression {:?}, cannot swap clock names in misformed BoolExpression", self),
             BoolExpression::VarName(name) => {
                 if let Some(index) = from_vars.get(name){
                     if let Some(new_name) = to_vars.iter()

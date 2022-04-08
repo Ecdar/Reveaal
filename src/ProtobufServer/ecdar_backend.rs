@@ -48,7 +48,7 @@ impl<T> ToGrpcResult<T> for Result<T> {
     fn as_grpc_result(self) -> Result<T, Status> {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Status::internal(format!("{}", error))),
+            Err(error) => Err(Status::internal(error.to_string())),
         }
     }
 }

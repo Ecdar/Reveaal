@@ -1,6 +1,6 @@
 extern crate pest;
-use crate::bail;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{bail, open};
 use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
@@ -136,9 +136,5 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Bool
 }
 
 fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    if let Some(pair) = iterator.next() {
-        Ok(pair)
-    } else {
-        bail!("Expected pair but got None instead")
-    }
+    open!(iterator.next(), "Expected pair but got None instead")
 }

@@ -1,4 +1,4 @@
-use crate::bail;
+use crate::info;
 use crate::ModelObjects::component::Component;
 use anyhow::Result;
 use std::fs::File;
@@ -16,11 +16,9 @@ pub fn component_to_json_file(project_path: &str, component: &Component) {
 }
 
 pub fn component_to_json(component: &Component) -> Result<String> {
-    match serde_json::to_string(component) {
-        Ok(res) => Ok(res),
-        Err(error) => bail!(
-            "Error occured while serializing Component to json: {}",
-            error
-        ),
-    }
+    info!(
+        serde_json::to_string(component),
+        "Error occured while serializing Component {} to json",
+        component.get_name()
+    )
 }

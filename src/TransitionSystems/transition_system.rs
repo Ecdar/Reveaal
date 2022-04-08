@@ -1,4 +1,3 @@
-use crate::bail;
 use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::component::{
     Channel, Component, DeclarationProvider, Declarations, DecoratedLocation, Location, State,
@@ -6,6 +5,7 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
+use crate::{bail, open};
 use anyhow::Result;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
@@ -18,17 +18,19 @@ pub struct LocationTuple<'a> {
 
 impl<'a> LocationTuple<'a> {
     pub fn get_location(&self, index: usize) -> Result<&Location> {
-        match self.locations.get(index) {
-            Some(loc) => Ok(loc),
-            None => bail!("Index out of bounds during location tuple access for location"),
-        }
+        open!(
+            self.locations.get(index).copied(),
+            "Index {} out of bounds during location tuple access for location",
+            index
+        )
     }
 
     pub fn get_decl(&self, index: usize) -> Result<&Declarations> {
-        match self.declarations.get(index) {
-            Some(decl) => Ok(decl),
-            None => bail!("Index out of bounds during location tuple access for declarations"),
-        }
+        open!(
+            self.declarations.get(index),
+            "Index {} out of bounds during location tuple access for declarations",
+            index
+        )
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
@@ -233,12 +235,10 @@ impl TransitionSystem<'_> for Component {
 
     fn get_initial_state(&self, dimensions: u32) -> Result<State> {
         let init_loc = LocationTuple::simple(
-            match self.get_initial_location() {
-                Some(init_loc) => init_loc,
-                None => {
-                    bail!("Cannot create initial state because there exists no initial location")
-                }
-            },
+            open!(
+                self.get_initial_location(),
+                "Cannot create initial state because there exists no initial location"
+            )?,
             self.get_declarations(),
         );
         let mut zone = Zone::init(dimensions);
