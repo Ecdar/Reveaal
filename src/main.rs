@@ -3,6 +3,7 @@
 mod DBMLib;
 mod DataReader;
 mod EdgeEval;
+mod Macros;
 mod ModelObjects;
 mod ProtobufServer;
 mod System;
@@ -15,7 +16,7 @@ use crate::DataReader::component_loader::{
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{load_yaml, App};
 use ModelObjects::component;
 use ModelObjects::queries;
@@ -31,22 +32,6 @@ extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
 
-#[doc(hidden)]
-pub fn _add_info_to_result<T>(res: Result<T>, info: String) -> Result<T> {
-    res.with_context(|| info)
-}
-
-#[macro_export]
-macro_rules! info {
-    ($result:expr) => { info!($result, "") };
-    ($result:expr, $($args:expr ),*) => { $crate::_add_info_to_result($result, format!("{}: {}", concat!(file!(), ":", line!(), ":", column!()) ,format!( $( $args ),* )))? };
-}
-
-#[macro_export]
-macro_rules! bail {
-    ($($args:expr ),*) => {$crate::anyhow::bail!(format!("{}: {}", concat!(file!(), ":", line!(), ":", column!()) ,format!( $( $args ),* )))}
-}
-
 fn main() -> Result<()> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
@@ -55,7 +40,7 @@ fn main() -> Result<()> {
         info!(
             start_grpc_server_with_tokio(ip_endpoint),
             "Failed to start GRPC server"
-        );
+        )?;
     } else {
         start_using_cli(&matches);
     }
