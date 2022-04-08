@@ -1,7 +1,7 @@
 extern crate pest;
-use crate::{bail, open};
 use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{bail, open};
 use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
