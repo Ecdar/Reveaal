@@ -35,7 +35,7 @@ const DEBUG: bool = false;
 
 /// Max dim from dbm\build\UDBM\src\udbm\dbm\DBMAllocator.h:32:35
 /// If exceeded causes segmentation fault in c code
-const MAX_DIM: u32 = 128;
+const MAX_DIM: u32 = 256;
 
 /// Checks DBMS validity
 /// returns true or false
