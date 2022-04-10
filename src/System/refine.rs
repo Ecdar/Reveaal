@@ -14,14 +14,8 @@ fn common_actions(
 ) -> HashSet<String> {
     if is_input {
         sys2.get_input_actions()
-    //.intersection(&sys1.get_input_actions())
-    //.cloned()
-    //.collect()
     } else {
         sys1.get_output_actions()
-        //.intersection(&sys2.get_output_actions())
-        //.cloned()
-        //.collect()
     }
 }
 
