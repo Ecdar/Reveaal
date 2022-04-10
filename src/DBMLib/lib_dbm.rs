@@ -979,7 +979,7 @@ pub fn rs_fed_intersects(fed1: &Federation, fed2: &Federation) -> bool {
 
 pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
     trace!();
-    let rel: UDBM::relation_t = unsafe { UDBM::fed_relation(&fed1.raw, &fed2.raw, true) };
+    let rel: UDBM::relation_t = unsafe { UDBM::fed_exact_relation(&fed1.raw, &fed2.raw) };
 
     match rel {
         0 => Relation::Different,
@@ -992,13 +992,17 @@ pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
 
 pub fn rs_fed_equals(fed1: &Federation, fed2: &Federation) -> bool {
     trace!();
-    unsafe { UDBM::fed_eq(&fed1.raw, &fed2.raw, true) }
+    unsafe { UDBM::fed_exact_eq(&fed1.raw, &fed2.raw) }
 }
 
 pub fn rs_fed_reduce(fed: &mut Federation, expensive: bool) {
     trace!();
     unsafe {
-        UDBM::fed_reduce(&mut fed.raw, expensive);
+        if expensive {
+            UDBM::fed_reduce(&mut fed.raw);
+        } else {
+            UDBM::fed_expensive_reduce(&mut fed.raw);
+        }
     }
 }
 

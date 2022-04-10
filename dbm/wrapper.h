@@ -49,11 +49,17 @@ extern "C"
 
     bool fed_subset_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2);
 
-    relation_t fed_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2, bool exact);
+    relation_t fed_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2);
 
-    bool fed_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2, bool exact);
+    relation_t fed_exact_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2);
 
-    void fed_reduce(dbm::fed_t &fed, bool expensive);
+    bool fed_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2);
+
+    bool fed_exact_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2);
+
+    void fed_reduce(dbm::fed_t &fed);
+
+    void fed_expensive_reduce(dbm::fed_t &fed);
 
     // fed.isUnbounded()
     bool fed_can_delay_indef(const dbm::fed_t &fed);
