@@ -11,7 +11,11 @@ pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
-
+    if state.is_none() {
+        println!("Empty initial state");
+        return false;
+    }
+    let state = state.unwrap();
     consistency_least_helper(state, &mut passed, system, &max_bounds)
 }
 
@@ -24,8 +28,11 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions);
-
-    consistency_fully_helper(state, &mut passed, system, &max_bounds)
+    if state.is_none() {
+        println!("Empty initial state");
+        return false;
+    }
+    consistency_fully_helper(state.unwrap(), &mut passed, system, &max_bounds)
 }
 
 pub fn consistency_least_helper<'b>(
@@ -44,7 +51,6 @@ pub fn consistency_least_helper<'b>(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.zone.extrapolate_max_bounds(max_bounds);
-
                 if !consistency_least_helper(new_state, passed_list, system, max_bounds) {
                     return false;
                 }

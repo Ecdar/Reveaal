@@ -4,151 +4,210 @@
 #include "dbm/dbm.h"
 #include "hash/compute.h"
 
-extern "C"
+raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict)
 {
-    raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict)
-    {
-        return (bound * 2) | (isStrict ^ 1);
-    }
+    return (bound * 2) | (isStrict ^ 1);
+}
 
-    void dbm_zero_wrapper(raw_t *dbm, cindex_t dim)
-    {
-        base_fill(dbm, dbm + (dim * dim), dbm_LE_ZERO);
-    }
+int32_t dbm_raw2bound_wrapper(raw_t raw) { return (raw >> 1); }
+bool dbm_rawIsStrict_wrapper(raw_t raw) { return ((raw & 1) ^ dbm_WEAK); }
+bool dbm_satisfies_wrapper(const dbm::dbm_t &dbm, cindex_t i, cindex_t j,
+                           raw_t constraint)
+{
+    cindex_t dim = dbm.getDimension();
+    assert(dim > 0 && i < dim && j < dim);
+    return !(dbm(i, j) > constraint &&             /* tightening ? */
+             dbm_negRaw(constraint) >= dbm(j, i)); /* too tight ? */
+}
 
-    int32_t dbm_raw2bound_wrapper(raw_t raw) { return (raw >> 1); }
-    bool dbm_rawIsStrict_wrapper(raw_t raw) { return ((raw & 1) ^ dbm_WEAK); }
-    bool dbm_satisfies_wrapper(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j,
-                               raw_t constraint)
+bool dbm_check_validity(const dbm::dbm_t *dbm)
+{
+    try
     {
-        assert(dbm && dim && i < dim && j < dim && dim > 0);
-        return !(dbm[i * dim + j] > constraint &&             /* tightening ? */
-                 dbm_negRaw(constraint) >= dbm[j * dim + i]); /* too tight ? */
-    }
-
-    dbm::fed_t dbm_subtract1_exposed(const raw_t *arg1, const raw_t *arg2, cindex_t dim)
-    {
-        return dbm::fed_t::subtract(arg1, arg2, dim);
-    }
-
-    dbm::fed_t dbm_subtract2_exposed(const dbm::dbm_t &arg1, const raw_t *arg2)
-    {
-        return dbm::fed_t::subtract(arg1, arg2);
-    }
-
-    dbm::fed_t dbm_subtract3_exposed(const dbm::dbm_t &arg1, const dbm::dbm_t &arg2)
-    {
-        return dbm::fed_t::subtract(arg1, arg2);
-    }
-
-    int dbm_check_validity(const raw_t *dbm, cindex_t dim)
-    {
-        try
+        if (dbm_isValid(dbm->const_dbm(), dbm->getDimension()) == true)
         {
-            if (dbm_isValid(dbm, dim) == true)
-            {
-                return 1;
-            }
-            else
-            {
-                return 0;
-            }
+            return true;
         }
-        catch (...)
+        else
         {
-            return 0;
+            return false;
         }
     }
-
-    void dbm_vec_to_fed(raw_t *dbm[], cindex_t len, cindex_t dim, dbm::fed_t *fed_out)
+    catch (...)
     {
-        for (int i = 0; i < len; i++)
-        {
-            fed_out->add(dbm[i], dim);
-        }
-    }
-
-    int dbm_get_fed_size(dbm::fed_t *fed)
-    {
-        return fed->size();
-    }
-    int dbm_get_fed_size_2(dbm::fed_t fed)
-    {
-        return fed.size();
-    }
-    int dbm_get_fed_dim(dbm::fed_t *fed)
-    {
-        return fed->getDimension();
-    }
-
-    int dbm_get_dbm_dimension(dbm::fed_t *fed)
-    {
-        return (fed->getDimension() * fed->getDimension());
-    }
-
-    const raw_t *dbm_get_ith_element_in_fed(dbm::fed_t *fed, int element_num)
-    {
-        int counter = 0;
-        for (auto i = fed->begin(); i != fed->end(); ++i)
-        {
-            if (counter++ == element_num)
-            {
-                const raw_t *x = i->const_dbm();
-                return x;
-            }
-        }
-    }
-
-    void dbm_fed_to_vec(dbm::fed_t &fed, const raw_t *head)
-    {
-        size_t dimension = fed.getDimension();
-        //std::vector<dbm_t> vec;
-        dbm::fdbm_t *prev = NULL;
-        int y = 0;
-
-        //const raw_t *x = fed.begin()->const_dbm();
-        //head = x;
-        for (auto i = fed.begin(); i != fed.end(); ++i)
-        {
-            const raw_t *x = i->const_dbm();
-            dbm::fdbm_t *next = dbm::fdbm_t::create(x, dimension, prev);
-            prev = next;
-            //
-            //
-            //
-            //            y++;
-        }
-        //
-        //
-        //        head = prev;
-    }
-
-    dbm::fdbm_t *dbm_create_fdbm_t()
-    {
-        dbm::fdbm_t *f = NULL;
-        return f;
-    }
-
-    //dbm::fed_t dbm_fed_minus_fed(raw_t * dbm1[], raw_t * dbm2[], cindex_t len1, cindex_t len2, cindex_t dim) {
-
-    void dbm_fed_minus_fed(raw_t *dbm1[], raw_t *dbm2[], cindex_t len1, cindex_t len2, cindex_t dim, dbm::fed_t *fed_out)
-    {
-        for (int i = 0; i < len1; i++)
-        {
-            fed_out->add(dbm1[i], dim);
-        }
-
-        dbm::fed_t fed2(dim);
-        for (int i = 0; i < len2; i++)
-        {
-            fed2.add(dbm2[i], dim);
-        }
-
-        *fed_out -= fed2;
-    }
-
-    raw_t dbm_get_value(const raw_t *dbm, cindex_t dim, cindex_t i, cindex_t j)
-    {
-        return dbm[i * dim + j];
+        return false;
     }
 }
+
+void fed_get_dbm_vec(const dbm::fed_t *fed, raw_t *vec, size_t vec_len)
+{
+    cindex_t dim = fed->getDimension();
+    assert(vec_len == fed->size() * dim * dim);
+
+    for (auto dbm = fed->begin(); dbm != fed->end(); ++dbm)
+    {
+        for (cindex_t i = 0; i < dim; ++i)
+        {
+            for (cindex_t j = 0; j < dim; ++j, ++vec)
+            {
+                *vec = (*dbm)(i, j);
+            }
+        }
+    }
+}
+
+raw_t dbm_get_value(const dbm::dbm_t &dbm, cindex_t i, cindex_t j)
+{
+    return dbm(i, j);
+}
+
+void fed_subtraction(dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    fed1 -= fed2;
+}
+
+void fed_intersection(dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    fed1 &= fed2;
+}
+
+bool fed_is_valid(const dbm::fed_t &fed)
+{
+    return !fed.isEmpty();
+}
+
+bool fed_is_empty(const dbm::fed_t &fed)
+{
+    return fed.isEmpty();
+}
+
+void fed_up(dbm::fed_t &fed)
+{
+    fed.up();
+}
+
+void fed_down(dbm::fed_t &fed)
+{
+    fed.down();
+}
+
+void fed_init(dbm::fed_t &fed)
+{
+    fed.setInit();
+}
+
+void fed_zero(dbm::fed_t &fed)
+{
+    fed.setZero();
+}
+
+bool fed_intersects(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1.intersects(fed2);
+}
+
+bool fed_constrain(dbm::fed_t &fed, cindex_t i, cindex_t j, int32_t b, bool isStrict)
+{
+    return fed.constrain(i, j, b, isStrict);
+}
+
+void fed_update(dbm::fed_t &fed, cindex_t x, cindex_t y, int32_t v)
+{
+    fed.update(x, y, v);
+}
+
+void fed_free_clock(dbm::fed_t &fed, cindex_t x)
+{
+    fed.freeClock(x);
+}
+
+bool fed_subset_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1 <= fed2;
+}
+
+
+relation_t fed_exact_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1.exactRelation(fed2);
+}
+
+
+relation_t fed_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1.relation(fed2);
+}
+
+bool fed_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1 == fed2;
+}
+
+bool fed_exact_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1.eq(fed2);
+}
+
+
+void fed_reduce(dbm::fed_t &fed)
+{
+    fed.reduce();
+}
+
+void fed_expensive_reduce(dbm::fed_t &fed)
+{
+    fed.expensiveReduce();
+}
+bool fed_can_delay_indef(const dbm::fed_t &fed)
+{
+    return fed.isUnbounded();
+}
+
+void fed_extrapolate_max_bounds(dbm::fed_t &fed, const int32_t *max)
+{
+    fed.extrapolateMaxBounds(max);
+}
+
+void fed_add_fed(dbm::fed_t &fed, const dbm::fed_t &other)
+{
+    fed.add(other);
+}
+
+void fed_invert(dbm::fed_t &fed)
+{
+    fed = !fed;
+}
+
+size_t fed_size(const dbm::fed_t &fed)
+{
+    return fed.size();
+}
+
+bool fed_is_mutable(dbm::fed_t &fed)
+{
+    return fed.ifed()->isMutable();
+}
+
+void fed_new(dbm::fed_t &fed, cindex_t dim)
+{
+    fed = dbm::fed_t(dim);
+}
+
+void fed_destruct(dbm::fed_t &fed)
+{
+    fed.nil();
+    fed.~fed_t();
+}
+
+cindex_t fed_dimension(const dbm::fed_t &fed)
+{
+    return fed.getDimension();
+}
+
+/*
+void fed_crash(cindex_t dim)
+{
+    dbm::fed_t fed(dim);
+    fed.setZero();
+    fed.nil();
+}*/

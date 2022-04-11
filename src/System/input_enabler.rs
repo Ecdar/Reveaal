@@ -1,20 +1,18 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
-use crate::ModelObjects::representations;
 use crate::TransitionSystems::TransitionSystem;
-use std::collections::HashMap;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
     let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
 
     for location in component.get_locations() {
-        let mut location_inv_zone = Zone::init(dimension);
+        let mut location_inv_zone = Federation::full(dimension);
 
         if let Some(invariant) = location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state_declarations(
+            constraint_applyer::apply_constraints_to_state(
                 invariant,
                 component.get_declarations(),
                 &mut location_inv_zone,
@@ -22,12 +20,11 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
         }
 
         // No constraints on any clocks
-        let full_federation =
-            Federation::new(vec![location_inv_zone.clone()], location_inv_zone.dimension);
+        let full_federation = location_inv_zone.clone();
 
         for input in inputs {
             let input_edges = component.get_next_edges(location, input, component::SyncType::Input);
-            let mut zones = vec![];
+            let mut zones_federation = Federation::empty(location_inv_zone.get_dimensions());
 
             for edge in input_edges {
                 let mut guard_zone = location_inv_zone.clone();
@@ -35,7 +32,7 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state_declarations(
+                    constraint_applyer::apply_constraints_to_state(
                         target_invariant,
                         component.get_declarations(),
                         &mut guard_zone,
@@ -53,7 +50,7 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 }
 
                 let has_guard = if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state_declarations(
+                    constraint_applyer::apply_constraints_to_state(
                         guard,
                         component.get_declarations(),
                         &mut guard_zone,
@@ -63,97 +60,35 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 };
 
                 if !has_inv && !has_guard {
-                    zones.push(location_inv_zone.clone());
+                    zones_federation.add_fed(&location_inv_zone);
                 } else {
-                    zones.push(guard_zone);
+                    zones_federation.add_fed(&guard_zone);
                 }
             }
 
-            let zones_federation = Federation::new(zones, location_inv_zone.dimension);
-            let result_federation = full_federation.minus_fed(&zones_federation);
+            //let zones_federation = Federation::new(zones, location_inv_zone.dimension);
+            let result_federation = full_federation.subtraction(&zones_federation);
 
-            for fed_zone in result_federation.iter_zones() {
-                new_edges.push(component::Edge {
-                    source_location: location.get_id().to_string(),
-                    target_location: location.get_id().to_string(),
-                    sync_type: component::SyncType::Input,
-                    guard: build_guard_from_zone(
-                        &fed_zone,
-                        component.get_declarations().get_clocks(),
-                    ),
-                    update: None,
-                    sync: input.to_string(),
-                });
+            if result_federation.is_empty() {
+                continue;
             }
+
+            //for fed_zone in result_federation.iter_zones() {
+            new_edges.push(component::Edge {
+                source_location: location.get_id().to_string(),
+                target_location: location.get_id().to_string(),
+                sync_type: component::SyncType::Input,
+                guard: result_federation
+                    .as_boolexpression(Some(component.get_declarations().get_clocks())), //build_guard_from_zone(
+                //    &fed_zone,
+                //    Some(component.get_declarations().get_clocks()),
+                //)
+                update: None,
+                sync: input.to_string(),
+            });
+            //}
         }
     }
 
     component.add_input_edges(&mut new_edges);
-}
-
-pub fn build_guard_from_zone(
-    zone: &Zone,
-    clocks: &HashMap<String, u32>,
-) -> Option<representations::BoolExpression> {
-    let mut guards: Vec<representations::BoolExpression> = vec![];
-
-    for clock in clocks.keys() {
-        let index = clocks.get(clock).unwrap();
-        let (upper_is_strict, upper_val) = zone.get_constraint(*index, 0);
-        let (lower_is_strict, lower_val) = zone.get_constraint(0, *index);
-
-        // lower bound must be different from 1 (==0)
-        if lower_is_strict || lower_val != 0 {
-            if lower_is_strict {
-                guards.push(representations::BoolExpression::LessT(
-                    Box::new(representations::BoolExpression::Int(-lower_val)),
-                    Box::new(representations::BoolExpression::VarName(clock.clone())),
-                ));
-            } else {
-                guards.push(representations::BoolExpression::LessEQ(
-                    Box::new(representations::BoolExpression::Int(-lower_val)),
-                    Box::new(representations::BoolExpression::VarName(clock.clone())),
-                ));
-            }
-        }
-
-        if !zone.is_constraint_infinity(*index, 0) {
-            if upper_is_strict {
-                guards.push(representations::BoolExpression::LessT(
-                    Box::new(representations::BoolExpression::VarName(clock.clone())),
-                    Box::new(representations::BoolExpression::Int(upper_val)),
-                ));
-            } else {
-                guards.push(representations::BoolExpression::LessEQ(
-                    Box::new(representations::BoolExpression::VarName(clock.clone())),
-                    Box::new(representations::BoolExpression::Int(upper_val)),
-                ));
-            }
-        }
-    }
-
-    let res = build_guard_from_zone_helper(&mut guards);
-    match res {
-        representations::BoolExpression::Bool(false) => None,
-        _ => Some(res),
-    }
-}
-
-fn build_guard_from_zone_helper(
-    guards: &mut Vec<representations::BoolExpression>,
-) -> representations::BoolExpression {
-    let num_guards = guards.len();
-
-    if let Some(guard) = guards.pop() {
-        if num_guards == 1 {
-            guard
-        } else {
-            representations::BoolExpression::AndOp(
-                Box::new(guard),
-                Box::new(build_guard_from_zone_helper(guards)),
-            )
-        }
-    } else {
-        representations::BoolExpression::Bool(false)
-    }
 }

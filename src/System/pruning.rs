@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraint;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
 use crate::ModelObjects::representations::BoolExpression;
@@ -6,7 +6,9 @@ use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecifi
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::LocationTuple;
 use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr {
     let inputs = ts.get_input_actions();
@@ -44,15 +46,14 @@ pub fn prune(
     let mut consistent_parts = HashMap::new();
     for location in new_comp.get_locations().clone() {
         consistent_parts.insert(
-            location.get_id().clone(),
+            calculate_hash(location.get_id()),
             get_consistent_part(&location, &new_comp, clocks + 1),
         );
     }
 
     //Prune locations to their consistent parts until fixed-point
-    let mut changed = false;
     loop {
-        changed = false;
+        let mut changed = false;
         for location in new_comp.get_locations().clone() {
             changed |= prune_to_consistent_part(
                 &location,
@@ -77,12 +78,18 @@ pub fn prune(
     }
 }
 
-fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>, dimensions: u32) {
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
+fn cleanup(comp: &mut Component, consistent_parts: &HashMap<u64, Federation>, dimensions: u32) {
     let decls = comp.declarations.clone();
 
     //Set invariants to consistent part
     for mut loc in comp.get_mut_locations() {
-        let id = loc.get_id().clone();
+        let id = calculate_hash(loc.get_id());
         set_invariant(
             &mut loc,
             &decls,
@@ -113,19 +120,21 @@ fn cleanup(comp: &mut Component, consistent_parts: &HashMap<String, Federation>,
 
 fn is_inconsistent(
     location: &Location,
-    consistent_parts: &HashMap<String, Federation>,
+    consistent_parts: &HashMap<u64, Federation>,
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
     let loc = LocationTuple::simple(location, decls);
-    let mut zone = Zone::init(dimensions);
+    let mut zone = Federation::full(dimensions);
     let inv_fed = if loc.apply_invariants(&mut zone) {
-        Federation::new(vec![zone], dimensions)
+        zone
     } else {
-        Federation::new(vec![], dimensions)
+        Federation::empty(dimensions)
     };
 
-    let cons_fed = consistent_parts.get(location.get_id()).unwrap();
+    let cons_fed = consistent_parts
+        .get(&calculate_hash(location.get_id()))
+        .unwrap();
 
     //Returns whether the consistent part is strictly less than the zone induced by the invariant
     cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed)
@@ -134,28 +143,27 @@ fn is_inconsistent(
 fn prune_to_consistent_part(
     location: &Location,
     new_comp: &mut Component,
-    consistent_parts: &mut HashMap<String, Federation>,
+    consistent_parts: &mut HashMap<u64, Federation>,
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
     if !is_inconsistent(location, consistent_parts, decls, dimensions) {
         return false;
     }
-    let cons_fed = consistent_parts.get(location.get_id()).unwrap().clone();
+    let cons_fed = consistent_parts
+        .get(&calculate_hash(location.get_id()))
+        .unwrap()
+        .clone();
 
     let mut changed = false;
     for edge in &mut new_comp.edges {
         if edge.target_location == *location.get_id() {
-            let mut reachable_fed = Federation::new(vec![], dimensions);
-            for mut zone in cons_fed.iter_zones().cloned() {
-                for clock in edge.get_update_clocks() {
-                    let clock_index = decls.get_clock_index_by_name(clock);
-                    zone.free_clock(*(clock_index.unwrap()));
-                }
-                if edge.apply_guard(decls, &mut zone) {
-                    reachable_fed.add(zone);
-                }
+            let mut reachable_fed = cons_fed.clone();
+            for clock in edge.get_update_clocks() {
+                let clock_index = decls.get_clock_index_by_name(clock);
+                reachable_fed.free_clock(*(clock_index.unwrap()));
             }
+            edge.apply_guard(decls, &mut reachable_fed);
             if edge.sync_type == SyncType::Input {
                 changed |= handle_input(edge, consistent_parts, dimensions, reachable_fed);
             } else if edge.sync_type == SyncType::Output {
@@ -168,16 +176,19 @@ fn prune_to_consistent_part(
 
 fn handle_input(
     edge: &Edge,
-    consistent_parts: &mut HashMap<String, Federation>,
+    consistent_parts: &mut HashMap<u64, Federation>,
     dimensions: u32,
     cons_fed: Federation,
 ) -> bool {
     //Any zone that can reach an inconsistent state from this location is marked inconsistent
-    let incons_fed = cons_fed.inverse(dimensions);
-    let old_fed = consistent_parts.get(&edge.source_location).unwrap().clone();
-    let new_fed = old_fed.minus_fed(&incons_fed);
+    let incons_fed = cons_fed.inverse();
+    let old_fed = consistent_parts
+        .get(&calculate_hash(edge.get_source_location()))
+        .unwrap()
+        .clone();
+    let new_fed = old_fed.subtraction(&incons_fed);
     let is_changed = new_fed.is_subset_eq(&old_fed) && !old_fed.is_subset_eq(&new_fed);
-    consistent_parts.insert(edge.source_location.clone(), new_fed);
+    consistent_parts.insert(calculate_hash(edge.get_source_location()), new_fed);
     is_changed
 }
 
@@ -187,7 +198,7 @@ fn handle_output(
     dimensions: u32,
     cons_fed: Federation,
 ) -> bool {
-    let mut prev_zone = Zone::init(dimensions);
+    let mut prev_zone = Federation::full(dimensions);
 
     if !edge.apply_guard(decls, &mut prev_zone) {
         return false;
@@ -195,10 +206,10 @@ fn handle_output(
 
     //Set the guard to enter only the consistent part
     edge.guard = cons_fed
-        .intersect_zone(&prev_zone)
-        .as_boolexpression(&decls.clocks);
+        .intersection(&prev_zone)
+        .as_boolexpression(Some(&decls.clocks));
 
-    let mut new_zone = Zone::init(dimensions);
+    let mut new_zone = Federation::full(dimensions);
     if apply_constraint(&edge.guard, decls, &mut new_zone) {
         return new_zone != prev_zone;
     }
@@ -212,7 +223,7 @@ fn set_invariant(
     dimensions: u32,
     cons_fed: &Federation,
 ) {
-    let mut prev_zone = Zone::init(dimensions);
+    let mut prev_zone = Federation::full(dimensions);
 
     if !apply_constraint(location.get_invariant(), decls, &mut prev_zone) {
         return;
@@ -220,30 +231,28 @@ fn set_invariant(
 
     //Set the invariant to the consistent part
     location.invariant = cons_fed
-        .intersect_zone(&prev_zone)
-        .as_boolexpression(&decls.clocks);
+        .intersection(&prev_zone)
+        .as_boolexpression(Some(&decls.clocks));
 }
 
 fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {
     let loc = LocationTuple::simple(location, &comp.declarations);
-    let mut zone = Zone::init(dimensions);
+    let mut zone = Federation::full(dimensions);
     if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone) {
-        return Federation::new(vec![], dimensions);
+        return Federation::empty(dimensions);
     }
     if zone.canDelayIndefinitely() {
-        return Federation::new(vec![zone], dimensions);
+        return zone;
     }
 
-    let mut federation = Federation::new(vec![], dimensions);
+    let mut federation = Federation::empty(dimensions);
     for output in (comp as &dyn TransitionSystem).get_output_actions() {
         for transition in comp.next_outputs(&loc, &output) {
-            if let Some(fed) = transition.get_guard_federation(&loc, dimensions) {
-                for mut zone in fed.iter_zones().cloned() {
-                    zone.down();
-                    if loc.apply_invariants(&mut zone) {
-                        federation.add(zone);
-                    }
-                }
+            if let Some(mut fed) = transition.get_guard_federation(&loc, dimensions) {
+                fed.down();
+                loc.apply_invariants(&mut fed);
+
+                federation += fed;
             }
         }
     }
