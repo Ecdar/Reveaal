@@ -18,19 +18,11 @@ pub struct LocationTuple<'a> {
 
 impl<'a> LocationTuple<'a> {
     pub fn get_location(&self, index: usize) -> Result<&Location> {
-        open!(
-            self.locations.get(index).copied(),
-            "Index {} out of bounds during location tuple access for location",
-            index
-        )
+        open!(self.locations.get(index).copied())
     }
 
     pub fn get_decl(&self, index: usize) -> Result<&Declarations> {
-        open!(
-            self.declarations.get(index),
-            "Index {} out of bounds during location tuple access for declarations",
-            index
-        )
+        open!(self.declarations.get(index))
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
@@ -234,13 +226,8 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn get_initial_state(&self, dimensions: u32) -> Result<State> {
-        let init_loc = LocationTuple::simple(
-            open!(
-                self.get_initial_location(),
-                "Cannot create initial state because there exists no initial location"
-            )?,
-            self.get_declarations(),
-        );
+        let init_loc =
+            LocationTuple::simple(open!(self.get_initial_location())?, self.get_declarations());
         let mut zone = Zone::init(dimensions);
         if !init_loc.apply_invariants(&mut zone)? {
             bail!("Invalid starting state");

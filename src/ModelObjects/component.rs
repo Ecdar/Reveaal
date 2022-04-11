@@ -94,16 +94,10 @@ impl Component {
     }
 
     pub fn get_input_edges(&self) -> Result<&Vec<Edge>> {
-        open!(
-            self.input_edges.as_ref(),
-            "attempted to get input edges before they were created"
-        )
+        open!(self.input_edges.as_ref())
     }
     pub fn get_output_edges(&self) -> Result<&Vec<Edge>> {
-        open!(
-            self.output_edges.as_ref(),
-            "attempted to get output edges before they were created"
-        )
+        open!(self.output_edges.as_ref())
     }
 
     pub fn get_initial_location(&self) -> Option<&Location> {
@@ -471,7 +465,7 @@ impl Component {
         add_state_to_wl(&mut waiting_list, state);
 
         while !waiting_list.is_empty() {
-            let state = open!(waiting_list.pop(), "unable to pop from waiting list")?;
+            let state = open!(waiting_list.pop())?;
             let mut full_state = state;
             let mut edges: Vec<&Edge> = vec![];
             for input_action in self.get_input_actions()? {
@@ -1109,11 +1103,7 @@ impl Declarations {
     }
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Result<u32> {
-        open!(
-            self.get_clocks().get(name).copied(),
-            "Failed to find clock index of clock {}",
-            name
-        )
+        open!(self.get_clocks().get(name).copied())
     }
 }
 

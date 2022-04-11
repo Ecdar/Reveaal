@@ -127,11 +127,7 @@ fn is_inconsistent(
         Federation::new(vec![], dimensions)
     };
 
-    let cons_fed = open!(
-        consistent_parts.get(location.get_id()),
-        "Couldn't find the location {} in the consistent_parts map",
-        location.get_id()
-    )?;
+    let cons_fed = open!(consistent_parts.get(location.get_id()))?;
 
     //Returns whether the consistent part is strictly less than the zone induced by the invariant
     Ok(cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed))
@@ -147,11 +143,7 @@ fn prune_to_consistent_part(
     if !is_inconsistent(location, consistent_parts, decls, dimensions)? {
         return Ok(false);
     }
-    let cons_fed = open!(
-        consistent_parts.get(location.get_id()).cloned(),
-        "Couldn't find the location {} in the consistent_parts map",
-        location.get_id()
-    )?;
+    let cons_fed = open!(consistent_parts.get(location.get_id()).cloned())?;
 
     let mut changed = false;
     for edge in &mut new_comp.edges {

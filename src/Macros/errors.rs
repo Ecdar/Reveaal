@@ -7,8 +7,8 @@ pub fn _add_info_to_result<T, E, R: Context<T, E>>(res: R, info: String) -> Resu
 
 /// Add file and line number information + optional context to an Option<T> or an anyhow::Result<T, E>
 #[macro_export]
-macro_rules! info {
-    ($result:expr) => { info!($result, "Caused an error") };
+macro_rules! context {
+    ($result:expr) => { context!($result, "Unexpected error") };
     ($result:expr, $($args:expr ),*) => { $crate::Macros::errors::_add_info_to_result($result, format!("{}: {}", concat!(file!(), ":", line!(), ":", column!()) ,format!( $( $args ),* ))) };
 }
 
@@ -20,9 +20,9 @@ macro_rules! error {
 
 /// Convert any Result into an anyhow::Result and add file and line number information + optional context
 #[macro_export]
-macro_rules! into_info {
-    ($result:expr) => { $crate::info!($result.map_err(anyhow::Error::msg)) };
-    ($result:expr, $($args:expr ),*) => { $crate::info!($result.map_err(anyhow::Error::msg), $($args ),*) };
+macro_rules! into_context {
+    ($result:expr) => { $crate::context!($result.map_err(anyhow::Error::msg)) };
+    ($result:expr, $($args:expr ),*) => { $crate::context!($result.map_err(anyhow::Error::msg), $($args ),*) };
 }
 
 /// Try to unwrap an option and on fail return an error with file and line number information

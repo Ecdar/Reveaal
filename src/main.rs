@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let matches = App::from(yaml).get_matches();
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        info!(
+        context!(
             start_grpc_server_with_tokio(ip_endpoint),
             "Failed to start GRPC server"
         )?;

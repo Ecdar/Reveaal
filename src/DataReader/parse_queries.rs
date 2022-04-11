@@ -351,5 +351,5 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Quer
 }
 
 fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    open!(iterator.next(), "Expected pair but got None instead")
+    open!(iterator.next())
 }

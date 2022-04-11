@@ -1,7 +1,7 @@
 use crate::ModelObjects::component;
 use crate::ModelObjects::queries;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
-use crate::{bail, info};
+use crate::{bail, context};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use std::fs::File;
@@ -19,9 +19,10 @@ pub fn read_system_declarations(project_path: &str) -> Result<SystemDeclarations
         bail!("No system declarations in project");
     }
 
-    info!(
+    context!(
         read_json::<SystemDeclarations>(&sysdecl_path),
-        "Could not parse json file {} to component", &sysdecl_path
+        "Could not parse json file {} to component",
+        &sysdecl_path
     )
 }
 
@@ -66,8 +67,9 @@ pub fn read_queries(project_path: &str) -> Result<Vec<queries::Query>> {
         bail!("No queries file found for xml project");
     }
 
-    info!(
+    context!(
         read_json(&queries_path),
-        "Could not parse json file {} to query", &queries_path
+        "Could not parse json file {} to query",
+        &queries_path
     )
 }
