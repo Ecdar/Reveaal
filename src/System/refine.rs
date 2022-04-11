@@ -76,9 +76,7 @@ pub fn check_refinement(
     }
 
     if initial_locations_2 == None {
-        return Ok(Err(String::from(
-            "The empty automata cannot refine non empty automata",
-        )));
+        return Ok(Ok(false));
     }
 
     let initial_locations_1 = initial_locations_1.unwrap();

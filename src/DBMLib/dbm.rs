@@ -563,11 +563,6 @@ impl Display for Federation {
             self.as_boolexpression(None)
                 .unwrap_or(BoolExpression::Bool(true))
         )?;
-        /*      for zone in self.get_zones() {
-                    write!(f, "\n{}", zone)?;
-                }
-                write!(f, "}}")?;
-        */
         Ok(())
     }
 }
