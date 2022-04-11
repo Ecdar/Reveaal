@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 
 #[doc(hidden)]
-pub fn _add_info_to_result<T>(res: Result<T>, info: String) -> Result<T> {
+pub fn _add_info_to_result<T, E, R: Context<T, E>>(res: R, info: String) -> Result<T> {
     res.with_context(|| info)
 }
 
-/// Add file and line number information + optional context to an anyhow::Result
+/// Add file and line number information + optional context to an Option<T> or an anyhow::Result<T, E>
 #[macro_export]
 macro_rules! info {
     ($result:expr) => { info!($result, "Caused an error") };
@@ -25,11 +25,14 @@ macro_rules! into_info {
     ($result:expr, $($args:expr ),*) => { $crate::info!($result.map_err(anyhow::Error::msg), $($args ),*) };
 }
 
-/// Convert an option to a result with file and line number information + optional context
+/// Try to unwrap an option and on fail return an error with file and line number information
 #[macro_export]
 macro_rules! open {
-    ($option:expr) => { open!($option, "Failed to open Option") };
-    ($option:expr, $($args:expr ),*) => {$option.ok_or($crate::error!( $( $args ),*))}
+    ($option:expr) => {
+        $option.ok_or($crate::error!(
+            "Optional was expected to be Some but was None"
+        ))
+    };
 }
 
 /// Bail with a result with file and line number information + optional context
