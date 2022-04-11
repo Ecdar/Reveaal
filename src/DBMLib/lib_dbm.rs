@@ -64,7 +64,7 @@ macro_rules! sync {
 
 pub const DBM_INF: i32 = i32::MAX - 1;
 
-pub type fed_raw = UDBM::dbm_fed_t;
+pub type FedRaw = UDBM::dbm_fed_t;
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: UDBM::raw_t) -> bool {
