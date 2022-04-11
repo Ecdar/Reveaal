@@ -4,9 +4,6 @@
 #include "dbm/dbm.h"
 #include "hash/compute.h"
 
-#define DBM(I, J) dbm->const_dbm()[(I)*dim + (J)]
-#define CDBM dbm->const_dbm()
-
 raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict)
 {
     return (bound * 2) | (isStrict ^ 1);
@@ -14,20 +11,20 @@ raw_t dbm_boundbool2raw_wrapper(int32_t bound, bool isStrict)
 
 int32_t dbm_raw2bound_wrapper(raw_t raw) { return (raw >> 1); }
 bool dbm_rawIsStrict_wrapper(raw_t raw) { return ((raw & 1) ^ dbm_WEAK); }
-bool dbm_satisfies_wrapper(const dbm::dbm_t *dbm, cindex_t i, cindex_t j,
+bool dbm_satisfies_wrapper(const dbm::dbm_t &dbm, cindex_t i, cindex_t j,
                            raw_t constraint)
 {
-    cindex_t dim = dbm->getDimension();
-    assert(dbm && dim && i < dim && j < dim && dim > 0);
-    return !(DBM(i, j) > constraint &&             /* tightening ? */
-             dbm_negRaw(constraint) >= DBM(j, i)); /* too tight ? */
+    cindex_t dim = dbm.getDimension();
+    assert(dim > 0 && i < dim && j < dim);
+    return !(dbm(i, j) > constraint &&             /* tightening ? */
+             dbm_negRaw(constraint) >= dbm(j, i)); /* too tight ? */
 }
 
 bool dbm_check_validity(const dbm::dbm_t *dbm)
 {
     try
     {
-        if (dbm_isValid(CDBM, dbm->getDimension()) == true)
+        if (dbm_isValid(dbm->const_dbm(), dbm->getDimension()) == true)
         {
             return true;
         }
@@ -44,8 +41,6 @@ bool dbm_check_validity(const dbm::dbm_t *dbm)
 
 void fed_get_dbm_vec(const dbm::fed_t *fed, raw_t *vec, size_t vec_len)
 {
-    // dbm::fed_t clone(*fed);
-
     cindex_t dim = fed->getDimension();
     assert(vec_len == fed->size() * dim * dim);
 
@@ -55,45 +50,25 @@ void fed_get_dbm_vec(const dbm::fed_t *fed, raw_t *vec, size_t vec_len)
         {
             for (cindex_t j = 0; j < dim; ++j, ++vec)
             {
-                *vec = DBM(i, j);
+                *vec = (*dbm)(i, j);
             }
         }
-        //*vec = dbm::dbm_t(*i);
     }
 }
-/*
-dbm::dbm_t *fed_ith_element(dbm::fed_t *fed, int element_num)
-{
-    int counter = 0;
-    for (auto i = fed->begin(); i != fed->end(); ++i)
-    {
-        if (counter++ == element_num)
-        {
-            return new dbm::dbm_t(*i);
-        }
-    }
 
-    return NULL;
-}*/
-
-raw_t dbm_get_value(const dbm::dbm_t *dbm, cindex_t i, cindex_t j)
+raw_t dbm_get_value(const dbm::dbm_t &dbm, cindex_t i, cindex_t j)
 {
-    cindex_t dim = dbm->getDimension();
-    return DBM(i, j);
+    return dbm(i, j);
 }
 
 void fed_subtraction(dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    // dbm::fed_t fed = dbm::fed_t(fed1);
     fed1 -= fed2;
-    // return fed;
 }
 
 void fed_intersection(dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    // dbm::fed_t fed = dbm::fed_t(fed1);
     fed1 &= fed2;
-    // return fed;
 }
 
 bool fed_is_valid(const dbm::fed_t &fed)
@@ -151,42 +126,38 @@ bool fed_subset_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
     return fed1 <= fed2;
 }
 
-relation_t fed_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2, bool exact)
+
+relation_t fed_exact_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    if (exact)
-    {
-        return fed1.exactRelation(fed2);
-    }
-    else
-    {
-        return fed1.relation(fed2);
-    }
+    return fed1.exactRelation(fed2);
 }
 
-bool fed_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2, bool exact)
+
+relation_t fed_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    if (exact)
-    {
-        return fed1.eq(fed2);
-    }
-    else
-    {
-        return fed1 == fed2;
-    }
+    return fed1.relation(fed2);
 }
 
-void fed_reduce(dbm::fed_t &fed, bool expensive)
+bool fed_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    if (expensive)
-    {
-        fed.expensiveReduce();
-    }
-    else
-    {
-        fed.reduce();
-    }
+    return fed1 == fed2;
 }
 
+bool fed_exact_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
+{
+    return fed1.eq(fed2);
+}
+
+
+void fed_reduce(dbm::fed_t &fed)
+{
+    fed.reduce();
+}
+
+void fed_expensive_reduce(dbm::fed_t &fed)
+{
+    fed.expensiveReduce();
+}
 bool fed_can_delay_indef(const dbm::fed_t &fed)
 {
     return fed.isUnbounded();
@@ -225,20 +196,6 @@ void fed_new(dbm::fed_t &fed, cindex_t dim)
 void fed_destruct(dbm::fed_t &fed)
 {
     fed.nil();
-
-    // fed.ifed()->reset();
-    /*
-    bool mut = fed.ifed()->isMutable();
-    if (!mut)
-    {
-        // fed.ifed()->decRefImmutable();
-    }
-    else
-    {
-        // fed.ifed()->removeMutable();
-    }
-    */
-
     fed.~fed_t();
 }
 

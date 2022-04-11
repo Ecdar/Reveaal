@@ -26,6 +26,11 @@ mod UDBM {
 
 use lazy_static::lazy_static; // 1.4.0
 use std::sync::{Mutex, RwLock};
+const DEBUG: bool = false;
+
+/// Max dim from dbm\build\UDBM\src\udbm\dbm\DBMAllocator.h:32:35
+/// If exceeded causes segmentation fault in c code
+const MAX_DIM: u32 = 256;
 
 lazy_static! {
     // static ref LIBRARY_LOCK: RwLock<()> = RwLock::new(());
@@ -60,12 +65,6 @@ macro_rules! sync {
 pub const DBM_INF: i32 = i32::MAX - 1;
 
 pub type fed_raw = UDBM::dbm_fed_t;
-
-const DEBUG: bool = false;
-
-/// Max dim from dbm\build\UDBM\src\udbm\dbm\DBMAllocator.h:32:35
-/// If exceeded causes segmentation fault in c code
-const MAX_DIM: u32 = 128;
 
 /// used in input enabler to check if the constraint is strictly bound e.g strictly less than
 pub fn rs_raw_is_strict(raw: UDBM::raw_t) -> bool {
@@ -339,7 +338,7 @@ pub fn rs_fed_intersects(fed1: &Federation, fed2: &Federation) -> bool {
 
 pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
     trace!();
-    let rel: UDBM::relation_t = unsafe { sync!(UDBM::fed_relation(&fed1.raw, &fed2.raw, true)) };
+    let rel: UDBM::relation_t = unsafe { sync!(UDBM::fed_exact_relation(&fed1.raw, &fed2.raw)) };
 
     match rel {
         0 => Relation::Different,
@@ -352,13 +351,17 @@ pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
 
 pub fn rs_fed_equals(fed1: &Federation, fed2: &Federation) -> bool {
     trace!();
-    unsafe { sync!(UDBM::fed_eq(&fed1.raw, &fed2.raw, true)) }
+    unsafe { sync!(UDBM::fed_exact_eq(&fed1.raw, &fed2.raw)) }
 }
 
 pub fn rs_fed_reduce(fed: &mut Federation, expensive: bool) {
     trace!();
     unsafe {
-        sync!(UDBM::fed_reduce(&mut fed.raw, expensive));
+        if expensive {
+            sync!(UDBM::fed_reduce(&mut fed.raw));
+        } else {
+            sync!(UDBM::fed_expensive_reduce(&mut fed.raw));
+        }
     }
 }
 

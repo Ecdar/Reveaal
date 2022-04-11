@@ -1,5 +1,5 @@
 diff --git a/dbm/DBMAllocator.h b/dbm/DBMAllocator.h
-index d2d2e50..8c324d7 100644
+index d2d2e50..4510a0e 100644
 --- a/dbm/DBMAllocator.h
 +++ b/dbm/DBMAllocator.h
 @@ -29,7 +29,7 @@ namespace dbm
@@ -7,57 +7,7 @@ index d2d2e50..8c324d7 100644
      public:
          ///< Default constructor
 -        DBMAllocator(): freeList(16), dbm1x1(1)
-+        DBMAllocator() : freeList(256), dbm1x1(1)
++        DBMAllocator(): freeList(256), dbm1x1(1)
          {
              raw_t lezero = dbm_LE_ZERO;
              dbm1x1.newCopy(&lezero, 1);
-@@ -42,10 +42,11 @@ namespace dbm
-         /** Allocate memory to instantiate an idbm_t
-          * @param dim: dimension of the DBM
-          */
--        void* alloc(cindex_t dim)
-+        void *alloc(cindex_t dim)
-         {
--            idbm_t* dbm = freeList.get(dim);
--            if (dbm) {
-+            idbm_t *dbm = freeList.get(dim);
-+            if (dbm)
-+            {
-                 freeList[dim] = dbm->getNext();
-                 return dbm;
-             }
-@@ -59,7 +60,7 @@ namespace dbm
-         /** Deallocate an idbm_t
-          * @param dbm: dbm to deallocate
-          */
--        void dealloc(idbm_t* dbm)
-+        void dealloc(idbm_t *dbm)
-         {
-             assert(dbm);
-             cindex_t dim = dbm->getDimension();
-@@ -75,20 +76,20 @@ namespace dbm
-         }
- 
-         ///< @return a constant DBM 1x1 (copies will make it non-mutable).
--        dbm_t& dbm1()
-+        dbm_t &dbm1()
-         {
-             assert(!dbm1x1.isEmpty());
-             return dbm1x1;
-         }
- 
-     private:
--        base::array_t<idbm_t*> freeList;
-+        base::array_t<idbm_t *> freeList;
-         dbm_t dbm1x1;
-     };
- 
-     ///< Allocator instance
-     extern DBMAllocator dbm_allocator;
--}  // namespace dbm
--#endif  // ENABLE_DBM_NEW
-+} // namespace dbm
-+#endif // ENABLE_DBM_NEW
- 
--#endif  // DBM_FED_ALLOC_H
-+#endif // DBM_FED_ALLOC_H

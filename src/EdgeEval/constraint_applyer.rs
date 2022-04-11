@@ -41,27 +41,27 @@ pub fn apply_constraints_to_state_helper(
             res1 || res2
         }
         BoolExpression::LessEQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls, false);
+            let (i, j, c) = get_indices(left, right, decls);
             // i-j<=c
             zone.constrain(i, j, c, false)
         }
         BoolExpression::GreatEQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls, true);
+            let (i, j, c) = get_indices(right, left, decls);
             // j-i <= -c -> c <= i-j
             zone.constrain(i, j, c, false)
         }
         BoolExpression::EQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls, false);
+            let (i, j, c) = get_indices(left, right, decls);
             // i-j <= c && j-i <= -c -> c <= i-j
             zone.constrain(i, j, c, false) && zone.constrain(j, i, -c, false)
         }
         BoolExpression::LessT(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls, false);
+            let (i, j, c) = get_indices(left, right, decls);
             // i-j < c
             zone.constrain(i, j, c, true)
         }
         BoolExpression::GreatT(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls, true);
+            let (i, j, c) = get_indices(right, left, decls);
             // j-i < -c -> c < i-j
             zone.constrain(i, j, c, true)
         }
@@ -89,9 +89,7 @@ fn test_get_indices_int_clock() {
     let right = BoolExpression::Clock(1);
 
     //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl, false), (0, 1, -3));
-    //Testing: right > left
-    assert_eq!(get_indices(&right, &left, &decl, true), (0, 1, -3));
+    assert_eq!(get_indices(&left, &right, &decl), (0, 1, -3));
 }
 
 #[test]
@@ -105,9 +103,7 @@ fn test_get_indices_clock_int() {
     let right = BoolExpression::Int(3);
 
     //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl, false), (1, 0, 3));
-    //Testing: right > left
-    assert_eq!(get_indices(&right, &left, &decl, true), (1, 0, 3));
+    assert_eq!(get_indices(&left, &right, &decl), (1, 0, 3));
 }
 
 #[test]
@@ -122,9 +118,7 @@ fn test_get_indices_clock_clock() {
     let right = BoolExpression::Clock(2);
 
     //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl, false), (1, 2, 0));
-    //Testing: right > left
-    assert_eq!(get_indices(&right, &left, &decl, true), (1, 2, 0));
+    assert_eq!(get_indices(&left, &right, &decl), (1, 2, 0));
 }
 
 #[test]
@@ -138,9 +132,7 @@ fn test_get_indices_diff_int() {
     let right = BoolExpression::Int(3);
 
     //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl, false), (1, 2, 3));
-    //Testing: right > left
-    assert_eq!(get_indices(&right, &left, &decl, true), (1, 2, 3));
+    assert_eq!(get_indices(&left, &right, &decl), (1, 2, 3));
 }
 
 #[test]
@@ -154,25 +146,15 @@ fn test_get_indices_int_diff() {
     let right = BoolExpression::BDif(BoolExpression::Clock(1), BoolExpression::Clock(2));
 
     //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl, false), (2, 1, -3));
-    //Testing: right > left
-    assert_eq!(get_indices(&right, &left, &decl, true), (2, 1, -3));
+    assert_eq!(get_indices(&left, &right, &decl), (2, 1, -3));
 }
 
+/// Assumes that the constraint is of the form left <?= right
 fn get_indices(
     left: &BoolExpression,
     right: &BoolExpression,
     d: &component::Declarations,
-    swap: bool, //Swap if left > right as opposed to left < right
 ) -> (u32, u32, i32) {
-    let (left, right) = if swap {
-        // i-j ?> c -> j-i < c if swap==true
-        (right, left)
-    } else {
-        // i-j <? c if swap==false
-        (left, right)
-    };
-
     let result = if let BoolExpression::Difference(i, j) = left {
         try_form_index(get_clock(i, d), get_clock(j, d), get_constant(right))
     } else if let Some(c) = get_constant(left) {
@@ -193,8 +175,8 @@ fn get_indices(
 }
 
 fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {
-    if i.and(j).and(c).is_some() {
-        let res = (i.unwrap(), j.unwrap(), c.unwrap());
+    if let (Some(i), Some(j), Some(c)) = (i, j, c) {
+        let res = (i, j, c);
         if res.0 == 0 && res.1 == 0 {
             return None;
         }
