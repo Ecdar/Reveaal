@@ -1,6 +1,6 @@
+use crate::context;
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackendServer;
 use crate::ProtobufServer::ConcreteEcdarBackend;
-use crate::{context, into_context};
 use anyhow::Result;
 
 use core::time::Duration;
@@ -25,13 +25,13 @@ pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<()> {
 async fn start_grpc_server(ip_endpoint: &str) -> Result<()> {
     println!("Starting grpc server on '{}'", ip_endpoint.trim());
 
-    let addr = into_context!(
+    let addr = context!(
         ip_endpoint.trim().parse(),
         "Failed to parse ip address \"{}\"",
         ip_endpoint
     )?;
 
-    into_context!(
+    context!(
         Server::builder()
             .http2_keepalive_interval(Some(Duration::from_secs(120)))
             .add_service(EcdarBackendServer::new(ConcreteEcdarBackend::default()))

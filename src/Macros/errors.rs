@@ -12,7 +12,7 @@ macro_rules! location {
     };
 }
 
-/// Add file and line number information + optional context to an Option<T> or an anyhow::Result<T, E>
+/// Add file and line number information + optional context to an Option<T> or Result<T, E>
 #[macro_export]
 macro_rules! context {
     ($result:expr) => { context!($result, "Unexpected error") };
@@ -23,13 +23,6 @@ macro_rules! context {
 #[macro_export]
 macro_rules! error {
     ($($args:expr ),*) => {$crate::anyhow::Error::msg(format!("{}\n\t at {}", format!( $( $args ),* ), crate::location!()))}
-}
-
-/// Convert any Result into an anyhow::Result and add file and line number information + optional context
-#[macro_export]
-macro_rules! into_context {
-    ($result:expr) => { $crate::context!($result.map_err(anyhow::Error::msg)) };
-    ($result:expr, $($args:expr ),*) => { $crate::context!($result.map_err(anyhow::Error::msg), $($args ),*) };
 }
 
 /// Try to unwrap an option and on fail return an error with file and line number information
