@@ -3,7 +3,7 @@ use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
-use crate::{bail, context, open};
+use crate::{bail, context, to_result};
 use anyhow::Result;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -301,9 +301,9 @@ fn decode_sync_type(global_decl: &str) -> Result<SystemSpecification> {
 }
 
 fn find_element<'a>(elem: &'a Element, search_str: &'a str) -> Result<&'a Element> {
-    open!(elem.find(search_str))
+    to_result!(elem.find(search_str))
 }
 
 fn get_attribute<'a>(elem: &'a Element, attribute_name: &'a str) -> Result<&'a str> {
-    open!(elem.get_attr(attribute_name))
+    to_result!(elem.get_attr(attribute_name))
 }

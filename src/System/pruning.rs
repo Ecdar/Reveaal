@@ -1,4 +1,4 @@
-use crate::open;
+use crate::to_result;
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::EdgeEval::constraint_applyer::apply_constraint;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
@@ -127,7 +127,7 @@ fn is_inconsistent(
         Federation::new(vec![], dimensions)
     };
 
-    let cons_fed = open!(consistent_parts.get(location.get_id()))?;
+    let cons_fed = to_result!(consistent_parts.get(location.get_id()))?;
 
     //Returns whether the consistent part is strictly less than the zone induced by the invariant
     Ok(cons_fed.is_subset_eq(&inv_fed) && !inv_fed.is_subset_eq(&cons_fed))
@@ -143,7 +143,7 @@ fn prune_to_consistent_part(
     if !is_inconsistent(location, consistent_parts, decls, dimensions)? {
         return Ok(false);
     }
-    let cons_fed = open!(consistent_parts.get(location.get_id()).cloned())?;
+    let cons_fed = to_result!(consistent_parts.get(location.get_id()).cloned())?;
 
     let mut changed = false;
     for edge in &mut new_comp.edges {

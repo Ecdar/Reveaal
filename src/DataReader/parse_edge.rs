@@ -1,7 +1,7 @@
 extern crate pest;
 use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::{bail, open};
+use crate::{bail, to_result};
 use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
@@ -267,5 +267,5 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Bool
 }
 
 fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    open!(iterator.next())
+    to_result!(iterator.next())
 }

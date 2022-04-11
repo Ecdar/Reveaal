@@ -3,7 +3,7 @@ use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use crate::{bail, open};
+use crate::{bail, to_result};
 use anyhow::Result;
 use std::collections::hash_set::HashSet;
 

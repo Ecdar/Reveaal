@@ -5,7 +5,7 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
-use crate::{bail, open};
+use crate::{bail, to_result};
 use anyhow::Result;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;
@@ -18,11 +18,11 @@ pub struct LocationTuple<'a> {
 
 impl<'a> LocationTuple<'a> {
     pub fn get_location(&self, index: usize) -> Result<&Location> {
-        open!(self.locations.get(index).copied())
+        to_result!(self.locations.get(index).copied())
     }
 
     pub fn get_decl(&self, index: usize) -> Result<&Declarations> {
-        open!(self.declarations.get(index))
+        to_result!(self.declarations.get(index))
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
@@ -226,8 +226,10 @@ impl TransitionSystem<'_> for Component {
     }
 
     fn get_initial_state(&self, dimensions: u32) -> Result<State> {
-        let init_loc =
-            LocationTuple::simple(open!(self.get_initial_location())?, self.get_declarations());
+        let init_loc = LocationTuple::simple(
+            to_result!(self.get_initial_location())?,
+            self.get_declarations(),
+        );
         let mut zone = Zone::init(dimensions);
         if !init_loc.apply_invariants(&mut zone)? {
             bail!("Invalid starting state");

@@ -1,7 +1,7 @@
 extern crate pest;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
-use crate::{bail, open};
+use crate::{bail, to_result};
 use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
@@ -351,5 +351,5 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Quer
 }
 
 fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    open!(iterator.next())
+    to_result!(iterator.next())
 }

@@ -27,7 +27,7 @@ macro_rules! error {
 
 /// Try to unwrap an option and on fail return an error with file and line number information
 #[macro_export]
-macro_rules! open {
+macro_rules! to_result {
     ($option:expr) => {
         $option.ok_or($crate::error!(
             "Optional was expected to be Some but was None"

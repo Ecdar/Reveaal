@@ -71,7 +71,7 @@ macro_rules! default_composition {
         }
 
         fn get_initial_state(&self, dimensions: u32) -> Result<State> {
-            let init_loc = open!(self.get_initial_location())?;
+            let init_loc = to_result!(self.get_initial_location())?;
             let mut zone = Zone::init(dimensions);
             if !init_loc.apply_invariants(&mut zone)? {
                 bail!("Invalid starting state");
