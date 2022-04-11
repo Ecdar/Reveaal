@@ -67,7 +67,7 @@ impl Display for Zone {
 
 #[derive(Debug)]
 pub struct Federation {
-    pub(in crate::DBMLib) raw: lib::fed_raw,
+    pub(in crate::DBMLib) raw: lib::FedRaw,
 }
 
 impl Federation {

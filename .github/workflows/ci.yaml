@@ -28,8 +28,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- --skip "DBMLib::lib_dbm::UDBM::bindgen_test_layout_dbm_idbm_t" --test-threads 1
-
+          args: -- --skip "DBMLib::lib_dbm::UDBM::bindgen_test_layout_dbm_idbm_t"
   fmt:
     name: Check code is formatted
     runs-on: ubuntu-latest

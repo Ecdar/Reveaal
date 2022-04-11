@@ -69,7 +69,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
         let result = executable_query.execute();
 
         if let QueryResult::Error(err) = result {
-            panic!(err);
+            panic!("{}", err);
         }
 
         results.push(result);
