@@ -13,8 +13,11 @@ pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> Re
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions)?;
-
-    consistency_least_helper(state, &mut passed, system, &max_bounds)
+    if state.is_none() {
+        println!("Empty initial state");
+        return Ok(false);
+    }
+    consistency_least_helper(state.unwrap(), &mut passed, system, &max_bounds)
 }
 
 //Local consistency check WITHOUT pruning
@@ -26,8 +29,11 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> Re
     let mut passed = vec![];
     let max_bounds = system.get_max_bounds(dimensions);
     let state = system.get_initial_state(dimensions)?;
-
-    consistency_fully_helper(state, &mut passed, system, &max_bounds)
+    if state.is_none() {
+        println!("Empty initial state");
+        return Ok(false);
+    }
+    consistency_fully_helper(state.unwrap(), &mut passed, system, &max_bounds)
 }
 
 pub fn consistency_least_helper<'b>(

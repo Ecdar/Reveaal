@@ -1,5 +1,5 @@
 use crate::bail;
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
@@ -8,8 +8,8 @@ use anyhow::Result;
 /// Used to handle update expressions on edges
 pub fn updater(
     updates: &[parse_edge::Update],
-    decl: &component::Declarations,
-    zone: &mut Zone,
+    decl: &component::Declarations, //Will eventually be mutable
+    zone: &mut Federation,
 ) -> Result<()> {
     for update in updates {
         match update.get_expression() {
