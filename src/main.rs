@@ -29,7 +29,6 @@ extern crate anyhow;
 extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
-extern crate simple_error;
 extern crate xml;
 
 fn main() -> Result<()> {
