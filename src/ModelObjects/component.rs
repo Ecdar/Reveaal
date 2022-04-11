@@ -284,11 +284,6 @@ impl Component {
             }
 
             if self.check_moves_overlap(&edges, &mut full_state)? {
-                println!(
-                    "Output moves overlap from {} {}",
-                    full_state.decorated_locations.to_string(),
-                    full_state.zone
-                );
                 return Ok(false);
             } else {
                 for edge in edges {

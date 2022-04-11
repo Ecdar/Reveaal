@@ -621,10 +621,6 @@ fn is_constraint_unnecessary(zone: &Zone, index_i: u32, index_j: u32) -> bool {
     let c_plus_j = constraint_sum(c.0, c.1, min_j.0, min_j.1);
 
     if c_plus_j == max_i {
-        println!(
-            "Constraint {:?}-{:?} <? {:?} deemed unnecessary",
-            max_i, min_j, c
-        );
         return true;
     }
     false
