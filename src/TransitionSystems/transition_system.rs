@@ -5,10 +5,10 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
+use crate::{bail, to_result};
+use anyhow::Result;
 use dyn_clone::{clone_trait_object, DynClone};
-use simple_error::bail;
 use std::collections::hash_set::HashSet;
-use std::error::Error;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocationTuple<'a> {
@@ -17,18 +17,12 @@ pub struct LocationTuple<'a> {
 }
 
 impl<'a> LocationTuple<'a> {
-    pub fn get_location(&self, index: usize) -> Result<&Location, Box<dyn Error>> {
-        match self.locations.get(index) {
-            Some(loc) => Ok(loc),
-            None => bail!("Index out of bounds during location tuple access for location"),
-        }
+    pub fn get_location(&self, index: usize) -> Result<&Location> {
+        to_result!(self.locations.get(index).copied())
     }
 
-    pub fn get_decl(&self, index: usize) -> Result<&Declarations, Box<dyn Error>> {
-        match self.declarations.get(index) {
-            Some(decl) => Ok(decl),
-            None => bail!("Index out of bounds during location tuple access for declarations"),
-        }
+    pub fn get_decl(&self, index: usize) -> Result<&Declarations> {
+        to_result!(self.declarations.get(index))
     }
 
     pub fn set_location(&mut self, index: usize, new_loc: &'a Location) {
@@ -78,7 +72,7 @@ impl<'a> LocationTuple<'a> {
         self.locations.iter().zip(self.declarations.iter())
     }
 
-    pub fn apply_invariants(&self, zone: &mut Zone) -> Result<bool, Box<dyn Error>> {
+    pub fn apply_invariants(&self, zone: &mut Zone) -> Result<bool> {
         let mut success = true;
 
         for (location, decl) in self.locations.iter().zip(self.declarations.iter()) {
@@ -99,13 +93,13 @@ pub trait TransitionSystem<'a>: DynClone {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>>;
+    ) -> Result<Vec<Transition<'b>>>;
 
     fn next_outputs<'b>(
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         let mut index = 0;
         self.next_transitions(location, action, &SyncType::Output, &mut index)
     }
@@ -114,14 +108,14 @@ pub trait TransitionSystem<'a>: DynClone {
         &'b self,
         location: &LocationTuple<'b>,
         action: &str,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         let mut index = 0;
         self.next_transitions(location, action, &SyncType::Input, &mut index)
     }
 
-    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>>;
+    fn get_input_actions(&self) -> Result<HashSet<String>>;
 
-    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>>;
+    fn get_output_actions(&self) -> Result<HashSet<String>>;
 
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
@@ -131,17 +125,17 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_components<'b>(&'b self) -> Vec<&'b Component>;
 
-    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>>;
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool>;
 
     fn initialize(&mut self, dimensions: u32) {}
 
-    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>>;
+    fn is_deterministic(&self, dim: u32) -> Result<bool>;
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>>;
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool>;
 
     fn set_clock_indices(&mut self, index: &mut u32);
 
-    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>>;
+    fn get_initial_state(&self, dimensions: u32) -> Result<State>;
 
     fn get_max_clock_index(&self) -> u32;
 }
@@ -167,13 +161,13 @@ impl TransitionSystem<'_> for Component {
         self.get_max_bounds(dim)
     }
 
-    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+    fn get_input_actions(&self) -> Result<HashSet<String>> {
         let channels: Vec<Channel> = self.get_input_actions()?;
 
         Ok(channels.into_iter().map(|c| c.name).collect())
     }
 
-    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+    fn get_output_actions(&self) -> Result<HashSet<String>> {
         let channels: Vec<Channel> = self.get_output_actions()?;
 
         Ok(channels.into_iter().map(|c| c.name).collect())
@@ -203,7 +197,7 @@ impl TransitionSystem<'_> for Component {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         let location = location.get_location(*index)?;
         let next_edges = self.get_next_edges(location, action, *sync_type)?;
 
@@ -219,26 +213,21 @@ impl TransitionSystem<'_> for Component {
         Ok(open_transitions)
     }
 
-    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool> {
         self.check_consistency(dim, true)
     }
 
-    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_deterministic(&self, dim: u32) -> Result<bool> {
         Component::is_deterministic(self, dim)
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool> {
         local_consistency::is_least_consistent(self, dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
+    fn get_initial_state(&self, dimensions: u32) -> Result<State> {
         let init_loc = LocationTuple::simple(
-            match self.get_initial_location() {
-                Some(init_loc) => init_loc,
-                None => {
-                    bail!("Cannot create initial state because there exists no initial location")
-                }
-            },
+            to_result!(self.get_initial_location())?,
             self.get_declarations(),
         );
         let mut zone = Zone::init(dimensions);

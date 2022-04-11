@@ -4,9 +4,9 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::System::pruning;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use simple_error::bail;
+use crate::{bail, to_result};
+use anyhow::Result;
 use std::collections::hash_set::HashSet;
-use std::error::Error;
 
 #[derive(Clone)]
 pub struct Conjunction {
@@ -20,7 +20,7 @@ impl Conjunction {
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-    ) -> Result<TransitionSystemPtr, Box<dyn Error>> {
+    ) -> Result<TransitionSystemPtr> {
         let outputs = left
             .get_output_actions()?
             .intersection(&right.get_output_actions()?)
@@ -52,7 +52,7 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         let mut left = self
             .left
             .next_transitions(location, action, sync_type, index)?;
@@ -63,7 +63,7 @@ impl<'a> TransitionSystem<'static> for Conjunction {
         Ok(Transition::combinations(&mut left, &mut right))
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool> {
         local_consistency::is_least_consistent(self, dimensions)
     }
 }
@@ -76,11 +76,11 @@ pub struct PrunedComponent {
 }
 
 impl<'a> TransitionSystem<'static> for PrunedComponent {
-    fn get_input_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+    fn get_input_actions(&self) -> Result<HashSet<String>> {
         Ok(self.inputs.clone())
     }
 
-    fn get_output_actions(&self) -> Result<HashSet<String>, Box<dyn Error>> {
+    fn get_output_actions(&self) -> Result<HashSet<String>> {
         Ok(self.outputs.clone())
     }
 
@@ -119,24 +119,24 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         self.component
             .next_transitions(location, action, sync_type, index)
     }
 
-    fn precheck_sys_rep(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+    fn precheck_sys_rep(&self, dim: u32) -> Result<bool> {
         self.component.precheck_sys_rep(dim)
     }
 
-    fn is_deterministic(&self, dim: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_deterministic(&self, dim: u32) -> Result<bool> {
         self.component.is_deterministic(dim)
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool> {
         self.component.is_locally_consistent(dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> Result<State, Box<dyn Error>> {
+    fn get_initial_state(&self, dimensions: u32) -> Result<State> {
         self.component.get_initial_state(dimensions)
     }
 }

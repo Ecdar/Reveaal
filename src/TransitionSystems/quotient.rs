@@ -3,9 +3,9 @@ use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use simple_error::bail;
+use crate::{bail, to_result};
+use anyhow::Result;
 use std::collections::hash_set::HashSet;
-use std::error::Error;
 
 #[derive(Clone)]
 pub struct Quotient {
@@ -29,11 +29,11 @@ impl TransitionSystem<'static> for Quotient {
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
-    ) -> Result<Vec<Transition<'b>>, Box<dyn Error>> {
+    ) -> Result<Vec<Transition<'b>>> {
         panic!("Not implemented");
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool, Box<dyn Error>> {
+    fn is_locally_consistent(&self, dimensions: u32) -> Result<bool> {
         local_consistency::is_least_consistent(self, dimensions)
     }
 }

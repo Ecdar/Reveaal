@@ -1,8 +1,8 @@
 use crate::ModelObjects::component::Component;
+use anyhow::Result;
 use serde::de::Error as serde_error;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
-use std::error::Error;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SystemDeclarations {
@@ -23,7 +23,7 @@ impl SystemDeclarations {
         self.get_declarations().get_input_actions().get(comp_name)
     }
 
-    pub fn add_component(&mut self, comp: &Component) -> Result<(), Box<dyn Error>> {
+    pub fn add_component(&mut self, comp: &Component) -> Result<()> {
         self.declarations.input_actions.insert(
             comp.get_name().clone(),
             comp.get_input_actions()?

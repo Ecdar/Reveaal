@@ -1,16 +1,16 @@
 use crate::component::Component;
+use crate::context;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
-use simple_error::bail;
+use anyhow::Result;
 use std::collections::HashMap;
-use std::error::Error;
 
 pub trait ComponentLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>>;
+    fn get_component(&mut self, component_name: &str) -> Result<&Component>;
     fn save_component(&mut self, component: Component);
     fn unload_component(&mut self, component_name: &str);
 }
@@ -21,12 +21,12 @@ pub struct ComponentContainer {
 }
 
 impl ComponentLoader for ComponentContainer {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+    fn get_component(&mut self, component_name: &str) -> Result<&Component> {
+        context!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
     fn save_component(&mut self, component: Component) {
         self.unload_component(&component.name);
@@ -53,16 +53,16 @@ pub struct JsonProjectLoader {
 }
 
 impl ComponentLoader for JsonProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component> {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name)?;
         }
 
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+        context!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
 
     fn save_component(&mut self, component: Component) {
@@ -96,7 +96,7 @@ impl ProjectLoader for JsonProjectLoader {
 }
 
 impl JsonProjectLoader {
-    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
+    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>> {
         let system_declarations = json_reader::read_system_declarations(&project_path)?;
         let queries = json_reader::read_queries(&project_path)?;
 
@@ -108,7 +108,7 @@ impl JsonProjectLoader {
         }))
     }
 
-    fn load_component(&mut self, component_name: &str) -> Result<(), Box<dyn Error>> {
+    fn load_component(&mut self, component_name: &str) -> Result<()> {
         let mut component = json_reader::read_json_component(&self.project_path, component_name)?;
 
         component.create_edge_io_split();
@@ -138,12 +138,12 @@ pub struct XmlProjectLoader {
 }
 
 impl ComponentLoader for XmlProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, Box<dyn Error>> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            Ok(&component)
-        } else {
-            bail!("The component '{}' could not be retrieved", component_name);
-        }
+    fn get_component(&mut self, component_name: &str) -> Result<&Component> {
+        context!(
+            self.loaded_components.get(component_name),
+            "The component '{}' could not be retrieved",
+            component_name
+        )
     }
 
     fn save_component(&mut self, _: Component) {
@@ -174,7 +174,7 @@ impl ProjectLoader for XmlProjectLoader {
 }
 
 impl XmlProjectLoader {
-    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>, Box<dyn Error>> {
+    pub fn new(project_path: String) -> Result<Box<dyn ProjectLoader>> {
         let (comps, system_declarations, queries) = parse_xml_from_file(&project_path)?;
 
         let mut map = HashMap::<String, Component>::new();

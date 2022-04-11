@@ -4,13 +4,10 @@ use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations;
 use crate::TransitionSystems::TransitionSystem;
+use anyhow::Result;
 use std::collections::HashMap;
-use std::error::Error;
 
-pub fn make_input_enabled(
-    component: &mut component::Component,
-    inputs: &[String],
-) -> Result<(), Box<dyn Error>> {
+pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) -> Result<()> {
     let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
 

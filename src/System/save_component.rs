@@ -3,10 +3,10 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use anyhow::Result;
 use std::collections::HashMap;
-use std::error::Error;
 
-pub fn combine_components(system: &TransitionSystemPtr) -> Result<Component, Box<dyn Error>> {
+pub fn combine_components(system: &TransitionSystemPtr) -> Result<Component> {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system)?;
@@ -29,7 +29,7 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Result<Component, Box
 fn get_locations_from_tuples(
     location_tuples: &Vec<LocationTuple>,
     clock_map: &HashMap<String, u32>,
-) -> Result<Vec<Location>, Box<dyn Error>> {
+) -> Result<Vec<Location>> {
     let mut result = vec![];
 
     for loc_vec in location_tuples.iter() {
@@ -63,7 +63,7 @@ fn get_locations_from_tuples(
     Ok(result)
 }
 
-fn get_clock_map(sysrep: &TransitionSystemPtr) -> Result<HashMap<String, u32>, Box<dyn Error>> {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> Result<HashMap<String, u32>> {
     let mut clocks = HashMap::new();
 
     if let Some(initial) = sysrep.get_all_locations().first() {
@@ -84,7 +84,7 @@ fn collect_all_edges_and_locations<'a>(
     locations: &mut Vec<LocationTuple<'a>>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let l = representation.get_all_locations();
     locations.extend(l);
     for location in locations {
@@ -98,7 +98,7 @@ fn collect_edges_from_location<'a>(
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, u32>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     collect_specific_edges_from_location(location, representation, edges, true, clock_map)?;
     collect_specific_edges_from_location(location, representation, edges, false, clock_map)?;
 
@@ -111,7 +111,7 @@ fn collect_specific_edges_from_location<'a>(
     edges: &mut Vec<Edge>,
     input: bool,
     clock_map: &HashMap<String, u32>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     for sync in if input {
         representation.get_input_actions()?
     } else {

@@ -1,11 +1,11 @@
 use crate::ModelObjects::component::get_dummy_component;
 use crate::TransitionSystems::{Composition, TransitionSystemPtr};
-use std::error::Error;
+use anyhow::Result;
 
 pub fn add_extra_inputs_outputs(
     sys1: TransitionSystemPtr,
     sys2: TransitionSystemPtr,
-) -> Result<(TransitionSystemPtr, TransitionSystemPtr), Box<dyn Error>> {
+) -> Result<(TransitionSystemPtr, TransitionSystemPtr)> {
     let inputs1 = get_extra(&sys1, &sys2, true)?;
     let outputs2 = get_extra(&sys2, &sys1, false)?;
 
@@ -26,7 +26,7 @@ fn get_extra(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
     is_input: bool,
-) -> Result<Vec<String>, Box<dyn Error>> {
+) -> Result<Vec<String>> {
     let actions1 = if is_input {
         sys1.get_input_actions()?
     } else {

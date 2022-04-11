@@ -1,13 +1,13 @@
 extern crate pest;
 use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{bail, to_result};
+use anyhow::Result;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
-use simple_error::bail;
 use std::collections::HashMap;
-use std::error::Error;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -50,7 +50,7 @@ impl Update {
         &mut self,
         from_vars: &HashMap<String, u32>,
         to_vars: &HashMap<String, u32>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         if let Some(index) = from_vars.get(&self.variable) {
             if let Some(new_name) =
                 to_vars
@@ -66,7 +66,7 @@ impl Update {
     }
 }
 
-pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<dyn Error>> {
+pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute> {
     let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)?;
     let pair = try_next(&mut pairs)?;
     match pair.as_rule() {
@@ -77,9 +77,7 @@ pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<dyn Error>> 
     }
 }
 
-pub fn build_edgeAttribute_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<EdgeAttribute, Box<dyn Error>> {
+pub fn build_edgeAttribute_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttribute> {
     let pair_rule = try_next(&mut pair.into_inner())?;
     match pair_rule.as_rule() {
         Rule::update => build_update_from_pair(pair_rule),
@@ -90,9 +88,7 @@ pub fn build_edgeAttribute_from_pair(
     }
 }
 
-fn build_guard_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<EdgeAttribute, Box<dyn Error>> {
+fn build_guard_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttribute> {
     match pair.as_rule() {
         Rule::guard => {
             let pair_span = pair.as_span();
@@ -112,9 +108,7 @@ fn build_guard_from_pair(
     }
 }
 
-fn build_update_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<EdgeAttribute, Box<dyn Error>> {
+fn build_update_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttribute> {
     match pair.as_rule() {
         Rule::update => {
             let mut updates: Vec<Update> = vec![];
@@ -134,9 +128,7 @@ fn build_update_from_pair(
     }
 }
 
-fn build_assignments_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<Vec<Update>, Box<dyn Error>> {
+fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Vec<Update>> {
     let mut updates: Vec<Update> = vec![];
     match pair.as_rule() {
         Rule::assignments => {
@@ -166,7 +158,7 @@ fn build_assignments_from_pair(
     Ok(updates)
 }
 
-fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Update, Box<dyn Error>> {
+fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Update> {
     let mut inner_pairs = pair.into_inner();
     let variable = try_next(&mut inner_pairs)?.as_str();
     let expression_pair = try_next(&mut inner_pairs)?;
@@ -180,9 +172,7 @@ fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Updat
     Ok(update)
 }
 
-fn build_expression_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<BoolExpression, Box<dyn Error>> {
+fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
@@ -200,9 +190,7 @@ fn build_expression_from_pair(
     }
 }
 
-fn build_term_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<BoolExpression, Box<dyn Error>> {
+fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let inner_pair = try_next(&mut pair.into_inner())?;
     match inner_pair.as_rule() {
         Rule::atom => {
@@ -221,9 +209,7 @@ fn build_term_from_pair(
     }
 }
 
-fn build_and_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<BoolExpression, Box<dyn Error>> {
+fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -238,7 +224,7 @@ fn build_and_from_pair(
     }
 }
 
-fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression, Box<dyn Error>> {
+fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -253,9 +239,7 @@ fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpressio
     }
 }
 
-fn build_compareExpr_from_pair(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<BoolExpression, Box<dyn Error>> {
+fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = try_next(&mut inner_pair)?;
 
@@ -282,10 +266,6 @@ fn build_compareExpr_from_pair(
     }
 }
 
-fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>, Box<dyn Error>> {
-    if let Some(pair) = iterator.next() {
-        Ok(pair)
-    } else {
-        bail!("Expected pair but got None instead")
-    }
+fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
+    to_result!(iterator.next())
 }

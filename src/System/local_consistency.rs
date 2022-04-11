@@ -1,14 +1,11 @@
+use crate::bail;
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::TransitionSystem;
-use simple_error::bail;
-use std::error::Error;
+use anyhow::Result;
 
 //Local consistency check WITH pruning
-pub fn is_least_consistent(
-    system: &dyn TransitionSystem,
-    dimensions: u32,
-) -> Result<bool, Box<dyn Error>> {
+pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> Result<bool> {
     if system.get_initial_location() == None {
         return Ok(false); //TODO: figure out whether we want empty TS to be consistent
     }
@@ -21,10 +18,7 @@ pub fn is_least_consistent(
 }
 
 //Local consistency check WITHOUT pruning
-pub fn is_fully_consistent(
-    system: &dyn TransitionSystem,
-    dimensions: u32,
-) -> Result<bool, Box<dyn Error>> {
+pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> Result<bool> {
     if system.get_initial_location() == None {
         return Ok(false);
     }
@@ -41,7 +35,7 @@ pub fn consistency_least_helper<'b>(
     passed_list: &mut Vec<State<'b>>,
     system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if passed_list.contains(&state) {
         return Ok(true);
     }
@@ -85,7 +79,7 @@ fn consistency_fully_helper<'b>(
     passed_list: &mut Vec<State<'b>>,
     system: &'b dyn TransitionSystem,
     max_bounds: &MaxBounds,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<bool> {
     if passed_list.contains(&state) {
         return Ok(true);
     }
