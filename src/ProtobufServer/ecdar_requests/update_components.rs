@@ -1,4 +1,3 @@
-use crate::debug_print;
 use crate::DataReader::component_loader::ComponentContainer;
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::DataReader::json_reader::json_to_component;
@@ -59,7 +58,7 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
 
 fn save_components(component_container: &RefCell<ComponentContainer>, components: Vec<Component>) {
     for mut component in components {
-        debug_print!("Adding comp {} to container", component.get_name());
+        info!("Adding comp {} to container", component.get_name());
         component.create_edge_io_split();
         let inputs: Vec<_> = component
             .get_input_actions()

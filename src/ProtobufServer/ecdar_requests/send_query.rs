@@ -1,4 +1,3 @@
-use crate::debug_print;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
@@ -19,7 +18,7 @@ impl ConcreteEcdarBackend {
         &self,
         request: Request<ProtobufQuery>,
     ) -> Result<Response<QueryResponse>, Status> {
-        debug_print!("Received query: {:?}", request);
+        info!("Received query: {:?}", request);
         let query_request = request.into_inner();
 
         let query = parse_query(&query_request)?;

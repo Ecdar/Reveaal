@@ -1,4 +1,3 @@
-use crate::debug_print;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::Transition;
@@ -49,7 +48,7 @@ pub fn check_refinement(
     sys2.initialize(dimensions);
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2, dimensions) {
-        debug_print!("preconditions failed - refinement false");
+        info!("Preconditions failed - refinement false");
         return Ok(false);
     }
 
@@ -64,8 +63,8 @@ pub fn check_refinement(
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
 
-    debug_print!("Extra inputs {:?}", extra_inputs);
-    debug_print!("Extra outputs {:?}", extra_outputs);
+    info!("Extra inputs {:?}", extra_inputs);
+    info!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
         return Ok(initial_locations_2 == None);
@@ -93,12 +92,7 @@ pub fn check_refinement(
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-        debug_print!(
-            "Pair: 1:{} 2:{} {}",
-            curr_pair.get_locations1().to_string(),
-            curr_pair.get_locations2().to_string(),
-            curr_pair.zone
-        );
+        debug!("Checking {}", curr_pair);
         for output in &outputs {
             let extra = extra_outputs.contains(output);
 
@@ -112,7 +106,7 @@ pub fn check_refinement(
             if extra
                 || has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
             {
-                debug_print!("Creating state pairs for output {}", output);
+                trace!("Creating state pairs for output {}", output);
                 create_new_state_pairs(
                     &output_transition1,
                     &output_transition2,
@@ -123,19 +117,35 @@ pub fn check_refinement(
                     true,
                 )
             } else {
-                debug_print!("Refinement check failed for Output {:?}", output);
-                debug_print!("Transitions1:");
-                for t in &output_transition1 {
-                    debug_print!("{}", t);
-                }
-                debug_print!("Transitions2:");
-                for t in &output_transition2 {
-                    debug_print!("{}", t);
-                }
-                debug_print!("Current pair: {}", curr_pair);
-                debug_print!("Relation:");
-                for pair in passed_list {
-                    debug_print!("{}", pair);
+                info!("Refinement check failed for Output {:?}", output);
+
+                if log_enabled!(log::Level::Debug) {
+                    debug!(
+                        "Transitions1: [{}]",
+                        output_transition1
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    debug!(
+                        "Transitions2: [{}]",
+                        output_transition2
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+
+                    debug!("Current pair: {}", curr_pair);
+                    debug!(
+                        "Relation: [{}]",
+                        passed_list
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
                 }
 
                 return Ok(false);
@@ -155,7 +165,7 @@ pub fn check_refinement(
             if extra
                 || has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
             {
-                debug_print!("Creating state pairs for input {}", input);
+                trace!("Creating state pairs for input {}", input);
                 create_new_state_pairs(
                     &input_transitions2,
                     &input_transitions1,
@@ -166,19 +176,34 @@ pub fn check_refinement(
                     false,
                 )
             } else {
-                debug_print!("Refinement check failed for Input {:?}", input);
-                debug_print!("Transitions1:");
-                for t in &input_transitions1 {
-                    debug_print!("{}", t);
-                }
-                debug_print!("Transitions2:");
-                for t in &input_transitions2 {
-                    debug_print!("{}", t);
-                }
-                debug_print!("Current pair: {}", curr_pair);
-                debug_print!("Relation:");
-                for pair in passed_list {
-                    debug_print!("{}", pair);
+                info!("Refinement check failed for Input {:?}", input);
+                if log_enabled!(log::Level::Debug) {
+                    debug!(
+                        "Transitions1: [{}]",
+                        input_transitions1
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    debug!(
+                        "Transitions2: [{}]",
+                        input_transitions2
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+
+                    debug!("Current pair: {}", curr_pair);
+                    debug!(
+                        "Relation: [{}]",
+                        passed_list
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
                 }
 
                 return Ok(false);
@@ -188,9 +213,9 @@ pub fn check_refinement(
         passed_list.push(curr_pair.clone());
     }
 
-    debug_print!("Refinement check passed with relation:");
+    info!("Refinement check passed with relation:");
     for pair in passed_list {
-        debug_print!("{}", pair);
+        info!("{}", pair);
     }
 
     Ok(true)
@@ -217,41 +242,26 @@ fn has_valid_state_pair<'a>(
     let pair_zone = &curr_pair.zone;
     //create guard zones left
     let mut feds = Federation::empty(dim);
-    if is_state1 {
-        debug_print!("Left:");
-    } else {
-        debug_print!("Right:");
-    }
+
     for transition in transitions1 {
-        debug_print!("{}", transition);
         if let Some(fed) = transition.get_guard_federation(&states1, dim) {
             feds.add_fed(&fed);
         }
     }
     let left_fed = feds.intersection(pair_zone);
-    debug_print!("{}", left_fed);
 
-    if is_state1 {
-        debug_print!("Right:");
-    } else {
-        debug_print!("Left:");
-    }
     //Create guard zones right
     let mut feds = Federation::empty(dim);
     for transition in transitions2 {
-        debug_print!("{}", transition);
         if let Some(fed) = transition.get_guard_federation(&states2, dim) {
             feds.add_fed(&fed);
         }
     }
     let right_fed = feds.intersection(pair_zone);
-    debug_print!("{}", right_fed);
 
     //left_fed.is_subset_eq(&right_fed)
     //let result_federation = right_fed.subtraction(&left_fed);
     let result_federation = left_fed.subtraction(&right_fed);
-
-    debug_print!("Valid = {}", result_federation.is_empty());
 
     result_federation.is_empty()
 }
@@ -387,7 +397,7 @@ fn prepare_init_state(
             true
         };
         if !init_inv1_success {
-            debug_print!("Was unable to apply invariants to initial state");
+            debug!("Was unable to apply invariants to initial state");
             return false;
             //panic!("Was unable to apply invariants to initial state")
         }
@@ -401,7 +411,7 @@ fn prepare_init_state(
             true
         };
         if !init_inv2_success {
-            debug_print!("Was unable to apply invariants to initial state");
+            debug!("Was unable to apply invariants to initial state");
             return false;
             //panic!("Was unable to apply invariants to initial state")
         }
