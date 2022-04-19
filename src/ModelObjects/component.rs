@@ -701,11 +701,14 @@ impl<'a> Transition<'a> {
 
 impl fmt::Display for Transition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("Transition{")?;
-        for (_, edge, _) in &self.edges {
-            f.write_fmt(format_args!("{}, ", edge))?;
-        }
-        f.write_str("}")?;
+        f.write_fmt(format_args!(
+            "Transition {{{}}}",
+            self.edges
+                .iter()
+                .map(|(_, e, _)| e.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))?;
         Ok(())
     }
 }

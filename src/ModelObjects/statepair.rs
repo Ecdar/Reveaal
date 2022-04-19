@@ -74,16 +74,20 @@ impl<'b> StatePair<'b> {
 
 impl<'b> Display for StatePair<'b> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Pair: ({{")?;
-        for l in self.locations1.iter() {
-            f.write_fmt(format_args!("{}, ", l.get_id()))?;
-        }
-        f.write_str("}}, {{")?;
-        for l in self.locations2.iter() {
-            f.write_fmt(format_args!("{}, ", l.get_id()))?;
-        }
-        f.write_str("}}")?;
-        f.write_fmt(format_args!("{}", self.zone))?;
+        f.write_fmt(format_args!(
+            "Pair{{[({}), ({})] {}}}",
+            self.locations1
+                .iter()
+                .map(|l| l.get_id().clone())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.locations2
+                .iter()
+                .map(|l| l.get_id().clone())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.zone
+        ))?;
 
         Ok(())
     }
