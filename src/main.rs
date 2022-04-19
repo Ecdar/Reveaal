@@ -15,8 +15,12 @@ use crate::DataReader::component_loader::{
 use crate::DataReader::{parse_queries, xml_parser};
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep;
+use chrono::Local;
 use clap::{load_yaml, App};
+use colored::{ColoredString, Colorize};
+use env_logger;
 use std::env;
+use std::io::Write;
 use ModelObjects::component;
 use ModelObjects::queries;
 use ProtobufServer::start_grpc_server_with_tokio;
@@ -29,22 +33,13 @@ extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
-
-// The debug version
-#[macro_export]
-#[cfg(not(feature = "silent"))]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => { println!( $( $args ),* ); }
-}
-
-// Non-debug version
-#[macro_export]
-#[cfg(feature = "silent")]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => {};
-}
+#[macro_use]
+extern crate log;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Must be called before we start logging elsewhere
+    setup_logger();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
@@ -123,4 +118,30 @@ pub fn set_working_directory(folder_path: &str) {
             .expect("Failed to find parent directory of input file");
     };
     env::set_current_dir(path).expect("Failed to set working directory to input folder");
+}
+
+fn setup_logger() {
+    fn colored_level(level: log::Level) -> ColoredString {
+        match level {
+            log::Level::Error => level.to_string().red(),
+            log::Level::Warn => level.to_string().yellow(),
+            log::Level::Info => level.to_string().cyan(),
+            log::Level::Debug => level.to_string().blue(),
+            log::Level::Trace => level.to_string().magenta(),
+        }
+    }
+
+    env_logger::Builder::from_env(env_logger::Env::default())
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{} {}:{} {}] - {}",
+                Local::now().format("%H:%M:%S").to_string().cyan(),
+                record.file().unwrap_or_default(),
+                record.line().unwrap_or_default(),
+                colored_level(record.level()),
+                record.args()
+            )
+        })
+        .init();
 }

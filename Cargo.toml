@@ -29,7 +29,9 @@ prost = "0.8.*"
 tokio = { version = "1.0", features = ["macros", "rt"] }
 colored = "2.0.0"
 simple-error = "0.2.3"
-
+log = "0.4.0"
+env_logger = "0.9.0"
+chrono = "0.4.19"
 
 [build-dependencies]
 bindgen = "0.58.1"
