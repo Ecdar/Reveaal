@@ -1,12 +1,12 @@
-macro_rules! trace {
+macro_rules! trace_func {
     () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        if (DEBUG) {
+        if log_enabled!(log::Level::Trace) {
+            fn f() {}
+            fn type_name_of<T>(_: T) -> &'static str {
+                std::any::type_name::<T>()
+            }
             let name = type_name_of(f);
-            println!("{}", &name[..name.len() - 3]);
+            trace!("{}", &name[..name.len() - 3]);
         }
     }};
 }
@@ -83,7 +83,7 @@ fn rs_bound_strict_to_raw(bound: i32, is_strict: bool) -> UDBM::raw_t {
 /* BEGIN FEDERATION METHODS*/
 
 pub fn rs_fed_get_zones(fed: &Federation) -> Vec<Zone> {
-    trace!();
+    trace_func!();
     let dim = fed.get_dimensions();
     let d = dim as usize;
     let zones = fed.num_zones();
@@ -113,7 +113,7 @@ pub fn rs_fed_get_zones(fed: &Federation) -> Vec<Zone> {
 }
 
 pub fn rs_fed_intersect(fed1: &mut Federation, fed2: &Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_intersection(&mut fed1.raw, &fed2.raw));
     }
@@ -122,7 +122,7 @@ pub fn rs_fed_intersect(fed1: &mut Federation, fed2: &Federation) {
 
 ///  oda federation minus federation
 pub fn rs_fed_subtract(fed1: &mut Federation, fed2: &Federation) {
-    trace!();
+    trace_func!();
     //let mut result = fed1.clone();
     unsafe {
         sync!(UDBM::fed_subtraction(&mut fed1.raw, &fed2.raw));
@@ -132,45 +132,45 @@ pub fn rs_fed_subtract(fed1: &mut Federation, fed2: &Federation) {
 }
 
 pub fn rs_fed_is_valid(fed: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { !sync!(UDBM::fed_is_empty(&fed.raw)) }
 }
 
 pub fn rs_fed_is_empty(fed: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_is_empty(&fed.raw)) }
 }
 
 pub fn rs_fed_up(fed: &mut Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_up(&mut fed.raw));
     };
 }
 
 pub fn rs_fed_down(fed: &mut Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_down(&mut fed.raw));
     };
 }
 
 pub fn rs_fed_init(fed: &mut Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_init(&mut fed.raw));
     };
 }
 
 pub fn rs_fed_zero(fed: &mut Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_zero(&mut fed.raw));
     };
 }
 
 pub fn rs_fed_new(dim: UDBM::cindex_t) -> Federation {
-    trace!();
+    trace_func!();
     assert!(dim > 0);
 
     // Max dim from dbm\build\UDBM\src\udbm\dbm\DBMAllocator.h:32:35
@@ -235,7 +235,7 @@ pub fn rs_fed_add_LTE_constraint(
     var_index_j: u32,
     bound: i32,
 ) -> bool {
-    trace!();
+    trace_func!();
     rs_fed_constrain(fed, var_index_i, var_index_j, bound, false)
 }
 
@@ -260,7 +260,7 @@ pub fn rs_fed_add_LT_constraint(
     var_index_j: u32,
     bound: i32,
 ) -> bool {
-    trace!();
+    trace_func!();
     rs_fed_constrain(fed, var_index_i, var_index_j, bound, true)
 }
 
@@ -279,7 +279,7 @@ pub fn rs_fed_add_LT_constraint(
 /// Bool indicating if the constraint was applied sucessfully.
 ///
 pub fn rs_fed_add_EQ_constraint(fed: &mut Federation, var_index_i: u32, var_index_j: u32) -> bool {
-    trace!();
+    trace_func!();
     let constraint = rs_bound_strict_to_raw(0, false);
     let res1 = rs_fed_constrain(fed, var_index_i, var_index_j, 0, false);
     let res2 = rs_fed_constrain(fed, var_index_j, var_index_i, 0, false);
@@ -301,43 +301,43 @@ pub fn rs_fed_add_EQ_constraint(fed: &mut Federation, var_index_i: u32, var_inde
 /// Bool indicating if the constraint was applied sucessfully.
 ///
 pub fn rs_fed_add_EQ_const_constraint(fed: &mut Federation, var_index: u32, bound: i32) -> bool {
-    trace!();
+    trace_func!();
     let res1 = rs_fed_constrain(fed, var_index, 0, bound, false);
     let res2 = rs_fed_constrain(fed, 0, var_index, -bound, false);
     res1 && res2
 }
 
 pub fn rs_fed_update_clock(fed: &mut Federation, x: UDBM::cindex_t, v: i32) {
-    trace!();
+    trace_func!();
     rs_fed_update(fed, x, 0, v);
 }
 
 pub fn rs_fed_update(fed: &mut Federation, x: UDBM::cindex_t, y: UDBM::cindex_t, v: i32) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_update(&mut fed.raw, x, y, v));
     }
 }
 
 pub fn rs_fed_free_clock(fed: &mut Federation, x: UDBM::cindex_t) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_free_clock(&mut fed.raw, x));
     }
 }
 
 pub fn rs_fed_subset_eq(fed1: &Federation, fed2: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_subset_eq(&fed1.raw, &fed2.raw)) }
 }
 
 pub fn rs_fed_intersects(fed1: &Federation, fed2: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_intersects(&fed1.raw, &fed2.raw)) }
 }
 
 pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
-    trace!();
+    trace_func!();
     let rel: UDBM::relation_t = unsafe { sync!(UDBM::fed_exact_relation(&fed1.raw, &fed2.raw)) };
 
     match rel {
@@ -350,12 +350,12 @@ pub fn rs_fed_relation(fed1: &Federation, fed2: &Federation) -> Relation {
 }
 
 pub fn rs_fed_equals(fed1: &Federation, fed2: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_exact_eq(&fed1.raw, &fed2.raw)) }
 }
 
 pub fn rs_fed_reduce(fed: &mut Federation, expensive: bool) {
-    trace!();
+    trace_func!();
     unsafe {
         if expensive {
             sync!(UDBM::fed_reduce(&mut fed.raw));
@@ -366,12 +366,12 @@ pub fn rs_fed_reduce(fed: &mut Federation, expensive: bool) {
 }
 
 pub fn rs_fed_can_delay_indef(fed: &Federation) -> bool {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_can_delay_indef(&fed.raw)) }
 }
 
 pub fn rs_fed_extrapolate_max_bounds(fed: &mut Federation, bounds: &MaxBounds) {
-    trace!();
+    trace_func!();
     assert_eq!(fed.get_dimensions(), bounds.get_dimensions());
     unsafe {
         sync!(UDBM::fed_extrapolate_max_bounds(
@@ -382,7 +382,7 @@ pub fn rs_fed_extrapolate_max_bounds(fed: &mut Federation, bounds: &MaxBounds) {
 }
 
 pub fn rs_fed_add_fed(fed: &mut Federation, other: &Federation) {
-    trace!();
+    trace_func!();
     assert_eq!(fed.get_dimensions(), other.get_dimensions());
     unsafe {
         sync!(UDBM::fed_add_fed(&mut fed.raw, &other.raw));
@@ -390,14 +390,14 @@ pub fn rs_fed_add_fed(fed: &mut Federation, other: &Federation) {
 }
 
 pub fn rs_fed_invert(fed: &mut Federation) {
-    trace!();
+    trace_func!();
     unsafe {
         sync!(UDBM::fed_invert(&mut fed.raw));
     }
 }
 
 pub fn rs_fed_size(fed: &Federation) -> usize {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_size(&fed.raw)) }
         .try_into()
         .unwrap()
@@ -408,13 +408,13 @@ pub unsafe fn rs_fed_destruct(fed: &mut Federation) {
 }
 
 pub fn rs_fed_copy(fed: &Federation) -> Federation {
-    trace!();
+    trace_func!();
     let raw = unsafe { sync!(UDBM::dbm_fed_t::new1(&fed.raw)) };
     Federation { raw }
 }
 
 pub fn rs_fed_dimensions(fed: &Federation) -> UDBM::cindex_t {
-    trace!();
+    trace_func!();
     unsafe { sync!(UDBM::fed_dimension(&fed.raw)) }
 }
 
