@@ -149,11 +149,7 @@ impl TransitionSystem<'static> for Quotient {
 
                     // Inv(l1_s)
                     for i in right_index..quotient_index {
-                        let dec_loc = DecoratedLocation::create(
-                            location.get_location(i),
-                            location.get_decl(i),
-                        );
-                        dec_loc.apply_invariant(&mut guard_zone);
+                        apply_invariant_on_index(location, i, &mut guard_zone);
                     }
 
                     // Inv(l2_t)[r |-> 0] where r is in clock resets for t
@@ -208,9 +204,7 @@ impl TransitionSystem<'static> for Quotient {
             for transition in &mut new_transitions {
                 // Inv(l1_s)
                 for i in right_index..quotient_index {
-                    let dec_loc =
-                        DecoratedLocation::create(location.get_location(i), location.get_decl(i));
-                    dec_loc.apply_invariant(&mut transition.guard_zone);
+                    apply_invariant_on_index(location, i, &mut transition.guard_zone);
                 }
 
                 // Inv(l2_s)[r |-> 0] where r is in clock resets for s
@@ -277,11 +271,7 @@ impl TransitionSystem<'static> for Quotient {
             let mut zone = Federation::full(dim);
             let mut tmp_index = right_index;
             for _ in self.right.get_children() {
-                let dec_loc = DecoratedLocation::create(
-                    location.get_location(tmp_index),
-                    location.get_decl(tmp_index),
-                );
-                dec_loc.apply_invariant(&mut zone);
+                apply_invariant_on_index(location, tmp_index, &mut zone);
 
                 tmp_index += 1;
             }
@@ -519,6 +509,13 @@ impl TransitionSystem<'static> for Quotient {
 
     fn get_children(&self) -> Vec<&TransitionSystemPtr> {
         vec![&self.left, &self.right]
+    }
+}
+
+fn apply_invariant_on_index(location: &LocationTuple, index: usize, guard_zone: &mut Federation) {
+    if let Some(loc) = location.try_get_location(index) {
+        let dec_loc = DecoratedLocation::create(loc, location.get_decl(index));
+        dec_loc.apply_invariant(guard_zone);
     }
 }
 
