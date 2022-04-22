@@ -12,7 +12,8 @@ fn main() {
     }
 
     tonic_build::compile_protos("Ecdar-ProtoBuf/services.proto").unwrap();
-    println!("cargo:rerun-if-changed=Ecdar-ProtoBuf/*.proto");
+    // Tell cargo to invalidate the crate when the protobuf repository changes
+    println!("cargo:rerun-if-changed=Ecdar-ProtoBuf");
 
     let host = std::env::var("HOST").unwrap();
     let target = std::env::var("TARGET").unwrap();
