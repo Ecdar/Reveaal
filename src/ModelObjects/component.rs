@@ -725,7 +725,7 @@ impl<'a> Transition<'a> {
         representation: &TransitionSystemPtr,
     ) -> Option<Vec<parse_edge::Update>> {
         let mut updates = vec![];
-        let location = representation.get_initial_location().unwrap();
+        let location = representation.get_initial_location()?;
         for (comp_index, update) in &self.updates {
             let update_clone = update.clone();
 
