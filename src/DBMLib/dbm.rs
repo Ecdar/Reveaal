@@ -18,7 +18,7 @@ pub enum Relation {
     Superset,
     Subset,
     Equal,
-    }
+}
 
 impl Zone {
     pub fn get_constraint(&self, var_index_i: u32, var_index_j: u32) -> (bool, i32) {
