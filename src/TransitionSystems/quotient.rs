@@ -398,6 +398,8 @@ impl TransitionSystem<'static> for Quotient {
 
     fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
         let mut location_tuples = vec![];
+        let lowest_index = *index;
+
         let left = self.left.get_all_locations(index);
         let right = self.right.get_all_locations(index);
         for loc1 in left {
@@ -414,7 +416,7 @@ impl TransitionSystem<'static> for Quotient {
         let mut universal =
             LocationTuple::simple_indexed(*index, &self.universal_location, &self.decls);
         let location = &location_tuples[0];
-        for i in 0..*index {
+        for i in lowest_index..*index {
             inconsistent.set_default_decl(i, location.get_decl(i).clone());
             universal.set_default_decl(i, location.get_decl(i).clone());
         }

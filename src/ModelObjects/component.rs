@@ -725,13 +725,12 @@ impl<'a> Transition<'a> {
         representation: &TransitionSystemPtr,
     ) -> Option<Vec<parse_edge::Update>> {
         let mut updates = vec![];
-        let comps = representation.get_components();
+        let location = representation.get_initial_location().unwrap();
         for (comp_index, update) in &self.updates {
             let update_clone = update.clone();
 
-            let comp = comps[*comp_index];
             for mut u in update_clone {
-                u.swap_clock_names(&comp.declarations.clocks, naming);
+                u.swap_clock_names(&location.get_decl(*comp_index).clocks, naming);
                 updates.push(u);
             }
         }
