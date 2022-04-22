@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
@@ -11,8 +11,8 @@ use crate::EdgeEval::updater::state_updater;
 use crate::EdgeEval::updater::updater;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
+use crate::ModelObjects::representations::build_guard_from_zone;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::System::input_enabler::build_guard_from_zone;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -248,213 +248,6 @@ impl Component {
         self.input_edges = Some(i_edges);
     }
 
-    /// method used to verify that the individual component is consistent e.i deterministic etc.
-    pub fn check_consistency(&self, dim: u32, prune: bool) -> bool {
-        if !self.is_deterministic(dim) {
-            println!("NOT DETERMINISTIC");
-            return false;
-        }
-
-        let mut passed_list: Vec<State> = vec![];
-
-        if let Some(initial_loc) = self.get_initial_location() {
-            let dimension = dim;
-
-            let zone = Zone::init(dimension);
-
-            let mut state = create_state(initial_loc, &self.declarations, zone);
-            if let Some(update_i) = state.get_location(0).get_invariant() {
-                constraint_applyer::apply_constraints_to_state2(&update_i.clone(), &mut state, 0);
-            }
-
-            let bounds = self.get_max_bounds(dimension);
-
-            if !self.consistency_helper(state, prune, &mut passed_list, &bounds) {
-                println!("NOT CONSISTENT");
-                return false;
-            }
-        } else {
-            println!("Empty TS");
-            return false; //TODO: should empty TS be considered consistent?
-        }
-        true
-    }
-
-    /// Method used to check if a state is contained in the passed list
-    pub fn passed_contains_state(
-        &self,
-        currState: &mut State,
-        passed_list: &mut Vec<State>,
-    ) -> bool {
-        for state in passed_list {
-            if state.get_location(0).id == currState.get_location(0).id {
-                if currState.zone.is_subset_eq(&state.zone) {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    /// helper method to check consistency
-    pub fn consistency_helper<'a>(
-        &'a self,
-        mut currState: State<'a>,
-        prune: bool,
-        passed_list: &mut Vec<State<'a>>,
-        bounds: &MaxBounds,
-    ) -> bool {
-        currState.zone.extrapolate_max_bounds(bounds);
-        if self.passed_contains_state(&mut currState, passed_list) {
-            return true;
-        } else {
-            add_state_to_pl(passed_list, currState.clone())
-        }
-
-        let mut edges: Vec<&Edge> = vec![];
-        for input_action in self.get_input_actions() {
-            edges.append(&mut self.get_next_edges(
-                currState.get_location(0),
-                input_action.get_name(),
-                SyncType::Input,
-            ));
-        }
-        for edge in edges {
-            //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-            let full_new_zone = currState.zone.clone();
-            let loc = self.get_location_by_name(&edge.target_location);
-
-            let mut new_state = create_state(loc, &self.declarations, full_new_zone);
-
-            if let Some(source_inv) = self
-                .get_location_by_name(edge.get_source_location())
-                .get_invariant()
-            {
-                if let BoolExpression::Bool(false) =
-                    constraint_applyer::apply_constraints_to_state2(source_inv, &mut new_state, 0)
-                {
-                    continue;
-                };
-            }
-
-            if let Some(guard) = edge.get_guard() {
-                constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0);
-            }
-
-            if !new_state.zone.is_valid() {
-                continue;
-            }
-
-            if let Some(update) = edge.get_update() {
-                state_updater(update, &mut new_state, 0);
-            }
-
-            new_state.zone.up();
-
-            if let Some(target_inv) = self
-                .get_location_by_name(edge.get_target_location())
-                .get_invariant()
-            {
-                constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
-            }
-
-            if !new_state.zone.is_valid() {
-                continue;
-            }
-
-            let inputConsistent = self.consistency_helper(new_state, prune, passed_list, bounds);
-            if !inputConsistent {
-                return false;
-            }
-        }
-        let mut outputExisted: bool = false;
-        // If delaying indefinitely is possible -> Prune the rest
-        if prune && currState.zone.canDelayIndefinitely() {
-            return true;
-        } else {
-            let mut edges: Vec<&Edge> = vec![];
-            for output_action in self.get_output_actions() {
-                edges.append(&mut self.get_next_edges(
-                    currState.get_location(0),
-                    output_action.get_name(),
-                    SyncType::Output,
-                ));
-            }
-            for edge in edges {
-                if !outputExisted {
-                    outputExisted = true;
-                }
-                //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                let full_new_zone = currState.zone.clone();
-
-                let loc = self.get_location_by_name(&edge.target_location);
-
-                let mut new_state = create_state(loc, &self.declarations, full_new_zone);
-
-                if let Some(source_inv) = self
-                    .get_location_by_name(edge.get_source_location())
-                    .get_invariant()
-                {
-                    if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(
-                            source_inv,
-                            &mut new_state,
-                            0,
-                        )
-                    {
-                        continue;
-                    };
-                }
-
-                if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state2(guard, &mut new_state, 0);
-                }
-                if !new_state.zone.is_valid() {
-                    continue;
-                }
-
-                if let Some(update) = edge.get_update() {
-                    state_updater(update, &mut new_state, 0);
-                }
-                new_state.zone.up();
-
-                if let Some(target_inv) = self
-                    .get_location_by_name(edge.get_target_location())
-                    .get_invariant()
-                {
-                    constraint_applyer::apply_constraints_to_state2(target_inv, &mut new_state, 0);
-                }
-
-                if !new_state.zone.is_valid() {
-                    continue;
-                }
-
-                let outputConsistent =
-                    self.consistency_helper(new_state, prune, passed_list, bounds);
-                if outputConsistent && prune {
-                    return true;
-                }
-                if !outputConsistent && !prune {
-                    return false;
-                }
-            }
-            if !prune {
-                if outputExisted {
-                    return true;
-                }
-                return currState.zone.canDelayIndefinitely();
-            }
-            // If by now no locations reached by output edges managed to satisfy independent progress check
-            // or there are no output edges from the current location -> Independent progress does not hold
-            else {
-                false
-            }
-        }
-        // Else if independent progress does not hold through delaying indefinitely,
-        // we must check for being able to output and satisfy independent progress
-    }
-
     /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
     pub fn is_deterministic(&self, dim: u32) -> bool {
         let mut passed_list: Vec<State> = vec![];
@@ -462,16 +255,14 @@ impl Component {
 
         let maybe_loc = self.get_initial_location();
         if maybe_loc.is_none() {
+            println!("No initial location.");
             return true;
         }
         let initial_loc = maybe_loc.unwrap();
 
         let dimension = dim;
 
-        let mut state = create_state(initial_loc, &self.declarations, Zone::new(dimension)); //FullState{state: &initial_state, zone:zone_array, dimensions:dimension };
-
-        state.zone.zero();
-        state.zone.up();
+        let state = create_state(initial_loc, &self.declarations, Federation::init(dimension));
         add_state_to_wl(&mut waiting_list, state);
 
         while !waiting_list.is_empty() {
@@ -486,6 +277,11 @@ impl Component {
                     ));
                 }
                 if self.check_moves_overlap(&edges, &mut full_state) {
+                    println!(
+                        "Input moves overlap from {} {}",
+                        full_state.decorated_locations.to_string(),
+                        full_state.zone
+                    );
                     return false;
                 }
                 let mut edges: Vec<&Edge> = vec![];
@@ -498,6 +294,11 @@ impl Component {
                 }
 
                 if self.check_moves_overlap(&edges, &mut full_state) {
+                    println!(
+                        "Output moves overlap from {} {}",
+                        full_state.decorated_locations.to_string(),
+                        full_state.zone
+                    );
                     return false;
                 } else {
                     for edge in edges {
@@ -506,14 +307,11 @@ impl Component {
                         let loc = self.get_location_by_name(&edge.target_location);
                         let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
                         if let Some(guard) = edge.get_guard() {
-                            if let BoolExpression::Bool(true) =
-                                constraint_applyer::apply_constraints_to_state2(
-                                    guard,
-                                    &mut new_state,
-                                    0,
-                                )
-                            {
-                            } else {
+                            if !constraint_applyer::apply_constraints_to_state2(
+                                guard,
+                                &mut new_state,
+                                0,
+                            ) {
                                 //If the constraint cannot be applied, continue.
                                 continue;
                             }
@@ -581,16 +379,14 @@ impl Component {
                     state.zone.clone(),
                 );
                 if let Some(inv_source) = location_source.get_invariant() {
-                    if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
+                    if !constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
                     {
                         continue;
                     };
                 }
-                if let Some(update_i) = &edges[i].guard {
-                    if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_i, &mut state_i, 0)
-                    {
+
+                if let Some(guard_i) = &edges[i].guard {
+                    if !constraint_applyer::apply_constraints_to_state2(guard_i, &mut state_i, 0) {
                         continue;
                     };
                 }
@@ -603,18 +399,15 @@ impl Component {
                     &self.declarations,
                     state.zone.clone(),
                 );
-                if let Some(update_j) = location_source.get_invariant() {
-                    if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
+                if let Some(inv_source) = location_source.get_invariant() {
+                    if !constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_j, 0)
                     {
                         continue;
                     };
                 }
 
-                if let Some(update_j) = &edges[j].guard {
-                    if let BoolExpression::Bool(false) =
-                        constraint_applyer::apply_constraints_to_state2(update_j, &mut state_j, 0)
-                    {
+                if let Some(guard_j) = &edges[j].guard {
+                    if !constraint_applyer::apply_constraints_to_state2(guard_j, &mut state_j, 0) {
                         continue;
                     };
                 }
@@ -623,7 +416,11 @@ impl Component {
                 }
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
-                    if state_i.zone.intersection(&state_j.zone) {
+                    if state_i.zone.intersects(&state_j.zone) {
+                        println!(
+                            "Edges {} and {} overlap with zones {} and {}",
+                            edges[i], edges[j], state_i.zone, state_j.zone
+                        );
                         return true;
                     }
                 }
@@ -642,7 +439,7 @@ fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> 
         if state.get_location(0).get_id() != passed_state_pair.get_location(0).get_id() {
             continue;
         }
-        if state.zone.dimension != passed_state_pair.zone.dimension {
+        if state.zone.get_dimensions() != passed_state_pair.zone.get_dimensions() {
             panic!("dimensions of dbm didn't match - fatal error")
         }
         if state.zone.is_subset_eq(&passed_state_pair.zone) {
@@ -663,7 +460,7 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Zone) -> State<'a> {
+fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Federation) -> State<'a> {
     State {
         decorated_locations: LocationTuple::simple(location, decl),
         zone,
@@ -676,11 +473,11 @@ fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Zone) -> 
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct State<'a> {
     pub decorated_locations: LocationTuple<'a>,
-    pub zone: Zone,
+    pub zone: Federation,
 }
 
 impl<'a> State<'a> {
-    pub fn create(decorated_locations: LocationTuple<'a>, zone: Zone) -> Self {
+    pub fn create(decorated_locations: LocationTuple<'a>, zone: Federation) -> Self {
         State {
             decorated_locations,
             zone,
@@ -688,7 +485,7 @@ impl<'a> State<'a> {
     }
 
     pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
-        let mut zone = Zone::init(dimensions);
+        let mut zone = Federation::init(dimensions);
 
         if !decorated_locations.apply_invariants(&mut zone) {
             return None;
@@ -768,14 +565,14 @@ pub enum SyncType {
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition<'a> {
-    pub guard_zone: Zone,
+    pub guard_zone: Federation,
     pub target_locations: LocationTuple<'a>,
     pub updates: HashMap<usize, Vec<parse_edge::Update>>,
 }
 impl<'a> Transition<'a> {
     pub fn new(target_locations: LocationTuple<'a>, dim: u32) -> Transition<'a> {
         Transition {
-            guard_zone: Zone::init(dim),
+            guard_zone: Federation::full(dim),
             target_locations,
             updates: HashMap::new(),
         }
@@ -843,7 +640,7 @@ impl<'a> Transition<'a> {
         for l in left {
             for r in &*right {
                 let mut guard_zone = l.guard_zone.clone();
-                guard_zone.intersection(&r.guard_zone);
+                guard_zone.intersect(&r.guard_zone);
 
                 let mut target_locations: LocationTuple<'a> = l.target_locations.clone();
                 for (index, (loc, decl)) in r.target_locations.iter() {
@@ -873,14 +670,15 @@ impl<'a> Transition<'a> {
         out
     }
 
-    pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Zone) {
+    pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Federation) {
         for (index, updates) in &self.updates {
             updater(updates, locations.get_decl(*index), zone);
         }
     }
 
-    pub fn apply_guards(&self, zone: &mut Zone) -> bool {
-        zone.intersection(&self.guard_zone)
+    pub fn apply_guards(&self, zone: &mut Federation) -> bool {
+        zone.intersect(&self.guard_zone);
+        zone.is_valid()
     }
 
     pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
@@ -892,10 +690,10 @@ impl<'a> Transition<'a> {
         starting_locations: &LocationTuple,
         target_locations: &LocationTuple,
         dim: u32,
-    ) -> Zone {
-        let mut zone = Zone::init(dim);
+    ) -> Federation {
+        let mut zone = Federation::full(dim);
         for (comp, edge, index) in edges {
-            let mut guard_zone = Zone::init(dim);
+            let mut guard_zone = Federation::full(dim);
             if !target_locations.apply_invariant_for_location(*index, &mut guard_zone) {
                 continue;
             }
@@ -905,9 +703,9 @@ impl<'a> Transition<'a> {
             }
             let success = edge.apply_guard(starting_locations.get_decl(*index), &mut guard_zone);
             if success {
-                zone.intersection(&guard_zone)
+                zone.intersect(&guard_zone)
             } else {
-                return Zone::new(dim);
+                return Federation::empty(dim);
             };
         }
         zone
@@ -917,7 +715,8 @@ impl<'a> Transition<'a> {
         &self,
         naming: &HashMap<u32, String>,
     ) -> Option<BoolExpression> {
-        self.guard_zone.build_guard_from_zone(naming)
+        let map: HashMap<String, u32> = naming.clone().into_iter().map(|(l, r)| (r, l)).collect();
+        self.guard_zone.as_boolexpression(Some(&map))
     }
 
     pub fn get_renamed_updates(
@@ -981,10 +780,11 @@ pub struct Edge {
     pub sync: String,
 }
 
+const TRUE: representations::BoolExpression = representations::BoolExpression::Bool(true);
 impl fmt::Display for Edge {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
-            "Edge {{{}-({}{})->{}, Guard: {:?}, Update: {:?}}}",
+            "Edge {{{}-({}{})->{}, Guard: {}, Update: {:?}}}",
             self.source_location,
             self.sync,
             match self.sync_type {
@@ -992,7 +792,7 @@ impl fmt::Display for Edge {
                 SyncType::Output => "!",
             },
             self.target_location,
-            self.guard,
+            self.guard.as_ref().unwrap_or(&TRUE),
             self.update
         ))?;
         Ok(())
@@ -1003,14 +803,14 @@ impl Edge {
     pub fn apply_update(
         &self,
         decl: &Declarations, //Will eventually be mutable
-        zone: &mut Zone,
+        zone: &mut Federation,
     ) {
         if let Some(updates) = self.get_update() {
             updater(updates, decl, zone);
         }
     }
 
-    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Zone) -> bool {
+    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Federation) -> bool {
         return if let Some(guards) = self.get_guard() {
             apply_constraints_to_state(guards, decl, zone)
         } else {
@@ -1083,7 +883,7 @@ impl<'a> DecoratedLocation<'a> {
         DecoratedLocation { location, decls }
     }
 
-    pub fn apply_invariant(&self, zone: &mut Zone) -> bool {
+    pub fn apply_invariant(&self, zone: &mut Federation) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
             apply_constraints_to_state(&inv, self.decls, zone)
         } else {

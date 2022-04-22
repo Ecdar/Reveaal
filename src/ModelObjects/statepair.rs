@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 pub struct StatePair<'a> {
     pub locations1: LocationTuple<'a>,
     pub locations2: LocationTuple<'a>,
-    pub zone: Zone,
+    pub zone: Federation,
 }
 
 impl<'b> StatePair<'b> {
@@ -16,8 +16,7 @@ impl<'b> StatePair<'b> {
         locations1: LocationTuple<'a>,
         locations2: LocationTuple<'a>,
     ) -> StatePair<'a> {
-        let mut zone = Zone::new(dimensions);
-        zone.zero();
+        let mut zone = Federation::zero(dimensions);
         zone.up();
 
         StatePair {
@@ -28,7 +27,7 @@ impl<'b> StatePair<'b> {
     }
 
     pub fn get_dimensions(&self) -> u32 {
-        self.zone.dimension
+        self.zone.get_dimensions()
     }
 
     pub fn get_locations1(&self) -> &LocationTuple<'b> {
@@ -64,7 +63,7 @@ impl<'b> StatePair<'b> {
         sys1: &TransitionSystemPtr,
         sys2: &TransitionSystemPtr,
     ) -> MaxBounds {
-        let dim = self.zone.dimension;
+        let dim = self.zone.get_dimensions();
 
         let mut bounds = sys1.get_max_bounds(dim);
         bounds.add_bounds(&sys2.get_max_bounds(dim));
@@ -92,7 +91,7 @@ impl<'b> Display for StatePair<'b> {
             }
         }
         f.write_str("}}")?;
-        f.write_fmt(format_args!("Zone: {}", self.zone))?;
+        f.write_fmt(format_args!("{}", self.zone))?;
 
         Ok(())
     }

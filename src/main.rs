@@ -30,6 +30,20 @@ extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
 
+// The debug version
+#[macro_export]
+#[cfg(not(feature = "silent"))]
+macro_rules! debug_print {
+    ($( $args:expr ),*) => { println!( $( $args ),* ); }
+}
+
+// Non-debug version
+#[macro_export]
+#[cfg(feature = "silent")]
+macro_rules! debug_print {
+    ($( $args:expr ),*) => {};
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
@@ -55,7 +69,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
         let result = executable_query.execute();
 
         if let QueryResult::Error(err) = result {
-            panic!(err);
+            panic!("{}", err);
         }
 
         results.push(result);

@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 use crate::DataReader::parse_edge::Update;
 use crate::EdgeEval::updater::updater;
@@ -145,7 +145,7 @@ impl TransitionSystem<'static> for Quotient {
                     // Guard for edge
                     // P_t && P_s
                     let mut guard_zone = left_transition.guard_zone.clone();
-                    guard_zone.intersection(&right_transition.guard_zone);
+                    guard_zone.intersect(&right_transition.guard_zone);
 
                     // Inv(l1_s)
                     for i in right_index..quotient_index {
@@ -157,7 +157,7 @@ impl TransitionSystem<'static> for Quotient {
                     }
 
                     // Inv(l2_t)[r |-> 0] where r is in clock resets for t
-                    guard_zone.intersection(&get_resetted_invariant(
+                    guard_zone.intersect(&get_resetted_invariant(
                         left_index,
                         right_index,
                         &left_transition.target_locations,
@@ -166,7 +166,7 @@ impl TransitionSystem<'static> for Quotient {
                     ));
 
                     // Inv(l2_s)[r |-> 0] where r is in clock resets for t
-                    guard_zone.intersection(&get_resetted_invariant(
+                    guard_zone.intersect(&get_resetted_invariant(
                         right_index,
                         quotient_index,
                         &right_transition.target_locations,
@@ -214,7 +214,7 @@ impl TransitionSystem<'static> for Quotient {
                 }
 
                 // Inv(l2_s)[r |-> 0] where r is in clock resets for s
-                transition.guard_zone.intersection(&get_resetted_invariant(
+                transition.guard_zone.intersect(&get_resetted_invariant(
                     left_index,
                     right_index,
                     &transition.target_locations,
@@ -231,8 +231,13 @@ impl TransitionSystem<'static> for Quotient {
 
         if self.right.get_output_actions().contains(action) {
             //Rule 3
-            let fed = Federation::new(right.iter().map(|t| &t.guard_zone).cloned().collect(), dim)
-                .inverse(dim);
+            let mut fed = Federation::empty(dim);
+
+            for other in &right {
+                fed.add_fed(&other.guard_zone);
+            }
+            fed.invert();
+
             transitions.append(&mut create_transitions(
                 fed,
                 &universal_location,
@@ -240,9 +245,9 @@ impl TransitionSystem<'static> for Quotient {
             ));
 
             //Rule 4
-            let mut zones = vec![];
+            let mut fed = Federation::empty(dim);
             for transition in &right {
-                let mut zone = Zone::init(dim);
+                let mut zone = Federation::full(dim);
                 for (opt_location, decl) in transition.target_locations.iter_values() {
                     if let Some(location) = opt_location {
                         let dec_loc = DecoratedLocation::create(location, decl);
@@ -257,9 +262,9 @@ impl TransitionSystem<'static> for Quotient {
                         &mut zone,
                     );
                 }
-                zones.push(zone);
+                fed.add_fed(&zone);
             }
-            let fed = Federation::new(zones, dim).inverse(dim);
+            fed.invert();
             transitions.append(&mut create_transitions(
                 fed,
                 &universal_location,
@@ -269,7 +274,7 @@ impl TransitionSystem<'static> for Quotient {
 
         //Rule 5
         if self.inputs.contains(action) || self.outputs.contains(action) {
-            let mut zone = Zone::init(dim);
+            let mut zone = Federation::full(dim);
             let mut tmp_index = right_index;
             for _ in self.right.get_children() {
                 let dec_loc = DecoratedLocation::create(
@@ -280,7 +285,7 @@ impl TransitionSystem<'static> for Quotient {
 
                 tmp_index += 1;
             }
-            let fed = Federation::new(vec![zone], dim).inverse(dim);
+            let fed = zone.inverse();
             transitions.append(&mut create_transitions(
                 fed,
                 &universal_location,
@@ -293,63 +298,36 @@ impl TransitionSystem<'static> for Quotient {
             && self.left.get_output_actions().contains(action)
         {
             //Calculate inverse G_T
-            let mut fed = Federation::new(vec![], dim);
+            let mut fed = Federation::empty(dim);
             for transition in &left {
                 let mut zone = transition.guard_zone.clone();
 
                 //Inv(l2_T)[r |-> 0] where r is in clock resets
-                zone.intersection(&get_resetted_invariant(
+                zone.intersect(&get_resetted_invariant(
                     left_index,
                     right_index,
                     location,
                     &transition.updates,
                     dim,
                 ));
-                fed.zones.push(zone)
+                fed.add_fed(&zone)
             }
-            fed = fed.inverse(dim);
+            fed.invert();
 
             for transition in &right {
                 let mut right_guard_zone = transition.guard_zone.clone();
 
                 //Inv(l2_s)[r |-> 0] where r is in clock resets
-                right_guard_zone.intersection(&get_resetted_invariant(
+                right_guard_zone.intersect(&get_resetted_invariant(
                     right_index,
                     quotient_index,
                     location,
                     &transition.updates,
                     dim,
                 ));
+                let mut guard_zone = fed.clone();
 
-                for mut guard_zone in fed.zones.iter().cloned() {
-                    guard_zone.intersection(&right_guard_zone);
-
-                    let mut xnew_reset = HashMap::new();
-                    xnew_reset.insert(
-                        quotient_index,
-                        vec![Update {
-                            variable: "quotient_xnew".to_string(),
-                            expression: BoolExpression::Int(0),
-                        }],
-                    );
-
-                    transitions.push(Transition {
-                        guard_zone,
-                        target_locations: inconsistent_location.clone(),
-                        updates: xnew_reset,
-                    })
-                }
-            }
-        }
-
-        //Rule 7
-        if *sync_type == SyncType::Input && action == "quotient_inew" {
-            let t_invariant = get_invariant(left_index, right_index, location, dim);
-            let s_invariant = get_invariant(right_index, quotient_index, location, dim);
-            let inverse_t_invariant = Federation::new(vec![t_invariant], dim).inverse(dim);
-
-            for mut guard_zone in inverse_t_invariant.zones {
-                guard_zone.intersection(&s_invariant);
+                guard_zone.intersect(&right_guard_zone);
 
                 let mut xnew_reset = HashMap::new();
                 xnew_reset.insert(
@@ -368,11 +346,35 @@ impl TransitionSystem<'static> for Quotient {
             }
         }
 
+        //Rule 7
+        if *sync_type == SyncType::Input && action == "quotient_inew" {
+            let t_invariant = get_invariant(left_index, right_index, location, dim);
+            let s_invariant = get_invariant(right_index, quotient_index, location, dim);
+            let inverse_t_invariant = t_invariant.inverse();
+            let mut guard_zone = inverse_t_invariant.clone();
+            guard_zone.intersect(&s_invariant);
+
+            let mut xnew_reset = HashMap::new();
+            xnew_reset.insert(
+                quotient_index,
+                vec![Update {
+                    variable: "quotient_xnew".to_string(),
+                    expression: BoolExpression::Int(0),
+                }],
+            );
+
+            transitions.push(Transition {
+                guard_zone,
+                target_locations: inconsistent_location.clone(),
+                updates: xnew_reset,
+            })
+        }
+
         //Rule 8
         if self.left.get_actions().contains(action) && !self.right.get_actions().contains(action) {
             for mut transition in left {
                 //Inv(l2_T)[r |-> 0] where r is in clock resets
-                transition.guard_zone.intersection(&get_resetted_invariant(
+                transition.guard_zone.intersect(&get_resetted_invariant(
                     left_index,
                     right_index,
                     location,
@@ -491,14 +493,14 @@ impl TransitionSystem<'static> for Quotient {
         self.left.is_deterministic(dim) && self.right.is_deterministic(dim)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> State {
-        let mut init_loc = self.get_initial_location().unwrap();
+    fn get_initial_state(&self, dimensions: u32) -> Option<State> {
+        let mut init_loc = self.get_initial_location()?;
         init_loc.ignore_all_invariants();
-        let zone = Zone::init(dimensions);
-        State {
+        let zone = Federation::init(dimensions);
+        Some(State {
             decorated_locations: init_loc,
             zone,
-        }
+        })
     }
 
     fn set_clock_indices(&mut self, index: &mut u32) {
@@ -524,13 +526,13 @@ fn create_transitions<'a>(
     updates: &HashMap<usize, Vec<parse_edge::Update>>,
 ) -> Vec<Transition<'a>> {
     let mut transitions = vec![];
-    for zone in fed.zones {
-        transitions.push(Transition {
-            guard_zone: zone,
-            target_locations: target_locations.clone(),
-            updates: updates.clone(),
-        });
-    }
+
+    transitions.push(Transition {
+        guard_zone: fed,
+        target_locations: target_locations.clone(),
+        updates: updates.clone(),
+    });
+
     transitions
 }
 
@@ -540,8 +542,8 @@ fn get_resetted_invariant(
     location: &LocationTuple,
     updates_map: &HashMap<usize, Vec<parse_edge::Update>>,
     dim: u32,
-) -> Zone {
-    let mut zone = Zone::init(dim);
+) -> Federation {
+    let mut zone = Federation::full(dim);
     for i in start..end {
         if let Some(loc) = location.try_get_location(i) {
             let location = DecoratedLocation::create(loc, location.get_decl(i));
@@ -555,8 +557,8 @@ fn get_resetted_invariant(
     zone
 }
 
-fn get_invariant(start: usize, end: usize, location: &LocationTuple, dim: u32) -> Zone {
-    let mut zone = Zone::init(dim);
+fn get_invariant(start: usize, end: usize, location: &LocationTuple, dim: u32) -> Federation {
+    let mut zone = Federation::full(dim);
     for i in start..end {
         if let Some(loc) = location.try_get_location(i) {
             let location = DecoratedLocation::create(loc, location.get_decl(i));
