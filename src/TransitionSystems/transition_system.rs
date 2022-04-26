@@ -79,6 +79,18 @@ impl<'a> LocationTuple<'a> {
         *loc
     }
 
+    pub fn get_location_type(&self) -> LocationType {
+        if self
+            .locations
+            .values()
+            .all(|(loc, _)| loc.map_or(true, |l| *l.get_location_type() == LocationType::Universal))
+        {
+            LocationType::Universal
+        } else {
+            LocationType::Normal
+        }
+    }
+
     pub fn ignore_all_invariants(&mut self) {
         for index in self.locations.keys() {
             self.ignore_invariants.insert(*index);
@@ -259,6 +271,15 @@ pub trait TransitionSystem<'a>: DynClone {
 
     fn get_actions(&self) -> HashSet<String>;
 
+    fn actions_contain(&self, action: &str, sync_type: &SyncType) -> bool {
+        match sync_type {
+            SyncType::Input => self.get_input_actions(),
+            SyncType::Output => self.get_output_actions(),
+        }
+        .contains(action)
+        //self.get_input_actions().contains(action) || self.get_output_actions().contains(action)
+    }
+
     fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>>;
 
     fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>>;
@@ -354,11 +375,15 @@ impl TransitionSystem<'_> for Component {
         dim: u32,
     ) -> Vec<Transition<'b>> {
         if let Some(location) = locations.try_get_location(*index) {
-            let next_edges = self.get_next_edges(location, action, *sync_type);
             let mut open_transitions = vec![];
-            for edge in next_edges {
-                let transition = Transition::from(&vec![(self, edge, *index)], locations, dim);
-                open_transitions.push(transition);
+            if *location.get_location_type() == LocationType::Universal {
+                open_transitions.push(Transition::new(locations.clone(), dim));
+            } else {
+                let next_edges = self.get_next_edges(location, action, *sync_type);
+                for edge in next_edges {
+                    let transition = Transition::from(&vec![(self, edge, *index)], locations, dim);
+                    open_transitions.push(transition);
+                }
             }
             *index += 1;
             open_transitions

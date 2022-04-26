@@ -70,8 +70,8 @@ fn get_locations_from_tuples(
                 location_type: if is_initial {
                     LocationType::Initial
                 } else {
-                    LocationType::Normal
-                }, //TODO: Handle universal eventually
+                    loc_vec.get_location_type()
+                },
                 urgency: "NORMAL".to_string(), //TODO: Handle different urgencies eventually
             }
         })

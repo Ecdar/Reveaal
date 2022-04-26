@@ -10,6 +10,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
+use super::input_enabler::make_input_enabled;
+
 pub fn prune_system(ts: TransitionSystemPtr, clocks: u32) -> TransitionSystemPtr {
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
@@ -50,6 +52,26 @@ pub fn prune(
             get_consistent_part(&location, &new_comp, clocks + 1),
         );
     }
+    /*
+    println!("Invariants init:");
+    for loc in &comp.locations {
+        println!(
+            "{} {} {:?}",
+            loc.get_id(),
+            loc.get_invariant()
+                .as_ref()
+                .unwrap_or(&BoolExpression::Bool(true)),
+            loc.get_location_type()
+        );
+    }
+
+    println!("Edges init:");
+    for edge in &comp.edges {
+        if *edge.get_guard() != Some(BoolExpression::Bool(false)) {
+            println!("{}", edge);
+        }
+    }
+     */
 
     //Prune locations to their consistent parts until fixed-point
     loop {
@@ -66,11 +88,18 @@ pub fn prune(
         if !changed {
             break;
         }
+        /*
+        println!("Consistent parts step:");
+        for fed in consistent_parts.values() {
+            println!("{}", fed);
+        }
+         */
     }
 
     //Remove fully inconsistent locations and edges
     cleanup(&mut new_comp, &consistent_parts, clocks + 1);
-
+    //println!("Input enabling pruned component?");
+    //make_input_enabled(&mut new_comp, &inputs.iter().cloned().collect::<Vec<_>>());
     PrunedComponent {
         component: Box::new(new_comp),
         inputs,
@@ -150,24 +179,13 @@ fn prune_to_consistent_part(
     if !is_inconsistent(location, consistent_parts, decls, dimensions) {
         return false;
     }
-    let cons_fed = consistent_parts
-        .get(&calculate_hash(location.get_id()))
-        .unwrap()
-        .clone();
-
     let mut changed = false;
     for edge in &mut new_comp.edges {
         if edge.target_location == *location.get_id() {
-            let mut reachable_fed = cons_fed.clone();
-            for clock in edge.get_update_clocks() {
-                let clock_index = decls.get_clock_index_by_name(clock);
-                reachable_fed.free_clock(*(clock_index.unwrap()));
-            }
-            edge.apply_guard(decls, &mut reachable_fed);
             if edge.sync_type == SyncType::Input {
-                changed |= handle_input(edge, consistent_parts, dimensions, reachable_fed);
+                changed |= handle_input(edge, location, decls, consistent_parts, dimensions);
             } else if edge.sync_type == SyncType::Output {
-                changed |= handle_output(edge, decls, dimensions, reachable_fed);
+                changed |= handle_output(edge, decls, consistent_parts, dimensions);
             }
         }
     }
@@ -176,18 +194,35 @@ fn prune_to_consistent_part(
 
 fn handle_input(
     edge: &Edge,
+    location: &Location,
+    decls: &Declarations,
     consistent_parts: &mut HashMap<u64, Federation>,
     dimensions: u32,
-    cons_fed: Federation,
 ) -> bool {
     //Any zone that can reach an inconsistent state from this location is marked inconsistent
-    let incons_fed = cons_fed.inverse();
-    let old_fed = consistent_parts
+
+    let mut target_incons_fed = consistent_parts
+        .get(&calculate_hash(edge.get_target_location()))
+        .unwrap()
+        .inverse();
+
+    // Apply invariant
+    let loc = LocationTuple::simple(location, decls);
+    loc.apply_invariants(&mut target_incons_fed);
+
+    for clock in edge.get_update_clocks() {
+        let clock_index = decls.get_clock_index_by_name(clock);
+        target_incons_fed.free_clock(*(clock_index.unwrap()));
+    }
+    edge.apply_guard(decls, &mut target_incons_fed);
+
+    let source_cons_fed = consistent_parts
         .get(&calculate_hash(edge.get_source_location()))
         .unwrap()
         .clone();
-    let new_fed = old_fed.subtraction(&incons_fed);
-    let is_changed = new_fed.is_subset_eq(&old_fed) && !old_fed.is_subset_eq(&new_fed);
+
+    let new_fed = source_cons_fed.subtraction(&target_incons_fed);
+    let is_changed = new_fed < source_cons_fed;
     consistent_parts.insert(calculate_hash(edge.get_source_location()), new_fed);
     is_changed
 }
@@ -195,9 +230,20 @@ fn handle_input(
 fn handle_output(
     edge: &mut Edge,
     decls: &Declarations,
+    consistent_parts: &HashMap<u64, Federation>,
     dimensions: u32,
-    cons_fed: Federation,
 ) -> bool {
+    let mut target_cons_fed = consistent_parts
+        .get(&calculate_hash(edge.get_target_location()))
+        .unwrap()
+        .clone();
+
+    for clock in edge.get_update_clocks() {
+        let clock_index = decls.get_clock_index_by_name(clock);
+        target_cons_fed.free_clock(*(clock_index.unwrap()));
+    }
+    edge.apply_guard(decls, &mut target_cons_fed);
+
     let mut prev_zone = Federation::full(dimensions);
 
     if !edge.apply_guard(decls, &mut prev_zone) {
@@ -205,7 +251,7 @@ fn handle_output(
     }
 
     //Set the guard to enter only the consistent part
-    edge.guard = cons_fed
+    edge.guard = target_cons_fed
         .intersection(&prev_zone)
         .as_boolexpression(Some(&decls.clocks));
 

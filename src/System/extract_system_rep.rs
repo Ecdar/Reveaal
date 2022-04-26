@@ -104,8 +104,8 @@ pub fn extract_side(
             let mut quotient = Quotient::new(
                 extract_side(left, component_loader, clock_index),
                 extract_side(right, component_loader, clock_index),
+                clock_index,
             );
-            quotient.set_clock_indices(clock_index);
             quotient
         }
         QueryExpression::VarName(name) => {

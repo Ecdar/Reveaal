@@ -171,7 +171,12 @@ fn get_indices(
         None
     };
 
-    result.unwrap()
+    result.unwrap_or_else(|| {
+        panic!(
+            "Failed to get index from left: {:?} right: {:?} decls: {:?}",
+            left, right, d
+        )
+    })
 }
 
 fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {

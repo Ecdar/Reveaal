@@ -29,6 +29,23 @@ pub fn updater(
     }
 }
 
+pub fn inverse_updater(
+    updates: &[parse_edge::Update],
+    decl: &component::Declarations,
+    zone: &mut Federation,
+) {
+    for update in updates {
+        if let Some(&clock_index) = decl.get_clock_index_by_name(update.get_variable_name()) {
+            zone.free_clock(clock_index);
+        } else {
+            panic!(
+                "Attempting to inverse update a clock \"{}\" which is not initialized",
+                update.get_variable_name()
+            )
+        }
+    }
+}
+
 /// Used to handle update expressions on edges
 pub fn state_updater(
     updates: &[parse_edge::Update],

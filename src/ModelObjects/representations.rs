@@ -547,6 +547,7 @@ pub fn build_guard_from_zone(
                 // Further equalitites are added in next iteration transitively
                 continue;
             } else {
+                continue;
                 add_diagonal_constraints(
                     zone,
                     index_i,

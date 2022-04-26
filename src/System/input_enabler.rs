@@ -90,5 +90,10 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
         }
     }
 
+    println!("Input enabling added {} edges", new_edges.len());
+    for edge in &new_edges {
+        println!("{edge}");
+    }
+
     component.add_input_edges(&mut new_edges);
 }

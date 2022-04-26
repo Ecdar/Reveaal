@@ -45,6 +45,17 @@ impl DeclarationProvider for Component {
 
 #[allow(dead_code)]
 impl Component {
+    pub fn invalid() -> Self {
+        Component {
+            name: "Invalid component".to_string(),
+            declarations: Declarations::empty(),
+            locations: vec![],
+            edges: vec![],
+            input_edges: Some(vec![]),
+            output_edges: Some(vec![]),
+        }
+    }
+
     ///Start of basic methods for manipulating fields
     pub fn get_name(&self) -> &String {
         &self.name
@@ -277,11 +288,6 @@ impl Component {
                     ));
                 }
                 if self.check_moves_overlap(&edges, &mut full_state) {
-                    println!(
-                        "Input moves overlap from {} {}",
-                        full_state.decorated_locations.to_string(),
-                        full_state.zone
-                    );
                     return false;
                 }
                 let mut edges: Vec<&Edge> = vec![];
@@ -294,11 +300,6 @@ impl Component {
                 }
 
                 if self.check_moves_overlap(&edges, &mut full_state) {
-                    println!(
-                        "Output moves overlap from {} {}",
-                        full_state.decorated_locations.to_string(),
-                        full_state.zone
-                    );
                     return false;
                 } else {
                     for edge in edges {
@@ -745,9 +746,11 @@ impl<'a> Transition<'a> {
 
 impl fmt::Display for Transition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("Transition{")?;
-        f.write_fmt(format_args!("{}, \n", self.guard_zone))?;
-        f.write_str("}")?;
+        f.write_fmt(format_args!(
+            "Transition{{{} to {}}}",
+            self.guard_zone,
+            self.target_locations.to_string()
+        ))?;
         Ok(())
     }
 }

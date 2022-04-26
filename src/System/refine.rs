@@ -28,6 +28,7 @@ fn extra_actions(
         sys2.get_input_actions()
             .difference(&sys1.get_input_actions())
             .cloned()
+            //.filter(|l| !l.starts_with("quotient_new_input"))
             .collect()
     } else {
         sys1.get_output_actions()
@@ -59,6 +60,18 @@ pub fn check_refinement(
     // Common inputs and outputs
     let inputs = common_actions(&sys1, &sys2, true);
     let outputs = common_actions(&sys1, &sys2, false);
+
+    println!(
+        "Inp left {:?} out left {:?}",
+        sys1.get_input_actions(),
+        sys1.get_output_actions()
+    );
+
+    println!(
+        "Inp right {:?} out right {:?}",
+        sys2.get_input_actions(),
+        sys2.get_output_actions()
+    );
 
     // Extra inputs and outputs are ignored by default
     let extra_inputs = extra_actions(&sys1, &sys2, true);
@@ -220,6 +233,7 @@ fn has_valid_state_pair<'a>(
 
     let (states1, states2) = curr_pair.get_locations(is_state1);
     let pair_zone = &curr_pair.zone;
+    debug_print!("Zone: {}", pair_zone);
     //create guard zones left
     let mut feds = Federation::empty(dim);
     if is_state1 {
@@ -380,7 +394,9 @@ fn prepare_init_state(
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
 ) -> bool {
+    println!("Left");
     for (opt_location, decl) in initial_locations_1.iter_values() {
+        println!("{decl:?}");
         if let Some(location) = opt_location {
             let init_inv1 = location.get_invariant();
             let init_inv1_success = if let Some(inv1) = init_inv1 {
@@ -394,8 +410,9 @@ fn prepare_init_state(
             }
         }
     }
-
+    println!("Right");
     for (opt_location, decl) in initial_locations_2.iter_values() {
+        println!("{decl:?}");
         if let Some(location) = opt_location {
             let init_inv2 = location.get_invariant();
             let init_inv2_success = if let Some(inv2) = init_inv2 {
