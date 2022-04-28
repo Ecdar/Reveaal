@@ -52,7 +52,7 @@ pub fn prune(
             get_consistent_part(&location, &new_comp, clocks + 1),
         );
     }
-    /*
+
     println!("Invariants init:");
     for loc in &comp.locations {
         println!(
@@ -65,13 +65,13 @@ pub fn prune(
         );
     }
 
+    /*
     println!("Edges init:");
     for edge in &comp.edges {
         if *edge.get_guard() != Some(BoolExpression::Bool(false)) {
             println!("{}", edge);
         }
-    }
-     */
+    } */
 
     //Prune locations to their consistent parts until fixed-point
     loop {
@@ -88,18 +88,14 @@ pub fn prune(
         if !changed {
             break;
         }
-        /*
-        println!("Consistent parts step:");
+        /*println!("Consistent parts step:");
         for fed in consistent_parts.values() {
             println!("{}", fed);
-        }
-         */
+        }*/
     }
 
     //Remove fully inconsistent locations and edges
     cleanup(&mut new_comp, &consistent_parts, clocks + 1);
-    //println!("Input enabling pruned component?");
-    //make_input_enabled(&mut new_comp, &inputs.iter().cloned().collect::<Vec<_>>());
     PrunedComponent {
         component: Box::new(new_comp),
         inputs,
@@ -153,12 +149,11 @@ fn is_inconsistent(
     decls: &Declarations,
     dimensions: u32,
 ) -> bool {
-    let loc = LocationTuple::simple(location, decls);
-    let mut zone = Federation::full(dimensions);
-    let inv_fed = if loc.apply_invariants(&mut zone) {
-        zone
+    let loc = LocationTuple::simple(location, decls, dimensions);
+    let inv_fed = if let Some(inv) = loc.get_invariants() {
+        inv.clone()
     } else {
-        Federation::empty(dimensions)
+        Federation::full(dimensions)
     };
 
     let cons_fed = consistent_parts
@@ -207,7 +202,7 @@ fn handle_input(
         .inverse();
 
     // Apply invariant
-    let loc = LocationTuple::simple(location, decls);
+    let loc = LocationTuple::simple(location, decls, dimensions);
     loc.apply_invariants(&mut target_incons_fed);
 
     for clock in edge.get_update_clocks() {
@@ -282,7 +277,7 @@ fn set_invariant(
 }
 
 fn get_consistent_part(location: &Location, comp: &Component, dimensions: u32) -> Federation {
-    let loc = LocationTuple::simple(location, &comp.declarations);
+    let loc = LocationTuple::simple(location, &comp.declarations, dimensions);
     let mut zone = Federation::full(dimensions);
     if location.urgency == "URGENT" || !loc.apply_invariants(&mut zone) {
         return Federation::empty(dimensions);

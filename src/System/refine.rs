@@ -77,8 +77,8 @@ pub fn check_refinement(
     let extra_inputs = extra_actions(&sys1, &sys2, true);
     let extra_outputs = extra_actions(&sys1, &sys2, false);
 
-    let initial_locations_1 = sys1.get_initial_location();
-    let initial_locations_2 = sys2.get_initial_location();
+    let initial_locations_1 = sys1.get_initial_location(dimensions);
+    let initial_locations_2 = sys2.get_initial_location(dimensions);
 
     debug_print!("Extra inputs {:?}", extra_inputs);
     debug_print!("Extra outputs {:?}", extra_outputs);
@@ -111,8 +111,8 @@ pub fn check_refinement(
         let curr_pair = waiting_list.pop().unwrap();
         debug_print!(
             "Pair: 1:{} 2:{} {}",
-            curr_pair.get_locations1().to_string(),
-            curr_pair.get_locations2().to_string(),
+            curr_pair.get_locations1().id,
+            curr_pair.get_locations2().id,
             curr_pair.zone
         );
         for output in &outputs {
@@ -214,10 +214,10 @@ pub fn check_refinement(
     Ok(true)
 }
 
-fn has_valid_state_pair<'a>(
-    transitions1: &[Transition<'a>],
-    transitions2: &[Transition<'a>],
-    curr_pair: &StatePair<'a>,
+fn has_valid_state_pair(
+    transitions1: &[Transition],
+    transitions2: &[Transition],
+    curr_pair: &StatePair,
     is_state1: bool,
 ) -> bool {
     if transitions1.is_empty() {
@@ -271,12 +271,12 @@ fn has_valid_state_pair<'a>(
     result_federation.is_empty()
 }
 
-fn create_new_state_pairs<'a>(
-    transitions1: &[Transition<'a>],
-    transitions2: &[Transition<'a>],
-    curr_pair: &StatePair<'a>,
-    waiting_list: &mut Vec<StatePair<'a>>,
-    passed_list: &mut Vec<StatePair<'a>>,
+fn create_new_state_pairs(
+    transitions1: &[Transition],
+    transitions2: &[Transition],
+    curr_pair: &StatePair,
+    waiting_list: &mut Vec<StatePair>,
+    passed_list: &mut Vec<StatePair>,
     max_bounds: &MaxBounds,
     is_state1: bool,
 ) {
@@ -307,12 +307,12 @@ fn create_new_state_pairs<'a>(
     }
 }
 
-fn build_state_pair<'a>(
-    transition1: &Transition<'a>,
-    transition2: Option<&Transition<'a>>,
-    curr_pair: &StatePair<'a>,
-    waiting_list: &mut Vec<StatePair<'a>>,
-    passed_list: &mut Vec<StatePair<'a>>,
+fn build_state_pair(
+    transition1: &Transition,
+    transition2: Option<&Transition>,
+    curr_pair: &StatePair,
+    waiting_list: &mut Vec<StatePair>,
+    passed_list: &mut Vec<StatePair>,
     max_bounds: &MaxBounds,
     is_state1: bool,
 ) -> bool {
@@ -342,9 +342,9 @@ fn build_state_pair<'a>(
     }
 
     //Apply updates on both sides
-    transition1.apply_updates(locations1, &mut new_sp_zone);
+    transition1.apply_updates(&mut new_sp_zone);
     if let Some(t) = transition2 {
-        t.apply_updates(locations2, &mut new_sp_zone)
+        t.apply_updates(&mut new_sp_zone)
     };
 
     //Update locations in states
@@ -394,40 +394,8 @@ fn prepare_init_state(
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
 ) -> bool {
-    println!("Left");
-    for (opt_location, decl) in initial_locations_1.iter_values() {
-        println!("{decl:?}");
-        if let Some(location) = opt_location {
-            let init_inv1 = location.get_invariant();
-            let init_inv1_success = if let Some(inv1) = init_inv1 {
-                apply_constraints_to_state(&inv1, decl, &mut initial_pair.zone)
-            } else {
-                true
-            };
-            if !init_inv1_success {
-                debug_print!("Was unable to apply invariants to initial state");
-                return false;
-            }
-        }
-    }
-    println!("Right");
-    for (opt_location, decl) in initial_locations_2.iter_values() {
-        println!("{decl:?}");
-        if let Some(location) = opt_location {
-            let init_inv2 = location.get_invariant();
-            let init_inv2_success = if let Some(inv2) = init_inv2 {
-                apply_constraints_to_state(&inv2, decl, &mut initial_pair.zone)
-            } else {
-                true
-            };
-            if !init_inv2_success {
-                debug_print!("Was unable to apply invariants to initial state");
-                return false;
-            }
-        }
-    }
-
-    true
+    initial_locations_1.apply_invariants(&mut initial_pair.zone)
+        && initial_locations_2.apply_invariants(&mut initial_pair.zone)
 }
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
@@ -447,7 +415,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, d
     disjoint && subset
 }
 
-fn is_new_state<'a>(state_pair: &mut StatePair<'a>, passed_list: &mut Vec<StatePair<'a>>) -> bool {
+fn is_new_state(state_pair: &mut StatePair, passed_list: &mut Vec<StatePair>) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
         /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
             panic!("states should always have same length")

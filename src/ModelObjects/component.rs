@@ -1,5 +1,5 @@
 use crate::DBMLib::dbm::Federation;
-use crate::DataReader::parse_edge;
+use crate::DataReader::parse_edge::{self, Update};
 
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
@@ -7,12 +7,12 @@ use crate::DataReader::serialization::{
 };
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::EdgeEval::updater::state_updater;
-use crate::EdgeEval::updater::updater;
+use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::representations::build_guard_from_zone;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::TransitionSystems::transition_system::{CompositionType, LocationID};
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -280,9 +280,14 @@ impl Component {
             if let Some(state) = waiting_list.pop() {
                 let mut full_state = state;
                 let mut edges: Vec<&Edge> = vec![];
+                let loc = if let LocationID::Simple(name) = &full_state.get_location().id {
+                    self.get_location_by_name(&name)
+                } else {
+                    panic!("Component should only have simple locations.")
+                };
                 for input_action in self.get_input_actions() {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
+                        &loc,
                         input_action.get_name(),
                         SyncType::Input,
                     ));
@@ -293,7 +298,7 @@ impl Component {
                 let mut edges: Vec<&Edge> = vec![];
                 for output_action in self.get_output_actions() {
                     edges.append(&mut self.get_next_edges(
-                        full_state.get_location(0),
+                        &loc,
                         output_action.get_name(),
                         SyncType::Output,
                     ));
@@ -307,18 +312,20 @@ impl Component {
                         let full_new_zone = full_state.zone.clone();
                         let loc = self.get_location_by_name(&edge.target_location);
                         let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
-                        if let Some(guard) = edge.get_guard() {
-                            if !constraint_applyer::apply_constraints_to_state2(
-                                guard,
-                                &mut new_state,
-                                0,
-                            ) {
-                                //If the constraint cannot be applied, continue.
-                                continue;
-                            }
+                        if !constraint_applyer::apply_constraint(
+                            edge.get_guard(),
+                            &self.declarations,
+                            &mut new_state.zone,
+                        ) {
+                            //If the constraint cannot be applied, continue.
+                            continue;
                         }
                         if let Some(updates) = edge.get_update() {
-                            state_updater(updates, &mut new_state, 0);
+                            for update in updates {
+                                update
+                                    .compiled(self.get_declarations())
+                                    .apply(&mut new_state.zone)
+                            }
                         }
 
                         if is_new_state(&mut new_state, &mut passed_list)
@@ -374,47 +381,57 @@ impl Component {
                     .find(|l| (l.get_id() == edges[j].get_target_location()))
                     .unwrap();
 
-                let mut state_i = create_state(
-                    state.get_location(0),
+                let mut state_i = state.clone();
+                if !constraint_applyer::apply_constraint(
+                    location_source.get_invariant(),
                     &self.declarations,
-                    state.zone.clone(),
-                );
-                if let Some(inv_source) = location_source.get_invariant() {
-                    if !constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_i, 0)
-                    {
-                        continue;
-                    };
+                    &mut state_i.zone,
+                ) {
+                    continue;
                 }
 
-                if let Some(guard_i) = &edges[i].guard {
-                    if !constraint_applyer::apply_constraints_to_state2(guard_i, &mut state_i, 0) {
-                        continue;
-                    };
-                }
-                if let Some(inv_target) = location_i.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_i, 0);
-                }
-
-                let mut state_j = create_state(
-                    state.get_location(0),
+                if !constraint_applyer::apply_constraint(
+                    &edges[i].guard,
                     &self.declarations,
-                    state.zone.clone(),
-                );
-                if let Some(inv_source) = location_source.get_invariant() {
-                    if !constraint_applyer::apply_constraints_to_state2(inv_source, &mut state_j, 0)
-                    {
-                        continue;
-                    };
+                    &mut state_i.zone,
+                ) {
+                    continue;
                 }
 
-                if let Some(guard_j) = &edges[j].guard {
-                    if !constraint_applyer::apply_constraints_to_state2(guard_j, &mut state_j, 0) {
-                        continue;
-                    };
+                if !constraint_applyer::apply_constraint(
+                    location_i.get_invariant(),
+                    &self.declarations,
+                    &mut state_i.zone,
+                ) {
+                    continue;
                 }
-                if let Some(inv_target) = location_j.get_invariant() {
-                    constraint_applyer::apply_constraints_to_state2(inv_target, &mut state_j, 0);
+
+                let mut state_j = state.clone();
+                if !constraint_applyer::apply_constraint(
+                    location_source.get_invariant(),
+                    &self.declarations,
+                    &mut state_j.zone,
+                ) {
+                    continue;
                 }
+
+                if !constraint_applyer::apply_constraint(
+                    &edges[j].guard,
+                    &self.declarations,
+                    &mut state_j.zone,
+                ) {
+                    continue;
+                }
+
+                if !constraint_applyer::apply_constraint(
+                    location_j.get_invariant(),
+                    &self.declarations,
+                    &mut state_j.zone,
+                ) {
+                    continue;
+                }
+
+                //TODO: this should consider resets, inv(target)[r|->0]
 
                 if state_i.zone.is_valid() && state_j.zone.is_valid() {
                     if state_i.zone.intersects(&state_j.zone) {
@@ -433,11 +450,9 @@ impl Component {
 }
 
 /// Function to check if a state is contained in the passed list, similar to the method impl by component
-fn is_new_state<'a>(state: &mut State<'a>, passed_list: &mut Vec<State<'a>>) -> bool {
-    assert_eq!(state.decorated_locations.len(), 1);
-
+fn is_new_state(state: &mut State, passed_list: &mut Vec<State>) -> bool {
     for passed_state_pair in passed_list {
-        if state.get_location(0).get_id() != passed_state_pair.get_location(0).get_id() {
+        if state.get_location().id != passed_state_pair.get_location().id {
             continue;
         }
         if state.zone.get_dimensions() != passed_state_pair.zone.get_dimensions() {
@@ -461,9 +476,9 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Federation) -> State<'a> {
+fn create_state(location: &Location, decl: &Declarations, zone: Federation) -> State {
     State {
-        decorated_locations: LocationTuple::simple(location, decl),
+        decorated_locations: LocationTuple::simple(location, decl, zone.get_dimensions()),
         zone,
     }
 }
@@ -472,20 +487,20 @@ fn create_state<'a>(location: &'a Location, decl: &Declarations, zone: Federatio
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, std::cmp::PartialEq)]
-pub struct State<'a> {
-    pub decorated_locations: LocationTuple<'a>,
+pub struct State {
+    pub decorated_locations: LocationTuple,
     pub zone: Federation,
 }
 
-impl<'a> State<'a> {
-    pub fn create(decorated_locations: LocationTuple<'a>, zone: Federation) -> Self {
+impl State {
+    pub fn create(decorated_locations: LocationTuple, zone: Federation) -> Self {
         State {
             decorated_locations,
             zone,
         }
     }
 
-    pub fn from_location(decorated_locations: LocationTuple<'a>, dimensions: u32) -> Option<Self> {
+    pub fn from_location(decorated_locations: LocationTuple, dimensions: u32) -> Option<Self> {
         let mut zone = Federation::init(dimensions);
 
         if !decorated_locations.apply_invariants(&mut zone) {
@@ -506,12 +521,8 @@ impl<'a> State<'a> {
         self.zone.is_subset_eq(&other.zone)
     }
 
-    pub fn get_location(&self, index: usize) -> &Location {
-        self.decorated_locations.get_location(index)
-    }
-
-    pub fn get_declarations(&self, index: usize) -> &Declarations {
-        self.decorated_locations.get_decl(index)
+    pub fn get_location(&self) -> &LocationTuple {
+        &self.decorated_locations
     }
 }
 
@@ -565,64 +576,56 @@ pub enum SyncType {
 
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
-pub struct Transition<'a> {
+pub struct Transition {
     pub guard_zone: Federation,
-    pub target_locations: LocationTuple<'a>,
-    pub updates: HashMap<usize, Vec<parse_edge::Update>>,
+    pub target_locations: LocationTuple,
+    pub updates: Vec<CompiledUpdate>,
 }
-impl<'a> Transition<'a> {
-    pub fn new(target_locations: LocationTuple<'a>, dim: u32) -> Transition<'a> {
+impl Transition {
+    pub fn new(target_locations: LocationTuple, dim: u32) -> Transition {
         Transition {
             guard_zone: Federation::full(dim),
             target_locations,
-            updates: HashMap::new(),
+            updates: vec![],
         }
     }
 
     pub fn from(
-        edges: &Vec<(&'a Component, &'a Edge, usize)>,
-        current_location: &LocationTuple<'a>,
+        edges: (&Component, &Edge, usize),
+        current_location: &LocationTuple,
         dim: u32,
-    ) -> Transition<'a> {
-        let mut target_locations = LocationTuple::create_empty();
+    ) -> Transition {
         let mut updates: HashMap<usize, Vec<parse_edge::Update>> = HashMap::new();
+        let (comp, edge, index) = edges;
 
-        for (comp, edge, index) in edges {
-            let target_loc_name = &edge.target_location;
-            let target_loc = comp.get_location_by_name(target_loc_name);
-            target_locations.set_location(
-                *index,
-                Some(target_loc),
-                comp.get_declarations().clone(),
+        let target_loc_name = &edge.target_location;
+        let target_loc = comp.get_location_by_name(target_loc_name);
+        let target_locations = LocationTuple::simple(target_loc, comp.get_declarations(), dim);
+
+        let mut compiled_updates = vec![];
+        if let Some(updates) = edge.get_update() {
+            compiled_updates.extend(
+                updates
+                    .iter()
+                    .map(|update| CompiledUpdate::compile(update, comp.get_declarations())),
             );
-
-            if let Some(new_updates) = edge.get_update() {
-                match updates.get_mut(index) {
-                    Some(update_list) => {
-                        update_list.append(&mut new_updates.clone());
-                    }
-                    None => {
-                        updates.insert(*index, new_updates.clone());
-                    }
-                };
-            }
         }
 
         Transition {
             guard_zone: Transition::get_guard_federation(
-                edges,
+                &vec![edges],
                 current_location,
                 &target_locations,
                 dim,
             ),
             target_locations,
-            updates,
+            updates: compiled_updates,
         }
     }
 
-    pub fn use_transition(&self, state: &mut State<'a>) -> bool {
+    pub fn use_transition(&self, state: &mut State) -> bool {
         if self.apply_guards(&mut state.zone) {
-            self.apply_updates(&mut state.decorated_locations, &mut state.zone);
+            self.apply_updates(&mut state.zone);
             self.move_locations(&mut state.decorated_locations);
             state.zone.up();
             if state.decorated_locations.apply_invariants(&mut state.zone) {
@@ -634,31 +637,20 @@ impl<'a> Transition<'a> {
     }
 
     pub fn combinations(
-        left: &Vec<Transition<'a>>,
-        right: &Vec<Transition<'a>>,
-    ) -> Vec<Transition<'a>> {
-        let mut out: Vec<Transition<'a>> = vec![];
+        left: &Vec<Transition>,
+        right: &Vec<Transition>,
+        comp: CompositionType,
+    ) -> Vec<Transition> {
+        let mut out: Vec<Transition> = vec![];
         for l in left {
             for r in &*right {
-                let mut guard_zone = l.guard_zone.clone();
-                guard_zone.intersect(&r.guard_zone);
+                let target_locations =
+                    LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
-                let mut target_locations: LocationTuple<'a> = l.target_locations.clone();
-                for (index, (loc, decl)) in r.target_locations.iter() {
-                    target_locations.set_location(*index, *loc, decl.clone());
-                }
+                let guard_zone = l.guard_zone.intersection(&r.guard_zone);
 
                 let mut updates = l.updates.clone();
-                for (index, r_updates) in &r.updates {
-                    match updates.get_mut(index) {
-                        Some(update_list) => {
-                            update_list.append(&mut r_updates.clone());
-                        }
-                        None => {
-                            updates.insert(*index, r_updates.clone());
-                        }
-                    };
-                }
+                updates.append(&mut r.updates.clone());
 
                 out.push(Transition {
                     guard_zone,
@@ -671,9 +663,15 @@ impl<'a> Transition<'a> {
         out
     }
 
-    pub fn apply_updates(&self, locations: &mut LocationTuple, zone: &mut Federation) {
-        for (index, updates) in &self.updates {
-            updater(updates, locations.get_decl(*index), zone);
+    pub fn apply_updates(&self, zone: &mut Federation) {
+        for update in &self.updates {
+            update.apply(zone);
+        }
+    }
+
+    pub fn inverse_apply_updates(&self, zone: &mut Federation) {
+        for update in &self.updates {
+            update.inverse_apply(zone);
         }
     }
 
@@ -682,12 +680,12 @@ impl<'a> Transition<'a> {
         zone.is_valid()
     }
 
-    pub fn move_locations(&self, locations: &mut LocationTuple<'a>) {
+    pub fn move_locations(&self, locations: &mut LocationTuple) {
         *locations = self.target_locations.clone();
     }
 
     pub fn get_guard_federation(
-        edges: &Vec<(&'a Component, &'a Edge, usize)>,
+        edges: &Vec<(&Component, &Edge, usize)>,
         starting_locations: &LocationTuple,
         target_locations: &LocationTuple,
         dim: u32,
@@ -695,14 +693,14 @@ impl<'a> Transition<'a> {
         let mut zone = Federation::full(dim);
         for (comp, edge, index) in edges {
             let mut guard_zone = Federation::full(dim);
-            if !target_locations.apply_invariant_for_location(*index, &mut guard_zone) {
+            if !target_locations.apply_invariants(&mut guard_zone) {
                 continue;
             }
             for clock in edge.get_update_clocks() {
                 let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
                 guard_zone.free_clock(*(clock_index.unwrap()));
             }
-            let success = edge.apply_guard(starting_locations.get_decl(*index), &mut guard_zone);
+            let success = edge.apply_guard(comp.get_declarations(), &mut guard_zone);
             if success {
                 zone.intersect(&guard_zone)
             } else {
@@ -714,27 +712,16 @@ impl<'a> Transition<'a> {
 
     pub fn get_renamed_guard_expression(
         &self,
-        naming: &HashMap<u32, String>,
+        naming: &HashMap<String, u32>,
     ) -> Option<BoolExpression> {
-        let map: HashMap<String, u32> = naming.clone().into_iter().map(|(l, r)| (r, l)).collect();
-        self.guard_zone.as_boolexpression(Some(&map))
+        self.guard_zone.as_boolexpression(Some(naming))
     }
 
     pub fn get_renamed_updates(
         &self,
-        naming: &HashMap<u32, String>,
-        representation: &TransitionSystemPtr,
+        naming: &HashMap<String, u32>,
     ) -> Option<Vec<parse_edge::Update>> {
-        let mut updates = vec![];
-        let location = representation.get_initial_location()?;
-        for (comp_index, update) in &self.updates {
-            let update_clone = update.clone();
-
-            for mut u in update_clone {
-                u.swap_clock_names(&location.get_decl(*comp_index).clocks, naming);
-                updates.push(u);
-            }
-        }
+        let updates: Vec<_> = self.updates.iter().map(|u| u.as_update(naming)).collect();
 
         if updates.is_empty() {
             None
@@ -744,12 +731,11 @@ impl<'a> Transition<'a> {
     }
 }
 
-impl fmt::Display for Transition<'_> {
+impl fmt::Display for Transition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
             "Transition{{{} to {}}}",
-            self.guard_zone,
-            self.target_locations.to_string()
+            self.guard_zone, self.target_locations.id
         ))?;
         Ok(())
     }
@@ -808,7 +794,9 @@ impl Edge {
         zone: &mut Federation,
     ) {
         if let Some(updates) = self.get_update() {
-            updater(updates, decl, zone);
+            for update in updates {
+                update.compiled(decl).apply(zone);
+            }
         }
     }
 
@@ -976,11 +964,11 @@ impl Declarations {
     }
 }
 
-fn add_state_to_wl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
+fn add_state_to_wl(wl: &mut Vec<State>, state: State) {
     wl.push(state)
 }
 
-fn add_state_to_pl<'a>(wl: &mut Vec<State<'a>>, state: State<'a>) {
+fn add_state_to_pl(wl: &mut Vec<State>, state: State) {
     wl.push(state)
 }
 

@@ -4,7 +4,7 @@ use crate::TransitionSystems::TransitionSystem;
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
-    if system.get_initial_location() == None {
+    if system.get_initial_location(dimensions) == None {
         return false; //TODO: figure out whether we want empty TS to be consistent
     }
 
@@ -21,7 +21,7 @@ pub fn is_least_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
 
 //Local consistency check WITHOUT pruning
 pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
-    if system.get_initial_location() == None {
+    if system.get_initial_location(dimensions) == None {
         return false;
     }
 
@@ -35,10 +35,10 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
     consistency_fully_helper(state.unwrap(), &mut passed, system, &max_bounds)
 }
 
-pub fn consistency_least_helper<'b>(
-    state: State<'b>,
-    passed_list: &mut Vec<State<'b>>,
-    system: &'b dyn TransitionSystem,
+pub fn consistency_least_helper(
+    state: State,
+    passed_list: &mut Vec<State>,
+    system: &dyn TransitionSystem,
     max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
@@ -86,10 +86,10 @@ pub fn consistency_least_helper<'b>(
     false
 }
 
-fn consistency_fully_helper<'b>(
-    state: State<'b>,
-    passed_list: &mut Vec<State<'b>>,
-    system: &'b dyn TransitionSystem,
+fn consistency_fully_helper(
+    state: State,
+    passed_list: &mut Vec<State>,
+    system: &dyn TransitionSystem,
     max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {

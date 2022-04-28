@@ -1,10 +1,12 @@
 use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component::{Component, State, SyncType, Transition};
+use crate::ModelObjects::component::{Component, State, SyncType, Transition, Declarations};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::System::pruning;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
+
+use super::transition_system::CompositionType;
 
 #[derive(Clone)]
 pub struct Conjunction {
@@ -39,48 +41,68 @@ impl Conjunction {
     }
 }
 
-impl<'a> TransitionSystem<'static> for Conjunction {
+impl TransitionSystem for Conjunction {
     default_composition!();
-    fn next_transitions<'b>(
-        &'b self,
-        location: &LocationTuple<'b>,
+    fn next_transitions(
+        &self,
+        location: &LocationTuple,
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
         dim: u32,
-    ) -> Vec<Transition<'b>> {
+    ) -> Vec<Transition> {
+        if !match sync_type {
+            SyncType::Input => &self.inputs,
+            SyncType::Output => &self.outputs,
+        }
+        .contains(action)
+        {
+            return vec![];
+        }
+
+        let loc_left = location.get_left();
+        let loc_right = location.get_right();
+
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index, dim);
+            .next_transitions(&loc_left, action, sync_type, index, dim);
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index, dim);
+            .next_transitions(&loc_right, action, sync_type, index, dim);
 
-        Transition::combinations(&mut left, &mut right)
+        Transition::combinations(&mut left, &mut right, CompositionType::Conjunction)
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> bool {
         local_consistency::is_least_consistent(self, dimensions)
     }
 
-    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
+    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple> {
         let mut location_tuples = vec![];
-        let left = self.left.get_all_locations(index);
-        let right = self.right.get_all_locations(index);
+        let left = self.left.get_all_locations(dim);
+        let right = self.right.get_all_locations(dim);
         for loc1 in &left {
             for loc2 in &right {
-                location_tuples.push(LocationTuple::merge(loc1.clone(), &loc2));
+                location_tuples.push(LocationTuple::compose(
+                    &loc1,
+                    &loc2,
+                    self.get_composition_type(),
+                ));
             }
         }
         location_tuples
     }
 
-    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
-        vec![&mut self.left, &mut self.right]
+    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
+        (&mut self.left, &mut self.right)
     }
 
-    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
-        vec![&self.left, &self.right]
+    fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
+        (&self.left, &self.right)
+    }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Conjunction
     }
 }
 
@@ -91,7 +113,11 @@ pub struct PrunedComponent {
     pub outputs: HashSet<String>,
 }
 
-impl<'a> TransitionSystem<'static> for PrunedComponent {
+impl TransitionSystem for PrunedComponent {
+    fn get_composition_type(&self) -> CompositionType {
+        panic!("Pruned components do not have a composition type")
+    }
+
     fn get_input_actions(&self) -> HashSet<String> {
         self.inputs.clone()
     }
@@ -113,8 +139,8 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.get_max_clock_index()
     }
 
-    fn get_components<'b>(&'b self) -> Vec<&'b Component> {
-        self.component.get_components()
+    fn get_decls(&self) -> Vec<&Declarations> {
+        self.component.get_decls()
     }
 
     fn get_max_bounds(&self, dim: u32) -> MaxBounds {
@@ -125,22 +151,22 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.get_num_clocks()
     }
 
-    fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
-        TransitionSystem::get_initial_location(&*self.component)
+    fn get_initial_location(&self, dim: u32) -> Option<LocationTuple> {
+        TransitionSystem::get_initial_location(&*self.component, dim)
     }
 
-    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
-        self.component.get_all_locations(index)
+    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple> {
+        self.component.get_all_locations(dim)
     }
 
-    fn next_transitions<'b>(
-        &'b self,
-        location: &LocationTuple<'b>,
+    fn next_transitions(
+        &self,
+        location: &LocationTuple,
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
         dim: u32,
-    ) -> Vec<Transition<'b>> {
+    ) -> Vec<Transition> {
         self.component
             .next_transitions(location, action, sync_type, index, dim)
     }
@@ -161,11 +187,11 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.get_initial_state(dimensions)
     }
 
-    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
-        vec![]
+    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
+        unimplemented!()
     }
 
-    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
-        vec![]
+    fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
+        unimplemented!()
     }
 }

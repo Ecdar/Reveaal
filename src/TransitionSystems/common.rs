@@ -18,22 +18,20 @@ macro_rules! default_composition {
                 .collect()
         }
         fn get_num_clocks(&self) -> u32 {
-            self.get_children()
-                .iter()
-                .fold(0, |accumulator, child| accumulator + child.get_num_clocks())
+            let (left, right) = self.get_children();
+            left.get_num_clocks() + right.get_num_clocks()
         }
-        fn get_initial_location<'b>(&'b self) -> Option<LocationTuple<'b>> {
-            let mut locations = vec![];
+        fn get_initial_location(&self, dim: u32) -> Option<LocationTuple> {
+            let (left, right) = self.get_children();
+            let l = left.get_initial_location(dim)?;
+            let r = right.get_initial_location(dim)?;
 
-            for child in self.get_children() {
-                locations.push(child.get_initial_location()?);
-            }
-            Some(LocationTuple::compose_iter(locations))
+            Some(LocationTuple::compose(&l, &r, self.get_composition_type()))
         }
 
-        fn get_components<'b>(&'b self) -> Vec<&'b Component> {
-            let mut comps = self.left.get_components();
-            comps.extend(self.right.get_components());
+        fn get_decls(&self) -> Vec<&Declarations> {
+            let mut comps = self.left.get_decls();
+            comps.extend(self.right.get_decls());
             comps
         }
 
@@ -63,7 +61,7 @@ macro_rules! default_composition {
         }
 
         fn get_initial_state(&self, dimensions: u32) -> Option<State> {
-            let init_loc = self.get_initial_location().unwrap();
+            let init_loc = self.get_initial_location(dimensions).unwrap();
             let mut zone = Federation::init(dimensions);
             if !init_loc.apply_invariants(&mut zone) {
                 println!("Empty initial state");
@@ -77,9 +75,9 @@ macro_rules! default_composition {
         }
 
         fn set_clock_indices(&mut self, index: &mut u32) {
-            for child in self.get_mut_children() {
-                child.set_clock_indices(index);
-            }
+            let (left, right) = self.get_mut_children();
+            left.set_clock_indices(index);
+            right.set_clock_indices(index);
         }
     };
 }

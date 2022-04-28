@@ -209,15 +209,3 @@ fn get_constant(expr: &BoolExpression, //, decls: &component::Declarations
         _ => None,
     }
 }
-
-pub fn apply_constraints_to_state2(
-    guard: &BoolExpression,
-    state: &mut component::State,
-    comp_index: usize,
-) -> bool {
-    apply_constraints_to_state(
-        guard,
-        &state.get_declarations(comp_index).clone(),
-        &mut state.zone,
-    )
-}

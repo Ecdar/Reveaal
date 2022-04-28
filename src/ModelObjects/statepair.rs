@@ -4,18 +4,18 @@ use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
-pub struct StatePair<'a> {
-    pub locations1: LocationTuple<'a>,
-    pub locations2: LocationTuple<'a>,
+pub struct StatePair {
+    pub locations1: LocationTuple,
+    pub locations2: LocationTuple,
     pub zone: Federation,
 }
 
-impl<'b> StatePair<'b> {
-    pub fn create<'a>(
+impl StatePair {
+    pub fn create(
         dimensions: u32,
-        locations1: LocationTuple<'a>,
-        locations2: LocationTuple<'a>,
-    ) -> StatePair<'a> {
+        locations1: LocationTuple,
+        locations2: LocationTuple,
+    ) -> StatePair {
         let mut zone = Federation::zero(dimensions);
         zone.up();
 
@@ -30,19 +30,16 @@ impl<'b> StatePair<'b> {
         self.zone.get_dimensions()
     }
 
-    pub fn get_locations1(&self) -> &LocationTuple<'b> {
+    pub fn get_locations1(&self) -> &LocationTuple {
         &self.locations1
     }
 
-    pub fn get_locations2(&self) -> &LocationTuple<'b> {
+    pub fn get_locations2(&self) -> &LocationTuple {
         &self.locations2
     }
 
     //Used to allow borrowing both states as mutable
-    pub fn get_mut_states(
-        &mut self,
-        is_states1: bool,
-    ) -> (&mut LocationTuple<'b>, &mut LocationTuple<'b>) {
+    pub fn get_mut_states(&mut self, is_states1: bool) -> (&mut LocationTuple, &mut LocationTuple) {
         if is_states1 {
             (&mut self.locations1, &mut self.locations2)
         } else {
@@ -50,7 +47,7 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple<'b>, &LocationTuple<'b>) {
+    pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple, &LocationTuple) {
         if is_states1 {
             (&self.locations1, &self.locations2)
         } else {
@@ -72,26 +69,12 @@ impl<'b> StatePair<'b> {
     }
 }
 
-impl<'b> Display for StatePair<'b> {
+impl Display for StatePair {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Pair: ({{")?;
-        for (opt_location, _) in self.locations1.iter_values() {
-            if let Some(location) = opt_location {
-                f.write_fmt(format_args!("{}, ", location.get_id()))?;
-            } else {
-                f.write_str(", ");
-            }
-        }
-        f.write_str("}}, {{")?;
-        for (opt_location, _) in self.locations2.iter_values() {
-            if let Some(location) = opt_location {
-                f.write_fmt(format_args!("{}, ", location.get_id()))?;
-            } else {
-                f.write_str(", ");
-            }
-        }
-        f.write_str("}}")?;
-        f.write_fmt(format_args!("{}", self.zone))?;
+        f.write_fmt(format_args!(
+            "Pair: ({{{}}}, {{{}}} {}",
+            self.locations1.id, self.locations2.id, self.zone
+        ))?;
 
         Ok(())
     }

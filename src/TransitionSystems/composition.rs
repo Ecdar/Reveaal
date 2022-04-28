@@ -1,9 +1,11 @@
 use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component::{Component, State, SyncType, Transition};
+use crate::ModelObjects::component::{Component, Declarations, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
+
+use super::transition_system::CompositionType;
 
 #[derive(Clone)]
 pub struct Composition {
@@ -11,15 +13,20 @@ pub struct Composition {
     right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
+    left_unique_actions: HashSet<String>,
+    right_unique_actions: HashSet<String>,
+    common_actions: HashSet<String>,
 }
 
 impl Composition {
     pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Composition> {
-        let left_out = left.get_output_actions();
-        let right_out = right.get_output_actions();
-
         let left_in = left.get_input_actions();
+        let left_out = left.get_output_actions();
+        let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();
+
         let right_in = right.get_input_actions();
+        let right_out = right.get_output_actions();
+        let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
         let mut inputs = HashSet::new();
 
@@ -42,48 +49,62 @@ impl Composition {
             right,
             inputs,
             outputs,
+            left_unique_actions: left_actions.difference(&right_actions).cloned().collect(),
+            right_unique_actions: right_actions.difference(&left_actions).cloned().collect(),
+            common_actions: left_actions.intersection(&right_actions).cloned().collect(),
         })
     }
 }
 
-impl<'a> TransitionSystem<'static> for Composition {
+impl TransitionSystem for Composition {
     default_composition!();
-    fn next_transitions<'b>(
-        &'b self,
-        location: &LocationTuple<'b>,
+    fn next_transitions(
+        &self,
+        location: &LocationTuple,
         action: &str,
         sync_type: &SyncType,
         index: &mut usize,
         dim: u32,
-    ) -> Vec<Transition<'b>> {
-        let mut transitions = vec![];
+    ) -> Vec<Transition> {
+        if !match sync_type {
+            SyncType::Input => &self.inputs,
+            SyncType::Output => &self.outputs,
+        }
+        .contains(action)
+        {
+            return vec![];
+        }
+
+        let loc_left = location.get_left();
+        let loc_right = location.get_right();
 
         let mut left = self
             .left
-            .next_transitions(location, action, sync_type, index, dim);
-        let left_index_end = *index;
+            .next_transitions(&loc_left, action, sync_type, index, dim);
         let mut right = self
             .right
-            .next_transitions(location, action, sync_type, index, dim);
-        let right_index_end = *index;
+            .next_transitions(&loc_right, action, sync_type, index, dim);
 
-        if right.is_empty() {
-            let right_loc = location.copy_range(left_index_end, right_index_end);
-            for transition in &mut left {
-                transition.target_locations.add_location_tuple(&right_loc);
-            }
-            transitions = left;
-        } else if left.is_empty() {
-            let left_loc = location.copy_range(0, left_index_end);
-            for transition in &mut right {
-                transition.target_locations.add_location_tuple(&left_loc);
-            }
-            transitions = right;
-        } else {
-            transitions.append(&mut Transition::combinations(&mut left, &mut right));
+        if self.common_actions.contains(action) {
+            return Transition::combinations(&mut left, &mut right, CompositionType::Composition);
+        }
+        if self.left_unique_actions.contains(action) {
+            return Transition::combinations(
+                &mut left,
+                &mut vec![Transition::new(loc_right.clone(), dim)],
+                CompositionType::Composition,
+            );
         }
 
-        transitions
+        if self.right_unique_actions.contains(action) {
+            return Transition::combinations(
+                &mut vec![Transition::new(loc_left.clone(), dim)],
+                &mut right,
+                CompositionType::Composition,
+            );
+        }
+
+        panic!("Unknown error")
     }
 
     fn is_locally_consistent(&self, dimensions: u32) -> bool {
@@ -91,23 +112,31 @@ impl<'a> TransitionSystem<'static> for Composition {
             && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
     }
 
-    fn get_all_locations<'b>(&'b self, index: &mut usize) -> Vec<LocationTuple<'b>> {
+    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple> {
         let mut location_tuples = vec![];
-        let left = self.left.get_all_locations(index);
-        let right = self.right.get_all_locations(index);
-        for loc1 in left {
+        let left = self.left.get_all_locations(dim);
+        let right = self.right.get_all_locations(dim);
+        for loc1 in &left {
             for loc2 in &right {
-                location_tuples.push(LocationTuple::merge(loc1.clone(), &loc2));
+                location_tuples.push(LocationTuple::compose(
+                    &loc1,
+                    &loc2,
+                    self.get_composition_type(),
+                ));
             }
         }
         location_tuples
     }
 
-    fn get_mut_children(&mut self) -> Vec<&mut TransitionSystemPtr> {
-        vec![&mut self.left, &mut self.right]
+    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
+        (&mut self.left, &mut self.right)
     }
 
-    fn get_children(&self) -> Vec<&TransitionSystemPtr> {
-        vec![&self.left, &self.right]
+    fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
+        (&self.left, &self.right)
+    }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Composition
     }
 }

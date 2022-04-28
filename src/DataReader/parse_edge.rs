@@ -1,6 +1,7 @@
 extern crate pest;
-use crate::DataReader::serialization::encode_boolexpr;
+use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{DataReader::serialization::encode_boolexpr, ModelObjects::component::Declarations};
 use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -52,6 +53,10 @@ impl Update {
             self.variable = to_vars[index].clone();
             self.expression = self.expression.swap_clock_names(from_vars, to_vars);
         }
+    }
+
+    pub fn compiled(&self, decl: &Declarations) -> CompiledUpdate {
+        CompiledUpdate::compile(self, decl)
     }
 }
 
