@@ -16,7 +16,12 @@ mod samples {
         let mut clock_index: u32 = 0;
         if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
-            extract_system_rep::extract_side(expr.as_ref(), &mut *comp_loader, &mut clock_index)
+            extract_system_rep::get_system_recipe(
+                expr.as_ref(),
+                &mut *comp_loader,
+                &mut clock_index,
+            )
+            .compile(clock_index)
         } else {
             panic!("Failed to create system")
         }

@@ -34,6 +34,8 @@ extern "C"
 
     void fed_zero(dbm::fed_t &fed);
 
+    void fed_predt(dbm::fed_t &good, const dbm::fed_t &bad);
+
     // maybe call with
     //  let mut ptr = ::std::mem::MaybeUninit::uninit();
     //  func(ptr.as_mut_ptr());

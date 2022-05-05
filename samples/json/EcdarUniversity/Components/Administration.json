@@ -61,6 +61,8 @@
   ],
   "edges": [
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L0",
       "targetLocation": "L1",
       "status": "INPUT",
@@ -87,32 +89,8 @@
       ]
     },
     {
-      "sourceLocation": "L0",
-      "targetLocation": "L3",
-      "status": "INPUT",
-      "select": "",
-      "guard": "",
-      "update": "z\u003d0",
-      "sync": "pub",
-      "isLocked": false,
-      "nails": [
-        {
-          "x": 180.0,
-          "y": 100.0,
-          "propertyType": "SYNCHRONIZATION",
-          "propertyX": -20.0,
-          "propertyY": -30.0
-        },
-        {
-          "x": 230.0,
-          "y": 100.0,
-          "propertyType": "UPDATE",
-          "propertyX": -20.0,
-          "propertyY": -30.0
-        }
-      ]
-    },
-    {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L1",
       "targetLocation": "L2",
       "status": "OUTPUT",
@@ -132,6 +110,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L2",
       "targetLocation": "L3",
       "status": "INPUT",
@@ -158,6 +138,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L3",
       "targetLocation": "L0",
       "status": "OUTPUT",
@@ -177,6 +159,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L1",
       "targetLocation": "L1",
       "status": "INPUT",
@@ -203,6 +187,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L1",
       "targetLocation": "L1",
       "status": "INPUT",
@@ -229,6 +215,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L2",
       "targetLocation": "L2",
       "status": "INPUT",
@@ -255,6 +243,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L3",
       "targetLocation": "L3",
       "status": "INPUT",
@@ -281,6 +271,8 @@
       ]
     },
     {
+      "id": "E7",
+      "group": "",
       "sourceLocation": "L3",
       "targetLocation": "L3",
       "status": "INPUT",

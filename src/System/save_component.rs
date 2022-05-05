@@ -9,11 +9,11 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
-    let dim = system.get_max_clock_index() + 1;
+    let dim = system.get_dim();
     collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks, dim);
 
     let locations = get_locations_from_tuples(&location_tuples, &clocks);
-    Component {
+    let mut comp = Component {
         name: "".to_string(),
         declarations: Declarations {
             ints: HashMap::new(),
@@ -23,7 +23,9 @@ pub fn combine_components(system: &TransitionSystemPtr) -> Component {
         edges: edges,
         input_edges: None,
         output_edges: None,
-    }
+    };
+    comp.create_edge_io_split();
+    comp
 }
 
 fn get_locations_from_tuples(
@@ -78,7 +80,7 @@ fn collect_all_edges_and_locations<'a>(
     clock_map: &HashMap<String, u32>,
     dim: u32,
 ) {
-    let l = representation.get_all_locations(dim);
+    let l = representation.get_all_locations();
     locations.extend(l);
     for location in locations {
         collect_edges_from_location(location, representation, edges, clock_map, dim);
@@ -112,17 +114,17 @@ fn collect_specific_edges_from_location(
         let transitions = representation.next_transitions(
             location,
             &sync,
-            &if input {
-                SyncType::Input
-            } else {
-                SyncType::Output
-            },
-            &mut 0,
-            dim,
+            
         );
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
+
+            let guard = transition.get_renamed_guard_expression(clock_map);
+            if let Some(BoolExpression::Bool(false)) = guard {
+                continue;
+            }
+
             let edge = Edge {
                 source_location: format!("{}", location.id),
                 target_location: format!("{}", target_location.id),
@@ -131,7 +133,7 @@ fn collect_specific_edges_from_location(
                 } else {
                     SyncType::Output
                 },
-                guard: transition.get_renamed_guard_expression(clock_map),
+                guard,
                 update: transition.get_renamed_updates(clock_map),
                 sync: sync.clone(),
             };

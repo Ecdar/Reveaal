@@ -44,15 +44,9 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut passed_list: Vec<StatePair> = vec![];
     let mut waiting_list: Vec<StatePair> = vec![];
-    // Add extra inputs/outputs
-    println!("Sys1: {}", sys1.get_max_clock_index() + 1);
-
-    println!("Sys2: {}", sys2.get_max_clock_index() + 1);
-    let dimensions = 1 + std::cmp::max(sys1.get_max_clock_index(), sys2.get_max_clock_index());
-    sys1.initialize(dimensions);
-    sys2.initialize(dimensions);
+    let dimensions = sys1.get_dim();
     //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2, dimensions) {
+    if !check_preconditions(&sys1, &sys2) {
         debug_print!("preconditions failed - refinement false");
         return Ok(false);
     }
@@ -77,8 +71,8 @@ pub fn check_refinement(
     let extra_inputs = extra_actions(&sys1, &sys2, true);
     let extra_outputs = extra_actions(&sys1, &sys2, false);
 
-    let initial_locations_1 = sys1.get_initial_location(dimensions);
-    let initial_locations_2 = sys2.get_initial_location(dimensions);
+    let initial_locations_1 = sys1.get_initial_location();
+    let initial_locations_2 = sys2.get_initial_location();
 
     debug_print!("Extra inputs {:?}", extra_inputs);
     debug_print!("Extra outputs {:?}", extra_outputs);
@@ -119,16 +113,14 @@ pub fn check_refinement(
             let extra = extra_outputs.contains(output);
 
             let output_transition1 =
-                sys1.next_outputs(curr_pair.get_locations1(), output, dimensions);
+                sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = if extra {
-                vec![]
+                vec![Transition::new(curr_pair.get_locations2(), dimensions)]
             } else {
-                sys2.next_outputs(curr_pair.get_locations2(), output, dimensions)
+                sys2.next_outputs(curr_pair.get_locations2(), output)
             };
 
-            if extra
-                || has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true)
-            {
+            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
                 debug_print!("Creating state pairs for output {}", output);
                 create_new_state_pairs(
                     &output_transition1,
@@ -163,16 +155,14 @@ pub fn check_refinement(
             let extra = extra_inputs.contains(input);
 
             let input_transitions1 = if extra {
-                vec![]
+                vec![Transition::new(curr_pair.get_locations1(), dimensions)]
             } else {
-                sys1.next_inputs(curr_pair.get_locations1(), input, dimensions)
+                sys1.next_inputs(curr_pair.get_locations1(), input)
             };
             let input_transitions2 =
-                sys2.next_inputs(curr_pair.get_locations2(), input, dimensions);
+                sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            if extra
-                || has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false)
-            {
+            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
                 debug_print!("Creating state pairs for input {}", input);
                 create_new_state_pairs(
                     &input_transitions2,
@@ -243,7 +233,7 @@ fn has_valid_state_pair(
     }
     for transition in transitions1 {
         debug_print!("{}", transition);
-        feds.add_fed(&transition.guard_zone);
+        feds.add_fed(&transition.get_allowed_federation());
     }
     let left_fed = feds.intersection(pair_zone);
     debug_print!("{}", left_fed);
@@ -257,7 +247,7 @@ fn has_valid_state_pair(
     let mut feds = Federation::empty(dim);
     for transition in transitions2 {
         debug_print!("{}", transition);
-        feds.add_fed(&transition.guard_zone);
+        feds.add_fed(&transition.get_allowed_federation());
     }
     let right_fed = feds.intersection(pair_zone);
     debug_print!("{}", right_fed);
@@ -281,35 +271,23 @@ fn create_new_state_pairs(
     is_state1: bool,
 ) {
     for transition1 in transitions1 {
-        if transitions2.is_empty() {
+        for transition2 in transitions2 {
             build_state_pair(
                 transition1,
-                None,
+                transition2,
                 curr_pair,
                 waiting_list,
                 passed_list,
                 max_bounds,
                 is_state1,
             );
-        } else {
-            for transition2 in transitions2 {
-                build_state_pair(
-                    transition1,
-                    Some(transition2),
-                    curr_pair,
-                    waiting_list,
-                    passed_list,
-                    max_bounds,
-                    is_state1,
-                );
-            }
         }
     }
 }
 
 fn build_state_pair(
     transition1: &Transition,
-    transition2: Option<&Transition>,
+    transition2: &Transition,
     curr_pair: &StatePair,
     waiting_list: &mut Vec<StatePair>,
     passed_list: &mut Vec<StatePair>,
@@ -326,15 +304,11 @@ fn build_state_pair(
     let mut new_sp_zone = curr_pair.zone.clone();
     //Apply guards on both sides
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
+
     //Applies the left side guards and checks if zone is valid
     let g1_success = transition1.apply_guards(&mut new_sp_zone);
-
     //Applies the right side guards and checks if zone is valid
-    let g2_success = if let Some(t) = transition2 {
-        t.apply_guards(&mut new_sp_zone)
-    } else {
-        true
-    };
+    let g2_success = transition2.apply_guards(&mut new_sp_zone);
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
@@ -343,16 +317,12 @@ fn build_state_pair(
 
     //Apply updates on both sides
     transition1.apply_updates(&mut new_sp_zone);
-    if let Some(t) = transition2 {
-        t.apply_updates(&mut new_sp_zone)
-    };
+    transition2.apply_updates(&mut new_sp_zone);
 
     //Update locations in states
 
     transition1.move_locations(locations1);
-    if let Some(t) = transition2 {
-        t.move_locations(locations2)
-    };
+    transition2.move_locations(locations2);
 
     //Perform a delay on the zone after the updates were applied
     new_sp_zone.up();
@@ -364,14 +334,12 @@ fn build_state_pair(
     let inv_success2 = locations2.apply_invariants(&mut invariant_test);
 
     // check if newly built zones are valid
-    if !inv_success1 || !inv_success2 {
+    if !(inv_success1 && inv_success2) {
         return false;
     }
-    let dim = invariant_test.get_dimensions();
     let inv_test_fed = invariant_test;
-    let sp_zone_fed = new_sp_zone.clone();
 
-    let fed_res = sp_zone_fed.subtraction(&inv_test_fed);
+    let fed_res = new_sp_zone.subtraction(&inv_test_fed);
 
     // Check if the invariant of the other side does not cut solutions and if so, report failure
     // This also happens to be a delay check
@@ -398,19 +366,24 @@ fn prepare_init_state(
         && initial_locations_2.apply_invariants(&mut initial_pair.zone)
 }
 
-fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr, dim: u32) -> bool {
-    if !(sys2.precheck_sys_rep(dim) && sys1.precheck_sys_rep(dim)) {
+fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -> bool {
+    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
+        println!("precheck failed");
         return false;
     }
-    let outputs1 = sys1.get_output_actions();
-    let outputs2 = sys2.get_output_actions();
+    let s_outputs = sys1.get_output_actions();
+    let t_outputs = sys2.get_output_actions();
 
-    let inputs1 = sys1.get_input_actions();
-    let inputs2 = sys2.get_input_actions();
+    let s_inputs = sys1.get_input_actions();
+    let t_inputs = sys2.get_input_actions();
 
-    let disjoint = inputs1.is_disjoint(&outputs2) && inputs2.is_disjoint(&outputs1);
+    let disjoint = s_inputs.is_disjoint(&t_outputs) && t_inputs.is_disjoint(&s_outputs);
 
-    let subset = inputs1.is_subset(&inputs2) && outputs2.is_subset(&outputs1);
+    let subset = s_inputs.is_subset(&t_inputs) && t_outputs.is_subset(&s_outputs);
+
+    println!("Disjoint {disjoint}, subset {subset}");
+    println!("S i:{s_inputs:?} o:{s_outputs:?}");
+    println!("T i:{t_inputs:?} o:{t_outputs:?}");
 
     disjoint && subset
 }

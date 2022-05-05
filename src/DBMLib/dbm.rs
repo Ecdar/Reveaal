@@ -209,6 +209,11 @@ impl Federation {
         lib::rs_fed_intersects(self, other)
     }
 
+    /// Update the federation to the temporal predecessor of this federation avoiding 'bad'
+    pub fn predt(&mut self, bad: &Self) {
+        lib::rs_fed_predt(self, bad);
+    }
+
     /// Update the federation to contain its inverse
     ///
     /// `self` is changed, for unchanged `self` see  [`inverse`].
@@ -316,10 +321,26 @@ impl Federation {
     ///
     /// ```
     /// assert!(Federation::empty().is_empty());
-    /// assert!(!Federation::zero().is_empty());
+    /// assert!(!Federation::full().is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         lib::rs_fed_is_empty(self)
+    }
+
+    /// Checks whether the federation is full / unrestrained
+    ///
+    /// Return `true` if all the federation is unrestrained
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// assert!(Federation::full().is_full());
+    /// assert!((!Federation::empty()).is_full());
+    /// ```
+    pub fn is_full(&self) -> bool {
+        self.inverse().is_empty()
     }
 
     /*
@@ -390,7 +411,7 @@ impl Federation {
     }
 
     /// Check whether the any DBM in the federation can delay indefinitely
-    pub fn canDelayIndefinitely(&self) -> bool {
+    pub fn can_delay_indefinitely(&self) -> bool {
         lib::rs_fed_can_delay_indef(self)
     }
 
@@ -556,7 +577,7 @@ impl Display for Federation {
         //return Ok(());
         write!(
             f,
-            "Federation{{{}}}",
+            "{{{}}}",
             self.as_boolexpression(None)
                 .unwrap_or(BoolExpression::Bool(true))
         )?;

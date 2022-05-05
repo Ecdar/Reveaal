@@ -102,6 +102,13 @@ impl LocationTuple {
 
     //Merge two locations keeping the invariants seperate
     pub fn merge(left: &Self, right: &Self, comp: CompositionType) -> Self {
+        println!(
+            "Merging {} inv {} and {} inv {}",
+            left.id,
+            left.get_invariants().unwrap_or(&Federation::full(1)),
+            right.id,
+            right.get_invariants().unwrap_or(&Federation::full(1))
+        );
         let id = match comp {
             CompositionType::Quotient => {
                 LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()))
@@ -134,6 +141,13 @@ impl LocationTuple {
 
     //Compose two locations intersecting the invariants
     pub fn compose(left: &Self, right: &Self, comp: CompositionType) -> Self {
+        println!(
+            "Composing {} inv {} and {} inv {}",
+            left.id,
+            left.get_invariants().unwrap_or(&Federation::full(1)),
+            right.id,
+            right.get_invariants().unwrap_or(&Federation::full(1))
+        );
         let id = match comp {
             CompositionType::Conjunction => {
                 LocationID::Conjunction(Box::new(left.id.clone()), Box::new(right.id.clone()))
@@ -215,25 +229,32 @@ impl LocationTuple {
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
 pub trait TransitionSystem: DynClone {
-    fn get_max_bounds(&self, dim: u32) -> MaxBounds;
+    fn get_max_bounds(&self) -> MaxBounds;
 
-    fn next_transitions(
+    fn get_dim(&self) -> u32;
+
+    fn next_transitions_if_available(
         &self,
         location: &LocationTuple,
         action: &str,
-        sync_type: &SyncType,
-        index: &mut usize,
-        dim: u32,
-    ) -> Vec<Transition>;
-
-    fn next_outputs(&self, location: &LocationTuple, action: &str, dim: u32) -> Vec<Transition> {
-        let mut index = 0;
-        self.next_transitions(location, action, &SyncType::Output, &mut index, dim)
+    ) -> Vec<Transition> {
+        if self.actions_contain(action) {
+            self.next_transitions(location, action)
+        } else {
+            vec![]
+        }
     }
 
-    fn next_inputs(&self, location: &LocationTuple, action: &str, dim: u32) -> Vec<Transition> {
-        let mut index = 0;
-        self.next_transitions(location, action, &SyncType::Input, &mut index, dim)
+    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
+
+    fn next_outputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+        debug_assert!(self.get_output_actions().contains(action));
+        self.next_transitions(location, action)
+    }
+
+    fn next_inputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+        debug_assert!(self.get_input_actions().contains(action));
+        self.next_transitions(location, action)
     }
 
     fn get_input_actions(&self) -> HashSet<String>;
@@ -254,27 +275,19 @@ pub trait TransitionSystem: DynClone {
         self.get_actions().contains(action)
     }
 
-    fn get_initial_location(&self, dim: u32) -> Option<LocationTuple>;
+    fn get_initial_location(&self) -> Option<LocationTuple>;
 
-    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple>;
-
-    fn get_num_clocks(&self) -> u32;
+    fn get_all_locations(&self) -> Vec<LocationTuple>;
 
     fn get_decls(&self) -> Vec<&Declarations>;
 
-    fn precheck_sys_rep(&self, dim: u32) -> bool;
+    fn precheck_sys_rep(&self) -> bool;
 
-    fn initialize(&mut self, dimensions: u32) {}
+    fn is_deterministic(&self) -> bool;
 
-    fn is_deterministic(&self, dim: u32) -> bool;
+    fn is_locally_consistent(&self) -> bool;
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool;
-
-    fn set_clock_indices(&mut self, index: &mut u32);
-
-    fn get_initial_state(&self, dimensions: u32) -> Option<State>;
-
-    fn get_max_clock_index(&self) -> u32;
+    fn get_initial_state(&self) -> Option<State>;
 
     fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr);
 
@@ -284,163 +297,3 @@ pub trait TransitionSystem: DynClone {
 }
 
 clone_trait_object!(TransitionSystem);
-
-impl TransitionSystem for Component {
-    fn get_composition_type(&self) -> CompositionType {
-        panic!("Components do not have a composition type")
-    }
-
-    fn set_clock_indices(&mut self, index: &mut u32) {
-        self.declarations.set_clock_indices(*index);
-
-        *index += self.get_num_clocks();
-    }
-
-    fn get_max_clock_index(&self) -> u32 {
-        *(self.declarations.clocks.values().max().unwrap_or(&0))
-    }
-
-    fn get_decls(&self) -> Vec<&Declarations> {
-        vec![self.get_declarations()]
-    }
-
-    fn get_max_bounds(&self, dim: u32) -> MaxBounds {
-        self.get_max_bounds(dim)
-    }
-
-    fn get_input_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_input_actions();
-
-        channels.into_iter().map(|c| c.name).collect()
-    }
-
-    fn get_output_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_output_actions();
-
-        channels.into_iter().map(|c| c.name).collect()
-    }
-
-    fn get_actions(&self) -> HashSet<String> {
-        let channels: Vec<Channel> = self.get_actions();
-
-        channels.into_iter().map(|c| c.name).collect()
-    }
-
-    fn get_num_clocks(&self) -> u32 {
-        self.declarations.get_clock_count()
-    }
-
-    fn get_initial_location(&self, dim: u32) -> Option<LocationTuple> {
-        let loc = self.get_initial_location()?;
-        Some(LocationTuple::simple(loc, &self.declarations, dim))
-    }
-
-    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple> {
-        let locations = self
-            .get_locations()
-            .iter()
-            .map(|loc| LocationTuple::simple(loc, &self.declarations, dim))
-            .collect();
-
-        locations
-    }
-
-    fn next_transitions(
-        &self,
-        locations: &LocationTuple,
-        action: &str,
-        sync_type: &SyncType,
-        index: &mut usize,
-        dim: u32,
-    ) -> Vec<Transition> {
-        if !crate::ModelObjects::component::contain(
-            &match sync_type {
-                SyncType::Input => self.get_input_actions(),
-                SyncType::Output => self.get_output_actions(),
-            },
-            action,
-        ) {
-            return vec![];
-        }
-
-        if locations.is_universal() {
-            return vec![Transition::new(locations.clone(), dim)];
-        }
-
-        if locations.is_inconsistent() && *sync_type == SyncType::Input {
-            return vec![Transition::new(locations.clone(), dim)];
-        }
-
-        match &locations.id {
-            LocationID::Simple(loc_id) => {
-                let location = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (*l.get_id() == *loc_id))
-                    .unwrap();
-                let mut open_transitions = vec![];
-
-                let next_edges = self.get_next_edges(location, action, *sync_type);
-                for edge in next_edges {
-                    let transition = Transition::from((self, edge, *index), locations, dim);
-                    open_transitions.push(transition);
-                }
-
-                *index += 1;
-                open_transitions
-            }
-            _ => panic!("Unsupported location type {:?} for Component", locations.id),
-        }
-    }
-
-    fn precheck_sys_rep(&self, dim: u32) -> bool {
-        if !self.is_deterministic(dim) {
-            println!("{} NOT DETERMINISTIC", self.get_name());
-            return false;
-        }
-
-        if !self.is_locally_consistent(dim) {
-            println!("NOT CONSISTENT");
-            return false;
-        }
-
-        true
-        //self.check_consistency(dim, true)
-    }
-
-    fn is_deterministic(&self, dim: u32) -> bool {
-        Component::is_deterministic(self, dim)
-    }
-
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
-        local_consistency::is_least_consistent(self, dimensions)
-    }
-
-    fn get_initial_state(&self, dimensions: u32) -> Option<State> {
-        let init_loc = LocationTuple::simple(
-            self.get_initial_location().unwrap(),
-            self.get_declarations(),
-            dimensions,
-        );
-
-        State::from_location(init_loc, dimensions)
-        /*let mut zone = Federation::init(dimensions);
-        if !init_loc.apply_invariants(&mut zone) {
-            println!("Empty initial state");
-            return None;
-        }
-
-        Some(State {
-            decorated_locations: init_loc,
-            zone,
-        })*/
-    }
-
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        unimplemented!()
-    }
-
-    fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
-        unimplemented!()
-    }
-}

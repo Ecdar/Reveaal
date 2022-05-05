@@ -120,6 +120,13 @@ pub fn rs_fed_intersect(fed1: &mut Federation, fed2: &Federation) {
     //rs_fed_reduce(&mut fed1, true);
 }
 
+pub fn rs_fed_predt(good: &mut Federation, bad: &Federation) {
+    trace!();
+    unsafe {
+        sync!(UDBM::fed_predt(&mut good.raw, &bad.raw));
+    }
+}
+
 ///  oda federation minus federation
 pub fn rs_fed_subtract(fed1: &mut Federation, fed2: &Federation) {
     trace!();
@@ -172,7 +179,6 @@ pub fn rs_fed_zero(fed: &mut Federation) {
 pub fn rs_fed_new(dim: UDBM::cindex_t) -> Federation {
     trace!();
     assert!(dim > 0);
-
     // Max dim from dbm\build\UDBM\src\udbm\dbm\DBMAllocator.h:32:35
     // If exceeded causes segmentation fault in c code
     assert!(dim < MAX_DIM);

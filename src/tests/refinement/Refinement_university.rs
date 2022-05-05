@@ -219,6 +219,62 @@ mod Refinement_university {
     }
 
     #[test]
+    fn testHalfCompNotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: (HalfAdm1 && HalfAdm2) || Researcher || Machine <= Spec"
+        ));
+    }
+
+    #[test]
+    fn testAdminRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration <= Spec // Researcher // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Spec // Administration // Machine"
+        ));
+    }
+
+    #[test]
+    fn testMachineRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine <= Spec // Administration // Researcher"
+        ));
+    }
+
+    #[test]
+    fn testAdminResearcherRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration || Researcher <= Spec // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherMachineRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Researcher || Machine <= Spec // Administration"
+        ));
+    }
+
+    #[test]
+    fn testMachineAdminRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine || Administration <= Spec // Researcher"
+        ));
+    }
+
+    #[test]
     fn testCompRefinesSelf() {
         assert!(json_refinement_check(
             PATH,

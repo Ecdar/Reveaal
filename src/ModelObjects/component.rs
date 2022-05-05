@@ -56,6 +56,11 @@ impl Component {
         }
     }
 
+    pub fn set_clock_indices(&mut self, indices: &mut u32) {
+        self.declarations.set_clock_indices(*indices);
+        *indices += self.declarations.get_clock_count();
+    }
+
     ///Start of basic methods for manipulating fields
     pub fn get_name(&self) -> &String {
         &self.name
@@ -93,6 +98,7 @@ impl Component {
         self.edges.append(edges);
     }
     pub fn add_input_edges(&mut self, edges: &mut Vec<Edge>) {
+        self.add_edges(edges);
         if let Some(input_edges) = &mut self.input_edges {
             input_edges.append(edges);
         } else {
@@ -582,21 +588,16 @@ pub struct Transition {
     pub updates: Vec<CompiledUpdate>,
 }
 impl Transition {
-    pub fn new(target_locations: LocationTuple, dim: u32) -> Transition {
+    pub fn new(target_locations: &LocationTuple, dim: u32) -> Transition {
         Transition {
             guard_zone: Federation::full(dim),
-            target_locations,
+            target_locations: target_locations.clone(),
             updates: vec![],
         }
     }
 
-    pub fn from(
-        edges: (&Component, &Edge, usize),
-        current_location: &LocationTuple,
-        dim: u32,
-    ) -> Transition {
-        let mut updates: HashMap<usize, Vec<parse_edge::Update>> = HashMap::new();
-        let (comp, edge, index) = edges;
+    pub fn from(edges: (&Component, &Edge), dim: u32) -> Transition {
+        let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
         let target_loc = comp.get_location_by_name(target_loc_name);
@@ -612,12 +613,7 @@ impl Transition {
         }
 
         Transition {
-            guard_zone: Transition::get_guard_federation(
-                &vec![edges],
-                current_location,
-                &target_locations,
-                dim,
-            ),
+            guard_zone: Transition::combine_edge_guards(&vec![edges], dim),
             target_locations,
             updates: compiled_updates,
         }
@@ -644,6 +640,7 @@ impl Transition {
         let mut out: Vec<Transition> = vec![];
         for l in left {
             for r in &*right {
+                println!("Combining {l} and {r}");
                 let target_locations =
                     LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
@@ -671,8 +668,21 @@ impl Transition {
 
     pub fn inverse_apply_updates(&self, zone: &mut Federation) {
         for update in &self.updates {
-            update.inverse_apply(zone);
+            update.apply_as_guard(zone);
         }
+        for update in &self.updates {
+            update.apply_as_free(zone);
+        }
+    }
+
+    pub fn get_allowed_federation(&self) -> Federation {
+        let mut fed = match self.target_locations.get_invariants() {
+            Some(fed) => fed.clone(),
+            None => Federation::full(self.guard_zone.get_dimensions()),
+        };
+        self.inverse_apply_updates(&mut fed);
+        self.apply_guards(&mut fed);
+        fed
     }
 
     pub fn apply_guards(&self, zone: &mut Federation) -> bool {
@@ -684,28 +694,10 @@ impl Transition {
         *locations = self.target_locations.clone();
     }
 
-    pub fn get_guard_federation(
-        edges: &Vec<(&Component, &Edge, usize)>,
-        starting_locations: &LocationTuple,
-        target_locations: &LocationTuple,
-        dim: u32,
-    ) -> Federation {
+    pub fn combine_edge_guards(edges: &Vec<(&Component, &Edge)>, dim: u32) -> Federation {
         let mut zone = Federation::full(dim);
-        for (comp, edge, index) in edges {
-            let mut guard_zone = Federation::full(dim);
-            if !target_locations.apply_invariants(&mut guard_zone) {
-                continue;
-            }
-            for clock in edge.get_update_clocks() {
-                let clock_index = comp.get_declarations().get_clock_index_by_name(clock);
-                guard_zone.free_clock(*(clock_index.unwrap()));
-            }
-            let success = edge.apply_guard(comp.get_declarations(), &mut guard_zone);
-            if success {
-                zone.intersect(&guard_zone)
-            } else {
-                return Federation::empty(dim);
-            };
+        for (comp, edge) in edges {
+            edge.apply_guard(comp.get_declarations(), &mut zone);
         }
         zone
     }
@@ -734,14 +726,20 @@ impl Transition {
 impl fmt::Display for Transition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
-            "Transition{{{} to {}}}",
-            self.guard_zone, self.target_locations.id
+            "Transition{{{} to {} [{}]}}",
+            self.guard_zone,
+            self.target_locations.id,
+            self.updates
+                .iter()
+                .map(|u| format!("{}", u))
+                .collect::<Vec<_>>()
+                .join(", ")
         ))?;
         Ok(())
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
     #[serde(rename = "sourceLocation")]
@@ -936,6 +934,10 @@ impl Declarations {
 
     pub fn get_clock_count(&self) -> u32 {
         self.clocks.len() as u32
+    }
+
+    pub fn get_max_clock_index(&self) -> u32 {
+        *self.clocks.values().max().unwrap_or(&0)
     }
 
     pub fn set_clock_indices(&mut self, start_index: u32) {

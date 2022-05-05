@@ -492,6 +492,46 @@ pub fn build_guard_from_zone(
         }
         let var = var.unwrap();
 
+        // Find next equal
+        let mut found_equal = false;
+        for index_j in index_i + 1..zone.dimension {
+            let var_j = var_from_index(index_j, &clocks);
+            if var_j.is_none() {
+                continue;
+            }
+            let var_j = var_j.unwrap();
+
+            if is_equal(zone, index_i, index_j) {
+                if !found_equal {
+                    found_equal = true;
+                    guards.push(BoolExpression::EQ(var.clone(), var_j));
+                }
+                // Further equalitites are added in next iteration transitively
+                continue;
+            } else {
+                continue;
+                add_diagonal_constraints(
+                    zone,
+                    index_i,
+                    index_j,
+                    var.clone(),
+                    var_j.clone(),
+                    &mut guards,
+                );
+                add_diagonal_constraints(
+                    zone,
+                    index_j,
+                    index_i,
+                    var_j.clone(),
+                    var.clone(),
+                    &mut guards,
+                );
+            }
+        }
+
+        if found_equal {
+            continue;
+        }
         //for clock in clocks.keys() {
         //let index_i = clocks.get(clock).unwrap();
         // i-j <= c
@@ -527,43 +567,6 @@ pub fn build_guard_from_zone(
                     var.clone(),
                     Box::new(BoolExpression::Int(upper_val)),
                 ));
-            }
-        }
-
-        // Find next equal
-        let mut found_equal = false;
-        for index_j in index_i + 1..zone.dimension {
-            let var_j = var_from_index(index_j, &clocks);
-            if var_j.is_none() {
-                continue;
-            }
-            let var_j = var_j.unwrap();
-
-            if is_equal(zone, index_i, index_j) {
-                if !found_equal {
-                    found_equal = true;
-                    guards.push(BoolExpression::EQ(var.clone(), var_j));
-                }
-                // Further equalitites are added in next iteration transitively
-                continue;
-            } else {
-                continue;
-                add_diagonal_constraints(
-                    zone,
-                    index_i,
-                    index_j,
-                    var.clone(),
-                    var_j.clone(),
-                    &mut guards,
-                );
-                add_diagonal_constraints(
-                    zone,
-                    index_j,
-                    index_i,
-                    var_j.clone(),
-                    var.clone(),
-                    &mut guards,
-                );
             }
         }
     }

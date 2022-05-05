@@ -16,10 +16,16 @@ pub struct Composition {
     left_unique_actions: HashSet<String>,
     right_unique_actions: HashSet<String>,
     common_actions: HashSet<String>,
+
+    dim: u32,
 }
 
 impl Composition {
-    pub fn new(left: TransitionSystemPtr, right: TransitionSystemPtr) -> Box<Composition> {
+    pub fn new(
+        left: TransitionSystemPtr,
+        right: TransitionSystemPtr,
+        dim: u32,
+    ) -> TransitionSystemPtr {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
         let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();
@@ -28,6 +34,11 @@ impl Composition {
         let right_out = right.get_output_actions();
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
+        if !left_out.is_disjoint(&right_out) {
+            panic!("Invalid composition, outputs are not disjoint");
+        }
+
+        // Act_i = Act1_i \ Act2_o ∪ Act2_i \ Act1_o
         let mut inputs = HashSet::new();
 
         for a in &left_in {
@@ -35,13 +46,13 @@ impl Composition {
                 inputs.insert(a.clone());
             }
         }
-
         for a in &right_in {
             if !left_out.contains(a) {
                 inputs.insert(a.clone());
             }
         }
 
+        // Act_o = Act1_o ∪ Act2_o
         let outputs = left_out.union(&right_out).cloned().collect();
 
         Box::new(Composition {
@@ -52,70 +63,57 @@ impl Composition {
             left_unique_actions: left_actions.difference(&right_actions).cloned().collect(),
             right_unique_actions: right_actions.difference(&left_actions).cloned().collect(),
             common_actions: left_actions.intersection(&right_actions).cloned().collect(),
+            dim,
         })
     }
 }
 
 impl TransitionSystem for Composition {
     default_composition!();
-    fn next_transitions(
-        &self,
-        location: &LocationTuple,
-        action: &str,
-        sync_type: &SyncType,
-        index: &mut usize,
-        dim: u32,
-    ) -> Vec<Transition> {
-        if !match sync_type {
-            SyncType::Input => &self.inputs,
-            SyncType::Output => &self.outputs,
-        }
-        .contains(action)
-        {
-            return vec![];
-        }
+    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+        assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();
         let loc_right = location.get_right();
 
-        let mut left = self
-            .left
-            .next_transitions(&loc_left, action, sync_type, index, dim);
-        let mut right = self
-            .right
-            .next_transitions(&loc_right, action, sync_type, index, dim);
-
         if self.common_actions.contains(action) {
-            return Transition::combinations(&mut left, &mut right, CompositionType::Composition);
+            let left = self.left.next_transitions(&loc_left, action);
+            let right = self.right.next_transitions(&loc_right, action);
+            return Transition::combinations(&left, &right, CompositionType::Composition);
         }
+
         if self.left_unique_actions.contains(action) {
+            let left = self.left.next_transitions(&loc_left, action);
             return Transition::combinations(
-                &mut left,
-                &mut vec![Transition::new(loc_right.clone(), dim)],
+                &left,
+                &mut vec![Transition::new(loc_right, self.dim)],
                 CompositionType::Composition,
             );
         }
 
         if self.right_unique_actions.contains(action) {
+            let right = self.right.next_transitions(&loc_right, action);
             return Transition::combinations(
-                &mut vec![Transition::new(loc_left.clone(), dim)],
-                &mut right,
+                &mut vec![Transition::new(loc_left, self.dim)],
+                &right,
                 CompositionType::Composition,
             );
         }
 
-        panic!("Unknown error")
+        unreachable!()
     }
 
-    fn is_locally_consistent(&self, dimensions: u32) -> bool {
-        local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
-            && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)
+    fn is_locally_consistent(&self) -> bool {
+        local_consistency::is_least_consistent(self)
+        //self.left.is_locally_consistent() && self.right.is_locally_consistent()
+        /*local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
+        && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)*/
     }
 
-    fn get_all_locations(&self, dim: u32) -> Vec<LocationTuple> {
+    fn get_all_locations(&self) -> Vec<LocationTuple> {
         let mut location_tuples = vec![];
-        let left = self.left.get_all_locations(dim);
-        let right = self.right.get_all_locations(dim);
+        let left = self.left.get_all_locations();
+        let right = self.right.get_all_locations();
         for loc1 in &left {
             for loc2 in &right {
                 location_tuples.push(LocationTuple::compose(

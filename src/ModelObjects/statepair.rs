@@ -62,8 +62,8 @@ impl StatePair {
     ) -> MaxBounds {
         let dim = self.zone.get_dimensions();
 
-        let mut bounds = sys1.get_max_bounds(dim);
-        bounds.add_bounds(&sys2.get_max_bounds(dim));
+        let mut bounds = sys1.get_max_bounds();
+        bounds.add_bounds(&sys2.get_max_bounds());
 
         bounds
     }
