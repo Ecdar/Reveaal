@@ -22,7 +22,10 @@ pub fn parse(edge_attribute_str: &str) -> Result<BoolExpression, Error<Rule>> {
 }
 
 pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
-    let pair = pair.into_inner().next().unwrap();
+    let mut inner = pair.into_inner();
+    //println!("inner pair: {:?}", inner);
+    let pair = inner.next().unwrap();
+    //println!("pair: {:?}", pair);
     match pair.as_rule() {
         Rule::andExpr => {
             let pair_span = pair.as_span();
@@ -32,10 +35,13 @@ pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpre
                 return BoolExpression::Bool(true);
             }
 
+            build_and_from_pair(pair)
+            /*
             let mut inner_pairs = pair.into_inner();
             let inner_pair = inner_pairs.next().unwrap();
 
             build_expression_from_pair(inner_pair)
+            */
         }
         _ => panic!("Unable to match: {:?} as rule, guard", pair),
     }
