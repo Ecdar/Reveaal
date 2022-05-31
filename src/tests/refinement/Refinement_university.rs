@@ -227,6 +227,54 @@ mod Refinement_university {
     }
 
     #[test]
+    fn testAdm2NotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Adm2 <= Spec // Researcher // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Spec // Adm2 // Machine"
+        ));
+    }
+
+    #[test]
+    fn testMachineNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine <= Spec // Adm2 // Researcher"
+        ));
+    }
+
+    #[test]
+    fn testAdm2ResearcherNotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Adm2 || Researcher <= Spec // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherMachineNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher || Machine <= Spec // Adm2"
+        ));
+    }
+
+    #[test]
+    fn testMachineAdm2NotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine || Adm2 <= Spec // Researcher"
+        ));
+    }
+
+    #[test]
     fn testAdminRefinesSpec() {
         assert!(json_refinement_check(
             PATH,
