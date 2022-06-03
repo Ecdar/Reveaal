@@ -6,7 +6,7 @@ use crate::ModelObjects::component::{
 use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
-use crate::TransitionSystems::LocationTuple;
+use crate::TransitionSystems::{CompiledComponent, LocationTuple};
 use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
@@ -33,9 +33,9 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: u32) -> TransitionSystemPtr {
         },
     };
 
-    let result = Box::new(prune(&comp, dim, inputs, outputs, &sys_decl));
+    let result = prune(&comp, dim, inputs, outputs, &sys_decl);
 
-    result
+    result.unwrap()
 }
 
 struct PruneContext {
@@ -96,7 +96,7 @@ pub fn prune(
     inputs: HashSet<String>,
     outputs: HashSet<String>,
     decl: &SystemDeclarations,
-) -> PrunedComponent {
+) -> Result<Box<CompiledComponent>, String> {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
     let inconsistent_locs: Vec<_> = new_comp
@@ -158,11 +158,7 @@ pub fn prune(
         new_comp.get_edges().len()
     );
 
-    return PrunedComponent {
-        component: Box::new(new_comp),
-        inputs,
-        outputs,
-    };
+    CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim)
 }
 
 fn add_inconsistent_parts_to_invariants(
@@ -513,6 +509,8 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) {
 
 fn is_immediately_inconsistent(location: &Location, comp: &Component, dimensions: u32) -> bool {
     let loc = LocationTuple::simple(location, &comp.declarations, dimensions);
+
+    return loc.is_inconsistent();
     let fed = loc.get_invariants();
     let res = match fed {
         Some(fed) => !fed.can_delay_indefinitely(),
