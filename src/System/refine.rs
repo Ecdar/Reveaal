@@ -28,7 +28,6 @@ fn extra_actions(
         sys2.get_input_actions()
             .difference(&sys1.get_input_actions())
             .cloned()
-            //.filter(|l| !l.starts_with("quotient_new_input"))
             .collect()
     } else {
         sys1.get_output_actions()
@@ -74,8 +73,8 @@ pub fn check_refinement(
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
 
-    debug_print!("Extra inputs {:?}", extra_inputs);
-    debug_print!("Extra outputs {:?}", extra_outputs);
+    println!("Extra inputs {:?}", extra_inputs);
+    println!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
         return Ok(initial_locations_2 == None);
@@ -132,23 +131,21 @@ pub fn check_refinement(
                     true,
                 )
             } else {
-                debug_print!("Refinement check failed for Output {:?}", output);
-                debug_print!("Transitions1:");
+                println!("Refinement check failed for Output {:?}", output);
+                println!("Transitions1:");
                 for t in &output_transition1 {
-                    debug_print!("{}", t);
+                    println!("{}", t);
                 }
-                debug_print!("Transitions2:");
+                println!("Transitions2:");
                 for t in &output_transition2 {
-                    debug_print!("{}", t);
+                    println!("{}", t);
                 }
-                debug_print!("Current pair: {}", curr_pair);
-                debug_print!("Relation:");
-                for pair in passed_list {
-                    debug_print!("{}", pair);
-                }
+                println!("Current pair: {}", curr_pair);
+                println!("Relation:");
+                print_relation(&passed_list);
 
                 return Ok(false);
-            }
+            };
         }
 
         for input in &inputs {
@@ -312,6 +309,7 @@ fn build_state_pair(
 
     //Fails the refinement if at any point the zone was invalid
     if !g1_success || !g2_success {
+        //println!("Failed @1");
         return false;
     }
 
@@ -387,16 +385,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
 
     disjoint && subset
 }
-
-fn is_new_state(state_pair: &mut StatePair, passed_list: &mut Vec<StatePair>) -> bool {
+/*
+fn is_new_state(state_pair: &StatePair, passed_list: &WaitingStateList) -> bool {
     'OuterFor: for passed_state_pair in passed_list {
-        /*if passed_state_pair.get_locations1().len() != state_pair.get_locations1().len() {
-            panic!("states should always have same length")
-        }
-        if passed_state_pair.get_locations2().len() != state_pair.get_locations2().len() {
-            panic!("state vectors should always have same length")
-        }*/
-
         if passed_state_pair.get_locations1() != state_pair.get_locations1() {
             continue 'OuterFor;
         }
@@ -414,4 +405,4 @@ fn is_new_state(state_pair: &mut StatePair, passed_list: &mut Vec<StatePair>) ->
         }
     }
     true
-}
+}*/
