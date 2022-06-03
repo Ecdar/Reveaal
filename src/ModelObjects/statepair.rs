@@ -72,8 +72,18 @@ impl StatePair {
 impl Display for StatePair {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "Pair: ({{{}}}, {{{}}} {}",
-            self.locations1.id, self.locations2.id, self.zone
+            "Pair: 1:{} where {}, 2:{} where {}, zone: {}",
+            self.locations1.id,
+            self.locations1
+                .get_invariants()
+                .map(|f| format!("{}", f))
+                .unwrap_or("no invariant".to_string()),
+            self.locations2.id,
+            self.locations2
+                .get_invariants()
+                .map(|f| format!("{}", f))
+                .unwrap_or("no invariant".to_string()),
+            self.zone
         ))?;
 
         Ok(())
