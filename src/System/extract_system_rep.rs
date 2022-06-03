@@ -63,8 +63,6 @@ pub fn create_executable_query<'a>(
             ,
             QueryExpression::Prune(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    
-                    
                     Ok(Box::new(
                         GetComponentExecutor {
                             system: pruning::prune_system(get_system_recipe(query_expression, component_loader, &mut dim).compile(dim)?, dim),
@@ -97,14 +95,17 @@ impl SystemRecipe {
     pub fn compile(self, dim: u32) -> Result<TransitionSystemPtr, String> {
         match self {
             SystemRecipe::Composition(left, right) => {
-                Composition::new(left.compile(dim)?, right.compile(dim)?, dim +1)
+                Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
             }
             SystemRecipe::Conjunction(left, right) => {
-                Conjunction::new(left.compile(dim)?, right.compile(dim)?, dim +1)
+                Conjunction::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
             }
-            SystemRecipe::Quotient(left, right, clock_index) => {
-                Quotient::new(left.compile(dim)?, right.compile(dim)?, clock_index, dim + 1)
-            }
+            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
+                left.compile(dim)?,
+                right.compile(dim)?,
+                clock_index,
+                dim + 1,
+            ),
             SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim + 1) {
                 Ok(comp) => Ok(comp),
                 Err(err) => Err(err),
@@ -134,11 +135,7 @@ pub fn get_system_recipe(
             let left = get_system_recipe(left, component_loader, clock_index);
             let right = get_system_recipe(right, component_loader, clock_index);
             *clock_index += 1;
-            let mut quotient = Box::new(SystemRecipe::Quotient(
-                left,
-                right,
-                *clock_index,
-            ));
+            let mut quotient = Box::new(SystemRecipe::Quotient(left, right, *clock_index));
             println!("Quotient clock index: {}", *clock_index);
             quotient
         }

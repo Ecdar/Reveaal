@@ -208,13 +208,16 @@ fn print_relation(passed_list: &PassedStateList) {
     for (id1, id2) in sorted_keys {
         let zones = passed_list.zones(&(id1.clone(), id2.clone()));
 
-        if zones.len() != 1 {
-            debug_print!("1:{} 2:{} {} zones", id1, id2, zones.len());
-        } else if verbose {
-            debug_print!("1:{} 2:{} {} zone", id1, id2, zones[0]);
-        } else {
-            debug_print!("1:{} 2:{}", id1, id2);
-        }
+        debug_print!(
+            "{}",
+            if zones.len() != 1 {
+                format!("1:{} 2:{} {} zones", id1, id2, zones.len())
+            } else if verbose {
+                format!("1:{} 2:{} {} zone", id1, id2, zones[0])
+            } else {
+                format!("1:{} 2:{}", id1, id2)
+            }
+        );
     }
 }
 
@@ -273,11 +276,7 @@ fn get_guard_fed_for_sides(
     debug_print!("Zone: {}", pair_zone);
     //create guard zones left
     let mut feds = Federation::empty(dim);
-    if is_state1 {
-        debug_print!("Left:");
-    } else {
-        debug_print!("Right:");
-    }
+    debug_print!("{}", if is_state1 { "Left:" } else { "Right:" });
     for transition in transitions1 {
         debug_print!("{}", transition);
         feds.add_fed(&transition.get_allowed_federation());
@@ -285,11 +284,7 @@ fn get_guard_fed_for_sides(
     let fed1 = feds.intersection(pair_zone);
     debug_print!("{}", fed1);
 
-    if is_state1 {
-        debug_print!("Right:");
-    } else {
-        debug_print!("Left:");
-    }
+    debug_print!("{}", if is_state1 { "Right:" } else { "Left:" });
     //Create guard zones right
     let mut feds = Federation::empty(dim);
     for transition in transitions2 {

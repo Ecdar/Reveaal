@@ -238,7 +238,6 @@ fn remove_transition_if_unsat(edge: &Edge, context: &mut PruneContext) {
     if let Some(inv) = target_loc.get_invariant() {
         apply_constraints_to_state(inv, context.decl(), &mut edge_fed);
     }
-    drop(target_loc);
 
     // Subtract target inconsistent part
     if let Some(incons) = context.try_get_incons(edge.get_target_location()) {
@@ -271,7 +270,6 @@ fn remove_transition_if_unsat(edge: &Edge, context: &mut PruneContext) {
     if let Some(inv) = source_loc.get_invariant() {
         apply_constraints_to_state(inv, context.decl(), &mut edge_fed);
     }
-    drop(source_loc);
 
     // Subtract source inconsistent part
     if let Some(incons) = context.try_get_incons(edge.get_source_location()) {

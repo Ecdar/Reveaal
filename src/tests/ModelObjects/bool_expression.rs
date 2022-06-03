@@ -9,5 +9,3 @@ mod bool_expression {
         assert_eq!(Bool(true), expr);
     }
 }
-
-

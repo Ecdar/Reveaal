@@ -13,7 +13,7 @@ use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum LocationID {
     Conjunction(Box<LocationID>, Box<LocationID>),
     Composition(Box<LocationID>, Box<LocationID>),
@@ -54,18 +54,6 @@ impl From<QueryExpression> for LocationID {
                 "Cannot convert queryexpression with {:?} to LocationID",
                 item
             ),
-        }
-    }
-}
-
-impl PartialEq for LocationID {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Conjunction(l0, l1), Self::Conjunction(r0, r1)) => l0 == r0 && l1 == r1,
-            (Self::Composition(l0, l1), Self::Composition(r0, r1)) => l0 == r0 && l1 == r1,
-            (Self::Quotient(l0, l1), Self::Quotient(r0, r1)) => l0 == r0 && l1 == r1,
-            (Self::Simple(l0), Self::Simple(r0)) => *l0 == *r0,
-            _ => false,
         }
     }
 }

@@ -111,11 +111,7 @@ fn collect_specific_edges_from_location(
     } else {
         representation.get_output_actions()
     } {
-        let transitions = representation.next_transitions(
-            location,
-            &sync,
-            
-        );
+        let transitions = representation.next_transitions(location, &sync);
         for transition in transitions {
             let mut target_location = location.clone();
             transition.move_locations(&mut target_location);
