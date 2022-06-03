@@ -145,6 +145,18 @@ impl TransitionSystem for Quotient {
         let is_input = self.inputs_contain(action);
 
         let mut transitions = vec![];
+        let mut reset_all = vec![];
+        for clock in self
+            .get_decls()
+            .iter()
+            .flat_map(|d| d.get_clocks().values())
+            .copied()
+        {
+            reset_all.push(CompiledUpdate {
+                clock_index: clock,
+                value: 0,
+            });
+        }
 
         //Rules [universal] and [inconsistent]
 
@@ -160,7 +172,10 @@ impl TransitionSystem for Quotient {
             return transitions;
         } else if location.is_universal() {
             // Rule 9
-            transitions.push(Transition::new(location, self.dim));
+            let mut transition = Transition::new(location, self.dim);
+            /* This should be okay */
+            transition.updates = reset_all.clone();
+            transitions.push(transition);
             return transitions;
         }
 
@@ -262,7 +277,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 guard_zone: (!g_s) + (!g) + (!inv_l_s),
                 target_locations: universal_location.clone(),
-                updates: vec![],
+                updates: reset_all.clone(),
             });
         } else {
             // Rule 5
@@ -274,7 +289,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
                 target_locations: universal_location.clone(),
-                updates: vec![],
+                updates: reset_all.clone(),
             });
         }
 
