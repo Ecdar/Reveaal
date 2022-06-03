@@ -640,7 +640,7 @@ impl Transition {
         let mut out: Vec<Transition> = vec![];
         for l in left {
             for r in &*right {
-                println!("Combining {l} and {r}");
+                //println!("Combining {l} and {r}");
                 let target_locations =
                     LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
@@ -673,6 +673,30 @@ impl Transition {
         for update in &self.updates {
             update.apply_as_free(zone);
         }
+    }
+
+    fn get_guard_from_allowed(
+        from_loc: &LocationTuple,
+        to_loc: &LocationTuple,
+        updates: Vec<CompiledUpdate>,
+        guard: Option<Federation>,
+        dim: u32,
+    ) -> Federation {
+        let mut fed = match to_loc.get_invariants() {
+            Some(fed) => fed.clone(),
+            None => Federation::full(dim),
+        };
+        for update in &updates {
+            update.apply_as_guard(&mut fed);
+        }
+        for update in &updates {
+            update.apply_as_free(&mut fed);
+        }
+        if let Some(g) = guard {
+            fed.intersect(&g);
+        }
+        from_loc.apply_invariants(&mut fed);
+        fed
     }
 
     pub fn get_allowed_federation(&self) -> Federation {
@@ -726,9 +750,13 @@ impl Transition {
 impl fmt::Display for Transition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
-            "Transition{{{} to {} [{}]}}",
+            "Transition{{{} to {} where {} [{}]}}",
             self.guard_zone,
             self.target_locations.id,
+            self.target_locations
+                .get_invariants()
+                .map(|f| format!("invariant is {}", f))
+                .unwrap_or("no invariant".to_string()),
             self.updates
                 .iter()
                 .map(|u| format!("{}", u))
