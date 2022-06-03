@@ -185,31 +185,22 @@ impl TransitionSystem for Quotient {
         let t = self.T.next_transitions_if_available(loc_t, action);
         let s = self.S.next_transitions_if_available(loc_s, action);
 
-        let mut inconsistent_location =
+        let inconsistent_location =
             LocationTuple::simple(&self.inconsistent_location, &self.decls, self.dim);
-        let mut universal_location =
+        let universal_location =
             LocationTuple::simple(&self.universal_location, &self.decls, self.dim);
 
         //Rule 1
         if self.S.actions_contain(action) && self.T.actions_contain(action) {
             for t_transition in &t {
                 for s_transition in &s {
-                    // ϕ_T
-                    let mut guard_zone = t_transition.guard_zone.clone();
+                    // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t)
+                    let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
-                    // Inv(l2_t)[r |-> 0] where r is in clock resets for s
-                    apply_resetted_invariant(&t_transition, &mut guard_zone);
+                    // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t) ∧ ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
+                    guard_zone.intersect(&get_allowed_fed(&loc_s, s_transition));
 
-                    // ϕ_S
-                    s_transition.apply_guards(&mut guard_zone);
-
-                    // Inv(l1_s)
-                    loc_s.apply_invariants(&mut guard_zone);
-
-                    // Inv(l2_s)[r |-> 0] where r is in clock resets for t
-                    apply_resetted_invariant(&s_transition, &mut guard_zone);
-
-                    let mut target_locations = merge(
+                    let target_locations = merge(
                         &t_transition.target_locations,
                         &s_transition.target_locations,
                     );
@@ -218,7 +209,7 @@ impl TransitionSystem for Quotient {
                     let mut updates = t_transition.updates.clone();
                     updates.append(&mut s_transition.updates.clone());
 
-                    println!("Rule 1: {}", guard_zone);
+                    //println!("Rule 1: {}", guard_zone);
 
                     transitions.push(Transition {
                         guard_zone,
@@ -232,50 +223,41 @@ impl TransitionSystem for Quotient {
         //Rule 2
         if self.S.actions_contain(action) && !self.T.actions_contain(action) {
             //Independent S
-            let mut new_transitions = s.clone();
-            for s_transition in &mut new_transitions {
-                // Inv(l1_s)
-                loc_s.apply_invariants(&mut s_transition.guard_zone);
+            for s_transition in &s {
+                let guard_zone = get_allowed_fed(&loc_s, s_transition);
 
-                // Inv(l2_s)[r |-> 0] where r is in clock resets for s
-                s_transition
-                    .guard_zone
-                    .intersect(&get_resetted_invariant(&s_transition, self.dim));
+                //println!("Rule 2: {}", guard_zone);
 
-                println!("Rule 2: {}", s_transition.guard_zone);
-
-                s_transition.target_locations = merge(&loc_t, &s_transition.target_locations);
+                let target_locations = merge(&loc_t, &s_transition.target_locations);
+                let updates = s_transition.updates.clone();
+                transitions.push(Transition {
+                    guard_zone,
+                    target_locations,
+                    updates,
+                });
             }
-
-            transitions.append(&mut new_transitions);
         }
 
         if self.S.get_output_actions().contains(action) {
-            // Rule 3
+            // TODO: check with Martijn
+            // new Rule 3 (includes rule 4 by de-morgan)
             let mut g_s = Federation::empty(self.dim);
 
             for s_transition in &s {
-                g_s.add_fed(&s_transition.guard_zone);
+                let allowed_fed = get_allowed_fed(&loc_s, s_transition);
+                g_s.add_fed(&allowed_fed);
             }
 
-            // Rule 4
-            let mut g = Federation::empty(self.dim);
-            for s_transition in &s {
-                g.add_fed(&get_resetted_invariant(&s_transition, self.dim));
-            }
+            //println!("Rule 3: {}", g_s.inverse());
 
             // Rule 5
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
 
-            println!("Rule 3: {}", g_s.inverse());
-            println!("Rule 4: {}", g.inverse());
-            println!("Rule 5: {}", inv_l_s.inverse());
+            //println!("Rule 5: {}", inv_l_s.inverse());
 
-            // Rule 3 || Rule 4 || Rule 5
-            // Combine the rules as they target the same location (universal)
             transitions.push(Transition {
-                guard_zone: (!g_s) + (!g) + (!inv_l_s),
+                guard_zone: (!inv_l_s) + (!g_s),
                 target_locations: universal_location.clone(),
                 updates: reset_all.clone(),
             });
@@ -284,7 +266,7 @@ impl TransitionSystem for Quotient {
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
 
-            println!("Rule 5: {}", inv_l_s.inverse());
+            //println!("Rule 5: {}", inv_l_s.inverse());
 
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
@@ -300,30 +282,24 @@ impl TransitionSystem for Quotient {
             //Calculate inverse G_T
             let mut g_t = Federation::empty(self.dim);
             for t_transition in &t {
-                let mut zone = t_transition.guard_zone.clone();
-
-                //Inv(l2_T)[r |-> 0] where r is in clock resets
-                apply_resetted_invariant(&t_transition, &mut zone);
-                g_t.add_fed(&zone)
+                let allowed_fed = get_allowed_fed(&loc_t, t_transition);
+                g_t.add_fed(&allowed_fed);
             }
             let inverse_g_t = !g_t;
 
             for s_transition in &s {
-                let mut s_guard_zone = s_transition.guard_zone.clone();
+                // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
+                let mut guard_zone = get_allowed_fed(&loc_s, s_transition);
 
-                //Inv(l2_s)[r |-> 0] where r is in clock resets
-                apply_resetted_invariant(&s_transition, &mut s_guard_zone);
-
-                let mut guard_zone = inverse_g_t.clone();
-
-                guard_zone.intersect(&s_guard_zone);
+                // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s) ∧ ¬G_T
+                guard_zone.intersect(&inverse_g_t);
 
                 let updates = vec![CompiledUpdate {
                     clock_index: self.new_clock_index,
                     value: 0,
                 }];
 
-                println!("Rule 6: {}", guard_zone);
+                //println!("Rule 6: {}", guard_zone);
 
                 transitions.push(Transition {
                     guard_zone,
@@ -336,9 +312,9 @@ impl TransitionSystem for Quotient {
         //Rule 7
         if action == self.new_input_name {
             let inverse_t_invariant = !get_invariant(loc_t, self.dim);
-            println!("!inv_t: {}", inverse_t_invariant);
+            //println!("!inv_t: {}", inverse_t_invariant);
             let s_invariant = get_invariant(loc_s, self.dim);
-            println!("inv_s: {}", s_invariant);
+            //println!("inv_s: {}", s_invariant);
             let guard_zone = inverse_t_invariant.intersection(&s_invariant);
 
             let updates = vec![CompiledUpdate {
@@ -346,7 +322,7 @@ impl TransitionSystem for Quotient {
                 value: 0,
             }];
 
-            println!("Rule 7: {}", guard_zone);
+            //println!("Rule 7: {}", guard_zone);
 
             transitions.push(Transition {
                 guard_zone,
@@ -355,25 +331,26 @@ impl TransitionSystem for Quotient {
             })
         }
 
+        // TODO: check with Martijn
+        //if self.T.outputs_contain(action) && !self.S.actions_contain(action) {
         //Rule 8
         if self.T.actions_contain(action) && !self.S.actions_contain(action) {
-            for mut t_transition in t {
-                // TODO: This is new
-                loc_s.apply_invariants(&mut t_transition.guard_zone);
-                /*println!(
-                    "Invariant_s: {}",
-                    loc_s.get_invariants().unwrap_or(&Federation::full(1))
-                );*/
+            for t_transition in &t {
+                let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
-                //Inv(l2_T)[r |-> 0] where r is in clock resets
-                t_transition
-                    .guard_zone
-                    .intersect(&get_resetted_invariant(&t_transition, self.dim));
+                // TODO: check with Martijn as this is new
+                loc_s.apply_invariants(&mut guard_zone);
 
-                t_transition.target_locations = merge(&t_transition.target_locations, &loc_s);
+                let target_locations = merge(&t_transition.target_locations, &loc_s);
+                let updates = t_transition.updates.clone();
 
-                println!("Rule 8: {}", t_transition.guard_zone);
-                transitions.push(t_transition);
+                //println!("Rule 8: {}", guard_zone);
+
+                transitions.push(Transition {
+                    guard_zone,
+                    target_locations,
+                    updates,
+                });
             }
         }
 
@@ -381,10 +358,6 @@ impl TransitionSystem for Quotient {
             .into_iter()
             .filter(|e| e.guard_zone.is_valid())
             .collect()
-    }
-
-    fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
     }
 
     fn get_all_locations(&self) -> Vec<LocationTuple> {
@@ -412,7 +385,8 @@ impl TransitionSystem for Quotient {
     fn get_max_bounds(&self) -> MaxBounds {
         let mut bounds = self.T.get_max_bounds();
         bounds.add_bounds(&self.S.get_max_bounds());
-        //Potentially add xnew bound might save something
+        //Potentially adding xnew bound might save something
+        bounds.add_bound(self.new_clock_index, 0);
         bounds
     }
     fn get_input_actions(&self) -> HashSet<String> {
@@ -454,8 +428,13 @@ impl TransitionSystem for Quotient {
     }
 
     fn is_deterministic(&self) -> bool {
-        local_consistency::is_deterministic(self)
-        //self.T.is_deterministic() && self.S.is_deterministic()
+        //local_consistency::is_deterministic(self)
+        self.T.is_deterministic() && self.S.is_deterministic()
+    }
+
+    fn is_locally_consistent(&self) -> bool {
+        self.T.is_locally_consistent() && self.S.is_locally_consistent()
+        //local_consistency::is_least_consistent(self)
     }
 
     fn get_initial_state(&self) -> Option<State> {
@@ -504,43 +483,10 @@ fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
     LocationTuple::merge(t, s, CompositionType::Quotient)
 }
 
-fn get_resetted_invariant3(transition: &Transition, dim: u32) -> Federation {
-    match transition.target_locations.get_invariants() {
-        Some(inv) => {
-            let mut fed = inv.clone();
-            transition.inverse_apply_updates(&mut fed);
-            //transition.apply_updates(&mut fed);
-            fed
-        }
-        None => Federation::full(dim),
-    }
-}
-
-fn get_resetted_invariant2(transition: &Transition, dim: u32) -> Federation {
-    match transition.target_locations.get_invariants() {
-        Some(inv) => {
-            let mut fed = inv.clone();
-            //transition.inverse_apply_updates(&mut fed);
-            transition.apply_updates(&mut fed);
-            fed
-        }
-        None => Federation::full(dim),
-    }
-}
-
-fn get_resetted_invariant1(transition: &Transition, dim: u32) -> Federation {
-    match transition.target_locations.get_invariants() {
-        Some(inv) => inv.inverse(),
-        None => Federation::empty(dim),
-    }
-}
-
-fn get_resetted_invariant(transition: &Transition, dim: u32) -> Federation {
-    get_resetted_invariant3(transition, dim)
-}
-
-fn apply_resetted_invariant(transition: &Transition, fed: &mut Federation) {
-    fed.intersect(&get_resetted_invariant(transition, fed.get_dimensions()));
+fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> Federation {
+    let mut fed = transition.get_allowed_federation();
+    from.apply_invariants(&mut fed);
+    fed
 }
 
 fn get_invariant(loc: &LocationTuple, dim: u32) -> Federation {
@@ -549,170 +495,3 @@ fn get_invariant(loc: &LocationTuple, dim: u32) -> Federation {
         None => Federation::full(dim),
     }
 }
-
-/*
-
-*/
-
-/*
-fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
-       assert!(self.actions_contain(action));
-       let is_input = self.inputs_contain(action);
-
-       let mut transitions = vec![];
-
-       //Rules [universal] and [inconsistent]
-
-       if location.is_inconsistent() {
-           //Rule 7
-           if is_input {
-               let mut transition = Transition::new(location, self.dim);
-               transition
-                   .guard_zone
-                   .add_eq_const_constraint(self.new_clock_index, 0);
-               transitions.push(transition);
-           }
-           return transitions;
-       } else if location.is_universal() {
-           // Rule 8
-           println!("Adding universal");
-           transitions.push(Transition::new(location, self.dim));
-           return transitions;
-       }
-
-       // As it is not universal or inconsistent it must be a quotient loc
-       let loc_t = location.get_left();
-       let loc_s = location.get_right();
-       let t = self.T.next_transitions_if_available(loc_t, action);
-       let s = self.S.next_transitions_if_available(loc_s, action);
-
-       let mut inconsistent_location =
-           LocationTuple::simple(&self.inconsistent_location, &self.decls, self.dim);
-       let mut universal_location =
-           LocationTuple::simple(&self.universal_location, &self.decls, self.dim);
-
-       //Rule 1
-       {
-           // inv_s
-           let inv_s = get_invariant(loc_s, self.dim);
-           // {x_new}
-           let updates = vec![CompiledUpdate {
-               clock_index: self.new_clock_index,
-               value: 0,
-           }];
-           transitions.push(Transition {
-               guard_zone: !inv_s,
-               target_locations: universal_location.clone(),
-               updates,
-           });
-       }
-
-       //Rule 2
-       if action == self.new_input_name {
-           // inv_s
-           let inv_s = get_invariant(loc_s, self.dim);
-
-           // inv_t
-           let inv_t = !get_invariant(loc_t, self.dim);
-
-           // inv_s ∧ ¬inv_t
-           let guard_zone = inv_s.intersection(&!inv_t);
-
-           // {x_new}
-           let updates = vec![CompiledUpdate {
-               clock_index: self.new_clock_index,
-               value: 0,
-           }];
-           transitions.push(Transition {
-               guard_zone,
-               target_locations: inconsistent_location.clone(),
-               updates,
-           });
-       }
-
-       //Rule 3
-       if self.S.actions_contain(action) && self.T.actions_contain(action) {
-           for t_transition in &t {
-               for s_transition in &s {
-                   // ϕ_T
-                   let mut guard_zone = t_transition.guard_zone.clone();
-
-                   // ϕ_T ∧ ϕ_S
-                   s_transition.apply_guards(&mut guard_zone);
-
-                   let target_locations = merge(
-                       &t_transition.target_locations,
-                       &s_transition.target_locations,
-                   );
-
-                   //Union of left and right updates
-                   let mut updates = t_transition.updates.clone();
-                   updates.append(&mut s_transition.updates.clone());
-
-                   transitions.push(Transition {
-                       guard_zone,
-                       target_locations,
-                       updates,
-                   });
-               }
-           }
-       }
-
-       //Rule 4
-       if self.S.outputs_contain(action) {
-           // Rule 4
-           let mut G_T = Federation::empty(self.dim);
-           for transition_t in &t {
-               G_T.add_fed(&transition_t.guard_zone);
-           }
-           let neg_G_T = !G_T;
-
-           for transition_s in &s {
-               //ϕ_S
-               let mut guard_zone = transition_s.guard_zone.clone();
-
-               //ϕ_S ∧ ¬G_T
-               guard_zone.intersect(&neg_G_T);
-
-               // {x_new}
-               let updates = vec![CompiledUpdate {
-                   clock_index: self.new_clock_index,
-                   value: 0,
-               }];
-
-               transitions.push(Transition {
-                   guard_zone,
-                   target_locations: inconsistent_location.clone(),
-                   updates,
-               });
-           }
-       }
-
-       //Rule 5
-       if self.T.actions_contain(action) && !self.S.actions_contain(action) {
-           for mut transition_t in t.clone() {
-               transition_t.target_locations = merge(&transition_t.target_locations, &loc_s);
-               transitions.push(transition_t);
-           }
-       }
-
-       //Rule 6
-       if self.S.outputs_contain(action) {
-           // Rule 6
-           let mut G_S = Federation::empty(self.dim);
-           for transition_s in &s {
-               G_S.add_fed(&transition_s.guard_zone);
-           }
-
-           if !t.is_empty() {
-               transitions.push(Transition {
-                   guard_zone: !G_S,
-                   target_locations: universal_location.clone(),
-                   updates: vec![],
-               });
-           }
-       }
-
-       transitions
-   }
-*/
