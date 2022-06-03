@@ -49,8 +49,8 @@ macro_rules! default_composition {
         }
 
         fn is_deterministic(&self) -> bool {
-            local_consistency::is_deterministic(self)
-            //self.left.is_deterministic() && self.right.is_deterministic()
+            //local_consistency::is_deterministic(self)
+            self.left.is_deterministic() && self.right.is_deterministic()
         }
 
         fn get_initial_state(&self) -> Option<State> {

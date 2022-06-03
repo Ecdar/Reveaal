@@ -33,17 +33,16 @@ pub struct CompiledComponent {
 }
 
 impl CompiledComponent {
-    pub fn compile(component: Component, dim: u32) -> Box<Self> {
-        let inputs: HashSet<_> = component
-            .get_input_actions()
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
-        let outputs: HashSet<_> = component
-            .get_output_actions()
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
+    pub fn compile_with_actions(
+        component: Component,
+        inputs: HashSet<String>,
+        outputs: HashSet<String>,
+        dim: u32,
+    ) -> Result<Box<Self>, String> {
+        if !inputs.is_disjoint(&outputs) {
+            return Err("Inputs and outputs must be disjoint in component".to_string());
+        }
+
         let locations: HashMap<LocationID, LocationTuple> = component
             .get_locations()
             .iter()
@@ -65,19 +64,11 @@ impl CompiledComponent {
                 .push((edge.sync.clone(), transition));
         }
 
-        let initial_id = component
-            .get_locations()
-            .iter()
-            .find_map(|loc| match loc.location_type {
-                LocationType::Initial => Some(loc.id.clone()),
-                _ => None,
-            });
-
         let initial_location = locations.values().find(|loc| loc.is_initial()).cloned();
 
         let max_bounds = component.get_max_bounds(dim);
         let deterministic = component.is_deterministic(dim);
-        Box::new(CompiledComponent {
+        Ok(Box::new(CompiledComponent {
             inputs,
             outputs,
             locations,
@@ -90,7 +81,22 @@ impl CompiledComponent {
                 max_bounds,
                 deterministic,
             },
-        })
+        }))
+    }
+
+    pub fn compile(component: Component, dim: u32) -> Result<Box<Self>, String> {
+        let inputs: HashSet<_> = component
+            .get_input_actions()
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        let outputs: HashSet<_> = component
+            .get_output_actions()
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+
+        Self::compile_with_actions(component, inputs, outputs, dim)
     }
 }
 

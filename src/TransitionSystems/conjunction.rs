@@ -22,7 +22,17 @@ impl Conjunction {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: u32,
-    ) -> TransitionSystemPtr {
+    ) -> Result<TransitionSystemPtr, String> {
+        let left_in = left.get_input_actions();
+        let left_out = left.get_output_actions();
+
+        let right_in = right.get_input_actions();
+        let right_out = right.get_output_actions();
+
+        if !(left_in.is_disjoint(&right_out) && left_out.is_disjoint(&right_in)) {
+            return Err("Invalid conjunction, outputs and inputs are not disjoint".to_string());
+        }
+
         let outputs = left
             .get_output_actions()
             .intersection(&right.get_output_actions())
@@ -42,9 +52,12 @@ impl Conjunction {
             outputs,
             dim,
         });
-        ts
+        if !local_consistency::is_least_consistent(ts.as_ref()) {
+            return Err("Conjunction is empty after pruning".to_string());
+        }
+        Ok(ts)
         //let num_clocks = ts.get_max_clock_index();
-        //pruning::prune_system(ts, num_clocks)
+        //Ok(pruning::prune_system(ts, dim))
     }
 }
 
@@ -56,14 +69,16 @@ impl TransitionSystem for Conjunction {
         let loc_left = location.get_left();
         let loc_right = location.get_right();
 
-        let mut left = self.left.next_transitions(&loc_left, action);
-        let mut right = self.right.next_transitions(&loc_right, action);
+        let left = self.left.next_transitions(&loc_left, action);
+        let right = self.right.next_transitions(&loc_right, action);
 
-        Transition::combinations(&mut left, &mut right, CompositionType::Conjunction)
+        Transition::combinations(&left, &right, CompositionType::Conjunction)
     }
 
     fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
+        //self.left.is_locally_consistent() && self.right.is_locally_consistent()
+        //local_consistency::is_least_consistent(self)
+        true // By definition from the Conjunction::new()
     }
 
     fn get_all_locations(&self) -> Vec<LocationTuple> {

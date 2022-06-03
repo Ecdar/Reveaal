@@ -39,21 +39,21 @@ impl Quotient {
         S: TransitionSystemPtr,
         new_clock_index: u32,
         dim: u32,
-    ) -> TransitionSystemPtr {
+    ) -> Result<TransitionSystemPtr, String> {
         if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
-            panic!(
+            return Err(format!(
                 "s_out and t_in not disjoint in quotient! s_out: {:?} t_in {:?}",
                 S.get_output_actions(),
                 T.get_input_actions()
-            );
+            ));
         }
 
         if !T.precheck_sys_rep() {
-            panic!("T (left) must be least consistent for quotient");
+            return Err("T (left) must be least consistent for quotient".to_string());
         }
 
         if !S.precheck_sys_rep() {
-            panic!("S (right) must be least consistent for quotient");
+            return Err("S (right) must be least consistent for quotient".to_string());
         }
 
         let universal_location = Location {
@@ -132,9 +132,9 @@ impl Quotient {
             new_input_name,
             dim,
         });
-        ts
-        //let num_clocks = ts.get_max_clock_index();
-        //pruning::prune_system(ts, num_clocks)
+        Ok(ts)
+
+        //Ok(pruning::prune_system(ts, dim))
     }
 }
 

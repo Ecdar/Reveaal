@@ -5,6 +5,7 @@ use crate::ModelObjects::component::{
     LocationType, State, SyncType, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::representations::QueryExpression;
 use crate::System::local_consistency;
 use crate::System::pruning;
 use dyn_clone::{clone_trait_object, DynClone};
@@ -12,7 +13,7 @@ use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, std::cmp::PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Eq, Hash)]
 pub enum LocationID {
     Conjunction(Box<LocationID>, Box<LocationID>),
     Composition(Box<LocationID>, Box<LocationID>),
@@ -20,44 +21,93 @@ pub enum LocationID {
     Simple(String),
 }
 
+impl LocationID {
+    pub fn from_string(string: &str) -> Self {
+        let query = crate::DataReader::parse_queries::parse_to_expression_tree(&format!(
+            "consistency: {}",
+            string
+        ))
+        .remove(0);
+
+        match query {
+            QueryExpression::Consistency(x) => (*x).into(),
+            _ => panic!(""),
+        }
+    }
+}
+
+impl From<QueryExpression> for LocationID {
+    fn from(item: QueryExpression) -> Self {
+        match item {
+            QueryExpression::Conjunction(left, right) => {
+                LocationID::Conjunction(Box::new((*left).into()), Box::new((*right).into()))
+            }
+            QueryExpression::Composition(left, right) => {
+                LocationID::Composition(Box::new((*left).into()), Box::new((*right).into()))
+            }
+            QueryExpression::Quotient(left, right) => {
+                LocationID::Quotient(Box::new((*left).into()), Box::new((*right).into()))
+            }
+            QueryExpression::Parentheses(inner) => (*inner).into(),
+            QueryExpression::VarName(name) => LocationID::Simple(name),
+            _ => panic!(
+                "Cannot convert queryexpression with {:?} to LocationID",
+                item
+            ),
+        }
+    }
+}
+
+impl PartialEq for LocationID {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Conjunction(l0, l1), Self::Conjunction(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::Composition(l0, l1), Self::Composition(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::Quotient(l0, l1), Self::Quotient(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::Simple(l0), Self::Simple(r0)) => *l0 == *r0,
+            _ => false,
+        }
+    }
+}
+
 impl Display for LocationID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LocationID::Conjunction(left, right) => {
-                match **left {
-                    LocationID::Conjunction(_, _) => write!(f, "{}", *left)?,
-                    LocationID::Simple(_) => write!(f, "{}", *left)?,
-                    _ => write!(f, "({})", *left)?,
+                match *(*left) {
+                    LocationID::Conjunction(_, _) => write!(f, "{}", (*left))?,
+                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
+                    _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "&&")?;
-                match **right {
-                    LocationID::Conjunction(_, _) => write!(f, "{}", *right)?,
-                    LocationID::Simple(_) => write!(f, "{}", *right)?,
-                    _ => write!(f, "({})", *right)?,
+                match *(*right) {
+                    LocationID::Conjunction(_, _) => write!(f, "{}", (*right))?,
+                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
+                    _ => write!(f, "({})", (*right))?,
                 };
             }
             LocationID::Composition(left, right) => {
-                match **left {
-                    LocationID::Composition(_, _) => write!(f, "{}", *left)?,
-                    LocationID::Simple(_) => write!(f, "{}", *left)?,
-                    _ => write!(f, "({})", *left)?,
+                match *(*left) {
+                    LocationID::Composition(_, _) => write!(f, "{}", (*left))?,
+                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
+                    _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "||")?;
-                match **right {
-                    LocationID::Composition(_, _) => write!(f, "{}", *right)?,
-                    LocationID::Simple(_) => write!(f, "{}", *right)?,
-                    _ => write!(f, "({})", *right)?,
+                match *(*right) {
+                    LocationID::Composition(_, _) => write!(f, "{}", (*right))?,
+                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
+                    _ => write!(f, "({})", (*right))?,
                 };
             }
             LocationID::Quotient(left, right) => {
-                match **left {
-                    LocationID::Simple(_) => write!(f, "{}", *left)?,
-                    _ => write!(f, "({})", *left)?,
+                match *(*left) {
+                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
+                    _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "\\\\")?;
-                match **right {
-                    LocationID::Simple(_) => write!(f, "{}", *right)?,
-                    _ => write!(f, "({})", *right)?,
+                match *(*right) {
+                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
+                    _ => write!(f, "({})", (*right))?,
                 };
             }
             LocationID::Simple(name) => write!(f, "{}", name)?,
@@ -73,7 +123,7 @@ pub enum CompositionType {
     Quotient,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct LocationTuple {
     pub id: LocationID,
     invariant: Option<Federation>,
@@ -82,9 +132,16 @@ pub struct LocationTuple {
     right: Option<Box<LocationTuple>>,
 }
 
+impl PartialEq for LocationTuple {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.loc_type == other.loc_type
+    }
+}
+
 impl LocationTuple {
     pub fn simple(location: &Location, decls: &Declarations, dim: u32) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
+            //println!("invariant of loc {}: {}", location.get_id(), inv);
             let mut fed = Federation::full(dim);
             apply_constraints_to_state(&inv, decls, &mut fed);
             Some(fed)
@@ -102,13 +159,13 @@ impl LocationTuple {
 
     //Merge two locations keeping the invariants seperate
     pub fn merge(left: &Self, right: &Self, comp: CompositionType) -> Self {
-        println!(
+        /*println!(
             "Merging {} inv {} and {} inv {}",
             left.id,
             left.get_invariants().unwrap_or(&Federation::full(1)),
             right.id,
             right.get_invariants().unwrap_or(&Federation::full(1))
-        );
+        );*/
         let id = match comp {
             CompositionType::Quotient => {
                 LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()))
@@ -132,7 +189,7 @@ impl LocationTuple {
 
         LocationTuple {
             id,
-            invariant: None,
+            invariant: None, //left.invariant.clone(),
             loc_type,
             left: Some(Box::new(left.clone())),
             right: Some(Box::new(right.clone())),
@@ -141,13 +198,13 @@ impl LocationTuple {
 
     //Compose two locations intersecting the invariants
     pub fn compose(left: &Self, right: &Self, comp: CompositionType) -> Self {
-        println!(
+        /*println!(
             "Composing {} inv {} and {} inv {}",
             left.id,
             left.get_invariants().unwrap_or(&Federation::full(1)),
             right.id,
             right.get_invariants().unwrap_or(&Federation::full(1))
-        );
+        );*/
         let id = match comp {
             CompositionType::Conjunction => {
                 LocationID::Conjunction(Box::new(left.id.clone()), Box::new(right.id.clone()))

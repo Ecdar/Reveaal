@@ -25,7 +25,7 @@ impl Composition {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: u32,
-    ) -> TransitionSystemPtr {
+    ) -> Result<TransitionSystemPtr, String> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
         let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();
@@ -35,7 +35,7 @@ impl Composition {
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
         if !left_out.is_disjoint(&right_out) {
-            panic!("Invalid composition, outputs are not disjoint");
+            return Err("Invalid parallel composition, outputs are not disjoint".to_string());
         }
 
         // Act_i = Act1_i \ Act2_o ∪ Act2_i \ Act1_o
@@ -55,7 +55,7 @@ impl Composition {
         // Act_o = Act1_o ∪ Act2_o
         let outputs = left_out.union(&right_out).cloned().collect();
 
-        Box::new(Composition {
+        Ok(Box::new(Composition {
             left,
             right,
             inputs,
@@ -64,7 +64,7 @@ impl Composition {
             right_unique_actions: right_actions.difference(&left_actions).cloned().collect(),
             common_actions: left_actions.intersection(&right_actions).cloned().collect(),
             dim,
-        })
+        }))
     }
 }
 
@@ -104,10 +104,8 @@ impl TransitionSystem for Composition {
     }
 
     fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
-        //self.left.is_locally_consistent() && self.right.is_locally_consistent()
-        /*local_consistency::is_least_consistent(self.left.as_ref(), dimensions)
-        && local_consistency::is_least_consistent(self.right.as_ref(), dimensions)*/
+        self.left.is_locally_consistent() && self.right.is_locally_consistent()
+        //local_consistency::is_least_consistent(self)
     }
 
     fn get_all_locations(&self) -> Vec<LocationTuple> {

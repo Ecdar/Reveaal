@@ -30,28 +30,28 @@ pub fn create_executable_query<'a>(
                 let left = get_system_recipe(left_side, component_loader, &mut dim);
                 let right =get_system_recipe(right_side, component_loader, &mut dim);
                 Ok(Box::new(RefinementExecutor {
-                sys1: left.compile(dim),
-                sys2: right.compile(dim),
+                sys1: left.compile(dim)?,
+                sys2: right.compile(dim)?,
             }))},
             QueryExpression::Consistency(query_expression) => Ok(Box::new(ConsistencyExecutor {
                 system: get_system_recipe(
                     query_expression,
                     component_loader,
                     &mut dim,
-                ).compile(dim),
+                ).compile(dim)?,
             })),
             QueryExpression::Determinism(query_expression) => Ok(Box::new(DeterminismExecutor {
                 system: get_system_recipe(
                     query_expression,
                     component_loader,
                     &mut dim,
-                ).compile(dim),
+                ).compile(dim)?,
             })),
             QueryExpression::GetComponent(save_as_expression) => {
                 if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
                     Ok(Box::new(
                         GetComponentExecutor {
-                            system: get_system_recipe(query_expression, component_loader, &mut dim).compile(dim),
+                            system: get_system_recipe(query_expression, component_loader, &mut dim).compile(dim)?,
                             comp_name: comp_name.clone(),
                             component_loader,
                         }
@@ -67,7 +67,7 @@ pub fn create_executable_query<'a>(
                     
                     Ok(Box::new(
                         GetComponentExecutor {
-                            system: pruning::prune_system(get_system_recipe(query_expression, component_loader, &mut dim).compile(dim), dim),
+                            system: pruning::prune_system(get_system_recipe(query_expression, component_loader, &mut dim).compile(dim)?, dim),
                             comp_name: comp_name.clone(),
                             component_loader
                         }
@@ -94,18 +94,21 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: u32) -> TransitionSystemPtr {
+    pub fn compile(self, dim: u32) -> Result<TransitionSystemPtr, String> {
         match self {
             SystemRecipe::Composition(left, right) => {
-                Composition::new(left.compile(dim), right.compile(dim), dim +1)
+                Composition::new(left.compile(dim)?, right.compile(dim)?, dim +1)
             }
             SystemRecipe::Conjunction(left, right) => {
-                Conjunction::new(left.compile(dim), right.compile(dim), dim +1)
+                Conjunction::new(left.compile(dim)?, right.compile(dim)?, dim +1)
             }
             SystemRecipe::Quotient(left, right, clock_index) => {
-                Quotient::new(left.compile(dim), right.compile(dim), clock_index, dim + 1)
+                Quotient::new(left.compile(dim)?, right.compile(dim)?, clock_index, dim + 1)
             }
-            SystemRecipe::Component(comp) => CompiledComponent::compile(*comp, dim + 1),
+            SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim + 1) {
+                Ok(comp) => Ok(comp),
+                Err(err) => Err(err),
+            },
         }
     }
 }
@@ -142,7 +145,7 @@ pub fn get_system_recipe(
         QueryExpression::VarName(name) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
-            println!("Clocks: {:?}", component.declarations.clocks);
+            println!("{} Clocks: {:?}", name, component.declarations.clocks);
             return Box::new(SystemRecipe::Component(Box::new(component)));
         }
         QueryExpression::SaveAs(comp, _) => get_system_recipe(comp, component_loader, clock_index),
