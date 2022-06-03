@@ -5,6 +5,7 @@ pub mod save_comp_helper {
     use crate::ModelObjects::component::DeclarationProvider;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
+    use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
@@ -20,17 +21,28 @@ pub mod save_comp_helper {
         let query = parse_queries::parse_to_expression_tree(str_query.as_str()).remove(0);
 
         let mut dim: u32 = 0;
-        let base_system = if let QueryExpression::GetComponent(expr) = &query {
+        let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
-            extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim)
+            (
+                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
+                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
+            )
         } else {
             panic!("Failed to create system")
         };
+        //dim += 2;
 
-        let mut new_comp = combine_components(&base_system.clone().compile(dim));
-        new_comp.set_clock_indices(&mut dim);
-        let base_system = base_system.compile(dim);
-        let new_comp = CompiledComponent::compile(new_comp, dim + 1);
+        let new_comp = new_system.compile(dim);
+
+        if let Err(_) = new_comp {
+            return;
+        }
+        let new_comp = combine_components(&new_comp.unwrap());
+
+        let new_comp = SystemRecipe::Component(Box::new(new_comp))
+            .compile(dim)
+            .unwrap();
+        let base_system = base_system.compile(dim).unwrap();
 
         // let opt_inputs = decl.get_component_inputs(new_comp.get_name());
         // if opt_inputs.is_some() {
