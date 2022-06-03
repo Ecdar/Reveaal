@@ -7,7 +7,7 @@ edition = "2018"
 
 [features]
 dbm-stub = []
-silent = []
+verbose = []
 single-threaded = []
 
 [dependencies]
