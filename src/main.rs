@@ -2,6 +2,7 @@
 
 mod DBMLib;
 mod DataReader;
+mod DataTypes;
 mod EdgeEval;
 mod ModelObjects;
 mod ProtobufServer;
