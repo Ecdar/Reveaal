@@ -136,8 +136,7 @@ impl BoolExpression {
             }
         });
 
-        //Should this be strict or not? I have set it to be strict as it has a smaller solution space
-        new_constraint * 2 + 1
+        new_constraint // * 2 + 1 // This should not actually be a dbm_raw, as it is converted from bound to raw in the c code
     }
 
     pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
