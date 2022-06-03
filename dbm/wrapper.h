@@ -68,6 +68,8 @@ extern "C"
 
     void fed_extrapolate_max_bounds(dbm::fed_t &fed, const int32_t *max);
 
+    void fed_diagonal_extrapolate_max_bounds(dbm::fed_t &fed, const int32_t *max);
+
     void fed_add_fed(dbm::fed_t &fed, const dbm::fed_t &other);
 
     void fed_invert(dbm::fed_t &fed);

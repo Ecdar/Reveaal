@@ -123,7 +123,7 @@ void fed_free_clock(dbm::fed_t &fed, cindex_t x)
 
 bool fed_subset_eq(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
 {
-    return fed1 <= fed2;
+    return fed1.le(fed2);
 }
 
 relation_t fed_exact_relation(const dbm::fed_t &fed1, const dbm::fed_t &fed2)
@@ -163,6 +163,11 @@ bool fed_can_delay_indef(const dbm::fed_t &fed)
 void fed_extrapolate_max_bounds(dbm::fed_t &fed, const int32_t *max)
 {
     fed.extrapolateMaxBounds(max);
+}
+
+void fed_diagonal_extrapolate_max_bounds(dbm::fed_t &fed, const int32_t *max)
+{
+    fed.diagonalExtrapolateMaxBounds(max);
 }
 
 void fed_add_fed(dbm::fed_t &fed, const dbm::fed_t &other)

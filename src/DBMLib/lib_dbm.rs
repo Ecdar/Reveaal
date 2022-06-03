@@ -379,9 +379,20 @@ pub fn rs_fed_can_delay_indef(fed: &Federation) -> bool {
 
 pub fn rs_fed_extrapolate_max_bounds(fed: &mut Federation, bounds: &MaxBounds) {
     trace!();
-    assert_eq!(fed.get_dimensions(), bounds.get_dimensions());
+    //assert_eq!(fed.get_dimensions(), bounds.get_dimensions());
     unsafe {
         sync!(UDBM::fed_extrapolate_max_bounds(
+            &mut fed.raw,
+            bounds.clock_bounds.as_ptr()
+        ));
+    }
+}
+
+pub fn rs_fed_diagonal_extrapolate_max_bounds(fed: &mut Federation, bounds: &MaxBounds) {
+    trace!();
+    assert_eq!(fed.get_dimensions(), bounds.get_dimensions());
+    unsafe {
+        sync!(UDBM::fed_diagonal_extrapolate_max_bounds(
             &mut fed.raw,
             bounds.clock_bounds.as_ptr()
         ));
