@@ -1,9 +1,10 @@
 use crate::debug_print;
 use crate::DBMLib::dbm::Federation;
-use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
+use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
+use crate::TransitionSystems::transition_system::LocationID;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
@@ -38,12 +39,14 @@ fn extra_actions(
 }
 
 pub fn check_refinement(
-    mut sys1: TransitionSystemPtr,
-    mut sys2: TransitionSystemPtr,
+    sys1: TransitionSystemPtr,
+    sys2: TransitionSystemPtr,
 ) -> Result<bool, String> {
-    let mut passed_list: Vec<StatePair> = vec![];
-    let mut waiting_list: Vec<StatePair> = vec![];
+    let mut passed_list = PassedStateList::new();
+    let mut waiting_list = WaitingStateList::new();
     let dimensions = sys1.get_dim();
+    debug_print!("Dimensions: {}", dimensions);
+
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2) {
         debug_print!("preconditions failed - refinement false");
@@ -97,39 +100,40 @@ pub fn check_refinement(
         return Ok(false);
     }
     let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
+    debug_print!("Max bounds: {:?}", max_bounds);
+
     initial_pair.zone.extrapolate_max_bounds(&max_bounds);
-    waiting_list.push(initial_pair);
+
+    debug_print!("Initial {}", initial_pair);
+    waiting_list.put(initial_pair);
 
     while !waiting_list.is_empty() {
         let curr_pair = waiting_list.pop().unwrap();
-        debug_print!(
-            "Pair: 1:{} 2:{} {}",
-            curr_pair.get_locations1().id,
-            curr_pair.get_locations2().id,
-            curr_pair.zone
-        );
+        debug_print!("{}", curr_pair);
+
+        passed_list.put(curr_pair.clone());
         for output in &outputs {
             let extra = extra_outputs.contains(output);
 
-            let output_transition1 =
-                sys1.next_outputs(curr_pair.get_locations1(), output);
+            let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = if extra {
                 vec![Transition::new(curr_pair.get_locations2(), dimensions)]
             } else {
                 sys2.next_outputs(curr_pair.get_locations2(), output)
             };
 
-            if has_valid_state_pair(&output_transition1, &output_transition2, &curr_pair, true) {
-                debug_print!("Creating state pairs for output {}", output);
-                create_new_state_pairs(
-                    &output_transition1,
-                    &output_transition2,
-                    &curr_pair,
-                    &mut waiting_list,
-                    &mut passed_list,
-                    &max_bounds,
-                    true,
-                )
+            let cond = try_create_state_pairs(
+                &output_transition1,
+                &output_transition2,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &max_bounds,
+                true,
+            );
+
+            if cond {
+                debug_print!("Created state pairs for output {}", output);
             } else {
                 println!("Refinement check failed for Output {:?}", output);
                 println!("Transitions1:");
@@ -156,69 +160,115 @@ pub fn check_refinement(
             } else {
                 sys1.next_inputs(curr_pair.get_locations1(), input)
             };
-            let input_transitions2 =
-                sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            if has_valid_state_pair(&input_transitions2, &input_transitions1, &curr_pair, false) {
-                debug_print!("Creating state pairs for input {}", input);
-                create_new_state_pairs(
-                    &input_transitions2,
-                    &input_transitions1,
-                    &curr_pair,
-                    &mut waiting_list,
-                    &mut passed_list,
-                    &max_bounds,
-                    false,
-                )
+            let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
+
+            let cond = try_create_state_pairs(
+                &input_transitions2,
+                &input_transitions1,
+                &curr_pair,
+                &mut waiting_list,
+                &mut passed_list,
+                &max_bounds,
+                false,
+            );
+
+            if cond {
+                debug_print!("Created state pairs for input {}", input);
             } else {
-                debug_print!("Refinement check failed for Input {:?}", input);
-                debug_print!("Transitions1:");
+                println!("Refinement check failed for Input {:?}", input);
+                println!("Transitions1:");
                 for t in &input_transitions1 {
-                    debug_print!("{}", t);
+                    println!("{}", t);
                 }
-                debug_print!("Transitions2:");
+                println!("Transitions2:");
                 for t in &input_transitions2 {
-                    debug_print!("{}", t);
+                    println!("{}", t);
                 }
-                debug_print!("Current pair: {}", curr_pair);
-                debug_print!("Relation:");
-                for pair in passed_list {
-                    debug_print!("{}", pair);
-                }
+                println!("Current pair: {}", curr_pair);
+                println!("Relation:");
+                print_relation(&passed_list);
 
                 return Ok(false);
-            }
+            };
         }
-
-        passed_list.push(curr_pair.clone());
     }
-
-    debug_print!("Refinement check passed with relation:");
-    for pair in passed_list {
-        debug_print!("{}", pair);
-    }
+    println!("Refinement check passed");
+    debug_print!("With relation:");
+    print_relation(&passed_list);
 
     Ok(true)
 }
 
-fn has_valid_state_pair(
+fn print_relation(passed_list: &PassedStateList) {
+    let verbose = false;
+
+    let mut sorted_keys: Vec<_> = passed_list.keys().collect();
+    sorted_keys.sort_by_key(|(a, b)| format!("1:{}, 2:{}", a, b));
+    for (id1, id2) in sorted_keys {
+        let zones = passed_list.zones(&(id1.clone(), id2.clone()));
+
+        if zones.len() != 1 {
+            debug_print!("1:{} 2:{} {} zones", id1, id2, zones.len());
+        } else if verbose {
+            debug_print!("1:{} 2:{} {} zone", id1, id2, zones[0]);
+        } else {
+            debug_print!("1:{} 2:{}", id1, id2);
+        }
+    }
+}
+
+fn try_create_state_pairs(
+    transitions1: &[Transition],
+    transitions2: &[Transition],
+    curr_pair: &StatePair,
+    waiting_list: &mut WaitingStateList,
+    passed_list: &mut PassedStateList,
+    max_bounds: &MaxBounds,
+    is_state1: bool,
+) -> bool {
+    let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
+
+    // If there are no valid transition1s, continue
+    if fed1.is_empty() {
+        return true;
+    }
+
+    // If there are (valid) transition1s but no transition2s there are no valid pairs
+    if fed2.is_empty() {
+        println!("Empty transition2s");
+        return false;
+    };
+
+    let result_federation = fed1.subtraction(&fed2);
+
+    // If the entire zone of transition1s cannot be matched by transition2s
+    if !result_federation.is_empty() {
+        return false;
+    }
+
+    // Finally try to create the pairs
+    let res = create_new_state_pairs(
+        transitions1,
+        transitions2,
+        curr_pair,
+        waiting_list,
+        passed_list,
+        max_bounds,
+        is_state1,
+    );
+
+    res
+}
+
+fn get_guard_fed_for_sides(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
     is_state1: bool,
-) -> bool {
-    if transitions1.is_empty() {
-        return true;
-    }
-
-    //If there are left transitions but no right transitions there are no valid pairs
-    if transitions2.is_empty() {
-        return false;
-    };
-
+) -> (Federation, Federation) {
     let dim = curr_pair.zone.get_dimensions();
 
-    let (states1, states2) = curr_pair.get_locations(is_state1);
     let pair_zone = &curr_pair.zone;
     debug_print!("Zone: {}", pair_zone);
     //create guard zones left
@@ -232,8 +282,8 @@ fn has_valid_state_pair(
         debug_print!("{}", transition);
         feds.add_fed(&transition.get_allowed_federation());
     }
-    let left_fed = feds.intersection(pair_zone);
-    debug_print!("{}", left_fed);
+    let fed1 = feds.intersection(pair_zone);
+    debug_print!("{}", fed1);
 
     if is_state1 {
         debug_print!("Right:");
@@ -246,30 +296,27 @@ fn has_valid_state_pair(
         debug_print!("{}", transition);
         feds.add_fed(&transition.get_allowed_federation());
     }
-    let right_fed = feds.intersection(pair_zone);
-    debug_print!("{}", right_fed);
+    let fed2 = feds.intersection(pair_zone);
+    debug_print!("{}", fed2);
 
-    //left_fed.is_subset_eq(&right_fed)
-    //let result_federation = right_fed.subtraction(&left_fed);
-    let result_federation = left_fed.subtraction(&right_fed);
-
-    debug_print!("Valid = {}", result_federation.is_empty());
-
-    result_federation.is_empty()
+    (fed1, fed2)
 }
 
 fn create_new_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    waiting_list: &mut Vec<StatePair>,
-    passed_list: &mut Vec<StatePair>,
+    waiting_list: &mut WaitingStateList,
+    passed_list: &mut PassedStateList,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) {
+) -> bool {
+    let mut zone1 = Federation::empty(curr_pair.zone.get_dimensions());
+    let mut zone2 = zone1.clone();
     for transition1 in transitions1 {
+        zone1.add_fed(&transition1.get_allowed_federation());
         for transition2 in transitions2 {
-            build_state_pair(
+            if build_state_pair(
                 transition1,
                 transition2,
                 curr_pair,
@@ -277,17 +324,24 @@ fn create_new_state_pairs(
                 passed_list,
                 max_bounds,
                 is_state1,
-            );
+            ) {
+                zone2.add_fed(&transition2.get_allowed_federation());
+            }
         }
     }
+
+    zone1.intersect(&curr_pair.zone);
+    zone2.intersect(&curr_pair.zone);
+    //Every transition 1 must be matched
+    zone1.is_subset_eq(&zone2)
 }
 
 fn build_state_pair(
     transition1: &Transition,
     transition2: &Transition,
     curr_pair: &StatePair,
-    waiting_list: &mut Vec<StatePair>,
-    passed_list: &mut Vec<StatePair>,
+    waiting_list: &mut WaitingStateList,
+    passed_list: &mut PassedStateList,
     max_bounds: &MaxBounds,
     is_state1: bool,
 ) -> bool {
@@ -317,39 +371,57 @@ fn build_state_pair(
     transition1.apply_updates(&mut new_sp_zone);
     transition2.apply_updates(&mut new_sp_zone);
 
+    //Perform a delay on the zone after the updates were applied
+    new_sp_zone.up(); // TODO: Is this correct?
+
     //Update locations in states
 
     transition1.move_locations(locations1);
     transition2.move_locations(locations2);
 
-    //Perform a delay on the zone after the updates were applied
-    new_sp_zone.up();
-
     // Apply invariants on the left side of relation
-    let inv_success1 = locations1.apply_invariants(&mut new_sp_zone);
+    let (left_loc, right_loc) = if is_state1 {
+        //(locations2, locations1)
+        (locations1, locations2)
+    } else {
+        //(locations1, locations2)
+        (locations2, locations1)
+    };
+
+    let inv_success1 = left_loc.apply_invariants(&mut new_sp_zone);
+
     // Perform a copy of the zone and apply right side invariants on the copied zone
-    let mut invariant_test = new_sp_zone.clone();
-    let inv_success2 = locations2.apply_invariants(&mut invariant_test);
+    let s_invariant = new_sp_zone.clone();
+
+    // Maybe apply inv_t, then up, then inv_s?
+
+    let inv_success2 = right_loc.apply_invariants(&mut new_sp_zone);
 
     // check if newly built zones are valid
     if !(inv_success1 && inv_success2) {
         return false;
     }
-    let inv_test_fed = invariant_test;
 
-    let fed_res = new_sp_zone.subtraction(&inv_test_fed);
+    let mut t_invariant = new_sp_zone.clone();
+    // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays it is fine so we can call down:
+    t_invariant.down();
 
-    // Check if the invariant of the other side does not cut solutions and if so, report failure
+    // Check if the invariant of the other side does not cut (NEW: delay) solutions and if so, report failure
     // This also happens to be a delay check
-    if !fed_res.is_empty() {
+    if !(s_invariant.is_subset_eq(&t_invariant)) {
         return false;
     }
 
     new_sp.zone = new_sp_zone;
+
     new_sp.zone.extrapolate_max_bounds(max_bounds);
 
-    if is_new_state(&mut new_sp, passed_list) && is_new_state(&mut new_sp, waiting_list) {
-        waiting_list.push(new_sp.clone());
+    if !passed_list.has(&new_sp) && !waiting_list.has(&new_sp) {
+        debug_print!("New state {}", new_sp);
+
+        waiting_list.put(new_sp);
+        //println!("Passed Len: {}", passed_list.len());
+        //println!("Waiting Len: {}", waiting_list.len());
     }
 
     true
@@ -379,30 +451,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
 
     let subset = s_inputs.is_subset(&t_inputs) && t_outputs.is_subset(&s_outputs);
 
-    println!("Disjoint {disjoint}, subset {subset}");
-    println!("S i:{s_inputs:?} o:{s_outputs:?}");
-    println!("T i:{t_inputs:?} o:{t_outputs:?}");
+    debug_print!("Disjoint {disjoint}, subset {subset}");
+    debug_print!("S i:{s_inputs:?} o:{s_outputs:?}");
+    debug_print!("T i:{t_inputs:?} o:{t_outputs:?}");
 
     disjoint && subset
 }
-/*
-fn is_new_state(state_pair: &StatePair, passed_list: &WaitingStateList) -> bool {
-    'OuterFor: for passed_state_pair in passed_list {
-        if passed_state_pair.get_locations1() != state_pair.get_locations1() {
-            continue 'OuterFor;
-        }
-
-        if passed_state_pair.get_locations2() != state_pair.get_locations2() {
-            continue 'OuterFor;
-        }
-
-        if state_pair.get_dimensions() != passed_state_pair.get_dimensions() {
-            panic!("dimensions of dbm didn't match - fatal error")
-        }
-
-        if state_pair.zone.is_subset_eq(&passed_state_pair.zone) {
-            return false;
-        }
-    }
-    true
-}*/
