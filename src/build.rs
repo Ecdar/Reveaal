@@ -27,11 +27,12 @@ fn main() {
     }
 
     println!("cargo:rustc-link-lib=static=udbmwrapper");
-    println!("cargo:rustc-link-lib=static=base");
     println!("cargo:rustc-link-lib=static=dbm");
-    println!("cargo:rustc-link-lib=static=udebug");
     println!("cargo:rustc-link-lib=static=hash");
+    println!("cargo:rustc-link-lib=static=udebug");
+    println!("cargo:rustc-link-lib=static=base");
     println!("cargo:rustc-link-lib=stdc++");
+
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=dbm/wrapper.h");
     println!("cargo:rerun-if-changed=dbm/out");
