@@ -122,7 +122,7 @@ pub fn check_refinement(
                 sys2.next_outputs(curr_pair.get_locations2(), output)
             };
 
-            let cond = try_create_state_pairs(
+            let cond = has_valid_state_pairs(
                 &output_transition1,
                 &output_transition2,
                 &curr_pair,
@@ -163,7 +163,7 @@ pub fn check_refinement(
 
             let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            let cond = try_create_state_pairs(
+            let cond = has_valid_state_pairs(
                 &input_transitions2,
                 &input_transitions1,
                 &curr_pair,
@@ -221,7 +221,7 @@ fn print_relation(passed_list: &PassedStateList) {
     }
 }
 
-fn try_create_state_pairs(
+fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
@@ -251,7 +251,7 @@ fn try_create_state_pairs(
     }
 
     // Finally try to create the pairs
-    let res = create_new_state_pairs(
+    let res = try_create_new_state_pairs(
         transitions1,
         transitions2,
         curr_pair,
@@ -261,7 +261,10 @@ fn try_create_state_pairs(
         is_state1,
     );
 
-    res
+    match res {
+        BuildResult::Success => true,
+        BuildResult::Failure => false,
+    }
 }
 
 fn get_guard_fed_for_sides(
@@ -297,7 +300,13 @@ fn get_guard_fed_for_sides(
     (fed1, fed2)
 }
 
-fn create_new_state_pairs(
+enum BuildResult {
+    Success,
+    Failure,
+}
+
+/// Returns a failure if the new state pairs cut delay solutions, otherwise returns success
+fn try_create_new_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
@@ -305,13 +314,10 @@ fn create_new_state_pairs(
     passed_list: &mut PassedStateList,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) -> bool {
-    let mut zone1 = Federation::empty(curr_pair.zone.get_dimensions());
-    let mut zone2 = zone1.clone();
+) -> BuildResult {
     for transition1 in transitions1 {
-        zone1.add_fed(&transition1.get_allowed_federation());
         for transition2 in transitions2 {
-            if build_state_pair(
+            if let BuildResult::Failure = build_state_pair(
                 transition1,
                 transition2,
                 curr_pair,
@@ -320,15 +326,12 @@ fn create_new_state_pairs(
                 max_bounds,
                 is_state1,
             ) {
-                zone2.add_fed(&transition2.get_allowed_federation());
+                return BuildResult::Failure;
             }
         }
     }
 
-    zone1.intersect(&curr_pair.zone);
-    zone2.intersect(&curr_pair.zone);
-    //Every transition 1 must be matched
-    zone1.is_subset_eq(&zone2)
+    BuildResult::Success
 }
 
 fn build_state_pair(
@@ -339,7 +342,7 @@ fn build_state_pair(
     passed_list: &mut PassedStateList,
     max_bounds: &MaxBounds,
     is_state1: bool,
-) -> bool {
+) -> BuildResult {
     //Creates new state pair
     let mut new_sp: StatePair = StatePair::create(
         curr_pair.get_dimensions(),
@@ -356,10 +359,9 @@ fn build_state_pair(
     //Applies the right side guards and checks if zone is valid
     let g2_success = transition2.apply_guards(&mut new_sp_zone);
 
-    //Fails the refinement if at any point the zone was invalid
+    // Continue to the next transition pair if the zone is empty
     if !g1_success || !g2_success {
-        //println!("Failed @1");
-        return false;
+        return BuildResult::Success;
     }
 
     //Apply updates on both sides
@@ -367,7 +369,7 @@ fn build_state_pair(
     transition2.apply_updates(&mut new_sp_zone);
 
     //Perform a delay on the zone after the updates were applied
-    new_sp_zone.up(); // TODO: Is this correct?
+    new_sp_zone.up();
 
     //Update locations in states
 
@@ -392,19 +394,18 @@ fn build_state_pair(
 
     let inv_success2 = right_loc.apply_invariants(&mut new_sp_zone);
 
-    // check if newly built zones are valid
+    // Continue to the next transition pair if the newly built zones are empty
     if !(inv_success1 && inv_success2) {
-        return false;
+        return BuildResult::Success;
     }
 
     let mut t_invariant = new_sp_zone.clone();
-    // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays it is fine so we can call down:
+    // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays, so it is fine and we can call down:
     t_invariant.down();
 
-    // Check if the invariant of the other side does not cut (NEW: delay) solutions and if so, report failure
-    // This also happens to be a delay check
+    // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure
     if !(s_invariant.is_subset_eq(&t_invariant)) {
-        return false;
+        return BuildResult::Failure;
     }
 
     new_sp.zone = new_sp_zone;
@@ -415,11 +416,9 @@ fn build_state_pair(
         debug_print!("New state {}", new_sp);
 
         waiting_list.put(new_sp);
-        //println!("Passed Len: {}", passed_list.len());
-        //println!("Waiting Len: {}", waiting_list.len());
     }
 
-    true
+    BuildResult::Success
 }
 
 fn prepare_init_state(
