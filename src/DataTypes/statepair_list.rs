@@ -8,12 +8,12 @@ use crate::{
 pub type PassedStateList = PassedStateListFed;
 type PassedStateListFed = HashMap<(LocationID, LocationID), Federation>;
 type PassedStateListVec = HashMap<(LocationID, LocationID), Vec<Federation>>;
-pub struct WaitingStateList {
+
+pub type WaitingStateList = DepthFirstWaitingStateList;
+pub struct DepthFirstWaitingStateList {
     queue: VecDeque<StatePair>,
     map: HashMap<(LocationID, LocationID), VecDeque<Federation>>,
 }
-
-const BREADTH_FIRST: bool = false;
 
 pub trait PassedStateListExt {
     fn put(&mut self, pair: StatePair);
@@ -54,21 +54,14 @@ impl PassedStateListExt for PassedStateListVec {
     }
 }
 
-impl PassedStateListExt for WaitingStateList {
+impl PassedStateListExt for DepthFirstWaitingStateList {
     fn put(&mut self, pair: StatePair) {
-        if BREADTH_FIRST {
-            self.queue.push_back(pair.clone());
-        } else {
-            self.queue.push_front(pair.clone());
-        }
+        self.queue.push_front(pair.clone());
+
         let (loc1, loc2, fed) = (pair.locations1.id, pair.locations2.id, pair.zone);
         let key = (loc1, loc2);
         if let Some(vec) = self.map.get_mut(&key) {
-            if BREADTH_FIRST {
-                vec.push_back(fed);
-            } else {
-                vec.push_front(fed);
-            }
+            vec.push_front(fed);
         } else {
             self.map.insert(key, vec![fed].into());
         };
@@ -93,9 +86,9 @@ impl PassedStateListExt for WaitingStateList {
     }
 }
 
-impl WaitingStateList {
+impl DepthFirstWaitingStateList {
     pub fn new() -> Self {
-        WaitingStateList {
+        DepthFirstWaitingStateList {
             queue: VecDeque::new(),
             map: HashMap::new(),
         }
