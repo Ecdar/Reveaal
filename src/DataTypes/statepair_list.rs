@@ -18,7 +18,7 @@ pub struct DepthFirstWaitingStateList {
 pub trait PassedStateListExt {
     fn put(&mut self, pair: StatePair);
     fn has(&self, pair: &StatePair) -> bool;
-    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<Federation>;
+    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation>;
 }
 
 impl PassedStateListExt for PassedStateListVec {
@@ -33,7 +33,6 @@ impl PassedStateListExt for PassedStateListVec {
     }
 
     fn has(&self, pair: &StatePair) -> bool {
-        //let pair = pair.clone();
         let (loc1, loc2, fed) = (
             pair.locations1.id.clone(),
             pair.locations2.id.clone(),
@@ -46,9 +45,9 @@ impl PassedStateListExt for PassedStateListVec {
         }
     }
 
-    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<Federation> {
+    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.get(key) {
-            Some(vec) => vec.clone(),
+            Some(vec) => vec.iter().collect(),
             None => vec![],
         }
     }
@@ -78,9 +77,9 @@ impl PassedStateListExt for DepthFirstWaitingStateList {
             None => false,
         }
     }
-    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<Federation> {
+    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.map.get(key) {
-            Some(vec) => vec.clone().into(),
+            Some(vec) => vec.iter().collect(),
             None => vec![],
         }
     }
@@ -138,9 +137,9 @@ impl PassedStateListExt for PassedStateListFed {
         }
     }
 
-    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<Federation> {
+    fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.get(key) {
-            Some(f) => vec![f.clone()],
+            Some(f) => vec![f],
             None => vec![],
         }
     }
