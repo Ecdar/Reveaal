@@ -45,17 +45,6 @@ impl DeclarationProvider for Component {
 
 #[allow(dead_code)]
 impl Component {
-    pub fn invalid() -> Self {
-        Component {
-            name: "Invalid component".to_string(),
-            declarations: Declarations::empty(),
-            locations: vec![],
-            edges: vec![],
-            input_edges: Some(vec![]),
-            output_edges: Some(vec![]),
-        }
-    }
-
     pub fn set_clock_indices(&mut self, indices: &mut u32) {
         self.declarations.set_clock_indices(*indices);
         *indices += self.declarations.get_clock_count();
