@@ -20,15 +20,15 @@ Navigate into the dbm folder and make sure no build folder already exists. Then 
 
 ## Building the project
 - Build the project using `cargo build`
-- Optionally run the tests using `cargo test -- --test-threads 1`
+- Optionally run the tests using `cargo test`
 
 ## Cross compiling from Linux to Windows
 Ensure the build directory doesnt already exist, before starting.
 Build the dbm library with using the x86_64-w64-mingw32 toolchain.
 
-`cmake -B build/ -D CMAKE_TOOLCHAIN_FILE=toolchain-x86_64-w64-mingw32.cmake`
+`cmake -B buildw/ -D CMAKE_TOOLCHAIN_FILE=toolchain-x86_64-w64-mingw32.cmake`
 
-`cmake --build build/`
+`cmake --build buildw/`
 
 `cargo build --target x86_64-pc-windows-gnu`
 
