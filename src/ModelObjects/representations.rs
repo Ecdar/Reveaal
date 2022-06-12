@@ -365,7 +365,7 @@ impl ops::BitOr for BoolExpression {
 }
 
 fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
-    match &**exp {
+    match exp.as_ref() {
         BoolExpression::EQ(_, _) => Some("=".to_string()),
         BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
         BoolExpression::LessT(_, _) => Some("<".to_string()),

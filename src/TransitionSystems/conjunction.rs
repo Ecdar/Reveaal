@@ -56,8 +56,6 @@ impl Conjunction {
             return Err("Conjunction is empty after pruning".to_string());
         }
         Ok(ts)
-        //let num_clocks = ts.get_max_clock_index();
-        //Ok(pruning::prune_system(ts, dim))
     }
 }
 
@@ -76,8 +74,6 @@ impl TransitionSystem for Conjunction {
     }
 
     fn is_locally_consistent(&self) -> bool {
-        //self.left.is_locally_consistent() && self.right.is_locally_consistent()
-        //local_consistency::is_least_consistent(self)
         true // By definition from the Conjunction::new()
     }
 

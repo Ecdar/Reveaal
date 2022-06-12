@@ -147,13 +147,6 @@ impl LocationTuple {
 
     //Merge two locations keeping the invariants seperate
     pub fn merge(left: &Self, right: &Self, comp: CompositionType) -> Self {
-        /*println!(
-            "Merging {} inv {} and {} inv {}",
-            left.id,
-            left.get_invariants().unwrap_or(&Federation::full(1)),
-            right.id,
-            right.get_invariants().unwrap_or(&Federation::full(1))
-        );*/
         let id = match comp {
             CompositionType::Quotient => {
                 LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()))

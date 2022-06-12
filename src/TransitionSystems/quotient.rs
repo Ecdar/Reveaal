@@ -133,14 +133,11 @@ impl Quotient {
             dim,
         });
         Ok(ts)
-
-        //Ok(pruning::prune_system(ts, dim))
     }
 }
 
 impl TransitionSystem for Quotient {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
-        //println!("Action: {}", action);
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
@@ -209,8 +206,6 @@ impl TransitionSystem for Quotient {
                     let mut updates = t_transition.updates.clone();
                     updates.append(&mut s_transition.updates.clone());
 
-                    //println!("Rule 1: {}", guard_zone);
-
                     transitions.push(Transition {
                         guard_zone,
                         target_locations,
@@ -225,8 +220,6 @@ impl TransitionSystem for Quotient {
             //Independent S
             for s_transition in &s {
                 let guard_zone = get_allowed_fed(&loc_s, s_transition);
-
-                //println!("Rule 2: {}", guard_zone);
 
                 let target_locations = merge(&loc_t, &s_transition.target_locations);
                 let updates = s_transition.updates.clone();
@@ -248,13 +241,9 @@ impl TransitionSystem for Quotient {
                 g_s.add_fed(&allowed_fed);
             }
 
-            //println!("Rule 3: {}", g_s.inverse());
-
             // Rule 5
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
-
-            //println!("Rule 5: {}", inv_l_s.inverse());
 
             transitions.push(Transition {
                 guard_zone: (!inv_l_s) + (!g_s),
@@ -265,8 +254,6 @@ impl TransitionSystem for Quotient {
             // Rule 5
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
-
-            //println!("Rule 5: {}", inv_l_s.inverse());
 
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
@@ -299,8 +286,6 @@ impl TransitionSystem for Quotient {
                     value: 0,
                 }];
 
-                //println!("Rule 6: {}", guard_zone);
-
                 transitions.push(Transition {
                     guard_zone,
                     target_locations: inconsistent_location.clone(),
@@ -312,17 +297,13 @@ impl TransitionSystem for Quotient {
         //Rule 7
         if action == self.new_input_name {
             let inverse_t_invariant = !get_invariant(loc_t, self.dim);
-            //println!("!inv_t: {}", inverse_t_invariant);
             let s_invariant = get_invariant(loc_s, self.dim);
-            //println!("inv_s: {}", s_invariant);
             let guard_zone = inverse_t_invariant.intersection(&s_invariant);
 
             let updates = vec![CompiledUpdate {
                 clock_index: self.new_clock_index,
                 value: 0,
             }];
-
-            //println!("Rule 7: {}", guard_zone);
 
             transitions.push(Transition {
                 guard_zone,
@@ -343,8 +324,6 @@ impl TransitionSystem for Quotient {
 
                 let target_locations = merge(&t_transition.target_locations, &loc_s);
                 let updates = t_transition.updates.clone();
-
-                //println!("Rule 8: {}", guard_zone);
 
                 transitions.push(Transition {
                     guard_zone,
@@ -428,13 +407,11 @@ impl TransitionSystem for Quotient {
     }
 
     fn is_deterministic(&self) -> bool {
-        //local_consistency::is_deterministic(self)
         self.T.is_deterministic() && self.S.is_deterministic()
     }
 
     fn is_locally_consistent(&self) -> bool {
         self.T.is_locally_consistent() && self.S.is_locally_consistent()
-        //local_consistency::is_least_consistent(self)
     }
 
     fn get_initial_state(&self) -> Option<State> {
@@ -462,22 +439,6 @@ impl TransitionSystem for Quotient {
         self.dim
     }
 }
-/*
-fn create_transitions(
-    fed: Federation,
-    target_locations: &LocationTuple,
-    updates: &HashMap<usize, Vec<parse_edge::Update>>,
-) -> Vec<Transition> {
-    let mut transitions = vec![];
-
-    transitions.push(Transition {
-        guard_zone: fed,
-        target_locations: target_locations.clone(),
-        updates: updates.clone(),
-    });
-
-    transitions
-}*/
 
 fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
     LocationTuple::merge(t, s, CompositionType::Quotient)

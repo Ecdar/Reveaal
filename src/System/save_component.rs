@@ -50,7 +50,7 @@ fn get_locations_from_tuples(
         .collect()
 }
 
-fn get_clock_map(sysrep: &TransitionSystemPtr) -> (HashMap<String, u32>) {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
     let mut counts = HashMap::new();
     for decl in sysrep.get_decls() {
