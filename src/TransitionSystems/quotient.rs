@@ -191,6 +191,7 @@ impl TransitionSystem for Quotient {
         if self.S.actions_contain(action) && self.T.actions_contain(action) {
             for t_transition in &t {
                 for s_transition in &s {
+                    // In the following comments we use ϕ to symbolize the guard of the transition
                     // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t)
                     let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
@@ -241,7 +242,7 @@ impl TransitionSystem for Quotient {
                 g_s.add_fed(&allowed_fed);
             }
 
-            // Rule 5
+            // Rule 5 when Rule 3 applies
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
 
@@ -251,7 +252,7 @@ impl TransitionSystem for Quotient {
                 updates: reset_all.clone(),
             });
         } else {
-            // Rule 5
+            // Rule 5 when Rule 3 does not apply
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
 
@@ -275,6 +276,7 @@ impl TransitionSystem for Quotient {
             let inverse_g_t = !g_t;
 
             for s_transition in &s {
+                // In the following comments we use ϕ to symbolize the guard of the transition
                 // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
                 let mut guard_zone = get_allowed_fed(&loc_s, s_transition);
 
