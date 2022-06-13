@@ -150,13 +150,8 @@ impl LocationTuple {
     }
 
     //Merge two locations keeping the invariants seperate
-    pub fn merge(left: &Self, right: &Self, comp: CompositionType) -> Self {
-        let id = match comp {
-            CompositionType::Quotient => {
-                LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()))
-            }
-            _ => panic!("Invalid merge type {:?}", comp),
-        };
+    pub fn merge_as_quotient(left: &Self, right: &Self) -> Self {
+        let id = LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()));
 
         if left.loc_type == right.loc_type
             && (left.loc_type == LocationType::Universal

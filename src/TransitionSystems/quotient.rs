@@ -439,7 +439,7 @@ impl TransitionSystem for Quotient {
 }
 
 fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
-    LocationTuple::merge(t, s, CompositionType::Quotient)
+    LocationTuple::merge_as_quotient(t, s)
 }
 
 fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> Federation {
