@@ -115,12 +115,8 @@ impl BoolExpression {
             }
             BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
-            BoolExpression::Bool(boolean) => {
-                format!("{}", boolean)
-            }
-            BoolExpression::Int(num) => {
-                format!("{}", num)
-            }
+            BoolExpression::Bool(boolean) => boolean.to_string(),
+            BoolExpression::Int(num) => num.to_string(),
         }
     }
 

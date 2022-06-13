@@ -41,7 +41,7 @@ fn get_locations_from_tuples(
                 .map_or(None, |fed| fed.as_boolexpression(Some(clock_map)));
 
             Location {
-                id: format!("{}", loc_vec.id),
+                id: loc_vec.id.to_string(),
                 invariant,
                 location_type: loc_vec.loc_type,
                 urgency: "NORMAL".to_string(), //TODO: Handle different urgencies eventually
@@ -122,8 +122,8 @@ fn collect_specific_edges_from_location(
             }
 
             let edge = Edge {
-                source_location: format!("{}", location.id),
-                target_location: format!("{}", target_location.id),
+                source_location: location.id.to_string(),
+                target_location: target_location.id.to_string(),
                 sync_type: if input {
                     SyncType::Input
                 } else {

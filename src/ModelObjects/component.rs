@@ -747,7 +747,7 @@ impl fmt::Display for Transition {
                 .unwrap_or("no invariant".to_string()),
             self.updates
                 .iter()
-                .map(|u| format!("{}", u))
+                .map(|u| u.to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ))?;
