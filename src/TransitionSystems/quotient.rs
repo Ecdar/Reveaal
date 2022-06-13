@@ -233,7 +233,6 @@ impl TransitionSystem for Quotient {
         }
 
         if self.S.get_output_actions().contains(action) {
-            // TODO: check with Martijn
             // new Rule 3 (includes rule 4 by de-morgan)
             let mut g_s = Federation::empty(self.dim);
 
@@ -313,15 +312,11 @@ impl TransitionSystem for Quotient {
                 updates,
             })
         }
-
-        // TODO: check with Martijn
-        //if self.T.outputs_contain(action) && !self.S.actions_contain(action) {
         //Rule 8
         if self.T.actions_contain(action) && !self.S.actions_contain(action) {
             for t_transition in &t {
                 let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
-                // TODO: check with Martijn as this is new
                 loc_s.apply_invariants(&mut guard_zone);
 
                 let target_locations = merge(&t_transition.target_locations, &loc_s);
