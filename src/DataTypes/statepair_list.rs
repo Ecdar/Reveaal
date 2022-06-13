@@ -47,7 +47,7 @@ impl PassedStateListExt for PassedStateListVec {
     fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.get(key) {
             Some(vec) => vec.iter().collect(),
-            None => vec![],
+            None => panic!("No zones for key: {:?}", key),
         }
     }
 }
@@ -79,7 +79,7 @@ impl PassedStateListExt for DepthFirstWaitingStateList {
     fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.map.get(key) {
             Some(vec) => vec.iter().collect(),
-            None => vec![],
+            None => panic!("No zones for key: {:?}", key),
         }
     }
 }
@@ -138,7 +138,7 @@ impl PassedStateListExt for PassedStateListFed {
     fn zones(&self, key: &(LocationID, LocationID)) -> Vec<&Federation> {
         match self.get(key) {
             Some(f) => vec![f],
-            None => vec![],
+            None => panic!("No zones for key: {:?}", key),
         }
     }
 }
