@@ -9,7 +9,7 @@ use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystem
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
-use super::transition_system::{CompositionType, LocationID};
+use super::{CompositionType, LocationID};
 
 type Action = String;
 

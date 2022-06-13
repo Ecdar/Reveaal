@@ -1,20 +1,15 @@
 use crate::DBMLib::dbm::Federation;
-use crate::DataReader::parse_edge;
-use crate::DataReader::parse_edge::Update;
+
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, DecoratedLocation, Location, LocationType, State, SyncType,
-    Transition,
-};
+use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::System::{local_consistency, pruning};
+
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
-use std::collections::HashMap;
 
-use super::transition_system::CompositionType;
+use super::CompositionType;
 
 #[derive(Clone)]
 pub struct Quotient {

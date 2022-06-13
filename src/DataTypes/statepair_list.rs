@@ -1,8 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-    DBMLib::dbm::Federation, ModelObjects::statepair::StatePair,
-    TransitionSystems::transition_system::LocationID,
+    DBMLib::dbm::Federation, ModelObjects::statepair::StatePair, TransitionSystems::LocationID,
 };
 
 pub type PassedStateList = PassedStateListFed;

@@ -1,20 +1,20 @@
 use crate::DBMLib::dbm::Federation;
-use crate::DataReader::parse_edge::{self, Update};
+use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
-    decode_sync_type, decode_update, encode_boolexpr, DummyComponent, DummyEdge, DummyLocation,
+    decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
 };
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
-use crate::ModelObjects::representations::build_guard_from_zone;
+
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::transition_system::{CompositionType, LocationID};
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::TransitionSystems::LocationTuple;
+use crate::TransitionSystems::{CompositionType, LocationID};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 

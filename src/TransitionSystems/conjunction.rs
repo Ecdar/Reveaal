@@ -1,11 +1,11 @@
 use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component::{Component, Declarations, State, SyncType, Transition};
+use crate::ModelObjects::component::{Declarations, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::hash_set::HashSet;
-
-use super::transition_system::CompositionType;
 
 #[derive(Clone)]
 pub struct Conjunction {

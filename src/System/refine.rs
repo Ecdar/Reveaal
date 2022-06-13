@@ -4,7 +4,7 @@ use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::statepair::StatePair;
-use crate::TransitionSystems::transition_system::LocationID;
+use crate::TransitionSystems::LocationID;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
