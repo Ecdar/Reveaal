@@ -124,10 +124,6 @@ impl TransitionSystem for Composition {
         location_tuples
     }
 
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        (&mut self.left, &mut self.right)
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
     }

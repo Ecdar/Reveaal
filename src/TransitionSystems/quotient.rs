@@ -423,10 +423,6 @@ impl TransitionSystem for Quotient {
         })
     }
 
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        (&mut self.T, &mut self.S)
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.T, &self.S)
     }

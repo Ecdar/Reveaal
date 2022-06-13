@@ -163,10 +163,6 @@ impl TransitionSystem for CompiledComponent {
         State::from_location(init_loc, self.dim)
     }
 
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        unimplemented!()
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         unimplemented!()
     }

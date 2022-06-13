@@ -319,8 +319,6 @@ pub trait TransitionSystem: DynClone {
 
     fn get_initial_state(&self) -> Option<State>;
 
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr);
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;

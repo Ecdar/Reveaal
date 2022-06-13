@@ -2,7 +2,6 @@ use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{Component, Declarations, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
-use crate::System::pruning;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
@@ -93,88 +92,11 @@ impl TransitionSystem for Conjunction {
         location_tuples
     }
 
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        (&mut self.left, &mut self.right)
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
     }
 
     fn get_composition_type(&self) -> CompositionType {
         CompositionType::Conjunction
-    }
-}
-
-#[derive(Clone)]
-pub struct PrunedComponent {
-    pub component: Box<Component>,
-    pub inputs: HashSet<String>,
-    pub outputs: HashSet<String>,
-}
-
-impl TransitionSystem for PrunedComponent {
-    fn get_max_bounds(&self) -> MaxBounds {
-        todo!()
-    }
-
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
-        todo!()
-    }
-
-    fn get_input_actions(&self) -> HashSet<String> {
-        todo!()
-    }
-
-    fn get_output_actions(&self) -> HashSet<String> {
-        todo!()
-    }
-
-    fn get_actions(&self) -> HashSet<String> {
-        todo!()
-    }
-
-    fn get_initial_location(&self) -> Option<LocationTuple> {
-        todo!()
-    }
-
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
-        todo!()
-    }
-
-    fn get_decls(&self) -> Vec<&Declarations> {
-        todo!()
-    }
-
-    fn precheck_sys_rep(&self) -> bool {
-        todo!()
-    }
-
-    fn is_deterministic(&self) -> bool {
-        todo!()
-    }
-
-    fn is_locally_consistent(&self) -> bool {
-        todo!()
-    }
-
-    fn get_initial_state(&self) -> Option<State> {
-        todo!()
-    }
-
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        todo!()
-    }
-
-    fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
-        todo!()
-    }
-
-    fn get_composition_type(&self) -> CompositionType {
-        todo!()
-    }
-
-    fn get_dim(&self) -> u32 {
-        todo!()
     }
 }
