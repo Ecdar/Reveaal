@@ -585,8 +585,8 @@ impl Transition {
         }
     }
 
-    pub fn from(edges: (&Component, &Edge), dim: u32) -> Transition {
-        let (comp, edge) = edges;
+    pub fn from(comp: &Component, edge: &Edge, dim: u32) -> Transition {
+        //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
         let target_loc = comp.get_location_by_name(target_loc_name);
@@ -602,7 +602,7 @@ impl Transition {
         }
 
         Transition {
-            guard_zone: Transition::combine_edge_guards(&vec![edges], dim),
+            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim),
             target_locations,
             updates: compiled_updates,
         }

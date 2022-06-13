@@ -57,7 +57,7 @@ impl CompiledComponent {
 
         for edge in component.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
-            let transition = Transition::from((&component, edge), dim);
+            let transition = Transition::from(&component, edge, dim);
             location_edges
                 .get_mut(&id)
                 .unwrap()
