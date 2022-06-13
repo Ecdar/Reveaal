@@ -129,7 +129,6 @@ impl PartialEq for LocationTuple {
 impl LocationTuple {
     pub fn simple(location: &Location, decls: &Declarations, dim: u32) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
-            //println!("invariant of loc {}: {}", location.get_id(), inv);
             let mut fed = Federation::full(dim);
             apply_constraints_to_state(&inv, decls, &mut fed);
             Some(fed)
@@ -170,7 +169,7 @@ impl LocationTuple {
 
         LocationTuple {
             id,
-            invariant: None, //left.invariant.clone(),
+            invariant: None,
             loc_type,
             left: Some(Box::new(left.clone())),
             right: Some(Box::new(right.clone())),
@@ -179,13 +178,6 @@ impl LocationTuple {
 
     //Compose two locations intersecting the invariants
     pub fn compose(left: &Self, right: &Self, comp: CompositionType) -> Self {
-        /*println!(
-            "Composing {} inv {} and {} inv {}",
-            left.id,
-            left.get_invariants().unwrap_or(&Federation::full(1)),
-            right.id,
-            right.get_invariants().unwrap_or(&Federation::full(1))
-        );*/
         let id = match comp {
             CompositionType::Conjunction => {
                 LocationID::Conjunction(Box::new(left.id.clone()), Box::new(right.id.clone()))

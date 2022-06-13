@@ -124,7 +124,6 @@ impl PassedStateListExt for PassedStateListFed {
     }
 
     fn has(&self, pair: &StatePair) -> bool {
-        //let pair = pair.clone();
         let (loc1, loc2, fed) = (
             pair.locations1.id.clone(),
             pair.locations2.id.clone(),

@@ -115,7 +115,6 @@ pub fn consistency_least_helper(
     passed_list.push(state.clone());
 
     for input in system.get_input_actions() {
-        //println!("Checking for {input}? from {}", state.get_location().id);
         for transition in &system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
@@ -132,20 +131,13 @@ pub fn consistency_least_helper(
     }
 
     if state.zone.can_delay_indefinitely() {
-        //println!("Saved by indefinite delay in {}", state.get_location().id);
         return true;
     }
 
     for output in system.get_output_actions() {
-        //println!("Checking for {output}! from {}", state.get_location().id);
-
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                /*println!(
-                    "Taking {transition} for {output}! from {}",
-                    state.get_location().id
-                );*/
                 new_state.zone.extrapolate_max_bounds(max_bounds);
 
                 if consistency_least_helper(new_state, passed_list, system, max_bounds) {

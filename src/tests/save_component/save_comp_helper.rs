@@ -30,7 +30,6 @@ pub mod save_comp_helper {
         } else {
             panic!("Failed to create system")
         };
-        //dim += 2;
 
         let new_comp = new_system.compile(dim);
 
@@ -43,11 +42,6 @@ pub mod save_comp_helper {
             .compile(dim)
             .unwrap();
         let base_system = base_system.compile(dim).unwrap();
-
-        // let opt_inputs = decl.get_component_inputs(new_comp.get_name());
-        // if opt_inputs.is_some() {
-        //     input_enabler::make_input_enabled(&mut new_comp, opt_inputs.unwrap());
-        // }
 
         let base_precheck = base_system.precheck_sys_rep();
         let new_precheck = new_comp.precheck_sys_rep();
