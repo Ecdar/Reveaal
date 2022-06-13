@@ -22,7 +22,12 @@ pub enum LocationID {
 }
 
 impl LocationID {
+    /// A debug method to construct a location ID from a string.
+    /// e.g. "A" -> Simple("A"), "A && B" -> LocationID::Conjunction(Simple("A"), Simple("B")), etc.
     pub fn from_string(string: &str) -> Self {
+        // A bit of a hack but we use the parser get the a query expression from which we can
+        // determine to composition types needed to construct the location ID
+        // TODO: This is a bit of a hack, but it works for now.
         let query = crate::DataReader::parse_queries::parse_to_expression_tree(&format!(
             "consistency: {}",
             string
@@ -31,7 +36,7 @@ impl LocationID {
 
         match query {
             QueryExpression::Consistency(x) => (*x).into(),
-            _ => panic!(""),
+            _ => unreachable!(),
         }
     }
 }
