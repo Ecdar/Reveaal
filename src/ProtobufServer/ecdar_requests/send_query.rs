@@ -38,7 +38,7 @@ impl ConcreteEcdarBackend {
         let executable_query =
             match extract_system_rep::create_executable_query(&query, &mut *component_container) {
                 Ok(query) => query,
-                Err(e) => return Err(Status::internal(format!("Creation of query failed: {}", e))),
+                Err(e) => return Err(Status::invalid_argument(format!("Creation of query failed: {}", e))),
             };
         let result = executable_query.execute();
 
