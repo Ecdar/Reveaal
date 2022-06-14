@@ -5,12 +5,30 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
-pub fn combine_components(system: &TransitionSystemPtr) -> Component {
+pub enum Reachability {
+    Reachable,
+    All,
+}
+
+use Reachability::*;
+
+pub fn combine_components(system: &TransitionSystemPtr, reachability: Reachability) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
     let dim = system.get_dim();
-    collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks, dim);
+    match reachability {
+        Reachable => collect_reachable_edges_and_locations(
+            system,
+            &mut location_tuples,
+            &mut edges,
+            &clocks,
+            dim,
+        ),
+        All => {
+            collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks, dim)
+        }
+    };
 
     let locations = get_locations_from_tuples(&location_tuples, &clocks);
     let mut comp = Component {
@@ -81,6 +99,55 @@ fn collect_all_edges_and_locations<'a>(
     locations.extend(l);
     for location in locations {
         collect_edges_from_location(location, representation, edges, clock_map, dim);
+    }
+}
+
+fn collect_reachable_edges_and_locations<'a>(
+    representation: &'a TransitionSystemPtr,
+    locations: &mut Vec<LocationTuple>,
+    edges: &mut Vec<Edge>,
+    clock_map: &HashMap<String, u32>,
+    dim: u32,
+) {
+    let l = representation.get_initial_location();
+
+    if l.is_none() {
+        return;
+    }
+    let l = l.unwrap();
+
+    locations.push(l.clone());
+
+    collect_reachable_locations(&l, representation, locations);
+
+    for loc in locations {
+        collect_edges_from_location(&loc, representation, edges, clock_map, dim);
+    }
+}
+
+fn collect_reachable_locations<'a>(
+    location: &LocationTuple,
+    representation: &'a TransitionSystemPtr,
+    locations: &mut Vec<LocationTuple>,
+) {
+    for input in [true, false].iter() {
+        for sync in if *input {
+            representation.get_input_actions()
+        } else {
+            representation.get_output_actions()
+        } {
+            let transitions = representation.next_transitions(location, &sync);
+
+            for transition in transitions {
+                let mut target_location = location.clone();
+                transition.move_locations(&mut target_location);
+
+                if !locations.contains(&target_location) {
+                    locations.push(target_location.clone());
+                    collect_reachable_locations(&target_location, representation, locations);
+                }
+            }
+        }
     }
 }
 

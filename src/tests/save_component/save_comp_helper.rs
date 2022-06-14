@@ -9,6 +9,7 @@ pub mod save_comp_helper {
     use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
+    use crate::System::save_component::Reachability;
     use crate::TransitionSystems::CompiledComponent;
     use crate::TransitionSystems::TransitionSystem;
 
@@ -36,7 +37,7 @@ pub mod save_comp_helper {
         if let Err(_) = new_comp {
             return;
         }
-        let new_comp = combine_components(&new_comp.unwrap());
+        let new_comp = combine_components(&new_comp.unwrap(), Reachability::All);
 
         let new_comp = SystemRecipe::Component(Box::new(new_comp))
             .compile(dim)
