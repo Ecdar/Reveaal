@@ -117,6 +117,7 @@ impl Federation {
     ///
     /// assert_eq!(Federation::empty(), fed3);
     /// ```
+    #[must_use]
     pub fn subtraction(&self, other: &Self) -> Federation {
         let mut result = self.clone();
         lib::rs_fed_subtract(&mut result, &other);
@@ -171,6 +172,7 @@ impl Federation {
     ///
     /// assert_eq!(Federation::zero(), fed3);
     /// ```
+    #[must_use]
     pub fn intersection(&self, other: &Self) -> Federation {
         let mut result = self.clone();
         lib::rs_fed_intersect(&mut result, &other);
@@ -205,6 +207,11 @@ impl Federation {
     /// Returns whether the intersection of the federations is non-empty
     pub fn intersects(&self, other: &Self) -> bool {
         lib::rs_fed_intersects(self, other)
+    }
+
+    /// Update the federation to the temporal predecessor of this federation avoiding 'bad'
+    pub fn predt(&mut self, bad: &Self) {
+        lib::rs_fed_predt(self, bad);
     }
 
     /// Update the federation to contain its inverse
@@ -247,6 +254,7 @@ impl Federation {
     ///
     /// assert_eq!(Federation::empty(), fed2);
     /// ```
+    #[must_use]
     pub fn inverse(&self) -> Federation {
         let mut result = self.clone();
         lib::rs_fed_invert(&mut result);
@@ -296,6 +304,7 @@ impl Federation {
     /// // fed1 and fed2 remain unchanged
     /// assert_eq!(Federation::init(), fed3);
     /// ```
+    #[must_use]
     pub fn with_added_fed(&self, fed: &Federation) -> Federation {
         let mut result = self.clone();
         lib::rs_fed_add_fed(&mut result, fed);
@@ -312,10 +321,26 @@ impl Federation {
     ///
     /// ```
     /// assert!(Federation::empty().is_empty());
-    /// assert!(!Federation::zero().is_empty());
+    /// assert!(!Federation::full().is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         lib::rs_fed_is_empty(self)
+    }
+
+    /// Checks whether the federation is full / unrestrained
+    ///
+    /// Return `true` if all the federation is unrestrained
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// assert!(Federation::full().is_full());
+    /// assert!((!Federation::empty()).is_full());
+    /// ```
+    pub fn is_full(&self) -> bool {
+        self.inverse().is_empty()
     }
 
     /*
@@ -386,7 +411,7 @@ impl Federation {
     }
 
     /// Check whether the any DBM in the federation can delay indefinitely
-    pub fn canDelayIndefinitely(&self) -> bool {
+    pub fn can_delay_indefinitely(&self) -> bool {
         lib::rs_fed_can_delay_indef(self)
     }
 
@@ -552,7 +577,7 @@ impl Display for Federation {
         //return Ok(());
         write!(
             f,
-            "Federation{{{}}}",
+            "{{{}}}",
             self.as_boolexpression(None)
                 .unwrap_or(BoolExpression::Bool(true))
         )?;

@@ -7,7 +7,7 @@ use std::ops;
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
 
-#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq)]
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum BoolExpression {
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),
@@ -28,7 +28,7 @@ impl BoolExpression {
     pub fn swap_clock_names(
         &self,
         from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<u32, String>,
     ) -> BoolExpression {
         match self {
             BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
@@ -70,9 +70,8 @@ impl BoolExpression {
             BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
             BoolExpression::VarName(name) => {
                 let index = from_vars.get(name).unwrap();
-                let new_name = to_vars.iter()
-                .find_map(|(key, val)| if *val == *index { Some(key) } else { None }).unwrap();
-                BoolExpression::VarName(new_name.clone())
+                let new_name = to_vars[index].clone();
+                BoolExpression::VarName(new_name)
             },
             BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
             BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
@@ -116,12 +115,8 @@ impl BoolExpression {
             }
             BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
-            BoolExpression::Bool(boolean) => {
-                format!("{}", boolean)
-            }
-            BoolExpression::Int(num) => {
-                format!("{}", num)
-            }
+            BoolExpression::Bool(boolean) => boolean.to_string(),
+            BoolExpression::Int(num) => num.to_string(),
         }
     }
 
@@ -137,8 +132,7 @@ impl BoolExpression {
             }
         });
 
-        //Should this be strict or not? I have set it to be strict as it has a smaller solution space
-        new_constraint * 2 + 1
+        new_constraint // * 2 + 1 // This should not actually be a dbm_raw, as it is converted from bound to raw in the c code
     }
 
     pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
@@ -188,6 +182,23 @@ impl BoolExpression {
             }
             BoolExpression::Bool(_) => {}
             BoolExpression::Int(_) => {}
+        }
+    }
+
+    pub fn conjunction(guards: &mut Vec<BoolExpression>) -> BoolExpression {
+        let num_guards = guards.len();
+
+        if let Some(guard) = guards.pop() {
+            if num_guards == 1 {
+                guard
+            } else {
+                BoolExpression::AndOp(
+                    Box::new(guard),
+                    Box::new(BoolExpression::conjunction(guards)),
+                )
+            }
+        } else {
+            BoolExpression::Bool(false)
         }
     }
 
@@ -349,24 +360,40 @@ impl ops::BitOr for BoolExpression {
     }
 }
 
+fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
+    match exp.as_ref() {
+        BoolExpression::EQ(_, _) => Some("=".to_string()),
+        BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
+        BoolExpression::LessT(_, _) => Some("<".to_string()),
+        _ => None,
+    }
+}
+
 impl Display for BoolExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             BoolExpression::AndOp(left, right) => {
                 // And(eq(a,b), And(eq(b,c), And(eq(c,d), And(...)))) -> a=b=c=d
                 match &**left {
-                    BoolExpression::EQ(a, b) => match &**right {
+                    BoolExpression::EQ(a, b)
+                    | BoolExpression::LessEQ(a, b)
+                    | BoolExpression::LessT(a, b) => match &**right {
                         BoolExpression::AndOp(op, _) => {
-                            if let BoolExpression::EQ(b1, _c) = &**op {
+                            if let BoolExpression::EQ(b1, _c)
+                            | BoolExpression::LessEQ(b1, _c)
+                            | BoolExpression::LessT(b1, _c) = &**op
+                            {
                                 if **b == **b1 {
-                                    write!(f, "{}={}", a, right)?;
+                                    write!(f, "{}{}{}", a, get_op(left).unwrap(), right)?;
                                     return Ok(());
                                 }
                             }
                         }
-                        BoolExpression::EQ(b1, _c) => {
+                        BoolExpression::EQ(b1, _c)
+                        | BoolExpression::LessEQ(b1, _c)
+                        | BoolExpression::LessT(b1, _c) => {
                             if **b == **b1 {
-                                write!(f, "{}={}", a, right)?;
+                                write!(f, "{}{}{}", a, get_op(left).unwrap(), right)?;
                                 return Ok(());
                             }
                         }
@@ -462,102 +489,111 @@ fn var_from_index(
     var
 }
 
+fn get_groups_from_zone(zone: &Zone, clocks: &Option<&HashMap<String, u32>>) -> Vec<Vec<u32>> {
+    let mut groups: Vec<Vec<u32>> = vec![];
+    let mut grouped: Vec<u32> = vec![];
+    for index_i in 1..zone.dimension {
+        if grouped.contains(&index_i) {
+            continue;
+        }
+
+        if var_from_index(index_i, &clocks).is_none() {
+            continue;
+        }
+
+        let mut group = vec![index_i];
+
+        // Find next equal
+        for index_j in index_i + 1..zone.dimension {
+            if var_from_index(index_j, &clocks).is_none() {
+                continue;
+            }
+            if is_equal(zone, index_i, index_j) {
+                group.push(index_j);
+                grouped.push(index_j);
+            }
+        }
+
+        groups.push(group);
+    }
+    groups
+}
+
 pub fn build_guard_from_zone(
     zone: &Zone,
     clocks: Option<&HashMap<String, u32>>,
 ) -> Option<BoolExpression> {
     let mut guards: Vec<BoolExpression> = vec![];
-    for index_i in 1..zone.dimension {
-        let var = var_from_index(index_i, &clocks);
+    let groups = get_groups_from_zone(zone, &clocks);
 
-        if var.is_none() {
-            //
-            continue;
-        }
-        let var = var.unwrap();
+    for group in &groups {
+        let first = *group.first().unwrap();
+        let last = *group.last().unwrap();
+        let first_var = var_from_index(first, &clocks).unwrap();
+        let last_var = var_from_index(last, &clocks).unwrap();
 
-        //for clock in clocks.keys() {
-        //let index_i = clocks.get(clock).unwrap();
-        // i-j <= c
-        // x-0 <= upper
-        // 0-x <= -lower
-        let (upper_is_strict, upper_val) = zone.get_constraint(index_i, 0);
-        let (lower_is_strict, lower_val) = zone.get_constraint(0, index_i);
+        let (upper_is_strict, upper_val) = zone.get_constraint(first, 0);
+        let (lower_is_strict, lower_val) = zone.get_constraint(0, first);
 
         // if lower bound is different from (>=, 0)
         if lower_is_strict || lower_val != 0 {
             if lower_is_strict {
                 guards.push(BoolExpression::LessT(
                     Box::new(BoolExpression::Int(-lower_val)),
-                    var.clone(),
+                    first_var,
                 ));
             } else {
                 guards.push(BoolExpression::LessEQ(
                     Box::new(BoolExpression::Int(-lower_val)),
-                    var.clone(),
+                    first_var,
                 ));
             }
         }
 
+        for index in 0..group.len() - 1 {
+            let (a, b) = (group[index], group[index + 1]);
+            let (a, b) = (
+                var_from_index(a, &clocks).unwrap(),
+                var_from_index(b, &clocks).unwrap(),
+            );
+            guards.push(BoolExpression::EQ(a, b));
+        }
+
         // Upper bound
-        if !zone.is_constraint_infinity(index_i, 0) {
+        if !zone.is_constraint_infinity(last, 0) {
             if upper_is_strict {
                 guards.push(BoolExpression::LessT(
-                    var.clone(),
+                    last_var,
                     Box::new(BoolExpression::Int(upper_val)),
                 ));
             } else {
                 guards.push(BoolExpression::LessEQ(
-                    var.clone(),
+                    last_var,
                     Box::new(BoolExpression::Int(upper_val)),
                 ));
             }
         }
 
-        // Find next equal
-        let mut found_equal = false;
-        for index_j in index_i + 1..zone.dimension {
-            let var_j = var_from_index(index_j, &clocks);
-            if var_j.is_none() {
+        for other_group in &groups {
+            let other_first = *other_group.first().unwrap();
+            if other_first == first {
                 continue;
             }
-            let var_j = var_j.unwrap();
 
-            if is_equal(zone, index_i, index_j) {
-                if !found_equal {
-                    found_equal = true;
-                    guards.push(BoolExpression::EQ(var.clone(), var_j));
-                }
-                // Further equalitites are added in next iteration transitively
-                continue;
-            } else {
-                add_diagonal_constraints(
-                    zone,
-                    index_i,
-                    index_j,
-                    var.clone(),
-                    var_j.clone(),
-                    &mut guards,
-                );
-                add_diagonal_constraints(
-                    zone,
-                    index_j,
-                    index_i,
-                    var_j.clone(),
-                    var.clone(),
-                    &mut guards,
-                );
-            }
+            add_diagonal_constraints(
+                zone,
+                other_first,
+                first,
+                var_from_index(other_first, &clocks).unwrap(),
+                var_from_index(first, &clocks).unwrap(),
+                &mut guards,
+            );
         }
     }
-
     guards.reverse();
 
     let res = build_guard_from_zone_helper(&mut guards);
-    match res {
-        BoolExpression::Bool(true) => None,
-        _ => Some(res),
-    }
+    Some(res)
 }
 
 fn add_diagonal_constraints(
@@ -574,16 +610,25 @@ fn add_diagonal_constraints(
         }
         // i-j <= c
         let (is_strict, val) = zone.get_constraint(index_i, index_j);
-        if is_strict {
-            guards.push(BoolExpression::BLessT(
-                BoolExpression::Difference(var_i, var_j),
-                BoolExpression::Int(val),
-            ))
-        } else {
-            guards.push(BoolExpression::BLessEQ(
-                BoolExpression::Difference(var_i, var_j),
-                BoolExpression::Int(val),
-            ))
+        /*if val == 0 {
+            if is_strict {
+                guards.push(BoolExpression::BLessT(*var_i, *var_j))
+            } else {
+                guards.push(BoolExpression::BLessEQ(*var_i, *var_j))
+            }
+        } else*/
+        {
+            if is_strict {
+                guards.push(BoolExpression::BLessT(
+                    BoolExpression::Difference(var_i, var_j),
+                    BoolExpression::Int(val),
+                ))
+            } else {
+                guards.push(BoolExpression::BLessEQ(
+                    BoolExpression::Difference(var_i, var_j),
+                    BoolExpression::Int(val),
+                ))
+            }
         }
     }
 }
@@ -598,24 +643,24 @@ fn is_equal(zone: &Zone, index_i: u32, index_j: u32) -> bool {
 }
 
 fn is_constraint_unnecessary(zone: &Zone, index_i: u32, index_j: u32) -> bool {
-    //TODO: implement when necessary
-    return false;
-
     let max_i = zone.get_constraint(index_i, 0);
     let min_j = zone.get_constraint(0, index_j);
+
+    // let max_j = zone.get_constraint(index_j, 0);
+    // let min_i = zone.get_constraint(0, index_i);
 
     // i-j <= c
     let c = zone.get_constraint(index_i, index_j);
 
+    if zone.is_constraint_infinity(index_i, 0) {
+        return true;
+    }
+
     // max(i)-min(j) <? c
     // --> max(i) <? c + min(j)
-    let c_plus_j = constraint_sum(c.0, c.1, min_j.0, min_j.1);
+    let c_plus_min_j = constraint_sum(c.0, c.1, min_j.0, min_j.1);
 
-    if c_plus_j == max_i {
-        println!(
-            "Constraint {:?}-{:?} <? {:?} deemed unnecessary",
-            max_i, min_j, c
-        );
+    if c_plus_min_j == max_i {
         return true;
     }
     false

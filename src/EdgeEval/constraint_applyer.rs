@@ -171,7 +171,12 @@ fn get_indices(
         None
     };
 
-    result.unwrap()
+    result.unwrap_or_else(|| {
+        panic!(
+            "Failed to get index from left: {:?} right: {:?} decls: {:?}",
+            left, right, d
+        )
+    })
 }
 
 fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {
@@ -203,16 +208,4 @@ fn get_constant(expr: &BoolExpression, //, decls: &component::Declarations
         //BoolExpression::VarName(name) => decls.get_ints().get(name).and_then(|o| Some(*o)),
         _ => None,
     }
-}
-
-pub fn apply_constraints_to_state2(
-    guard: &BoolExpression,
-    state: &mut component::State,
-    comp_index: usize,
-) -> bool {
-    apply_constraints_to_state(
-        guard,
-        &state.get_declarations(comp_index).clone(),
-        &mut state.zone,
-    )
 }
