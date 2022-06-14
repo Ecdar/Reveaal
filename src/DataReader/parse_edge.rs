@@ -1,6 +1,7 @@
 extern crate pest;
-use crate::DataReader::serialization::encode_boolexpr;
+use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{DataReader::serialization::encode_boolexpr, ModelObjects::component::Declarations};
 use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -20,9 +21,9 @@ pub enum EdgeAttribute {
 
 #[derive(Debug, Clone, Deserialize, Serialize, std::cmp::PartialEq)]
 pub struct Update {
-    variable: String,
+    pub variable: String,
     #[serde(serialize_with = "encode_boolexpr")]
-    expression: BoolExpression,
+    pub expression: BoolExpression,
 }
 
 #[allow(dead_code)]
@@ -46,15 +47,16 @@ impl Update {
     pub fn swap_clock_names(
         &mut self,
         from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<u32, String>,
     ) {
-        let index = from_vars.get(&self.variable).unwrap();
-        let new_name = to_vars
-            .iter()
-            .find_map(|(key, val)| if *val == *index { Some(key) } else { None })
-            .unwrap();
-        self.variable = new_name.clone();
-        self.expression = self.expression.swap_clock_names(from_vars, to_vars);
+        if let Some(index) = from_vars.get(&self.variable) {
+            self.variable = to_vars[index].clone();
+            self.expression = self.expression.swap_clock_names(from_vars, to_vars);
+        }
+    }
+
+    pub fn compiled(&self, decl: &Declarations) -> CompiledUpdate {
+        CompiledUpdate::compile(self, decl)
     }
 }
 

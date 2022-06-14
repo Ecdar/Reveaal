@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MaxBounds {
     pub clock_bounds: Vec<i32>,
     dimensions: u32,

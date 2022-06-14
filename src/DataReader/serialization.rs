@@ -329,6 +329,7 @@ where
         "NORMAL" => Ok(LocationType::Normal),
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
+        "INCONSISTENT" => Ok(LocationType::Inconsistent),
         _ => panic!("Unknown sync type in status {:?}", s),
     }
 }
@@ -345,6 +346,7 @@ where
         LocationType::Normal => serializer.serialize_str("NORMAL"),
         LocationType::Initial => serializer.serialize_str("INITIAL"),
         LocationType::Universal => serializer.serialize_str("UNIVERSAL"),
+        LocationType::Inconsistent => serializer.serialize_str("INCONSISTENT"),
     }
 }
 
@@ -355,7 +357,7 @@ where
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
     if let Some((first_clock, _)) = it.next() {
-        output = output.add(&format!("{}", first_clock));
+        output = output.add(&first_clock.to_string());
 
         for (clock, _) in it {
             output = output.add(&format!(", {}", clock));

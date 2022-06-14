@@ -2,6 +2,7 @@
 
 mod DBMLib;
 mod DataReader;
+mod DataTypes;
 mod EdgeEval;
 mod ModelObjects;
 mod ProtobufServer;
@@ -32,14 +33,14 @@ extern crate xml;
 
 // The debug version
 #[macro_export]
-#[cfg(not(feature = "silent"))]
+#[cfg(feature = "verbose")]
 macro_rules! debug_print {
     ($( $args:expr ),*) => { println!( $( $args ),* ); }
 }
 
 // Non-debug version
 #[macro_export]
-#[cfg(feature = "silent")]
+#[cfg(not(feature = "verbose"))]
 macro_rules! debug_print {
     ($( $args:expr ),*) => {};
 }

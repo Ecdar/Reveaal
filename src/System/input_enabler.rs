@@ -5,7 +5,7 @@ use crate::ModelObjects::component::DeclarationProvider;
 use crate::TransitionSystems::TransitionSystem;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
-    let dimension = (component as &dyn TransitionSystem).get_max_clock_index() + 1;
+    let dimension = component.declarations.get_clock_count() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
 
     for location in component.get_locations() {
@@ -24,11 +24,11 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
 
         for input in inputs {
             let input_edges = component.get_next_edges(location, input, component::SyncType::Input);
-            let mut zones_federation = Federation::empty(location_inv_zone.get_dimensions());
+            let mut zones_federation = Federation::empty(dimension);
 
             for edge in input_edges {
-                let mut guard_zone = location_inv_zone.clone();
-                let has_inv = if let Some(target_invariant) = component
+                let mut guard_zone = Federation::full(dimension);
+                if let Some(target_invariant) = component
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
@@ -36,37 +36,30 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                         target_invariant,
                         component.get_declarations(),
                         &mut guard_zone,
-                    )
-                } else {
-                    false
-                };
+                    );
+                }
 
-                if edge.get_update().is_some() {
-                    let update_clocks = edge.get_update_clocks();
-                    for clock in update_clocks {
-                        let clock_index = component.get_declarations().clocks.get(clock).unwrap();
-                        guard_zone.free_clock(*clock_index);
+                if let Some(updates) = edge.get_update() {
+                    for update in updates {
+                        let cu = update.compiled(component.get_declarations());
+                        cu.apply_as_guard(&mut guard_zone);
+                        cu.apply_as_free(&mut guard_zone);
                     }
                 }
 
-                let has_guard = if let Some(guard) = edge.get_guard() {
+                if let Some(guard) = edge.get_guard() {
                     constraint_applyer::apply_constraints_to_state(
                         guard,
                         component.get_declarations(),
                         &mut guard_zone,
-                    )
-                } else {
-                    false
-                };
-
-                if !has_inv && !has_guard {
-                    zones_federation.add_fed(&location_inv_zone);
-                } else {
-                    zones_federation.add_fed(&guard_zone);
+                    );
                 }
+
+                guard_zone.intersect(&location_inv_zone);
+
+                zones_federation.add_fed(&guard_zone);
             }
 
-            //let zones_federation = Federation::new(zones, location_inv_zone.dimension);
             let result_federation = full_federation.subtraction(&zones_federation);
 
             if result_federation.is_empty() {
@@ -79,10 +72,7 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 target_location: location.get_id().to_string(),
                 sync_type: component::SyncType::Input,
                 guard: result_federation
-                    .as_boolexpression(Some(component.get_declarations().get_clocks())), //build_guard_from_zone(
-                //    &fed_zone,
-                //    Some(component.get_declarations().get_clocks()),
-                //)
+                    .as_boolexpression(Some(component.get_declarations().get_clocks())),
                 update: None,
                 sync: input.to_string(),
             });

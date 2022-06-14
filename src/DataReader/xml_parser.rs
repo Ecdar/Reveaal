@@ -178,7 +178,9 @@ fn parse_declarations(variables: &str) -> Declarations {
         }
         let sub_decls: Vec<String> = string.split(';').map(|s| s.into()).collect();
 
-        for sub_decl in sub_decls {
+        for mut sub_decl in sub_decls {
+            sub_decl = sub_decl.replace("\r", "");
+
             if !sub_decl.is_empty() {
                 let split_string: Vec<String> = sub_decl.split(' ').map(|s| s.into()).collect();
                 let variable_type = split_string[0].as_str();
@@ -203,9 +205,7 @@ fn parse_declarations(variables: &str) -> Declarations {
                         }
                     }
                 } else {
-                    let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(&variable_type.to_string());
-                    panic!("{}", error_string);
+                    panic!("not implemented read for type: {}", variable_type);
                 }
             }
         }
@@ -229,7 +229,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
             continue;
         }
 
-        if !declaration.is_empty() {
+        if !declaration.trim().is_empty() {
             if first_run {
                 let component_decls = declaration;
 
@@ -258,7 +258,9 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
 
                 if component_names.contains(&component_name) {
                     for split_str in split_string.iter().skip(2) {
-                        let s = split_str.replace("{", "");
+                        let mut s = split_str.replace("{", "");
+                        s = s.replace("\r", "");
+                        s = s.replace("\n", "");
                         let p = s.replace("}", "");
                         let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {

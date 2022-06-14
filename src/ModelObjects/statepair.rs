@@ -4,18 +4,18 @@ use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
-pub struct StatePair<'a> {
-    pub locations1: LocationTuple<'a>,
-    pub locations2: LocationTuple<'a>,
+pub struct StatePair {
+    pub locations1: LocationTuple,
+    pub locations2: LocationTuple,
     pub zone: Federation,
 }
 
-impl<'b> StatePair<'b> {
-    pub fn create<'a>(
+impl StatePair {
+    pub fn create(
         dimensions: u32,
-        locations1: LocationTuple<'a>,
-        locations2: LocationTuple<'a>,
-    ) -> StatePair<'a> {
+        locations1: LocationTuple,
+        locations2: LocationTuple,
+    ) -> StatePair {
         let mut zone = Federation::zero(dimensions);
         zone.up();
 
@@ -30,19 +30,16 @@ impl<'b> StatePair<'b> {
         self.zone.get_dimensions()
     }
 
-    pub fn get_locations1(&self) -> &LocationTuple<'b> {
+    pub fn get_locations1(&self) -> &LocationTuple {
         &self.locations1
     }
 
-    pub fn get_locations2(&self) -> &LocationTuple<'b> {
+    pub fn get_locations2(&self) -> &LocationTuple {
         &self.locations2
     }
 
     //Used to allow borrowing both states as mutable
-    pub fn get_mut_states(
-        &mut self,
-        is_states1: bool,
-    ) -> (&mut LocationTuple<'b>, &mut LocationTuple<'b>) {
+    pub fn get_mut_states(&mut self, is_states1: bool) -> (&mut LocationTuple, &mut LocationTuple) {
         if is_states1 {
             (&mut self.locations1, &mut self.locations2)
         } else {
@@ -50,7 +47,7 @@ impl<'b> StatePair<'b> {
         }
     }
 
-    pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple<'b>, &LocationTuple<'b>) {
+    pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple, &LocationTuple) {
         if is_states1 {
             (&self.locations1, &self.locations2)
         } else {
@@ -65,25 +62,29 @@ impl<'b> StatePair<'b> {
     ) -> MaxBounds {
         let dim = self.zone.get_dimensions();
 
-        let mut bounds = sys1.get_max_bounds(dim);
-        bounds.add_bounds(&sys2.get_max_bounds(dim));
+        let mut bounds = sys1.get_max_bounds();
+        bounds.add_bounds(&sys2.get_max_bounds());
 
         bounds
     }
 }
 
-impl<'b> Display for StatePair<'b> {
+impl Display for StatePair {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Pair: ({{")?;
-        for l in self.locations1.iter() {
-            f.write_fmt(format_args!("{}, ", l.get_id()))?;
-        }
-        f.write_str("}}, {{")?;
-        for l in self.locations2.iter() {
-            f.write_fmt(format_args!("{}, ", l.get_id()))?;
-        }
-        f.write_str("}}")?;
-        f.write_fmt(format_args!("{}", self.zone))?;
+        f.write_fmt(format_args!(
+            "Pair: 1:{} where {}, 2:{} where {}, zone: {}",
+            self.locations1.id,
+            self.locations1
+                .get_invariants()
+                .map(|f| f.to_string())
+                .unwrap_or("no invariant".to_string()),
+            self.locations2.id,
+            self.locations2
+                .get_invariants()
+                .map(|f| f.to_string())
+                .unwrap_or("no invariant".to_string()),
+            self.zone
+        ))?;
 
         Ok(())
     }
