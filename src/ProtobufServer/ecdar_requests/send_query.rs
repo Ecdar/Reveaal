@@ -1,3 +1,5 @@
+use std::panic::AssertUnwindSafe;
+
 use crate::debug_print;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
@@ -17,10 +19,10 @@ use crate::ProtobufServer::ConcreteEcdarBackend;
 impl ConcreteEcdarBackend {
     pub async fn handle_send_query(
         &self,
-        request: Request<ProtobufQuery>,
+        request: AssertUnwindSafe<Request<ProtobufQuery>>,
     ) -> Result<Response<QueryResponse>, Status> {
         debug_print!("Received query: {:?}", request);
-        let query_request = request.into_inner();
+        let query_request = request.0.into_inner();
 
         let query = parse_query(&query_request)?;
 
@@ -36,7 +38,7 @@ impl ConcreteEcdarBackend {
         let executable_query =
             match extract_system_rep::create_executable_query(&query, &mut *component_container) {
                 Ok(query) => query,
-                Err(_) => return Err(Status::unknown("Creation of query failed")),
+                Err(e) => return Err(Status::internal(format!("Creation of query failed: {}", e))),
             };
         let result = executable_query.execute();
 
