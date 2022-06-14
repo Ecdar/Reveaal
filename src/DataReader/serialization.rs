@@ -402,16 +402,19 @@ where
 {
     let mut output = String::new();
     if let Some(updates) = opt_updates {
-        for update in updates {
+        for (i, update) in updates.iter().enumerate() {
             output = output.add(
                 &[
                     update.get_variable_name(),
                     "=",
                     &update.get_expression().encode_expr(),
-                    ", ",
                 ]
                 .concat(),
             );
+
+            if i != updates.len() - 1 {
+                output = output.add(", ");
+            }
         }
         serializer.serialize_str(&output)
     } else {
