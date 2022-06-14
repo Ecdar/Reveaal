@@ -52,24 +52,21 @@ fn get_locations_from_tuples(
 
 fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
     let mut clocks = HashMap::new();
-    let mut counts = HashMap::new();
-    for decl in sysrep.get_decls() {
+    let decls = sysrep.get_decls();
+
+    if decls.len() == 1 {
+        return decls[0].clocks.clone();
+    }
+    for (comp_id, decl) in decls.into_iter().enumerate() {
         for (k, v) in &decl.clocks {
-            if counts.contains_key(k) {
-                let num = counts
-                    .get_mut(k)
-                    .map(|c| {
-                        *c += 1;
-                        *c
-                    })
-                    .unwrap();
-                clocks.insert(format!("{}{}", k, num), *v);
+            if clocks.contains_key(k) {
+                clocks.insert(format!("{}{}", k, comp_id), *v);
             } else {
-                counts.insert(k.clone(), 0u32);
                 clocks.insert(k.clone(), *v);
             }
         }
     }
+
     clocks
 }
 
