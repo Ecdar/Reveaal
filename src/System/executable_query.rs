@@ -53,7 +53,7 @@ pub struct RefinementExecutor {
 
 impl ExecutableQuery for RefinementExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult> {
-        let (sys1, sys2) = extra_actions::add_extra_inputs_outputs(self.sys1, self.sys2)?;
+        let (sys1, sys2) = (self.sys1, self.sys2); //extra_actions::add_extra_inputs_outputs(self.sys1, self.sys2);
 
         match refine::check_refinement(sys1, sys2)? {
             Ok(res) => {

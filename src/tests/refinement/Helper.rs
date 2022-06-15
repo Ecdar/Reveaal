@@ -7,7 +7,7 @@ use crate::System::extract_system_rep::create_executable_query;
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     match xml_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
@@ -15,14 +15,14 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     match json_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
 
 pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let project_path = String::from(PATH);
-    let mut project_loader = XmlProjectLoader::new(project_path).unwrap();
+    let project_loader = XmlProjectLoader::new(project_path).unwrap();
     let query = parse_queries::parse_to_expression_tree(QUERY)
         .unwrap()
         .remove(0);
@@ -38,7 +38,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
 }
 
 pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
-    let mut project_loader = JsonProjectLoader::new(String::from(PATH)).unwrap();
+    let project_loader = JsonProjectLoader::new(String::from(PATH)).unwrap();
     let query = parse_queries::parse_to_expression_tree(QUERY)
         .unwrap()
         .remove(0);

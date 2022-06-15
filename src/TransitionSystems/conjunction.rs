@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;
@@ -136,7 +136,7 @@ impl<'a> TransitionSystem<'static> for PrunedComponent {
         self.component.is_locally_consistent(dimensions)
     }
 
-    fn get_initial_state(&self, dimensions: u32) -> Result<State> {
+    fn get_initial_state(&self, dimensions: u32) -> Result<Option<State>> {
         self.component.get_initial_state(dimensions)
     }
 }

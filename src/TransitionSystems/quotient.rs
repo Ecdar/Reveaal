@@ -1,4 +1,4 @@
-use crate::DBMLib::dbm::Zone;
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{Component, State, SyncType, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;

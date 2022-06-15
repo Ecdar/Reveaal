@@ -30,7 +30,7 @@
 namespace dbm
 {
     /// @return true if ptr is a non null pointer, mainly for debugging.
-    static inline bool isPointer(const void* ptr)
+    static inline bool isPointer(const void *ptr)
     {
         return (((uintptr_t)ptr) & 3) == 0 && ptr != nullptr;
     }
@@ -43,13 +43,14 @@ namespace dbm
     {
     public:
         /// Default constructor, @see table.h
-        DBMTable(): uhash::TableDouble<idbm_t>(dbm_t::MAX_DIM_POWER, false) {}
+        DBMTable() : uhash::TableDouble<idbm_t>(dbm_t::MAX_DIM_POWER, false) {}
 
 #if defined(ENABLE_MONITOR) || !defined(NDEBUG)
         /// this hash table should be empty now unless there have been leaks
         ~DBMTable()
         {
-            if (nbBuckets) {
+            if (nbBuckets)
+            {
                 std::cerr << RED(BOLD) << nbBuckets << (nbBuckets > 1 ? " DBMs are" : " DBM is")
                           << " left in the internal hash table!" NORMAL "\n";
             }
@@ -67,38 +68,27 @@ namespace dbm
 #ifdef ENABLE_DBM_NEW
 
     /// Clean-up function does nothing
-    static inline void cleanUp() {}
+    static void cleanUp();
 
     /** Allocate memory with new.
      * @param dim: dimension of the idbm_t to allocate.
      */
-    static inline void* dbm_new(cindex_t dim)
-    {
-#ifdef ENABLE_STORE_MINGRAPH
-        return new int32_t[intsizeof(idbm_t) + dim * dim + bits2intsize(dim * dim)];
-#else
-        return new int32_t[intsizeof(idbm_t) + dim * dim];
-#endif
-    }
+    static void *dbm_new(cindex_t dim);
 
     /** Deallocate memory as allocated by dbm_new.
      * @param dbm: idbm_t to deallocate.
      * @pre dbm != NULL
      */
-    static inline void dbm_delete(idbm_t* dbm)
-    {
-        assert(dbm);
-        delete[] reinterpret_cast<int32_t*>(dbm);
-    }
+    static void dbm_delete(idbm_t *dbm);
 
-#else  // ifndef ENABLE_DBM_NEW
+#else // ifndef ENABLE_DBM_NEW
 
     /** Allocate memory with a local allocator.
      * @param dim: dimension of the idbm_t to allocate.
      * DON'T INLINE because array_t will expand
      * every call too badly.
      */
-    void* dbm_new(cindex_t dim);
+    void *dbm_new(cindex_t dim);
 
     /** Deallocate memory as allocated by dbm_new.
      * @param dbm: idbm_t to deallocate.
@@ -106,9 +96,9 @@ namespace dbm
      * DON'T INLINE because array_t will expand
      * every call too badly.
      */
-    void dbm_delete(idbm_t* dbm);
+    void dbm_delete(idbm_t *dbm);
 
-#endif  // ENABLE_DBM_NEW
+#endif // ENABLE_DBM_NEW
 
     /**************************************************
      * idbm_t: internal DBM -- to be used in DBMTable *
@@ -124,7 +114,8 @@ namespace dbm
          * HASH_MASK contains the remaining bits for the hash value
          * HASHED_BIT mark if this DBM is in a hash tabled (hashed).
          */
-        enum {
+        enum
+        {
             HASHED_BIT = (1 << 31),
             HASH_MASK = ~(HASHED_BIT | dbm_t::MAX_DIM),
             DIM_MASK = dbm_t::MAX_DIM
@@ -151,11 +142,11 @@ namespace dbm
         bool isValid() const { return minSize != SIZE_MAX; }
 
         /// Compute/update the mingraph.
-        const uint32_t* getMinGraph(size_t* size);
+        const uint32_t *getMinGraph(size_t *size);
 
         /// Copy its mingraph.
         /// @pre isValid() && !arg->isValid() && same DBMs.
-        void copyMinGraphTo(idbm_t* arg);
+        void copyMinGraphTo(idbm_t *arg);
 #endif
 
         /// @return true if this dbm can be modified.
@@ -172,7 +163,7 @@ namespace dbm
             if (refCounter > 1)
                 return false;
 #ifdef ENABLE_STORE_MINGRAPH
-            invalidate();  // We're going to change this DBM.
+            invalidate(); // We're going to change this DBM.
 #endif
             if (isHashed())
                 unhash();
@@ -246,28 +237,28 @@ namespace dbm
         void remove();
 
         /// @return writable DBM matrix, @pre isMutable()
-        raw_t* dbm()
+        raw_t *dbm()
         {
             assert(isMutable());
             return matrix;
         }
 
         /// @return read-only DBM matrix.
-        const raw_t* const_dbm() const { return matrix; }
+        const raw_t *const_dbm() const { return matrix; }
 
         /// @return DBM matrix without pre-condition, careful...
-        raw_t* getMatrix() { return matrix; }
+        raw_t *getMatrix() { return matrix; }
 
         /// @return newly allocated idbm_t, @param dim: DBM dimension.
-        static idbm_t* create(cindex_t dim)
+        static idbm_t *create(cindex_t dim)
         {
-            return new (dbm_new(dim)) idbm_t(dim);  // placement constructor
+            return new (dbm_new(dim)) idbm_t(dim); // placement constructor
         }
 
         /// @return newly allocated idbm_t, @param arg: original to copy.
-        static idbm_t* create(const idbm_t& arg)
+        static idbm_t *create(const idbm_t &arg)
         {
-            return new (dbm_new(arg.getDimension())) idbm_t(arg);  // placement constructor
+            return new (dbm_new(arg.getDimension())) idbm_t(arg); // placement constructor
         }
 
         /** Constructor: use placement constructor
@@ -278,7 +269,7 @@ namespace dbm
          * use a single such DBM.
          * @post DBM is not initialized!
          */
-        idbm_t(cindex_t dim): refCounter{1}
+        idbm_t(cindex_t dim) : refCounter{1}
         {
             assert(dim > 0 && dim <= DIM_MASK);
             info = dim;
@@ -291,7 +282,7 @@ namespace dbm
          * of this DBM.
          * @param original: DBM to copy.
          */
-        idbm_t(const idbm_t& other): refCounter{1}
+        idbm_t(const idbm_t &other) : refCounter{1}
         {
             info = other.getDimension();
 #ifdef ENABLE_STORE_MINGRAPH
@@ -312,12 +303,41 @@ namespace dbm
          * info & 0x7fff8000 = higher bits of hash value
          * info & 0x00007fff = dimension (default DBM_MAX_DIM)
          */
-        uint32_t refCounter;  //< reference counter
+        uint32_t refCounter; //< reference counter
 #ifdef ENABLE_STORE_MINGRAPH
         size_t minSize;
 #endif
-        raw_t matrix[];  //< DBM matrix
+        raw_t matrix[]; //< DBM matrix
     };
+
+#ifdef ENABLE_DBM_NEW
+
+    /// Clean-up function does nothing
+    static inline void cleanUp() {}
+
+    /** Allocate memory with new.
+     * @param dim: dimension of the idbm_t to allocate.
+     */
+    static inline void *dbm_new(cindex_t dim)
+    {
+#ifdef ENABLE_STORE_MINGRAPH
+        return new int32_t[intSizeOf(idbm_t) + dim * dim + bits2intsize(dim * dim)];
+#else
+        return new int32_t[intSizeOf(idbm_t) + dim * dim];
+#endif
+    }
+
+    /** Deallocate memory as allocated by dbm_new.
+     * @param dbm: idbm_t to deallocate.
+     * @pre dbm != NULL
+     */
+    static inline void dbm_delete(idbm_t *dbm)
+    {
+        assert(dbm);
+        delete[] reinterpret_cast<int32_t *>(dbm);
+    }
+
+#endif // ENABLE_DBM_NEW
 
     /*********************************
      * Allocation of fdbm_t & ifed_t *
@@ -328,15 +348,15 @@ namespace dbm
     /// member, which implies a constructor, which bugs us very much.
     struct alloc_fdbm_t
     {
-        ifed_t* next;  //< list of DBMs for the federation
-        idbm_t* idbm;  //< DBM itself
+        ifed_t *next; //< list of DBMs for the federation
+        idbm_t *idbm; //< DBM itself
     };
 
     /// Similarly for ifed_t
     struct alloc_ifed_t
     {
         size_t fedSize;
-        fdbm_t* fhead;
+        fdbm_t *fhead;
         uint32_t refCounter;
         cindex_t dim;
     };
@@ -355,50 +375,51 @@ namespace dbm
         /// Copy a DBM into a newly created fdbm_t.
         /// @param adbm: the DBM to copy.
         /// @param nxt: list of DBMs to append.
-        static fdbm_t* create(const raw_t* adbm, cindex_t dim, fdbm_t* nxt = NULL)
+        static fdbm_t *create(const raw_t *adbm, cindex_t dim, fdbm_t *nxt = NULL)
         {
-            fdbm_t* fdbm = create(nxt);
+            fdbm_t *fdbm = create(nxt);
             fdbm->idbm.newCopy(adbm, dim);
             return fdbm;
         }
-        static fdbm_t* create(const dbm_t& adbm, fdbm_t* nxt = NULL)
+        static fdbm_t *create(const dbm_t &adbm, fdbm_t *nxt = NULL)
         {
-            fdbm_t* fdbm = create(nxt);
+            fdbm_t *fdbm = create(nxt);
             fdbm->idbm.newCopy(adbm);
             return fdbm;
         }
 
         /// Copy start and append end to the copy.
-        static fdbm_t* copy(const fdbm_t* start, fdbm_t* end = NULL);
+        static fdbm_t *copy(const fdbm_t *start, fdbm_t *end = NULL);
 
         /// Wrapper methods.
-        fdbm_t* copy() const { return copy(this); }
+        fdbm_t *copy() const { return copy(this); }
         bool isEmpty() const { return idbm.isEmpty(); }
         cindex_t getDimension() const { return idbm.getDimension(); }
 
         /// Remove the list starting at fhead.
-        static void removeAll(fdbm_t* fhead);
+        static void removeAll(fdbm_t *fhead);
 
         /// Remove this fdbm_t and its DBM.
         void remove()
         {
             idbm.nil();
-            fdbm_allocator.deallocate(reinterpret_cast<alloc_fdbm_t*>(this));
+            fdbm_allocator.deallocate(reinterpret_cast<alloc_fdbm_t *>(this));
         }
 
         /// Remove this fdbm_t with @pre isEmpty()
         void removeEmpty()
         {
             assert(isEmpty());
-            fdbm_allocator.deallocate(reinterpret_cast<alloc_fdbm_t*>(this));
+            fdbm_allocator.deallocate(reinterpret_cast<alloc_fdbm_t *>(this));
         }
 
         /// Compute list size.
         size_t size() const
         {
-            const fdbm_t* f = this;
+            const fdbm_t *f = this;
             size_t s = 0;
-            do {
+            do
+            {
                 f = f->next;
                 ++s;
             } while (f);
@@ -406,54 +427,54 @@ namespace dbm
         }
 
         /// @return the internal DBM.
-        const dbm_t& const_dbmt() const
+        const dbm_t &const_dbmt() const
         {
             assert(!idbm.isEmpty());
             return idbm;
         }
-        dbm_t& dbmt() { return idbm; }
+        dbm_t &dbmt() { return idbm; }
 
         /// Unchecked access.
-        raw_t* getMatrix() { return idbm.idbmt()->getMatrix(); }
+        raw_t *getMatrix() { return idbm.idbmt()->getMatrix(); }
 
         /// @return start appended with end.
-        static fdbm_t* append(fdbm_t* start, fdbm_t* end);
+        static fdbm_t *append(fdbm_t *start, fdbm_t *end);
 
         /// @return next for iterations.
-        fdbm_t** getNextMutable() { return &next; }
-        const fdbm_t* getNext() const { return next; }
-        fdbm_t* getNext() { return next; }
+        fdbm_t **getNextMutable() { return &next; }
+        const fdbm_t *getNext() const { return next; }
+        fdbm_t *getNext() { return next; }
 
         /// Test its next pointer.
-        bool hasNext(fdbm_t** nxt) const { return &next == nxt; }
+        bool hasNext(fdbm_t **nxt) const { return &next == nxt; }
 
         /// Change next for iterations.
-        void setNext(fdbm_t* nxt) { next = nxt; }
+        void setNext(fdbm_t *nxt) { next = nxt; }
 
         /// Remove this and return next;
-        fdbm_t* removeAndNext()
+        fdbm_t *removeAndNext()
         {
-            fdbm_t* nxt = next;
+            fdbm_t *nxt = next;
             remove();
             return nxt;
         }
         /// Remove this and return next;
-        fdbm_t* removeEmptyAndNext()
+        fdbm_t *removeEmptyAndNext()
         {
-            fdbm_t* nxt = next;
+            fdbm_t *nxt = next;
             removeEmpty();
             return nxt;
         }
 
     private:
         /// Creation of fdbm_t using an allocator.
-        static fdbm_t* create(fdbm_t* nxt = NULL);
+        static fdbm_t *create(fdbm_t *nxt = NULL);
 
         /// Must never be called
         ~fdbm_t() = delete;
 
-        fdbm_t* next;  //< next DBM in the list.
-        dbm_t idbm;    //< (internal) DBM.
+        fdbm_t *next; //< next DBM in the list.
+        dbm_t idbm;   //< (internal) DBM.
     };
 
     /***************************************
@@ -464,33 +485,33 @@ namespace dbm
     class dbmlist_t
     {
     public:
-        dbmlist_t(): fedSize(0), fhead(NULL) {}
-        dbmlist_t(size_t size, fdbm_t* flist): fedSize(size), fhead(flist) {}
-        dbmlist_t(const raw_t* arg, cindex_t dim): fedSize(1), fhead(fdbm_t::create(arg, dim)) {}
-        dbmlist_t(const dbm_t& arg): fedSize(1), fhead(fdbm_t::create(arg)) {}
+        dbmlist_t() : fedSize(0), fhead(NULL) {}
+        dbmlist_t(size_t size, fdbm_t *flist) : fedSize(size), fhead(flist) {}
+        dbmlist_t(const raw_t *arg, cindex_t dim) : fedSize(1), fhead(fdbm_t::create(arg, dim)) {}
+        dbmlist_t(const dbm_t &arg) : fedSize(1), fhead(fdbm_t::create(arg)) {}
 
         /// Append a list of fdbm_t.
-        dbmlist_t& append(dbmlist_t& arg)
+        dbmlist_t &append(dbmlist_t &arg)
         {
             fhead = fedSize > arg.fedSize ? fdbm_t::append(arg.fhead, fhead)
                                           : fdbm_t::append(fhead, arg.fhead);
             fedSize += arg.fedSize;
             return *this;
         }
-        dbmlist_t& appendBegin(dbmlist_t& arg)
+        dbmlist_t &appendBegin(dbmlist_t &arg)
         {
             fhead = fdbm_t::append(arg.fhead, fhead);
             fedSize += arg.fedSize;
             return *this;
         }
-        dbmlist_t& appendEnd(dbmlist_t& arg)
+        dbmlist_t &appendEnd(dbmlist_t &arg)
         {
             fhead = fdbm_t::append(fhead, arg.fhead);
             fedSize += arg.fedSize;
             return *this;
         }
         /// Append just one fdbm_t, not the whole list!
-        dbmlist_t& append(fdbm_t* arg)
+        dbmlist_t &append(fdbm_t *arg)
         {
             assert(arg);
             arg->setNext(fhead);
@@ -499,7 +520,7 @@ namespace dbm
             return *this;
         }
         /// Append a copy of arg, @pre dimension is the same as the other DBMs.
-        raw_t* append(const raw_t* arg, cindex_t dim)
+        raw_t *append(const raw_t *arg, cindex_t dim)
         {
             fhead = fdbm_t::create(arg, dim, fhead);
             fedSize++;
@@ -508,11 +529,11 @@ namespace dbm
 
         /// Remove DBMs of 'this' that are included in arg
         /// and DBMs of arg that are included in 'this'.
-        void removeIncluded(dbmlist_t& arg);
+        void removeIncluded(dbmlist_t &arg);
 
         /// Union of arg with this dbmlist_t, does inclusion checking
         /// @post dbmlist_t arg is invalid.
-        dbmlist_t& unionWith(dbmlist_t& arg)
+        dbmlist_t &unionWith(dbmlist_t &arg)
         {
             removeIncluded(arg);
             append(arg);
@@ -534,9 +555,9 @@ namespace dbm
         }
 
         /// Head of the list.
-        const fdbm_t* const_head() const { return fhead; }
-        fdbm_t* head() { return fhead; }
-        fdbm_t** atHead() { return &fhead; }
+        const fdbm_t *const_head() const { return fhead; }
+        fdbm_t *head() { return fhead; }
+        fdbm_t **atHead() { return &fhead; }
 
         /// Update the federation size.
         void incSize(size_t n = 1) { fedSize += n; }
@@ -547,28 +568,28 @@ namespace dbm
         }
 
         /// Brutal re-set of the list.
-        void reset(fdbm_t* dbms = NULL, size_t size = 0)
+        void reset(fdbm_t *dbms = NULL, size_t size = 0)
         {
             fedSize = size;
             fhead = dbms;
         }
-        void reset(dbmlist_t& l) { reset(l.fhead, l.fedSize); }
+        void reset(dbmlist_t &l) { reset(l.fhead, l.fedSize); }
 
         /// @return 'this' intersected with arg. @pre same dimension.
-        dbmlist_t& intersection(const raw_t* arg, cindex_t dim);
-        dbmlist_t& intersection(const dbm_t& arg, cindex_t dim);
+        dbmlist_t &intersection(const raw_t *arg, cindex_t dim);
+        dbmlist_t &intersection(const dbm_t &arg, cindex_t dim);
 
         /// @return a simple copy of this list of DBMs.
         dbmlist_t copyList() const { return dbmlist_t(fedSize, fdbm_t::copy(fhead)); }
 
         /// Steal one DBM of a dbmlist_t.
-        void steal(fdbm_t** dbm, dbmlist_t& owner) { steal(&fhead, dbm, owner); }
+        void steal(fdbm_t **dbm, dbmlist_t &owner) { steal(&fhead, dbm, owner); }
         /// @pre head is somewhere in this list of DBMs
-        fdbm_t** steal(fdbm_t** head, fdbm_t** dbm, dbmlist_t& owner)
+        fdbm_t **steal(fdbm_t **head, fdbm_t **dbm, dbmlist_t &owner)
         {
             assert(owner.fedSize && dbm && *dbm && head);
-            fdbm_t** atNext = (*dbm)->getNextMutable();
-            fdbm_t* next = *atNext;
+            fdbm_t **atNext = (*dbm)->getNextMutable();
+            fdbm_t *next = *atNext;
             *atNext = *head;
             *head = *dbm;
             *dbm = next;
@@ -578,7 +599,7 @@ namespace dbm
         }
 
         /// Steal a list and append it at the end.
-        void stealFromToEnd(fdbm_t** next, dbmlist_t& dbmList)
+        void stealFromToEnd(fdbm_t **next, dbmlist_t &dbmList)
         {
             while (*next)
                 next = (*next)->getNextMutable();
@@ -588,18 +609,18 @@ namespace dbm
         }
 
         /// Swap DBM lists.
-        void swap(dbmlist_t& arg)
+        void swap(dbmlist_t &arg)
         {
             size_t s = fedSize;
             fedSize = arg.fedSize;
             arg.fedSize = s;
-            fdbm_t* h = fhead;
+            fdbm_t *h = fhead;
             fhead = arg.fhead;
             arg.fhead = h;
         }
 
         /// Copy ref.
-        void copyRef(dbmlist_t& arg)
+        void copyRef(dbmlist_t &arg)
         {
             fedSize = arg.fedSize;
             fhead = arg.fhead;
@@ -615,46 +636,46 @@ namespace dbm
 
 #ifndef NDEBUG
         /// Print for debugging only, use operator << on fed_t instead.
-        void print(std::ostream& os = std::cerr) const;
+        void print(std::ostream &os = std::cerr) const;
         void err() const;
         void out() const;
 #endif
 
     protected:
-        size_t fedSize;  //< size of the federation
-        fdbm_t* fhead;   //< federation head of the list (1st DBM)
+        size_t fedSize; //< size of the federation
+        fdbm_t *fhead;  //< federation head of the list (1st DBM)
     };
 
     class ifed_t : public dbmlist_t
     {
     public:
         /// Creation and initialization of ifed_t. @pre the dbm is not empty.
-        static ifed_t* create(const raw_t* adbm, cindex_t dim, size_t nxtSize = 0,
-                              fdbm_t* nxt = NULL)
+        static ifed_t *create(const raw_t *adbm, cindex_t dim, size_t nxtSize = 0,
+                              fdbm_t *nxt = NULL)
         {
             return create(dim, 1 + nxtSize, fdbm_t::create(adbm, dim, nxt));
         }
-        static ifed_t* create(const dbm_t& adbm, size_t nxtSize = 0, fdbm_t* nxt = NULL)
+        static ifed_t *create(const dbm_t &adbm, size_t nxtSize = 0, fdbm_t *nxt = NULL)
         {
             return create(adbm.const_idbmt()->getDimension(), 1 + nxtSize,
                           fdbm_t::create(adbm, nxt));
         }
-        static ifed_t* create(cindex_t dim)
-        {  // initial empty
+        static ifed_t *create(cindex_t dim)
+        { // initial empty
             return create(dim, 0, NULL);
         }
-        static ifed_t* create(cindex_t dim, dbmlist_t dbmlist)
+        static ifed_t *create(cindex_t dim, dbmlist_t dbmlist)
         {
             return create(dim, dbmlist.size(), dbmlist.head());
         }
 
         /// Update the 1st DBM, @pre size() > 0 and same dimension.
-        void update(const raw_t* adbm, cindex_t adim)
+        void update(const raw_t *adbm, cindex_t adim)
         {
             assert(size() > 0 && adim == dim);
             fhead->dbmt().updateCopy(adbm, adim);
         }
-        void update(const dbm_t& adbm)
+        void update(const dbm_t &adbm)
         {
             assert(size() > 0 && adbm.getDimension() == dim);
             fhead->dbmt().updateCopy(adbm);
@@ -664,8 +685,10 @@ namespace dbm
         bool isOK() const
         {
             size_t n = 0;
-            for (const fdbm_t* f = fhead; f != NULL; f = f->getNext(), n++) {
-                if (f->isEmpty() || f->getDimension() != dim) {
+            for (const fdbm_t *f = fhead; f != NULL; f = f->getNext(), n++)
+            {
+                if (f->isEmpty() || f->getDimension() != dim)
+                {
                     return false;
                 }
             }
@@ -683,7 +706,7 @@ namespace dbm
         }
 
         /// Set this federation to one DBM.
-        void setToDBM(const dbm_t& arg)
+        void setToDBM(const dbm_t &arg)
         {
             assert(refCounter == 1);
             // Add arg before deallocating DBMs.
@@ -733,33 +756,33 @@ namespace dbm
         /// Remove this ifed_t with @pre isMutable()
         void removeMutable()
         {
-            assert(--refCounter == 0);  // For debugging purposes.
+            assert(--refCounter == 0); // For debugging purposes.
             remove();
         }
 
         /// @return copy of this ifed_t with appended list.
         /// @pre other is mutable.
-        ifed_t* copy(ifed_t* other) const
+        ifed_t *copy(ifed_t *other) const
         {
             assert(other && other->isMutable() && other->dim == dim && other->isOK());
             other->fhead = fdbm_t::copy(fhead, other->fhead);
             other->fedSize += fedSize;
             return other;
         }
-        ifed_t* copy(fdbm_t* end = NULL, size_t endSize = 0) const
+        ifed_t *copy(fdbm_t *end = NULL, size_t endSize = 0) const
         {
             assert(endSize == (end ? end->size() : 0));
             return create(getDimension(), size() + endSize, fdbm_t::copy(fhead, end));
         }
 
         /// Insert a dbm, @pre same dimension & not empty.
-        void insert(const dbm_t& adbm)
+        void insert(const dbm_t &adbm)
         {
             assert(adbm.getDimension() == getDimension() && !adbm.isEmpty());
             fhead = fdbm_t::create(adbm, fhead);
             incSize();
         }
-        void insert(const raw_t* adbm, cindex_t adim)
+        void insert(const raw_t *adbm, cindex_t adim)
         {
             assert(adim == getDimension());
             fhead = fdbm_t::create(adbm, adim, fhead);
@@ -775,7 +798,7 @@ namespace dbm
         }
 
         /// Deallocate the list and set the new list to 1 DBM.
-        void setDBM(fdbm_t* fdbm)
+        void setDBM(fdbm_t *fdbm)
         {
             fdbm_t::removeAll(fhead);
             fhead = fdbm;
@@ -783,7 +806,7 @@ namespace dbm
             fdbm->setNext(NULL);
         }
         // Similar but for a ready list.
-        void setFed(fdbm_t* fdbm, size_t nb)
+        void setFed(fdbm_t *fdbm, size_t nb)
         {
             fdbm_t::removeAll(fhead);
             fhead = fdbm;
@@ -802,13 +825,13 @@ namespace dbm
         }
 
         /// Allocation of an ifed_t (and a fdbm_t) with an allocator.
-        static ifed_t* create(cindex_t dim, size_t size, fdbm_t* head);
+        static ifed_t *create(cindex_t dim, size_t size, fdbm_t *head);
 
         /// Deallocate this ifed and its list of DBMs.
         void remove();
 
-        uint32_t refCounter;  //< reference counter
-        cindex_t dim;         //< dimension
+        uint32_t refCounter; //< reference counter
+        cindex_t dim;        //< dimension
     };
 
     /***********************************************************
@@ -820,67 +843,67 @@ namespace dbm
     inline
 #define CLOCKOP ClockOperation<TYPE>
 
-    TEMPLATE CLOCKOP::ClockOperation(TYPE* d, cindex_t c): ptr(d), clock(c), incVal(0)
+    TEMPLATE CLOCKOP::ClockOperation(TYPE *d, cindex_t c) : ptr(d), clock(c), incVal(0)
     {
         assert(ptr && c < d->getDimension());
     }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator+(int32_t val)
+    TEMPLATE CLOCKOP &CLOCKOP::operator+(int32_t val)
     {
-        incVal += val;  // intended to be used that way
+        incVal += val; // intended to be used that way
         return *this;
     }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator-(int32_t val)
+    TEMPLATE CLOCKOP &CLOCKOP::operator-(int32_t val)
     {
-        incVal -= val;  // intended to be used that way
+        incVal -= val; // intended to be used that way
         return *this;
     }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator+=(int32_t val) { return (*this = *this + val); }
+    TEMPLATE CLOCKOP &CLOCKOP::operator+=(int32_t val) { return (*this = *this + val); }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator-=(int32_t val) { return (*this = *this - val); }
+    TEMPLATE CLOCKOP &CLOCKOP::operator-=(int32_t val) { return (*this = *this - val); }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator=(const CLOCKOP& op)
+    TEMPLATE CLOCKOP &CLOCKOP::operator=(const CLOCKOP &op)
     {
-        assert(ptr == op.ptr);  // don't mix-up operations
+        assert(ptr == op.ptr); // don't mix-up operations
         ptr->update(clock, op.clock, op.incVal);
         incVal = 0;
         return *this;
     }
 
-    TEMPLATE CLOCKOP& CLOCKOP::operator=(int32_t val)
+    TEMPLATE CLOCKOP &CLOCKOP::operator=(int32_t val)
     {
         ptr->updateValue(clock, val);
         incVal = 0;
         return *this;
     }
 
-    TEMPLATE bool CLOCKOP::operator<(const CLOCKOP& x) const
+    TEMPLATE bool CLOCKOP::operator<(const CLOCKOP &x) const
     {
-        assert(ptr == x.ptr);  // clock - x.clock < x.incVal - incVal
+        assert(ptr == x.ptr); // clock - x.clock < x.incVal - incVal
         return ptr->satisfies(clock, x.clock, dbm_bound2raw(x.incVal - incVal, dbm_STRICT));
     }
 
-    TEMPLATE bool CLOCKOP::operator<=(const CLOCKOP& x) const
+    TEMPLATE bool CLOCKOP::operator<=(const CLOCKOP &x) const
     {
-        assert(ptr == x.ptr);  // clock - x.clock <= x.incVal - incVal
+        assert(ptr == x.ptr); // clock - x.clock <= x.incVal - incVal
         return ptr->satisfies(clock, x.clock, dbm_bound2raw(x.incVal - incVal, dbm_WEAK));
     }
 
-    TEMPLATE bool CLOCKOP::operator>(const CLOCKOP& x) const
+    TEMPLATE bool CLOCKOP::operator>(const CLOCKOP &x) const
     {
-        assert(ptr == x.ptr);  // x.clock - clock < incVal - x.incVal
+        assert(ptr == x.ptr); // x.clock - clock < incVal - x.incVal
         return ptr->satisfies(x.clock, clock, dbm_bound2raw(incVal - x.incVal, dbm_STRICT));
     }
 
-    TEMPLATE bool CLOCKOP::operator>=(const CLOCKOP& x) const
+    TEMPLATE bool CLOCKOP::operator>=(const CLOCKOP &x) const
     {
-        assert(ptr == x.ptr);  // x.clock - clock <= incVal - x.incVal
+        assert(ptr == x.ptr); // x.clock - clock <= incVal - x.incVal
         return ptr->satisfies(x.clock, clock, dbm_bound2raw(incVal - x.incVal, dbm_WEAK));
     }
 
-    TEMPLATE bool CLOCKOP::operator==(const CLOCKOP& x) const
+    TEMPLATE bool CLOCKOP::operator==(const CLOCKOP &x) const
     {
         return (*this >= x) && (*this <= x);
     }
@@ -920,14 +943,14 @@ namespace dbm
         setEmpty(dim);
     }
 
-    inline dbm_t::dbm_t(const raw_t* arg, cindex_t dim)
+    inline dbm_t::dbm_t(const raw_t *arg, cindex_t dim)
     {
         assert(arg && dim);
         assertx(dbm_isValid(arg, dim));
         dbm_copy(setNew(dim), arg, dim);
     }
 
-    inline dbm_t::dbm_t(const dbm_t& arg)
+    inline dbm_t::dbm_t(const dbm_t &arg)
     {
         idbmPtr = arg.idbmPtr;
         incRef();
@@ -954,7 +977,7 @@ namespace dbm
         return isEmpty() ? uval() : const_idbmt()->hash(seed);
     }
 
-    inline bool dbm_t::sameAs(const dbm_t& arg) const { return idbmPtr == arg.idbmPtr; }
+    inline bool dbm_t::sameAs(const dbm_t &arg) const { return idbmPtr == arg.idbmPtr; }
 
     inline void dbm_t::intern()
     {
@@ -962,7 +985,7 @@ namespace dbm
             ptr_intern();
     }
 
-    inline const raw_t* dbm_t::operator()() const { return isEmpty() ? NULL : const_dbm(); }
+    inline const raw_t *dbm_t::operator()() const { return isEmpty() ? NULL : const_dbm(); }
 
     inline raw_t dbm_t::operator()(cindex_t i, cindex_t j) const
     {
@@ -970,22 +993,22 @@ namespace dbm
         return const_dbm()[i * pdim() + j];
     }
 
-    inline const raw_t* dbm_t::operator[](cindex_t i) const
+    inline const raw_t *dbm_t::operator[](cindex_t i) const
     {
         assert(i < getDimension() && !isEmpty());
         return const_dbm() + i * pdim();
     }
 
-    inline raw_t* dbm_t::getDBM() { return isEmpty() ? setNew(edim()) : getCopy(); }
+    inline raw_t *dbm_t::getDBM() { return isEmpty() ? setNew(edim()) : getCopy(); }
 
 #ifdef ENABLE_STORE_MINGRAPH
-    inline const uint32_t* dbm_t::getMinDBM(size_t* size) const
+    inline const uint32_t *dbm_t::getMinDBM(size_t *size) const
     {
         assert(!isEmpty());
         return idbmPtr->getMinGraph(size);
     }
 
-    inline size_t dbm_t::analyzeForMinDBM(uint32_t* bitMatrix) const
+    inline size_t dbm_t::analyzeForMinDBM(uint32_t *bitMatrix) const
     {
         size_t result;
         size_t dim = pdim();
@@ -994,14 +1017,14 @@ namespace dbm
         return result;
     }
 #else
-    inline size_t dbm_t::analyzeForMinDBM(uint32_t* bitMatrix) const
+    inline size_t dbm_t::analyzeForMinDBM(uint32_t *bitMatrix) const
     {
         assert(!isEmpty());
         return dbm_analyzeForMinDBM(const_dbm(), pdim(), bitMatrix);
     }
 #endif
 
-    inline int32_t* dbm_t::writeToMinDBMWithOffset(bool minimizeGraph, bool tryConstraints16,
+    inline int32_t *dbm_t::writeToMinDBMWithOffset(bool minimizeGraph, bool tryConstraints16,
                                                    allocator_t c_alloc, size_t offset) const
     {
         assert(!isEmpty());
@@ -1009,7 +1032,7 @@ namespace dbm
                                            c_alloc, offset);
     }
 
-    inline int32_t* dbm_t::writeAnalyzedDBM(uint32_t* bitMatrix, size_t nbConstraints,
+    inline int32_t *dbm_t::writeAnalyzedDBM(uint32_t *bitMatrix, size_t nbConstraints,
                                             bool tryConstraints16, allocator_t c_alloc,
                                             size_t offset) const
     {
@@ -1033,107 +1056,107 @@ namespace dbm
         return dbm_getSizeOfMinDBM(ming);
     }
 
-    inline relation_t dbm_t::relation(mingraph_t ming, raw_t* unpackBuffer) const
+    inline relation_t dbm_t::relation(mingraph_t ming, raw_t *unpackBuffer) const
     {
         // A mingraph_t never represents empty DBMs.
         return isEmpty() ? base_SUBSET
                          : dbm_relationWithMinDBM(const_dbm(), pdim(), ming, unpackBuffer);
     }
 
-    inline dbm_t& dbm_t::operator=(const dbm_t& arg)
+    inline dbm_t &dbm_t::operator=(const dbm_t &arg)
     {
-        arg.incRef();  // first in case a = a;
+        arg.incRef(); // first in case a = a;
         decRef();
         idbmPtr = arg.idbmPtr;
         return *this;
     }
 
-    inline dbm_t& dbm_t::operator=(const raw_t* arg)
+    inline dbm_t &dbm_t::operator=(const raw_t *arg)
     {
         copyFrom(arg, getDimension());
         return *this;
     }
 
-    inline bool dbm_t::operator==(const fed_t& arg) const
+    inline bool dbm_t::operator==(const fed_t &arg) const
     {
-        return arg == *this;  // fed_t has the implementation
+        return arg == *this; // fed_t has the implementation
     }
 
-    inline bool dbm_t::operator!=(const dbm_t& arg) const { return !(*this == arg); }
+    inline bool dbm_t::operator!=(const dbm_t &arg) const { return !(*this == arg); }
 
-    inline bool dbm_t::operator!=(const raw_t* arg) const { return !(*this == arg); }
+    inline bool dbm_t::operator!=(const raw_t *arg) const { return !(*this == arg); }
 
-    inline bool dbm_t::operator!=(const fed_t& arg) const { return !(*this == arg); }
+    inline bool dbm_t::operator!=(const fed_t &arg) const { return !(*this == arg); }
 
-    inline bool dbm_t::operator<(const dbm_t& arg) const { return relation(arg) == base_SUBSET; }
+    inline bool dbm_t::operator<(const dbm_t &arg) const { return relation(arg) == base_SUBSET; }
 
-    inline bool dbm_t::operator<(const fed_t& arg) const
+    inline bool dbm_t::operator<(const fed_t &arg) const
     {
-        return arg > *this;  // fed_t has the implementation
+        return arg > *this; // fed_t has the implementation
     }
 
-    inline bool dbm_t::operator>(const dbm_t& arg) const { return relation(arg) == base_SUPERSET; }
+    inline bool dbm_t::operator>(const dbm_t &arg) const { return relation(arg) == base_SUPERSET; }
 
-    inline bool dbm_t::operator>(const fed_t& arg) const
+    inline bool dbm_t::operator>(const fed_t &arg) const
     {
-        return arg < *this;  // fed_t has the implementation
+        return arg < *this; // fed_t has the implementation
     }
 
-    inline bool dbm_t::operator<=(const fed_t& arg) const
+    inline bool dbm_t::operator<=(const fed_t &arg) const
     {
-        return arg >= *this;  // fed_t has the implementation
+        return arg >= *this; // fed_t has the implementation
     }
 
-    inline bool dbm_t::operator<=(const raw_t* arg) const
+    inline bool dbm_t::operator<=(const raw_t *arg) const
     {
         return isEmpty() || dbm_isSubsetEq(const_dbm(), arg, pdim());
     }
 
-    inline bool dbm_t::operator>=(const dbm_t& arg) const { return arg <= *this; }
+    inline bool dbm_t::operator>=(const dbm_t &arg) const { return arg <= *this; }
 
-    inline bool dbm_t::operator>=(const fed_t& arg) const
+    inline bool dbm_t::operator>=(const fed_t &arg) const
     {
-        return arg <= *this;  // fed_t has the implementation
+        return arg <= *this; // fed_t has the implementation
     }
 
-    inline bool dbm_t::operator>=(const raw_t* arg) const
+    inline bool dbm_t::operator>=(const raw_t *arg) const
     {
         return !isEmpty() && dbm_isSubsetEq(arg, const_dbm(), pdim());
     }
 
-    inline relation_t dbm_t::relation(const fed_t& arg) const
+    inline relation_t dbm_t::relation(const fed_t &arg) const
     {
-        return base_symRelation(arg.relation(*this));  // symmetric -- fed_t has the implementation
+        return base_symRelation(arg.relation(*this)); // symmetric -- fed_t has the implementation
     }
 
-    inline bool dbm_t::lt(const fed_t& arg) const
+    inline bool dbm_t::lt(const fed_t &arg) const
     {
-        return arg.gt(*this);  // fed_t has the implementation
+        return arg.gt(*this); // fed_t has the implementation
     }
 
-    inline bool dbm_t::gt(const fed_t& arg) const
+    inline bool dbm_t::gt(const fed_t &arg) const
     {
-        return arg.lt(*this);  // fed_t has the implementation
+        return arg.lt(*this); // fed_t has the implementation
     }
 
-    inline bool dbm_t::le(const fed_t& arg) const
+    inline bool dbm_t::le(const fed_t &arg) const
     {
-        return arg.ge(*this);  // fed_t has the implementation
+        return arg.ge(*this); // fed_t has the implementation
     }
 
-    inline bool dbm_t::ge(const fed_t& arg) const
+    inline bool dbm_t::ge(const fed_t &arg) const
     {
-        return arg.le(*this);  // fed_t has the implementation
+        return arg.le(*this); // fed_t has the implementation
     }
 
-    inline bool dbm_t::eq(const fed_t& arg) const
+    inline bool dbm_t::eq(const fed_t &arg) const
     {
-        return arg.eq(*this);  // fed_t has the implementation
+        return arg.eq(*this); // fed_t has the implementation
     }
 
-    inline relation_t dbm_t::exactRelation(const fed_t& arg) const
+    inline relation_t dbm_t::exactRelation(const fed_t &arg) const
     {
-        return base_symRelation(arg.exactRelation(*this));  // fed_t has the implementation
+        return base_symRelation(arg.exactRelation(*this)); // fed_t has the implementation
     }
 
     inline bool dbm_t::isInit() const
@@ -1146,19 +1169,19 @@ namespace dbm
         return !isEmpty() && dbm_isEqualToZero(const_dbm(), pdim());
     }
 
-    inline dbm_t& dbm_t::operator&=(const constraint_t& c)
+    inline dbm_t &dbm_t::operator&=(const constraint_t &c)
     {
         constrain(c.i, c.j, c.value);
         return *this;
     }
 
-    inline dbm_t& dbm_t::operator&=(const base::pointer_t<constraint_t>& c)
+    inline dbm_t &dbm_t::operator&=(const base::pointer_t<constraint_t> &c)
     {
         constrain(c.begin(), c.size());
         return *this;
     }
 
-    inline dbm_t& dbm_t::operator&=(const std::vector<constraint_t>& vec)
+    inline dbm_t &dbm_t::operator&=(const std::vector<constraint_t> &vec)
     {
         constrain(&vec[0], vec.size());
         return *this;
@@ -1184,43 +1207,44 @@ namespace dbm
         return !isEmpty() && ptr_constrain(i, j, dbm_boundbool2raw(b, isStrict));
     }
 
-    inline bool dbm_t::constrain(const constraint_t& c)
+    inline bool dbm_t::constrain(const constraint_t &c)
     {
         return !isEmpty() && ptr_constrain(c.i, c.j, c.value);
     }
 
-    inline bool dbm_t::constrain(const constraint_t* cnstr, size_t n)
+    inline bool dbm_t::constrain(const constraint_t *cnstr, size_t n)
     {
         assert(n == 0 || cnstr);
         return !isEmpty() &&
                (n == 1 ? ptr_constrain(cnstr->i, cnstr->j, cnstr->value) : ptr_constrain(cnstr, n));
     }
 
-    inline bool dbm_t::constrain(const cindex_t* table, const constraint_t* cnstr, size_t n)
+    inline bool dbm_t::constrain(const cindex_t *table, const constraint_t *cnstr, size_t n)
     {
         return !isEmpty() && ptr_constrain(table, cnstr, n);
     }
 
-    inline bool dbm_t::constrain(const cindex_t* table, const base::pointer_t<constraint_t>& vec)
+    inline bool dbm_t::constrain(const cindex_t *table, const base::pointer_t<constraint_t> &vec)
     {
         return !isEmpty() && ptr_constrain(table, vec.begin(), vec.size());
     }
 
-    inline bool dbm_t::constrain(const cindex_t* table, const std::vector<constraint_t>& vec)
+    inline bool dbm_t::constrain(const cindex_t *table, const std::vector<constraint_t> &vec)
     {
         return !isEmpty() && constrain(table, &vec[0], vec.size());
     }
 
-    inline dbm_t& dbm_t::up()
+    inline dbm_t &dbm_t::up()
     {
         if (!isEmpty())
             ptr_up();
         return *this;
     }
 
-    inline dbm_t& dbm_t::upStop(const uint32_t* stopped)
+    inline dbm_t &dbm_t::upStop(const uint32_t *stopped)
     {
-        if (!isEmpty()) {
+        if (!isEmpty())
+        {
             if (stopped)
                 ptr_upStop(stopped);
             else
@@ -1229,16 +1253,17 @@ namespace dbm
         return *this;
     }
 
-    inline dbm_t& dbm_t::down()
+    inline dbm_t &dbm_t::down()
     {
         if (!isEmpty())
             ptr_down();
         return *this;
     }
 
-    inline dbm_t& dbm_t::downStop(const uint32_t* stopped)
+    inline dbm_t &dbm_t::downStop(const uint32_t *stopped)
     {
-        if (!isEmpty()) {
+        if (!isEmpty())
+        {
             if (stopped)
                 ptr_downStop(stopped);
             else
@@ -1247,35 +1272,35 @@ namespace dbm
         return *this;
     }
 
-    inline dbm_t& dbm_t::freeClock(cindex_t k)
+    inline dbm_t &dbm_t::freeClock(cindex_t k)
     {
         if (!isEmpty())
             ptr_freeClock(k);
         return *this;
     }
 
-    inline dbm_t& dbm_t::freeUp(cindex_t k)
+    inline dbm_t &dbm_t::freeUp(cindex_t k)
     {
         if (!isEmpty())
             ptr_freeUp(k);
         return *this;
     }
 
-    inline dbm_t& dbm_t::freeDown(cindex_t k)
+    inline dbm_t &dbm_t::freeDown(cindex_t k)
     {
         if (!isEmpty())
             ptr_freeDown(k);
         return *this;
     }
 
-    inline dbm_t& dbm_t::freeAllUp()
+    inline dbm_t &dbm_t::freeAllUp()
     {
         if (!isEmpty())
             ptr_freeAllUp();
         return *this;
     }
 
-    inline dbm_t& dbm_t::freeAllDown()
+    inline dbm_t &dbm_t::freeAllDown()
     {
         if (!isEmpty())
             ptr_freeAllDown();
@@ -1308,51 +1333,51 @@ namespace dbm
         return !isEmpty() && dbm_satisfies(const_dbm(), pdim(), i, j, c);
     }
 
-    inline bool dbm_t::satisfies(const constraint_t& c) const
+    inline bool dbm_t::satisfies(const constraint_t &c) const
     {
         return satisfies(c.i, c.j, c.value);
     }
 
-    inline bool dbm_t::operator&&(const constraint_t& c) const { return satisfies(c); }
+    inline bool dbm_t::operator&&(const constraint_t &c) const { return satisfies(c); }
 
     inline bool dbm_t::isUnbounded() const
     {
         return !isEmpty() && dbm_isUnbounded(const_dbm(), pdim());
     }
 
-    inline dbm_t& dbm_t::relaxUp() { return relaxDownClock(0); }
+    inline dbm_t &dbm_t::relaxUp() { return relaxDownClock(0); }
 
-    inline dbm_t& dbm_t::relaxDown() { return relaxUpClock(0); }
+    inline dbm_t &dbm_t::relaxDown() { return relaxUpClock(0); }
 
-    inline dbm_t& dbm_t::tightenDown()
+    inline dbm_t &dbm_t::tightenDown()
     {
         if (!isEmpty())
             ptr_tightenDown();
         return *this;
     }
 
-    inline dbm_t& dbm_t::tightenUp()
+    inline dbm_t &dbm_t::tightenUp()
     {
         if (!isEmpty())
             ptr_tightenUp();
         return *this;
     }
 
-    inline dbm_t& dbm_t::relaxUpClock(cindex_t k)
+    inline dbm_t &dbm_t::relaxUpClock(cindex_t k)
     {
         if (!isEmpty())
             ptr_relaxUpClock(k);
         return *this;
     }
 
-    inline dbm_t& dbm_t::relaxDownClock(cindex_t k)
+    inline dbm_t &dbm_t::relaxDownClock(cindex_t k)
     {
         if (!isEmpty())
             ptr_relaxDownClock(k);
         return *this;
     }
 
-    inline dbm_t& dbm_t::relaxAll()
+    inline dbm_t &dbm_t::relaxAll()
     {
         if (!isEmpty())
             ptr_relaxAll();
@@ -1365,31 +1390,31 @@ namespace dbm
             ptr_swapClocks(x, y);
     }
 
-    inline void dbm_t::extrapolateMaxBounds(const int32_t* max)
+    inline void dbm_t::extrapolateMaxBounds(const int32_t *max)
     {
         if (!isEmpty())
             dbm_extrapolateMaxBounds(getCopy(), pdim(), max);
     }
 
-    inline void dbm_t::diagonalExtrapolateMaxBounds(const int32_t* max)
+    inline void dbm_t::diagonalExtrapolateMaxBounds(const int32_t *max)
     {
         if (!isEmpty())
             dbm_diagonalExtrapolateMaxBounds(getCopy(), pdim(), max);
     }
 
-    inline void dbm_t::extrapolateLUBounds(const int32_t* lower, const int32_t* upper)
+    inline void dbm_t::extrapolateLUBounds(const int32_t *lower, const int32_t *upper)
     {
         if (!isEmpty())
             dbm_extrapolateLUBounds(getCopy(), pdim(), lower, upper);
     }
 
-    inline void dbm_t::diagonalExtrapolateLUBounds(const int32_t* lower, const int32_t* upper)
+    inline void dbm_t::diagonalExtrapolateLUBounds(const int32_t *lower, const int32_t *upper)
     {
         if (!isEmpty())
             dbm_diagonalExtrapolateLUBounds(getCopy(), pdim(), lower, upper);
     }
 
-    inline dbm_t::dbm_t(const ClockOperation<dbm_t>& op)
+    inline dbm_t::dbm_t(const ClockOperation<dbm_t> &op)
     {
         idbmPtr = op.getPtr()->idbmPtr;
         incRef();
@@ -1402,7 +1427,7 @@ namespace dbm
         return ClockOperation<dbm_t>(this, clk);
     }
 
-    inline bool dbm_t::isSubtractionEmpty(const raw_t* arg, cindex_t dim) const
+    inline bool dbm_t::isSubtractionEmpty(const raw_t *arg, cindex_t dim) const
     {
         assert(getDimension() == dim);
         assertx(dbm_isValid(arg, dim));
@@ -1410,26 +1435,26 @@ namespace dbm
         return isEmpty() || (dbm_relation(const_dbm(), arg, dim) & base_SUBSET) != 0;
     }
 
-    inline bool dbm_t::isSubtractionEmpty(const dbm_t& arg) const
+    inline bool dbm_t::isSubtractionEmpty(const dbm_t &arg) const
     {
         assert(getDimension() == arg.getDimension());
         return *this <= arg;
     }
 
-    inline void dbm_t::newCopy(const raw_t* arg, cindex_t dim)
+    inline void dbm_t::newCopy(const raw_t *arg, cindex_t dim)
     {
         assert(arg && dim > 0);
         assertx(dbm_isValid(arg, dim));
         dbm_copy(setNew(dim), arg, dim);
     }
 
-    inline void dbm_t::newCopy(const dbm_t& arg)
+    inline void dbm_t::newCopy(const dbm_t &arg)
     {
         arg.idbmPtr->incRef();
         setPtr(arg.idbmPtr);
     }
 
-    inline void dbm_t::updateCopy(const raw_t* arg, cindex_t dim)
+    inline void dbm_t::updateCopy(const raw_t *arg, cindex_t dim)
     {
         assert(arg && dim > 0);
         assertx(dbm_isValid(arg, dim));
@@ -1437,22 +1462,22 @@ namespace dbm
         dbm_copy(setNew(dim), arg, dim);
     }
 
-    inline void dbm_t::updateCopy(const dbm_t& arg)
+    inline void dbm_t::updateCopy(const dbm_t &arg)
     {
         arg.idbmPtr->incRef();
         idbmt()->decRef();
         setPtr(arg.idbmPtr);
     }
 
-    inline const idbm_t* dbm_t::const_idbmt() const
+    inline const idbm_t *dbm_t::const_idbmt() const
     {
-        assert(isPointer(idbmPtr));  // stronger than !isEmpty()
+        assert(isPointer(idbmPtr)); // stronger than !isEmpty()
         return idbmPtr;
     }
 
-    inline idbm_t* dbm_t::idbmt()
+    inline idbm_t *dbm_t::idbmt()
     {
-        assert(isPointer(idbmPtr));  // stronger than !isEmpty()
+        assert(isPointer(idbmPtr)); // stronger than !isEmpty()
         return idbmPtr;
     }
 
@@ -1490,10 +1515,10 @@ namespace dbm
 
     inline void dbm_t::setEmpty(cindex_t dim)
     {
-        idbmPtr = reinterpret_cast<idbm_t*>((dim << 1) | 1);
+        idbmPtr = reinterpret_cast<idbm_t *>((dim << 1) | 1);
     }
 
-    inline void dbm_t::setPtr(idbm_t* ptr)
+    inline void dbm_t::setPtr(idbm_t *ptr)
     {
         assert(isPointer(ptr));
         idbmPtr = ptr;
@@ -1511,9 +1536,9 @@ namespace dbm
 
     inline bool dbm_t::tryMutable() { return idbmt()->tryMutable(); }
 
-    inline const raw_t* dbm_t::const_dbm() const { return const_idbmt()->const_dbm(); }
+    inline const raw_t *dbm_t::const_dbm() const { return const_idbmt()->const_dbm(); }
 
-    inline raw_t* dbm_t::dbm()
+    inline raw_t *dbm_t::dbm()
     {
         assert(isMutable());
 #ifdef ENABLE_STORE_MINGRAPH
@@ -1522,21 +1547,21 @@ namespace dbm
         return idbmt()->dbm();
     }
 
-    inline raw_t* dbm_t::setNew(cindex_t dim)
+    inline raw_t *dbm_t::setNew(cindex_t dim)
     {
         assert(dim);
         setPtr(new (dbm_new(dim)) idbm_t(dim));
         return dbm();
     }
 
-    inline raw_t* dbm_t::inew(cindex_t dim)
+    inline raw_t *dbm_t::inew(cindex_t dim)
     {
         assert(!tryMutable());
         idbmt()->decRefImmutable();
         return setNew(dim);
     }
 
-    inline raw_t* dbm_t::icopy(cindex_t dim)
+    inline raw_t *dbm_t::icopy(cindex_t dim)
     {
         assert(!tryMutable() && pdim() == dim);
         idbmt()->decRefImmutable();
@@ -1544,14 +1569,14 @@ namespace dbm
         return dbm();
     }
 
-    inline raw_t* dbm_t::getNew()
+    inline raw_t *dbm_t::getNew()
     {
         RECORD_STAT();
         RECORD_SUBSTAT(tryMutable() ? "mutable" : "new");
         return tryMutable() ? dbm() : inew(pdim());
     }
 
-    inline raw_t* dbm_t::getCopy()
+    inline raw_t *dbm_t::getCopy()
     {
         RECORD_STAT();
         RECORD_SUBSTAT(tryMutable() ? "mutable" : "copy");
@@ -1562,39 +1587,39 @@ namespace dbm
 
     inline dbm_t zero(cindex_t dim) { return dbm_t(dim).setZero(); }
     inline dbm_t init(cindex_t dim) { return dbm_t(dim).setInit(); }
-    inline dbm_t up(const dbm_t& d) { return dbm_t(d).up(); }
-    inline dbm_t down(const dbm_t& d) { return dbm_t(d).down(); }
-    inline dbm_t freeClock(const dbm_t& d, cindex_t x) { return dbm_t(d).freeClock(x); }
-    inline dbm_t freeUp(const dbm_t& d, cindex_t k) { return dbm_t(d).freeUp(k); }
-    inline dbm_t freeDown(const dbm_t& d, cindex_t k) { return dbm_t(d).freeDown(k); }
-    inline dbm_t freeAllUp(const dbm_t& d) { return dbm_t(d).freeAllUp(); }
-    inline dbm_t freeAllDown(const dbm_t& d) { return dbm_t(d).freeAllDown(); }
-    inline dbm_t relaxUp(const dbm_t& d) { return dbm_t(d).relaxUp(); }
-    inline dbm_t relaxDown(const dbm_t& d) { return dbm_t(d).relaxDown(); }
-    inline dbm_t relaxUpClock(const dbm_t& d, cindex_t k) { return dbm_t(d).relaxUpClock(k); }
-    inline dbm_t relaxDownClock(const dbm_t& d, cindex_t k) { return dbm_t(d).relaxDownClock(k); }
+    inline dbm_t up(const dbm_t &d) { return dbm_t(d).up(); }
+    inline dbm_t down(const dbm_t &d) { return dbm_t(d).down(); }
+    inline dbm_t freeClock(const dbm_t &d, cindex_t x) { return dbm_t(d).freeClock(x); }
+    inline dbm_t freeUp(const dbm_t &d, cindex_t k) { return dbm_t(d).freeUp(k); }
+    inline dbm_t freeDown(const dbm_t &d, cindex_t k) { return dbm_t(d).freeDown(k); }
+    inline dbm_t freeAllUp(const dbm_t &d) { return dbm_t(d).freeAllUp(); }
+    inline dbm_t freeAllDown(const dbm_t &d) { return dbm_t(d).freeAllDown(); }
+    inline dbm_t relaxUp(const dbm_t &d) { return dbm_t(d).relaxUp(); }
+    inline dbm_t relaxDown(const dbm_t &d) { return dbm_t(d).relaxDown(); }
+    inline dbm_t relaxUpClock(const dbm_t &d, cindex_t k) { return dbm_t(d).relaxUpClock(k); }
+    inline dbm_t relaxDownClock(const dbm_t &d, cindex_t k) { return dbm_t(d).relaxDownClock(k); }
 
     /***********************************************
      *  Inlined implementations of fed_t::iterator *
      ***********************************************/
 
-    inline fed_t::iterator::iterator(): fdbm(const_cast<fdbm_t**>(&ENDF)), ifed(NULL) {}
+    inline fed_t::iterator::iterator() : fdbm(const_cast<fdbm_t **>(&ENDF)), ifed(NULL) {}
 
-    inline fed_t::iterator::iterator(ifed_t* ifd): fdbm(ifd->atHead()), ifed(ifd) {}
+    inline fed_t::iterator::iterator(ifed_t *ifd) : fdbm(ifd->atHead()), ifed(ifd) {}
 
-    inline dbm_t& fed_t::iterator::operator*() const
+    inline dbm_t &fed_t::iterator::operator*() const
     {
         assert(fdbm && *fdbm);
         return (*fdbm)->dbmt();
     }
 
-    inline dbm_t* fed_t::iterator::operator->() const
+    inline dbm_t *fed_t::iterator::operator->() const
     {
         assert(fdbm && *fdbm);
         return &(*fdbm)->dbmt();
     }
 
-    inline raw_t* fed_t::iterator::operator()() const
+    inline raw_t *fed_t::iterator::operator()() const
     {
         assert(fdbm && *fdbm);
         return (*fdbm)->dbmt().getDBM();
@@ -1606,7 +1631,7 @@ namespace dbm
         return (*fdbm)->dbmt()(i, j);
     }
 
-    inline fed_t::iterator& fed_t::iterator::operator++()
+    inline fed_t::iterator &fed_t::iterator::operator++()
     {
         assert(fdbm && *fdbm);
         fdbm = (*fdbm)->getNextMutable();
@@ -1625,13 +1650,13 @@ namespace dbm
         return (*fdbm)->getNext() != NULL;
     }
 
-    inline bool fed_t::iterator::operator==(const iterator& arg) const
+    inline bool fed_t::iterator::operator==(const iterator &arg) const
     {
         assert(fdbm && arg.fdbm);
-        return *fdbm == *arg.fdbm;  // don't check ifed
+        return *fdbm == *arg.fdbm; // don't check ifed
     }
 
-    inline bool fed_t::iterator::operator!=(const iterator& arg) const { return !(*this == arg); }
+    inline bool fed_t::iterator::operator!=(const iterator &arg) const { return !(*this == arg); }
 
     inline void fed_t::iterator::remove()
     {
@@ -1647,16 +1672,16 @@ namespace dbm
         ifed->decSize();
     }
 
-    inline fdbm_t* fed_t::iterator::extract()
+    inline fdbm_t *fed_t::iterator::extract()
     {
         assert(fdbm && *fdbm);
-        fdbm_t* current = *fdbm;
+        fdbm_t *current = *fdbm;
         *fdbm = current->getNext();
         ifed->decSize();
         return current;
     }
 
-    inline void fed_t::iterator::insert(fdbm_t* dbm)
+    inline void fed_t::iterator::insert(fdbm_t *dbm)
     {
         assert(fdbm);
         dbm->setNext(*fdbm);
@@ -1672,7 +1697,7 @@ namespace dbm
 
     inline const fed_t::iterator fed_t::endMutable() const { return fed_t::iterator(); }
 
-    inline fed_t::iterator fed_t::erase(iterator& iter)
+    inline fed_t::iterator fed_t::erase(iterator &iter)
     {
         assert(hasSame(*iter));
         iter.remove();
@@ -1683,24 +1708,25 @@ namespace dbm
      *  Inlined implementations of fed_t::const_iterator *
      *****************************************************/
 
-    inline fed_t::const_iterator::const_iterator(const fdbm_t* fed): fdbm(fed) {}
-    inline fed_t::const_iterator::const_iterator(const fed_t& fed): fdbm(fed.ifed()->const_head())
-    {}
-    inline fed_t::const_iterator::const_iterator(): fdbm(NULL) {}
+    inline fed_t::const_iterator::const_iterator(const fdbm_t *fed) : fdbm(fed) {}
+    inline fed_t::const_iterator::const_iterator(const fed_t &fed) : fdbm(fed.ifed()->const_head())
+    {
+    }
+    inline fed_t::const_iterator::const_iterator() : fdbm(NULL) {}
 
-    inline const dbm_t& fed_t::const_iterator::operator*() const
+    inline const dbm_t &fed_t::const_iterator::operator*() const
     {
         assert(fdbm);
         return fdbm->const_dbmt();
     }
 
-    inline const dbm_t* fed_t::const_iterator::operator->() const
+    inline const dbm_t *fed_t::const_iterator::operator->() const
     {
         assert(fdbm);
         return &fdbm->const_dbmt();
     }
 
-    inline const raw_t* fed_t::const_iterator::operator()() const
+    inline const raw_t *fed_t::const_iterator::operator()() const
     {
         assert(fdbm);
         return fdbm->const_dbmt()();
@@ -1712,7 +1738,7 @@ namespace dbm
         return fdbm->const_dbmt()(i, j);
     }
 
-    inline fed_t::const_iterator& fed_t::const_iterator::operator++()
+    inline fed_t::const_iterator &fed_t::const_iterator::operator++()
     {
         assert(fdbm);
         fdbm = fdbm->getNext();
@@ -1727,12 +1753,12 @@ namespace dbm
         return fdbm->getNext() != NULL;
     }
 
-    inline bool fed_t::const_iterator::operator==(const const_iterator& arg) const
+    inline bool fed_t::const_iterator::operator==(const const_iterator &arg) const
     {
         return fdbm == arg.fdbm;
     }
 
-    inline bool fed_t::const_iterator::operator!=(const const_iterator& arg) const
+    inline bool fed_t::const_iterator::operator!=(const const_iterator &arg) const
     {
         return fdbm != arg.fdbm;
     }
@@ -1748,17 +1774,17 @@ namespace dbm
      * Inlined implementation of fed_t *
      ***********************************/
 
-    inline fed_t::fed_t(cindex_t dim): ifedPtr(ifed_t::create(dim)) { assert(dim >= 1); }
+    fed_t::fed_t(cindex_t dim) : ifedPtr(ifed_t::create(dim)) { assert(dim >= 1); }
 
-    inline fed_t::fed_t(const fed_t& arg): ifedPtr(arg.ifedPtr) { incRef(); }
+    fed_t::fed_t(const fed_t &arg) : ifedPtr(arg.ifedPtr) { incRef(); }
 
-    inline fed_t::fed_t(ifed_t* ifed): ifedPtr(ifed) {}
+    inline fed_t::fed_t(ifed_t *ifed) : ifedPtr(ifed) {}
 
-    inline fed_t::fed_t(const dbm_t& arg):
-        ifedPtr(arg.isEmpty() ? ifed_t::create(arg.edim()) : ifed_t::create(arg))
-    {}
+    inline fed_t::fed_t(const dbm_t &arg) : ifedPtr(arg.isEmpty() ? ifed_t::create(arg.edim()) : ifed_t::create(arg))
+    {
+    }
 
-    inline fed_t::fed_t(const raw_t* arg, cindex_t dim): ifedPtr(ifed_t::create(arg, dim)) {}
+    inline fed_t::fed_t(const raw_t *arg, cindex_t dim) : ifedPtr(ifed_t::create(arg, dim)) {}
 
     inline fed_t::~fed_t() { decRef(); }
 
@@ -1770,44 +1796,44 @@ namespace dbm
 
     inline void fed_t::nil() { setDimension(1); }
 
-    inline fed_t& fed_t::reduce()
+    inline fed_t &fed_t::reduce()
     {
         assert(isOK());
         ifed()->reduce(getDimension());
         return *this;
     }
 
-    inline fed_t& fed_t::mergeReduce(size_t skip, int expensiveTry)
+    inline fed_t &fed_t::mergeReduce(size_t skip, int expensiveTry)
     {
         assert(isOK());
         ifed()->mergeReduce(getDimension(), skip, expensiveTry);
         return *this;
     }
 
-    inline fed_t& fed_t::unionWithC(fed_t arg) { return unionWith(arg); }
+    inline fed_t &fed_t::unionWithC(fed_t arg) { return unionWith(arg); }
 
-    inline fed_t& fed_t::appendC(fed_t arg) { return append(arg); }
+    inline fed_t &fed_t::appendC(fed_t arg) { return append(arg); }
 
-    inline fed_t& fed_t::steal(fed_t& arg)
+    inline fed_t &fed_t::steal(fed_t &arg)
     {
         size_t s = size();
         return appendEnd(arg).mergeReduce(s);
     }
 
-    inline fed_t& fed_t::stealC(fed_t arg) { return steal(arg); }
+    inline fed_t &fed_t::stealC(fed_t arg) { return steal(arg); }
 
-    inline void fed_t::swap(fed_t& arg)
+    inline void fed_t::swap(fed_t &arg)
     {
-        ifed_t* tmp = ifedPtr;
+        ifed_t *tmp = ifedPtr;
         ifedPtr = arg.ifedPtr;
         arg.ifedPtr = tmp;
     }
 
     inline uint32_t fed_t::hash(uint32_t seed) const { return ifed()->hash(seed); }
 
-    inline bool fed_t::sameAs(const fed_t& arg) const { return ifedPtr == arg.ifedPtr; }
+    inline bool fed_t::sameAs(const fed_t &arg) const { return ifedPtr == arg.ifedPtr; }
 
-    inline fed_t& fed_t::operator=(const fed_t& arg)
+    inline fed_t &fed_t::operator=(const fed_t &arg)
     {
         arg.incRef();
         decRef();
@@ -1815,115 +1841,116 @@ namespace dbm
         return *this;
     }
 
-    inline bool fed_t::operator==(const fed_t& arg) const { return relation(arg) == base_EQUAL; }
+    inline bool fed_t::operator==(const fed_t &arg) const { return relation(arg) == base_EQUAL; }
 
-    inline bool fed_t::operator==(const dbm_t& arg) const { return relation(arg) == base_EQUAL; }
+    inline bool fed_t::operator==(const dbm_t &arg) const { return relation(arg) == base_EQUAL; }
 
-    inline bool fed_t::operator==(const raw_t* arg) const
+    inline bool fed_t::operator==(const raw_t *arg) const
     {
         return relation(arg, getDimension()) == base_EQUAL;
     }
 
-    inline bool fed_t::operator!=(const fed_t& arg) const { return !(*this == arg); }
+    inline bool fed_t::operator!=(const fed_t &arg) const { return !(*this == arg); }
 
-    inline bool fed_t::operator!=(const dbm_t& arg) const { return !(*this == arg); }
+    inline bool fed_t::operator!=(const dbm_t &arg) const { return !(*this == arg); }
 
-    inline bool fed_t::operator!=(const raw_t* arg) const { return !(*this == arg); }
+    inline bool fed_t::operator!=(const raw_t *arg) const { return !(*this == arg); }
 
-    inline bool fed_t::operator<(const fed_t& arg) const { return relation(arg) == base_SUBSET; }
+    inline bool fed_t::operator<(const fed_t &arg) const { return relation(arg) == base_SUBSET; }
 
-    inline bool fed_t::operator<(const dbm_t& arg) const { return relation(arg) == base_SUBSET; }
+    inline bool fed_t::operator<(const dbm_t &arg) const { return relation(arg) == base_SUBSET; }
 
-    inline bool fed_t::operator<(const raw_t* arg) const
+    inline bool fed_t::operator<(const raw_t *arg) const
     {
         return relation(arg, getDimension()) == base_SUBSET;
     }
 
-    inline bool fed_t::operator>(const fed_t& arg) const { return relation(arg) == base_SUPERSET; }
+    inline bool fed_t::operator>(const fed_t &arg) const { return relation(arg) == base_SUPERSET; }
 
-    inline bool fed_t::operator>(const dbm_t& arg) const { return relation(arg) == base_SUPERSET; }
+    inline bool fed_t::operator>(const dbm_t &arg) const { return relation(arg) == base_SUPERSET; }
 
-    inline bool fed_t::operator>(const raw_t* arg) const
+    inline bool fed_t::operator>(const raw_t *arg) const
     {
         return relation(arg, getDimension()) == base_SUPERSET;
     }
 
-    inline bool fed_t::operator<=(const fed_t& arg) const
+    inline bool fed_t::operator<=(const fed_t &arg) const
     {
         return (relation(arg) & base_SUBSET) != 0;
     }
 
-    inline bool fed_t::operator<=(const raw_t* arg) const { return le(arg, getDimension()); }
+    inline bool fed_t::operator<=(const raw_t *arg) const { return le(arg, getDimension()); }
 
-    inline bool fed_t::operator>=(const fed_t& arg) const
+    inline bool fed_t::operator>=(const fed_t &arg) const
     {
         return (relation(arg) & base_SUPERSET) != 0;
     }
 
-    inline bool fed_t::operator>=(const raw_t* arg) const
+    inline bool fed_t::operator>=(const raw_t *arg) const
     {
         return isSupersetEq(arg, getDimension());
     }
 
-    inline bool fed_t::eq(const fed_t& arg) const { return exactRelation(arg) == base_EQUAL; }
+    inline bool fed_t::eq(const fed_t &arg) const { return exactRelation(arg) == base_EQUAL; }
 
-    inline bool fed_t::eq(const dbm_t& arg) const { return exactRelation(arg) == base_EQUAL; }
+    inline bool fed_t::eq(const dbm_t &arg) const { return exactRelation(arg) == base_EQUAL; }
 
-    inline bool fed_t::eq(const raw_t* arg, cindex_t dim) const
+    inline bool fed_t::eq(const raw_t *arg, cindex_t dim) const
     {
         return exactRelation(arg, dim) == base_EQUAL;
     }
 
-    inline bool fed_t::lt(const fed_t& arg) const { return exactRelation(arg) == base_SUBSET; }
+    inline bool fed_t::lt(const fed_t &arg) const { return exactRelation(arg) == base_SUBSET; }
 
-    inline bool fed_t::lt(const dbm_t& arg) const { return exactRelation(arg) == base_SUBSET; }
+    inline bool fed_t::lt(const dbm_t &arg) const { return exactRelation(arg) == base_SUBSET; }
 
-    inline bool fed_t::lt(const raw_t* arg, cindex_t dim) const
+    inline bool fed_t::lt(const raw_t *arg, cindex_t dim) const
     {
         return exactRelation(arg, dim) == base_SUBSET;
     }
 
-    inline bool fed_t::gt(const fed_t& arg) const { return exactRelation(arg) == base_SUPERSET; }
+    inline bool fed_t::gt(const fed_t &arg) const { return exactRelation(arg) == base_SUPERSET; }
 
-    inline bool fed_t::gt(const dbm_t& arg) const { return exactRelation(arg) == base_SUPERSET; }
+    inline bool fed_t::gt(const dbm_t &arg) const { return exactRelation(arg) == base_SUPERSET; }
 
-    inline bool fed_t::gt(const raw_t* arg, cindex_t dim) const
+    inline bool fed_t::gt(const raw_t *arg, cindex_t dim) const
     {
         return exactRelation(arg, dim) == base_SUPERSET;
     }
 
-    inline bool fed_t::ge(const fed_t& arg) const { return arg.le(*this); }
+    inline bool fed_t::ge(const fed_t &arg) const { return arg.le(*this); }
 
-    inline bool fed_t::ge(const dbm_t& arg) const { return arg.isSubtractionEmpty(*this); }
+    inline bool fed_t::ge(const dbm_t &arg) const { return arg.isSubtractionEmpty(*this); }
 
-    inline bool fed_t::ge(const raw_t* arg, cindex_t dim) const
+    inline bool fed_t::ge(const raw_t *arg, cindex_t dim) const
     {
         return isSubtractionEmpty(arg, dim, *this);
     }
 
-    inline bool fed_t::le(const fed_t& arg) const { return isSubtractionEmpty(arg); }
+    inline bool fed_t::le(const fed_t &arg) const { return isSubtractionEmpty(arg); }
 
-    inline bool fed_t::le(const dbm_t& arg) const
+    inline bool fed_t::le(const dbm_t &arg) const
     {
-        return *this <= arg;  // only case exact
+        return *this <= arg; // only case exact
     }
 
-    inline fed_t& fed_t::add(const fed_t& arg)
+    inline fed_t &fed_t::add(const fed_t &arg)
     {
         fed_t f(arg);
         return append(f);
     }
 
-    inline fed_t& fed_t::add(const dbm_t& arg)
+    inline fed_t &fed_t::add(const dbm_t &arg)
     {
         assert(isOK() && arg.getDimension() == getDimension());
-        if (!arg.isEmpty()) {
+        if (!arg.isEmpty())
+        {
             ifed()->insert(arg);
         }
         return *this;
     }
 
-    inline fed_t& fed_t::add(const raw_t* arg, cindex_t dim)
+    inline fed_t &fed_t::add(const raw_t *arg, cindex_t dim)
     {
         assert(isOK() && dim == getDimension());
         assertx(dbm_isValid(arg, dim));
@@ -1931,19 +1958,19 @@ namespace dbm
         return *this;
     }
 
-    inline fed_t& fed_t::operator&=(const constraint_t& c)
+    inline fed_t &fed_t::operator&=(const constraint_t &c)
     {
         constrain(c.i, c.j, c.value);
         return *this;
     }
 
-    inline fed_t& fed_t::operator&=(const base::pointer_t<constraint_t>& c)
+    inline fed_t &fed_t::operator&=(const base::pointer_t<constraint_t> &c)
     {
         constrain(c.begin(), c.size());
         return *this;
     }
 
-    inline fed_t& fed_t::operator&=(const std::vector<constraint_t>& vec)
+    inline fed_t &fed_t::operator&=(const std::vector<constraint_t> &vec)
     {
         constrain(&vec[0], vec.size());
         return *this;
@@ -1959,36 +1986,36 @@ namespace dbm
         return constrain(i, j, dbm_boundbool2raw(b, isStrict));
     }
 
-    inline bool fed_t::constrain(const constraint_t& c) { return constrain(c.i, c.j, c.value); }
+    inline bool fed_t::constrain(const constraint_t &c) { return constrain(c.i, c.j, c.value); }
 
-    inline bool fed_t::satisfies(const constraint_t& c) const
+    inline bool fed_t::satisfies(const constraint_t &c) const
     {
         return satisfies(c.i, c.j, c.value);
     }
 
-    inline bool fed_t::operator&&(const constraint_t& c) const
+    inline bool fed_t::operator&&(const constraint_t &c) const
     {
         return satisfies(c.i, c.j, c.value);
     }
 
-    inline fed_t& fed_t::relaxUp()
+    inline fed_t &fed_t::relaxUp()
     {
-        return relaxDownClock(0);  // see dbm.h
+        return relaxDownClock(0); // see dbm.h
     }
 
-    inline fed_t& fed_t::relaxDown()
+    inline fed_t &fed_t::relaxDown()
     {
-        return relaxUpClock(0);  // see dbm.h
+        return relaxUpClock(0); // see dbm.h
     }
 
-    inline bool fed_t::removeIncludedIn(const dbm_t& arg)
+    inline bool fed_t::removeIncludedIn(const dbm_t &arg)
     {
         assert(isOK());
         assert(getDimension() == arg.getDimension());
         return !arg.isEmpty() && removeIncludedIn(arg.const_dbm(), getDimension());
     }
 
-    inline fed_t::fed_t(const ClockOperation<fed_t>& op): ifedPtr(op.getPtr()->ifed()->copy())
+    inline fed_t::fed_t(const ClockOperation<fed_t> &op) : ifedPtr(op.getPtr()->ifed()->copy())
     {
         updateIncrement(op.getClock(), op.getVal());
     }
@@ -1999,18 +2026,18 @@ namespace dbm
         return ClockOperation<fed_t>(this, clk);
     }
 
-    inline bool fed_t::isSubtractionEmpty(const dbm_t& arg) const
+    inline bool fed_t::isSubtractionEmpty(const dbm_t &arg) const
     {
-        return *this <= arg;  // only exact case with "normal" relation
+        return *this <= arg; // only exact case with "normal" relation
     }
 
-    inline ifed_t* fed_t::ifed()
+    inline ifed_t *fed_t::ifed()
     {
         assert(isPointer(ifedPtr));
         return ifedPtr;
     }
 
-    inline const ifed_t* fed_t::ifed() const
+    inline const ifed_t *fed_t::ifed() const
     {
         assert(isPointer(ifedPtr));
         return ifedPtr;
@@ -2040,20 +2067,21 @@ namespace dbm
 
     inline void fed_t::setMutable()
     {
-        if (!isMutable()) {
+        if (!isMutable())
+        {
             decRefImmutable();
             ifedPtr = ifed()->copy();
         }
         assert(isMutable());
     }
 
-    inline const dbm_t& fed_t::const_dbmt() const
+    inline const dbm_t &fed_t::const_dbmt() const
     {
         assert(size());
         return ifed()->const_head()->const_dbmt();
     }
 
-    inline dbm_t& fed_t::dbmt()
+    inline dbm_t &fed_t::dbmt()
     {
         assert(size() == 1 && isMutable());
         return ifed()->head()->dbmt();
@@ -2061,129 +2089,129 @@ namespace dbm
 
     // Trivial wrappers
 
-    inline fed_t up(const fed_t& arg) { return fed_t(arg).up(); }
-    inline fed_t down(const fed_t& arg) { return fed_t(arg).down(); }
-    inline fed_t freeClock(const fed_t& arg, cindex_t x) { return fed_t(arg).freeClock(x); }
-    inline fed_t freeUp(const fed_t& arg, cindex_t x) { return fed_t(arg).freeUp(x); }
-    inline fed_t freeDown(const fed_t& arg, cindex_t x) { return fed_t(arg).freeDown(x); }
-    inline fed_t freeAllUp(const fed_t& arg) { return fed_t(arg).freeAllUp(); }
-    inline fed_t freeAllDown(const fed_t& arg) { return fed_t(arg).freeAllDown(); }
-    inline fed_t relaxUp(const fed_t& arg) { return fed_t(arg).relaxUp(); }
-    inline fed_t relaxDown(const fed_t& arg) { return fed_t(arg).relaxDown(); }
-    inline fed_t relaxUpClock(const fed_t& arg, cindex_t k) { return fed_t(arg).relaxUpClock(k); }
-    inline fed_t relaxDownClock(const fed_t& arg, cindex_t k)
+    inline fed_t up(const fed_t &arg) { return fed_t(arg).up(); }
+    inline fed_t down(const fed_t &arg) { return fed_t(arg).down(); }
+    inline fed_t freeClock(const fed_t &arg, cindex_t x) { return fed_t(arg).freeClock(x); }
+    inline fed_t freeUp(const fed_t &arg, cindex_t x) { return fed_t(arg).freeUp(x); }
+    inline fed_t freeDown(const fed_t &arg, cindex_t x) { return fed_t(arg).freeDown(x); }
+    inline fed_t freeAllUp(const fed_t &arg) { return fed_t(arg).freeAllUp(); }
+    inline fed_t freeAllDown(const fed_t &arg) { return fed_t(arg).freeAllDown(); }
+    inline fed_t relaxUp(const fed_t &arg) { return fed_t(arg).relaxUp(); }
+    inline fed_t relaxDown(const fed_t &arg) { return fed_t(arg).relaxDown(); }
+    inline fed_t relaxUpClock(const fed_t &arg, cindex_t k) { return fed_t(arg).relaxUpClock(k); }
+    inline fed_t relaxDownClock(const fed_t &arg, cindex_t k)
     {
         return fed_t(arg).relaxDownClock(k);
     }
-    inline fed_t reduce(const fed_t& arg) { return fed_t(arg).reduce(); }
-    inline fed_t expensiveReduce(const fed_t& arg) { return fed_t(arg).expensiveReduce(); }
-    inline fed_t predt(const fed_t& g, const fed_t& b) { return fed_t(g).predt(b); }
-    inline fed_t predt(const fed_t& g, const dbm_t& b) { return fed_t(g).predt(b); }
-    inline fed_t predt(const fed_t& g, const raw_t* b, cindex_t dim)
+    inline fed_t reduce(const fed_t &arg) { return fed_t(arg).reduce(); }
+    inline fed_t expensiveReduce(const fed_t &arg) { return fed_t(arg).expensiveReduce(); }
+    inline fed_t predt(const fed_t &g, const fed_t &b) { return fed_t(g).predt(b); }
+    inline fed_t predt(const fed_t &g, const dbm_t &b) { return fed_t(g).predt(b); }
+    inline fed_t predt(const fed_t &g, const raw_t *b, cindex_t dim)
     {
         return fed_t(g).predt(b, dim);
     }
-    inline fed_t predt(const dbm_t& g, const fed_t& b) { return fed_t(g).predt(b); }
-    inline fed_t predt(const dbm_t& g, const dbm_t& b) { return fed_t(g).predt(b); }
-    inline fed_t predt(const dbm_t& g, const raw_t* b, cindex_t dim)
+    inline fed_t predt(const dbm_t &g, const fed_t &b) { return fed_t(g).predt(b); }
+    inline fed_t predt(const dbm_t &g, const dbm_t &b) { return fed_t(g).predt(b); }
+    inline fed_t predt(const dbm_t &g, const raw_t *b, cindex_t dim)
     {
         return fed_t(g).predt(b, dim);
     }
-    inline fed_t predt(const raw_t* g, cindex_t dim, const fed_t& b)
+    inline fed_t predt(const raw_t *g, cindex_t dim, const fed_t &b)
     {
         return fed_t(g, dim).predt(b);
     }
-    inline fed_t predt(const raw_t* g, cindex_t dim, const dbm_t& b)
+    inline fed_t predt(const raw_t *g, cindex_t dim, const dbm_t &b)
     {
         return fed_t(g, dim).predt(b);
     }
-    inline fed_t predt(const raw_t* g, const raw_t* b, cindex_t dim)
+    inline fed_t predt(const raw_t *g, const raw_t *b, cindex_t dim)
     {
         return fed_t(g, dim).predt(b, dim);
     }
 
     /************ Operator overload -- trivial implementations ************/
 
-    inline dbm_t operator+(const dbm_t& a, const raw_t* b) { return dbm_t(a) += b; }
-    inline dbm_t operator+(const fed_t& a, const raw_t* b)
+    inline dbm_t operator+(const dbm_t &a, const raw_t *b) { return dbm_t(a) += b; }
+    inline dbm_t operator+(const fed_t &a, const raw_t *b)
     {
         return dbm_t(b, a.getDimension()) += a;
     }
-    inline dbm_t operator+(const dbm_t& a, const dbm_t& b) { return dbm_t(a) += b; }
-    inline dbm_t operator+(const dbm_t& a, const fed_t& b) { return dbm_t(a) += b; }
-    inline dbm_t operator+(const fed_t& a, const dbm_t& b) { return dbm_t(b) += a; }
-    inline dbm_t operator+(const fed_t& a, const fed_t& b)
+    inline dbm_t operator+(const dbm_t &a, const dbm_t &b) { return dbm_t(a) += b; }
+    inline dbm_t operator+(const dbm_t &a, const fed_t &b) { return dbm_t(a) += b; }
+    inline dbm_t operator+(const fed_t &a, const dbm_t &b) { return dbm_t(b) += a; }
+    inline dbm_t operator+(const fed_t &a, const fed_t &b)
     {
         return (dbm_t(a.getDimension()) += a) += b;
     }
 
-    inline dbm_t operator&(const dbm_t& a, const raw_t* b) { return dbm_t(a) &= b; }
-    inline fed_t operator&(const fed_t& a, const raw_t* b) { return fed_t(a) &= b; }
-    inline dbm_t operator&(const dbm_t& a, const dbm_t& b) { return dbm_t(a) &= b; }
-    inline fed_t operator&(const dbm_t& a, const fed_t& b) { return fed_t(b) &= a; }
-    inline fed_t operator&(const fed_t& a, const dbm_t& b) { return fed_t(a) &= b; }
-    inline fed_t operator&(const fed_t& a, const fed_t& b) { return fed_t(a) &= b; }
+    inline dbm_t operator&(const dbm_t &a, const raw_t *b) { return dbm_t(a) &= b; }
+    inline fed_t operator&(const fed_t &a, const raw_t *b) { return fed_t(a) &= b; }
+    inline dbm_t operator&(const dbm_t &a, const dbm_t &b) { return dbm_t(a) &= b; }
+    inline fed_t operator&(const dbm_t &a, const fed_t &b) { return fed_t(b) &= a; }
+    inline fed_t operator&(const fed_t &a, const dbm_t &b) { return fed_t(a) &= b; }
+    inline fed_t operator&(const fed_t &a, const fed_t &b) { return fed_t(a) &= b; }
 
-    inline dbm_t operator&(const dbm_t& a, const constraint_t& c) { return dbm_t(a) &= c; }
-    inline dbm_t operator&(const constraint_t& c, const dbm_t& a) { return dbm_t(a) &= c; }
-    inline fed_t operator&(const fed_t& a, const constraint_t& c) { return fed_t(a) &= c; }
-    inline fed_t operator&(const constraint_t& c, const fed_t& a) { return fed_t(a) &= c; }
+    inline dbm_t operator&(const dbm_t &a, const constraint_t &c) { return dbm_t(a) &= c; }
+    inline dbm_t operator&(const constraint_t &c, const dbm_t &a) { return dbm_t(a) &= c; }
+    inline fed_t operator&(const fed_t &a, const constraint_t &c) { return fed_t(a) &= c; }
+    inline fed_t operator&(const constraint_t &c, const fed_t &a) { return fed_t(a) &= c; }
 
-    inline dbm_t operator&(const dbm_t& a, const base::pointer_t<constraint_t>& c)
+    inline dbm_t operator&(const dbm_t &a, const base::pointer_t<constraint_t> &c)
     {
         return dbm_t(a) &= c;
     }
-    inline dbm_t operator&(const base::pointer_t<constraint_t>& c, const dbm_t& a)
+    inline dbm_t operator&(const base::pointer_t<constraint_t> &c, const dbm_t &a)
     {
         return dbm_t(a) &= c;
     }
-    inline fed_t operator&(const fed_t& a, const base::pointer_t<constraint_t>& c)
+    inline fed_t operator&(const fed_t &a, const base::pointer_t<constraint_t> &c)
     {
         return fed_t(a) &= c;
     }
-    inline fed_t operator&(const base::pointer_t<constraint_t>& c, const fed_t& a)
+    inline fed_t operator&(const base::pointer_t<constraint_t> &c, const fed_t &a)
     {
         return fed_t(a) &= c;
     }
 
-    inline dbm_t operator&(const dbm_t& a, const std::vector<constraint_t>& vec)
+    inline dbm_t operator&(const dbm_t &a, const std::vector<constraint_t> &vec)
     {
         return dbm_t(a) &= vec;
     }
-    inline dbm_t operator&(const std::vector<constraint_t>& vec, const dbm_t& a)
+    inline dbm_t operator&(const std::vector<constraint_t> &vec, const dbm_t &a)
     {
         return dbm_t(a) &= vec;
     }
-    inline fed_t operator&(const fed_t& a, const std::vector<constraint_t>& vec)
+    inline fed_t operator&(const fed_t &a, const std::vector<constraint_t> &vec)
     {
         return fed_t(a) &= vec;
     }
-    inline fed_t operator&(const std::vector<constraint_t>& vec, const fed_t& a)
+    inline fed_t operator&(const std::vector<constraint_t> &vec, const fed_t &a)
     {
         return fed_t(a) &= vec;
     }
 
-    inline fed_t operator|(const dbm_t& a, const raw_t* b) { return fed_t(a) |= b; }
-    inline fed_t operator|(const fed_t& a, const raw_t* b) { return fed_t(a) |= b; }
-    inline fed_t operator|(const dbm_t& a, const dbm_t& b) { return fed_t(a) |= b; }
-    inline fed_t operator|(const fed_t& a, const dbm_t& b) { return fed_t(a) |= b; }
-    inline fed_t operator|(const dbm_t& a, const fed_t& b) { return fed_t(b) |= a; }
-    inline fed_t operator|(const fed_t& a, const fed_t& b) { return fed_t(a) |= b; }
+    inline fed_t operator|(const dbm_t &a, const raw_t *b) { return fed_t(a) |= b; }
+    inline fed_t operator|(const fed_t &a, const raw_t *b) { return fed_t(a) |= b; }
+    inline fed_t operator|(const dbm_t &a, const dbm_t &b) { return fed_t(a) |= b; }
+    inline fed_t operator|(const fed_t &a, const dbm_t &b) { return fed_t(a) |= b; }
+    inline fed_t operator|(const dbm_t &a, const fed_t &b) { return fed_t(b) |= a; }
+    inline fed_t operator|(const fed_t &a, const fed_t &b) { return fed_t(a) |= b; }
 
-    inline fed_t operator-(const fed_t& a, const raw_t* b) { return fed_t(a) -= b; }
-    inline fed_t operator-(const fed_t& a, const dbm_t& b) { return fed_t(a) -= b; }
-    inline fed_t operator-(const dbm_t& a, const fed_t& b) { return fed_t(a) -= b; }
-    inline fed_t operator-(const fed_t& a, const fed_t& b) { return fed_t(a) -= b; }
+    inline fed_t operator-(const fed_t &a, const raw_t *b) { return fed_t(a) -= b; }
+    inline fed_t operator-(const fed_t &a, const dbm_t &b) { return fed_t(a) -= b; }
+    inline fed_t operator-(const dbm_t &a, const fed_t &b) { return fed_t(a) -= b; }
+    inline fed_t operator-(const fed_t &a, const fed_t &b) { return fed_t(a) -= b; }
 
-    inline fed_t operator-(const dbm_t& arg1, const raw_t* arg2)
+    inline fed_t operator-(const dbm_t &arg1, const raw_t *arg2)
     {
         return fed_t::subtract(arg1, arg2);
     }
-    inline fed_t operator-(const dbm_t& arg1, const dbm_t& arg2)
+    inline fed_t operator-(const dbm_t &arg1, const dbm_t &arg2)
     {
         return fed_t::subtract(arg1, arg2);
     }
 
-    inline fed_t operator!(const dbm_t& arg) { return fed_t(arg.getDimension()).setInit() -= arg; }
-    inline fed_t operator!(const fed_t& arg) { return fed_t(arg.getDimension()).setInit() -= arg; }
-}  // namespace dbm
+    inline fed_t operator!(const dbm_t &arg) { return fed_t(arg.getDimension()).setInit() -= arg; }
+    inline fed_t operator!(const fed_t &arg) { return fed_t(arg.getDimension()).setInit() -= arg; }
+} // namespace dbm
