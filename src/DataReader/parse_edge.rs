@@ -1,10 +1,9 @@
 extern crate pest;
+use crate::bail;
+use crate::DataReader::parse_utils::TryNextable;
 use crate::DataReader::serialization::encode_boolexpr;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::{bail, to_result};
 use anyhow::Result;
-use pest::iterators::Pair;
-use pest::iterators::Pairs;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -68,7 +67,7 @@ impl Update {
 
 pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute> {
     let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)?;
-    let pair = try_next(&mut pairs)?;
+    let pair = pairs.try_next()?;
     match pair.as_rule() {
         Rule::edgeAttribute => build_edgeAttribute_from_pair(pair),
         err => {
@@ -78,7 +77,7 @@ pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute> {
 }
 
 pub fn build_edgeAttribute_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttribute> {
-    let pair_rule = try_next(&mut pair.into_inner())?;
+    let pair_rule = pair.into_inner().try_next()?;
     match pair_rule.as_rule() {
         Rule::update => build_update_from_pair(pair_rule),
         Rule::guard => build_guard_from_pair(pair_rule),
@@ -99,7 +98,7 @@ fn build_guard_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttrib
             }
 
             let mut inner_pairs = pair.into_inner();
-            let inner_pair = try_next(&mut inner_pairs)?;
+            let inner_pair = inner_pairs.try_next()?;
             Ok(EdgeAttribute::Guard(build_expression_from_pair(
                 inner_pair,
             )?))
@@ -120,7 +119,7 @@ fn build_update_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<EdgeAttri
             }
 
             let mut inner_pairs = pair.into_inner();
-            let inner_pair = try_next(&mut inner_pairs)?;
+            let inner_pair = inner_pairs.try_next()?;
             updates = build_assignments_from_pair(inner_pair)?;
             Ok(EdgeAttribute::Updates(updates))
         }
@@ -133,10 +132,10 @@ fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Vec<
     match pair.as_rule() {
         Rule::assignments => {
             let mut pairs = pair.into_inner();
-            let assignment_pair = try_next(&mut pairs)?;
+            let assignment_pair = pairs.try_next()?;
             match assignment_pair.as_rule() {
                 Rule::assignment => {
-                    let next_pair = try_next(&mut pairs)?;
+                    let next_pair = pairs.try_next()?;
                     updates = build_assignments_from_pair(next_pair)?;
                     updates.push(build_assignment_from_pair(assignment_pair)?);
                 }
@@ -160,8 +159,8 @@ fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Vec<
 
 fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Update> {
     let mut inner_pairs = pair.into_inner();
-    let variable = try_next(&mut inner_pairs)?.as_str();
-    let expression_pair = try_next(&mut inner_pairs)?;
+    let variable = inner_pairs.try_next()?.as_str();
+    let expression_pair = inner_pairs.try_next()?;
 
     let expression = build_expression_from_pair(expression_pair)?;
     let update = Update {
@@ -176,7 +175,7 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolE
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(BoolExpression::Parentheses(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
@@ -184,14 +183,14 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolE
         Rule::and => build_and_from_pair(pair),
         Rule::or => build_or_from_pair(pair),
         Rule::compareExpr => build_compareExpr_from_pair(pair),
-        Rule::expression => build_expression_from_pair(try_next(&mut pair.into_inner())?),
-        Rule::terms => build_expression_from_pair(try_next(&mut pair.into_inner())?),
+        Rule::expression => build_expression_from_pair(pair.into_inner().try_next()?),
+        Rule::terms => build_expression_from_pair(pair.into_inner().try_next()?),
         unknown => bail!("Got unknown pair: {:?}", unknown),
     }
 }
 
 fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
-    let inner_pair = try_next(&mut pair.into_inner())?;
+    let inner_pair = pair.into_inner().try_next()?;
     match inner_pair.as_rule() {
         Rule::atom => {
             if let Ok(n) = inner_pair.as_str().trim().parse::<bool>() {
@@ -211,7 +210,7 @@ fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpress
 
 fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => Ok(build_or_from_pair(left_side_pair)?),
@@ -226,7 +225,7 @@ fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpressi
 
 fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => Ok(build_compareExpr_from_pair(left_side_pair)?),
@@ -241,12 +240,12 @@ fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpressio
 
 fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<BoolExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => Ok(build_expression_from_pair(left_side_pair)?),
         Some(operator_pair) => {
-            let right_side_pair = try_next(&mut inner_pair)?;
+            let right_side_pair = inner_pair.try_next()?;
 
             let lside = build_expression_from_pair(left_side_pair)?;
             let rside = build_expression_from_pair(right_side_pair)?;
@@ -264,8 +263,4 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Bool
             }
         }
     }
-}
-
-fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    to_result!(iterator.next())
 }

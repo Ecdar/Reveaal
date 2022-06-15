@@ -1,10 +1,10 @@
 extern crate pest;
+use crate::bail;
+use crate::DataReader::parse_utils::TryNextable;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
-use crate::{bail, to_result};
 use anyhow::Result;
 use pest::iterators::Pair;
-use pest::iterators::Pairs;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
@@ -29,7 +29,7 @@ pub fn parse_to_query(query: &str) -> Result<Vec<Query>> {
 
 pub fn parse_to_expression_tree(edge_attribute_str: &str) -> Result<Vec<QueryExpression>> {
     let mut pairs = QueryParser::parse(Rule::queries, edge_attribute_str)?;
-    let pair = try_next(&mut pairs)?;
+    let pair = pairs.try_next()?;
     let mut queries = vec![];
     match pair.as_rule() {
         Rule::queries => {
@@ -66,7 +66,7 @@ pub fn build_queries(
 }
 
 pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
-    let pair = try_next(&mut pair.into_inner())?;
+    let pair = pair.into_inner().try_next()?;
     let pair_span = pair.as_span();
 
     //check if we have an empty pair
@@ -77,50 +77,50 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryE
     match pair.as_rule() {
         Rule::refinement => build_refinement_from_pair(pair),
         Rule::getComponent => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::GetComponent(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::prune => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Prune(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::bisim => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::BisimMinimize(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
 
         Rule::consistency => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Consistency(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::implementation => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Implementation(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::determinism => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Determinism(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::specification => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Specification(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::logicFormulas => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             build_expression_from_pair(inner_pair)
         }
         unknown => bail!("Got unknown pair: {:?}", unknown),
@@ -131,31 +131,31 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Query
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Parentheses(Box::new(
                 build_expression_from_pair(inner_pair)?,
             )))
         }
         Rule::possibly => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Possibly(Box::new(
                 build_boolExpr_from_pair(inner_pair)?,
             )))
         }
         Rule::invariantly => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Invariantly(Box::new(
                 build_boolExpr_from_pair(inner_pair)?,
             )))
         }
         Rule::eventuallyAlways => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::EventuallyAlways(Box::new(
                 build_boolExpr_from_pair(inner_pair)?,
             )))
         }
         Rule::potentially => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Potentially(Box::new(
                 build_boolExpr_from_pair(inner_pair)?,
             )))
@@ -186,8 +186,8 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Query
         }
         Rule::saveExpr => {
             let mut inner = pair.into_inner();
-            let inner_pair = try_next(&mut inner)?;
-            let name = try_next(&mut inner)?;
+            let inner_pair = inner.try_next()?;
+            let name = inner.try_next()?;
             let name = build_var_from_pair(name)?;
             match name {
                 QueryExpression::VarName(save_name) => Ok(QueryExpression::SaveAs(
@@ -198,7 +198,7 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Query
             }
         }
         Rule::terms => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             build_expression_from_pair(inner_pair)
         }
         unknown => bail!("Got unknown pair: {:?}", unknown),
@@ -207,8 +207,8 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Query
 
 fn build_refinement_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
-    let right_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
+    let right_side_pair = inner_pair.try_next()?;
 
     let lside = build_expression_from_pair(left_side_pair)?;
     let rside = build_expression_from_pair(right_side_pair)?;
@@ -220,7 +220,7 @@ fn build_refinement_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Query
 }
 
 fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
-    let inner_pair = try_next(&mut pair.into_inner())?;
+    let inner_pair = pair.into_inner().try_next()?;
     match inner_pair.as_rule() {
         Rule::atom => {
             if let Ok(n) = inner_pair.as_str().trim().parse::<bool>() {
@@ -238,14 +238,14 @@ fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpres
 
 fn build_var_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     let lside = QueryExpression::VarName(left_side_pair.as_str().trim().to_string());
 
     match inner_pair.next() {
         None => Ok(lside),
         Some(right_side_pair) => {
-            let inner_right_pair = try_next(&mut right_side_pair.into_inner())?;
+            let inner_right_pair = right_side_pair.into_inner().try_next()?;
             let rside = build_expression_from_pair(inner_right_pair)?;
 
             Ok(QueryExpression::ComponentExpression(
@@ -259,7 +259,7 @@ fn build_var_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpress
 fn build_boolExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     match pair.as_rule() {
         Rule::boolExpr => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             build_boolExpr_from_pair(inner_pair)
         }
         Rule::andExpr => build_and_from_pair(pair),
@@ -274,19 +274,19 @@ fn build_subExpression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Qu
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedSubExp => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Parentheses(Box::new(
                 build_subExpression_from_pair(inner_pair)?,
             )))
         }
         Rule::notExpr => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             Ok(QueryExpression::Not(Box::new(
                 build_subExpression_from_pair(inner_pair)?,
             )))
         }
         Rule::subExpr => {
-            let inner_pair = try_next(&mut pair.into_inner())?;
+            let inner_pair = pair.into_inner().try_next()?;
             build_subExpression_from_pair(inner_pair)
         }
         Rule::boolExpr => build_boolExpr_from_pair(pair),
@@ -296,7 +296,7 @@ fn build_subExpression_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Qu
 
 fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => build_or_from_pair(left_side_pair),
@@ -311,7 +311,7 @@ fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpress
 
 fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => build_compareExpr_from_pair(left_side_pair),
@@ -326,12 +326,12 @@ fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpressi
 
 fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<QueryExpression> {
     let mut inner_pair = pair.into_inner();
-    let left_side_pair = try_next(&mut inner_pair)?;
+    let left_side_pair = inner_pair.try_next()?;
 
     match inner_pair.next() {
         None => build_subExpression_from_pair(left_side_pair),
         Some(operator_pair) => {
-            let right_side_pair = try_next(&mut inner_pair)?;
+            let right_side_pair = inner_pair.try_next()?;
 
             let lside = build_boolExpr_from_pair(left_side_pair)?;
             let rside = build_boolExpr_from_pair(right_side_pair)?;
@@ -348,8 +348,4 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Quer
             }
         }
     }
-}
-
-fn try_next<'i>(iterator: &mut Pairs<'i, Rule>) -> Result<Pair<'i, Rule>> {
-    to_result!(iterator.next())
 }

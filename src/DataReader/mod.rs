@@ -4,6 +4,7 @@ pub mod json_writer;
 pub mod parse_edge;
 pub mod parse_invariant;
 pub mod parse_queries;
+pub mod parse_utils;
 pub mod serialization;
 pub mod xml_parser;
 
