@@ -14,9 +14,9 @@ and = { or ~ "&&" ~ and | or }
 
 or = { compareExpr ~ "||" ~ or | compareExpr }
 
-compareExpr = { terms ~ lowOperator ~ compareExpr | terms }
+compareExpr = { sub_add ~ lowOperator ~ sub_add | terms }
 
-sub_add = {mult_div_mod ~ operator ~ sub_add   | mult_div_mod}
+sub_add = {mult_div_mod ~ operator ~ sub_add  | mult_div_mod}
 
 mult_div_mod = {terms  ~ highOperator ~  mult_div_mod | terms}
 

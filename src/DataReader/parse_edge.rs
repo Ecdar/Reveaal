@@ -6,6 +6,8 @@ use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::panic::resume_unwind;
+use crate::ModelObjects::representations::BoolExpression::Bool;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -174,10 +176,12 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpressi
             let inner_pair = pair.into_inner().next().unwrap();
             BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
         }
+        Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
         Rule::and => build_and_from_pair(pair),
         Rule::or => build_or_from_pair(pair),
         Rule::compareExpr => build_compareExpr_from_pair(pair),
-        Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
+        Rule::sub_add => build_sub_add_from_pair(pair),
+        Rule::mult_div_mod => build_mult_div_mod_from_pair(pair),
         Rule::terms => build_expression_from_pair(pair.into_inner().next().unwrap()),
         unknown => panic!("Got unknown pair: {:?}", unknown),
     }
@@ -236,20 +240,83 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpress
 
     match inner_pair.next() {
         None => build_expression_from_pair(left_side_pair),
-        Some(operator_pair) => {
+        Some(operator) => {
+            let lhs = build_sub_add_from_pair(left_side_pair);
+            let rhs = build_sub_add_from_pair(inner_pair.next().unwrap());
+
+            match operator.as_str() {
+                ">=" => BoolExpression::GreatEQ(Box::new(lhs), Box::new(rhs)),
+                "<=" => BoolExpression::LessEQ(Box::new(lhs), Box::new(rhs)),
+                "==" => BoolExpression::EQ(Box::new(lhs), Box::new(rhs)),
+                ">" => BoolExpression::GreatT(Box::new(lhs), Box::new(rhs)),
+                "<" => BoolExpression::LessT(Box::new(lhs), Box::new(rhs)),
+                unknown_operator => panic!(
+                    "Got unknown boolean operator: {}. Only able to match >=,<=, ==,<,>",
+                    unknown_operator
+                ),
+            }
+        }
+    }
+}
+
+fn build_sub_add_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
+    let mut inner_pair = pair.into_inner();
+    let left_side_pair = inner_pair.next().unwrap();
+
+    match inner_pair.next() {
+        None => build_mult_div_mod_from_pair(left_side_pair),
+        Some(operator) => {
+            let right_side_pair = inner_pair.next().unwrap();
+
+            let lside = build_mult_div_mod_from_pair(left_side_pair);
+            let rside = build_mult_div_mod_from_pair(right_side_pair);
+            match operator.as_str() {
+                "-" => BoolExpression::Difference(Box::new(lside),
+                                                  Box::new(rside)),
+                "+" => {
+                    if let BoolExpression::Int(x) = rside {
+                        BoolExpression::Difference(Box::new(lside),
+                                                   Box::new(BoolExpression::Int(-x)))
+                    } else {
+                        panic!("Cannot add")
+                    }
+                },
+                unknown_operator => panic!(
+                    "Got unknown boolean operator: {}. Only able to match -,+",
+                    unknown_operator
+                ),
+            }
+        }
+    }
+}
+
+fn build_mult_div_mod_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
+    let mut inner_pair = pair.into_inner();
+    let left_side_pair = inner_pair.next().unwrap();
+
+    match inner_pair.next() {
+        None => build_expression_from_pair(left_side_pair),
+        Some(operator) => {
             let right_side_pair = inner_pair.next().unwrap();
 
             let lside = build_expression_from_pair(left_side_pair);
             let rside = build_expression_from_pair(right_side_pair);
-
-            match operator_pair.as_str() {
-                ">=" => BoolExpression::GreatEQ(Box::new(lside), Box::new(rside)),
-                "<=" => BoolExpression::LessEQ(Box::new(lside), Box::new(rside)),
-                "==" => BoolExpression::EQ(Box::new(lside), Box::new(rside)),
-                "<" => BoolExpression::LessT(Box::new(lside), Box::new(rside)),
-                ">" => BoolExpression::GreatT(Box::new(lside), Box::new(rside)),
+            let mut lhs = match lside {
+                BoolExpression::Int(a) => a,
+                BoolExpression::Clock(b) => b as i32,
+                unknown => panic!("{:?} cannot able to be multiplied", unknown),
+            };
+            let mut rhs = match rside {
+                BoolExpression::Int(a) => a,
+                BoolExpression::Clock(b) => b as i32,
+                unknown => panic!("{:?} cannot able to be multiplied", unknown),
+            };
+            match operator.as_str() {
+                "*" => BoolExpression::Int(lhs * rhs),
+                "/" => BoolExpression::Int((lhs / rhs) as i32),
+                "%" => BoolExpression::Int(lhs % rhs),
                 unknown_operator => panic!(
-                    "Got unknown boolean operator: {}. Only able to match >=,<=, ==,<,>",
+                    "Got unknown boolean operator: {}. Only able to match /,*,%",
                     unknown_operator
                 ),
             }
