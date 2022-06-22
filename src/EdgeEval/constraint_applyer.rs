@@ -1,3 +1,4 @@
+//use core::panicking::panic;
 use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
@@ -149,6 +150,23 @@ fn test_get_indices_int_diff() {
     assert_eq!(get_indices(&left, &right, &decl), (2, 1, -3));
 }
 
+#[derive(PartialEq)]
+enum ClockConstOption {
+    Clock(u32),
+    Const(i32),
+    None,
+}
+
+impl ClockConstOption {
+    fn unwrap(&self) -> i32 {
+        match self {
+            ClockConstOption::Clock(c) => *c as i32,
+            ClockConstOption::Const(a) => *a,
+            ClockConstOption::None => panic!("Used unwrap on None"),
+        }
+    }
+}
+
 /// Assumes that the constraint is of the form left <?= right
 fn get_indices(
     left: &BoolExpression,
@@ -157,29 +175,63 @@ fn get_indices(
 ) -> (u32, u32, i32) {
     let result = if let BoolExpression::Difference(i, j) = left {
         try_form_index(get_clock(i, d), get_clock(j, d), get_constant(right))
-    } else if let Some(c) = get_constant(left) {
+    } else if let ClockConstOption::Const(c) = get_constant(left) {
         if let BoolExpression::Difference(i, j) = right {
-            try_form_index(get_clock(j, d), get_clock(i, d), Some(-c))
+            let i1 = try_form_index(get_clock(j, d), get_clock(i, d), ClockConstOption::Const(-c));
+            let i2 = try_form_index(get_constant(j), get_clock(i, d), ClockConstOption::Const(-c));
+            let i3 = try_form_index(get_clock(j, d), get_constant(i), ClockConstOption::Const(-c));
+            let i4 = try_form_index(get_constant(j), get_constant(i), ClockConstOption::Const(-c));
+            i1.or(i2).or(i3).or(i4)
         } else {
-            try_form_index(Some(0), get_clock(right, d), Some(-c))
+            try_form_index(ClockConstOption::Const(0), get_clock(right, d), ClockConstOption::Const(-c))
         }
-    } else if let Some(clock) = get_clock(left, d) {
-        let i1 = try_form_index(Some(clock), Some(0), get_constant(right));
-        let i2 = try_form_index(Some(clock), get_clock(right, d), Some(0));
-        i1.or(i2)
+    } else if let ClockConstOption::Clock(clock) = get_clock(left, d) {
+        let i1 = try_form_index(ClockConstOption::Clock(clock), ClockConstOption::Const(0), get_constant(right));
+        let i2 = try_form_index(ClockConstOption::Clock(clock), get_clock(right, d), ClockConstOption::Const(0));
+        let i3 = try_form_index(ClockConstOption::Clock(clock), ClockConstOption::Const(0), get_clock(right, d));
+        let i4 = try_form_index(ClockConstOption::Clock(clock), get_constant(right), ClockConstOption::Const(0));
+        i1.or(i2).or(i3).or(i4)
     } else {
         None
     };
 
+    //TODO: Should probably not convert values
+    match result {
+        Some(res) => {
+            if res.0 == ClockConstOption::None ||
+                res.1 == ClockConstOption::None ||
+                res.2 == ClockConstOption::None {
+                panic!("TEMP");
+            }
+
+            (res.0.unwrap() as u32, res.1.unwrap() as u32, res.2.unwrap())
+        },
+        None => panic!("LOL"),
+    }
+    /*
     result.unwrap_or_else(|| {
         panic!(
             "Failed to get index from left: {:?} right: {:?} decls: {:?}",
             left, right, d
         )
-    })
+    }) */
 }
 
-fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {
+fn try_form_index(i: ClockConstOption, j: ClockConstOption, c: ClockConstOption) -> Option<(ClockConstOption, ClockConstOption, ClockConstOption)> {
+    if i == ClockConstOption::None || j == ClockConstOption::None || c == ClockConstOption::None {
+        None
+    }
+    else { // if let (Some(i), Some(j), Some(c)) = (i, j, c) {
+        let res = (i, j, c);
+        if res.0.unwrap() == 0 && res.1.unwrap() == 0 {
+            return None;
+        }
+
+        Some(res)
+    }
+}
+
+fn try_form_index_old(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {
     if let (Some(i), Some(j), Some(c)) = (i, j, c) {
         let res = (i, j, c);
         if res.0 == 0 && res.1 == 0 {
@@ -192,20 +244,23 @@ fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32
     }
 }
 
-fn get_clock(expr: &BoolExpression, decls: &component::Declarations) -> Option<u32> {
+fn get_clock(expr: &BoolExpression, decls: &component::Declarations) -> ClockConstOption {
     match expr {
-        BoolExpression::Clock(id) => Some(*id),
-        BoolExpression::VarName(name) => decls.get_clocks().get(name).and_then(|o| Some(*o)),
-        _ => None,
+        BoolExpression::Clock(id) => ClockConstOption::Clock(*id),
+        BoolExpression::VarName(name) => ClockConstOption::Clock(decls.get_clocks()
+            .get(name)
+            .and_then(|o| Some(*o))
+            .unwrap()),
+        _ => ClockConstOption::None,
     }
 }
 
 fn get_constant(expr: &BoolExpression, //, decls: &component::Declarations
-) -> Option<i32> {
+) -> ClockConstOption {
     match expr {
-        BoolExpression::Int(i) => Some(*i),
+        BoolExpression::Int(i) => ClockConstOption::Const(*i),
         //TODO: when integer variables/constants are introduced
         //BoolExpression::VarName(name) => decls.get_ints().get(name).and_then(|o| Some(*o)),
-        _ => None,
+        _ => ClockConstOption::None,
     }
 }

@@ -1,9 +1,11 @@
+//use core::panicking::panic;
 use crate::DBMLib::dbm::Zone;
 use colored::Colorize;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::ops;
+
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
 
@@ -361,6 +363,17 @@ impl ops::BitOr for BoolExpression {
 
     fn bitor(self, other: Self) -> Self {
         BoolExpression::OrOp(Box::new(self), Box::new(other))
+    }
+}
+
+impl ops::Neg for BoolExpression {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        match self {
+            BoolExpression::Int(a) => BoolExpression::Int(-a),
+            BoolExpression::Clock(b) => BoolExpression::Int(-(b as i32)),
+            _ => panic!("Fail"),
+        }
     }
 }
 

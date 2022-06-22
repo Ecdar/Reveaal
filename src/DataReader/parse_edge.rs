@@ -211,8 +211,8 @@ fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     match inner_pair.next() {
         None => build_or_from_pair(left_side_pair),
         Some(right_side_pair) => {
-            let lside = build_expression_from_pair(left_side_pair);
-            let rside = build_expression_from_pair(right_side_pair);
+            let lside = build_or_from_pair(left_side_pair);
+            let rside = build_and_from_pair(right_side_pair);
 
             BoolExpression::AndOp(Box::new(lside), Box::new(rside))
         }
@@ -226,8 +226,8 @@ fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     match inner_pair.next() {
         None => build_compareExpr_from_pair(left_side_pair),
         Some(right_side_pair) => {
-            let lside = build_expression_from_pair(left_side_pair);
-            let rside = build_expression_from_pair(right_side_pair);
+            let lside = build_compareExpr_from_pair(left_side_pair);
+            let rside = build_or_from_pair(right_side_pair);
 
             BoolExpression::OrOp(Box::new(lside), Box::new(rside))
         }
@@ -273,14 +273,19 @@ fn build_sub_add_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression 
             match operator.as_str() {
                 "-" => BoolExpression::Difference(Box::new(lside),
                                                   Box::new(rside)),
-                "+" => {
+                "+" =>BoolExpression::Difference(Box::new(lside),
+                                                 Box::new(-rside)),
+                    /*{
                     if let BoolExpression::Int(x) = rside {
                         BoolExpression::Difference(Box::new(lside),
                                                    Box::new(BoolExpression::Int(-x)))
+                    } else if let BoolExpression::Clock(y) = rside {
+                        BoolExpression::Difference(Box::new(lside),
+                                                   Box::new(BoolExpression::Int(y as i32 * -1)))
                     } else {
                         panic!("Cannot add")
-                    }
-                },
+                    };
+                }, */
                 unknown_operator => panic!(
                     "Got unknown boolean operator: {}. Only able to match -,+",
                     unknown_operator
@@ -300,16 +305,16 @@ fn build_mult_div_mod_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpres
             let right_side_pair = inner_pair.next().unwrap();
 
             let lside = build_expression_from_pair(left_side_pair);
-            let rside = build_expression_from_pair(right_side_pair);
-            let mut lhs = match lside {
+            let rside = build_mult_div_mod_from_pair(right_side_pair);
+            let lhs = match lside {
                 BoolExpression::Int(a) => a,
                 BoolExpression::Clock(b) => b as i32,
-                unknown => panic!("{:?} cannot able to be multiplied", unknown),
+                unknown => panic!("L '{:?}' is not a usable number", unknown),
             };
-            let mut rhs = match rside {
+            let rhs = match rside {
                 BoolExpression::Int(a) => a,
                 BoolExpression::Clock(b) => b as i32,
-                unknown => panic!("{:?} cannot able to be multiplied", unknown),
+                unknown => panic!("R '{:?}' is not a usable number", unknown),
             };
             match operator.as_str() {
                 "*" => BoolExpression::Int(lhs * rhs),

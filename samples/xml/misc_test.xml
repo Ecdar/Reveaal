@@ -13,7 +13,7 @@ clock x;</declaration>
 		<transition>
 			<source ref="id0"/>
 			<target ref="id0"/>
-			<label kind="guard" x="-17" y="-68">( x&gt;5 )</label>
+			<label kind="guard" x="-17" y="-68">( x-2&gt;5 )</label>
 			<nail x="51" y="-42"/>
 			<nail x="-51" y="-42"/>
 		</transition>
