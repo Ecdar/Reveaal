@@ -3,6 +3,7 @@ target/
 .idea/*
 .vscode/
 dbm/build/
+dbm/buildw/
 *.o
 *.a
 *.obj
