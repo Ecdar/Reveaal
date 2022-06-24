@@ -11,14 +11,15 @@ use crate::ProtobufServer::ToGrpcResult;
 use crate::System::input_enabler;
 use anyhow::Result;
 use std::cell::RefCell;
+use std::panic::AssertUnwindSafe;
 use tonic::{Request, Response};
 
 impl ConcreteEcdarBackend {
     pub async fn handle_update_components(
         &self,
-        request: Request<ComponentsUpdateRequest>,
+        request: AssertUnwindSafe<Request<ComponentsUpdateRequest>>,
     ) -> Result<Response<()>, tonic::Status> {
-        let update = request.into_inner();
+        let update = request.0.into_inner();
 
         let component_container = self.get_components_lock()?;
         for proto_component in &update.components {
