@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, Edge, Location, LocationType, SyncType,
-};
+use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use anyhow::Result;

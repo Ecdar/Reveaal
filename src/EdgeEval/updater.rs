@@ -5,7 +5,7 @@ use std::fmt;
 
 use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
-use crate::ModelObjects::component::{self, Declarations};
+use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::representations::BoolExpression;
 use colored::Colorize;
 

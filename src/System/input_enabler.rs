@@ -2,7 +2,6 @@ use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
-use crate::TransitionSystems::TransitionSystem;
 use anyhow::Result;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) -> Result<()> {

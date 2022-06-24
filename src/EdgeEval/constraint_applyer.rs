@@ -1,9 +1,10 @@
-use crate::DBMLib::dbm::{Federation, Zone};
+use std::collections::HashMap;
+
+use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::{bail, to_result};
-use anyhow::{format_err, Result};
-use std::collections::HashMap;
+use anyhow::Result;
 
 pub fn apply_constraint(
     constraint: &Option<BoolExpression>,

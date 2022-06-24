@@ -1,9 +1,6 @@
 use super::{CompositionType, LocationTuple};
 use crate::ModelObjects::component::{Declarations, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::System::local_consistency;
-use crate::System::pruning;
-use crate::{bail, to_result};
 use anyhow::Result;
 use dyn_clone::{clone_trait_object, DynClone};
 use std::collections::hash_set::HashSet;

@@ -1,8 +1,8 @@
+use crate::bail;
 use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{Declarations, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use crate::{bail, to_result};
 use anyhow::Result;
 use std::collections::hash_set::HashSet;
 

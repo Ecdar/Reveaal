@@ -1,12 +1,12 @@
 use crate::DBMLib::dbm::Federation;
 
+use crate::bail;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use crate::{bail, to_result};
 use anyhow::Result;
 use std::collections::hash_set::HashSet;
 

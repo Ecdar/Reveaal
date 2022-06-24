@@ -1,10 +1,8 @@
 use anyhow::Result;
 
 use crate::bail;
-use crate::DBMLib::dbm::Federation;
-use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, LocationType, State, SyncType, Transition,
+    Component, DeclarationProvider, Declarations, State, Transition,
 };
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::System::local_consistency;

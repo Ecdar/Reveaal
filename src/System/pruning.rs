@@ -1,18 +1,14 @@
 use crate::DBMLib::dbm::Federation;
-use crate::EdgeEval::constraint_applyer::{apply_constraint, apply_constraints_to_state};
+use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, Edge, Location, LocationType, SyncType,
-    Transition,
+    Component, DeclarationProvider, Declarations, Edge, Location, SyncType,
 };
 use crate::ModelObjects::representations::BoolExpression;
-use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
-use crate::TransitionSystems::{CompiledComponent, LocationTuple};
-use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::CompiledComponent;
+use crate::TransitionSystems::TransitionSystemPtr;
 use anyhow::Result;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 
 pub fn prune_system(ts: TransitionSystemPtr, dim: u32) -> Result<TransitionSystemPtr> {
     let inputs = ts.get_input_actions();

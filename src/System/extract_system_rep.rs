@@ -9,7 +9,7 @@ use crate::System::executable_query::{
 };
 use crate::System::pruning;
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
+    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 use anyhow::Result;
 

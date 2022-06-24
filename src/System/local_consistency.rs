@@ -2,7 +2,7 @@ use crate::bail;
 use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::TransitionSystem;
 use anyhow::Result;
 
 //Local consistency check WITH pruning
