@@ -4,9 +4,9 @@ pub mod save_comp_helper {
     use crate::DataReader::parse_queries;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
+    use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
-    use crate::TransitionSystems::TransitionSystem;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let project_loader = JsonProjectLoader::new(String::from(input_path)).unwrap();
@@ -18,44 +18,39 @@ pub mod save_comp_helper {
             .unwrap()
             .remove(0);
 
-        let mut clock_index: u32 = 0;
-        let base_system = if let QueryExpression::GetComponent(expr) = &query {
+        let mut dim: u32 = 0;
+        let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
-            extract_system_rep::extract_side(expr.as_ref(), &mut *comp_loader, &mut clock_index)
-                .unwrap()
+            (
+                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim)
+                    .unwrap(),
+                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim)
+                    .unwrap(),
+            )
         } else {
             panic!("Failed to create system")
         };
 
-        let mut new_comp = combine_components(&base_system.clone()).unwrap();
-        new_comp.create_edge_io_split();
-        let mut new_comp = Box::new(new_comp);
-        decl.add_component(&new_comp).unwrap();
+        let new_comp = new_system.compile(dim);
 
-        // let opt_inputs = decl.get_component_inputs(new_comp.get_name());
-        // if opt_inputs.is_some() {
-        //     input_enabler::make_input_enabled(&mut new_comp, opt_inputs.unwrap());
-        // }
+        if let Err(_) = new_comp {
+            return;
+        }
+        let new_comp = combine_components(&new_comp.unwrap()).unwrap();
 
-        let dimensions = 1 + new_comp.get_num_clocks() + base_system.get_num_clocks();
+        let new_comp = SystemRecipe::Component(Box::new(new_comp))
+            .compile(dim)
+            .unwrap();
+        let base_system = base_system.compile(dim).unwrap();
 
-        let base_precheck = base_system.precheck_sys_rep(dimensions).unwrap();
-        let new_precheck = new_comp.precheck_sys_rep(dimensions).unwrap();
+        let base_precheck = base_system.precheck_sys_rep().unwrap();
+        let new_precheck = new_comp.precheck_sys_rep().unwrap();
         assert_eq!(base_precheck, new_precheck);
-        new_comp.set_clock_indices(&mut clock_index);
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
-            assert!(
-                refine::check_refinement(new_comp.clone(), base_system.clone())
-                    .unwrap()
-                    .unwrap()
-            );
-            assert!(
-                refine::check_refinement(base_system.clone(), new_comp.clone())
-                    .unwrap()
-                    .unwrap()
-            );
+            assert!(refine::check_refinement(new_comp.clone(), base_system.clone()).unwrap());
+            assert!(refine::check_refinement(base_system.clone(), new_comp.clone()).unwrap());
         }
     }
 }

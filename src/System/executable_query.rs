@@ -1,7 +1,7 @@
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
+use crate::System::refine;
 use crate::System::save_component::combine_components;
-use crate::System::{extra_actions, refine};
 use crate::TransitionSystems::TransitionSystemPtr;
 use anyhow::Result;
 
@@ -53,15 +53,11 @@ pub struct RefinementExecutor {
 
 impl ExecutableQuery for RefinementExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult> {
-        let (sys1, sys2) = extra_actions::add_extra_inputs_outputs(self.sys1, self.sys2)?;
+        let (sys1, sys2) = (self.sys1, self.sys2);
 
-        match refine::check_refinement(sys1, sys2)? {
-            Ok(res) => {
-                println!("Refinement result: {:?}", res);
-                Ok(QueryResult::Refinement(res))
-            }
-            Err(err_msg) => Ok(QueryResult::Error(err_msg)),
-        }
+        let refines = refine::check_refinement(sys1, sys2)?;
+        println!("Refinement result: {:?}", refines);
+        Ok(QueryResult::Refinement(refines))
     }
 }
 
@@ -90,8 +86,7 @@ pub struct ConsistencyExecutor {
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult> {
-        let dim = self.system.get_num_clocks() + 1;
-        Ok(QueryResult::Consistency(self.system.precheck_sys_rep(dim)?))
+        Ok(QueryResult::Consistency(self.system.precheck_sys_rep()?))
     }
 }
 
@@ -101,8 +96,7 @@ pub struct DeterminismExecutor {
 
 impl<'a> ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> Result<QueryResult> {
-        let dim = self.system.get_num_clocks() + 1;
-        let is_deterministic = self.system.is_deterministic(dim)?;
+        let is_deterministic = self.system.is_deterministic()?;
 
         Ok(QueryResult::Determinism(is_deterministic))
     }

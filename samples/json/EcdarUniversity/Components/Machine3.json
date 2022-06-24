@@ -33,6 +33,8 @@
   ],
   "edges": [
     {
+      "id": "E2",
+      "group": "",
       "sourceLocation": "L8",
       "targetLocation": "L19",
       "status": "INPUT",
@@ -59,6 +61,8 @@
       ]
     },
     {
+      "id": "E2",
+      "group": "",
       "sourceLocation": "L19",
       "targetLocation": "L19",
       "status": "INPUT",
@@ -85,6 +89,8 @@
       ]
     },
     {
+      "id": "E2",
+      "group": "",
       "sourceLocation": "L8",
       "targetLocation": "L8",
       "status": "OUTPUT",
@@ -118,6 +124,8 @@
       ]
     },
     {
+      "id": "E2",
+      "group": "",
       "sourceLocation": "L19",
       "targetLocation": "L8",
       "status": "OUTPUT",

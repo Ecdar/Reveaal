@@ -2,6 +2,7 @@
 #![deny(unused_must_use)] // Enforce handling of Results, to avoid accidentally hiding errors
 mod DBMLib;
 mod DataReader;
+mod DataTypes;
 mod EdgeEval;
 mod Macros;
 mod ModelObjects;
@@ -31,6 +32,20 @@ extern crate serde;
 extern crate serde_xml_rs;
 extern crate xml;
 
+// The debug version
+#[macro_export]
+#[cfg(feature = "verbose")]
+macro_rules! debug_print {
+    ($( $args:expr ),*) => { println!( $( $args ),* ); }
+}
+
+// Non-debug version
+#[macro_export]
+#[cfg(not(feature = "verbose"))]
+macro_rules! debug_print {
+    ($( $args:expr ),*) => {};
+}
+
 fn main() -> Result<()> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
@@ -48,18 +63,20 @@ fn main() -> Result<()> {
 }
 
 fn start_using_cli(matches: &clap::ArgMatches) {
-    let (mut project_loader, queries) = try_parse_args(matches);
+    let (mut comp_loader, queries) = try_parse_args(matches);
 
     let mut results = vec![];
     for query in &queries {
-        match create_and_execute(query, &mut project_loader) {
-            Ok(query_result) => results.push(query_result),
-            Err(error) => {
-                println!("Caught error: {}", error);
-                results.push(QueryResult::Error("Internal error".to_string()));
-                break;
-            }
+        let executable_query =
+            extract_system_rep::create_executable_query(query, &mut *comp_loader).unwrap();
+
+        let result = executable_query.execute().unwrap();
+
+        if let QueryResult::Error(err) = result {
+            panic!("{}", err);
         }
+
+        results.push(result);
     }
 
     println!("\nQuery results:");

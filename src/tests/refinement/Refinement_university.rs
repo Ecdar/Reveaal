@@ -219,6 +219,110 @@ mod Refinement_university {
     }
 
     #[test]
+    fn testHalfCompNotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: (HalfAdm1 && HalfAdm2) || Researcher || Machine <= Spec"
+        ));
+    }
+
+    #[test]
+    fn testAdm2NotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Adm2 <= Spec // Researcher // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Spec // Adm2 // Machine"
+        ));
+    }
+
+    #[test]
+    fn testMachineNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine <= Spec // Adm2 // Researcher"
+        ));
+    }
+
+    #[test]
+    fn testAdm2ResearcherNotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Adm2 || Researcher <= Spec // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherMachineNotRefinesAdm2Spec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Researcher || Machine <= Spec // Adm2"
+        ));
+    }
+
+    #[test]
+    fn testMachineAdm2NotRefinesSpec() {
+        assert!(!json_refinement_check(
+            PATH,
+            "refinement: Machine || Adm2 <= Spec // Researcher"
+        ));
+    }
+
+    #[test]
+    fn testAdminRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration <= Spec // Researcher // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Researcher <= Spec // Administration // Machine"
+        ));
+    }
+
+    #[test]
+    fn testMachineRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine <= Spec // Administration // Researcher"
+        ));
+    }
+
+    #[test]
+    fn testAdminResearcherRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Administration || Researcher <= Spec // Machine"
+        ));
+    }
+
+    #[test]
+    fn testResearcherMachineRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Researcher || Machine <= Spec // Administration"
+        ));
+    }
+
+    #[test]
+    fn testMachineAdminRefinesSpec() {
+        assert!(json_refinement_check(
+            PATH,
+            "refinement: Machine || Administration <= Spec // Researcher"
+        ));
+    }
+
+    #[test]
     fn testCompRefinesSelf() {
         assert!(json_refinement_check(
             PATH,

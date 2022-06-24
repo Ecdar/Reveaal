@@ -4,6 +4,7 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
+use anyhow::bail;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -344,8 +345,9 @@ where
         "NORMAL" => Ok(LocationType::Normal),
         "INITIAL" => Ok(LocationType::Initial),
         "UNIVERSAL" => Ok(LocationType::Universal),
-        _ => Err(D::Error::custom(format!(
-            "Unknown sync type in status {:?}",
+        "INCONSISTENT" => Ok(LocationType::Inconsistent),
+        _ => Err(serde::de::Error::custom(format!(
+            "Unknown sync type in status in '{}'",
             s
         ))),
     }
@@ -363,6 +365,7 @@ where
         LocationType::Normal => serializer.serialize_str("NORMAL"),
         LocationType::Initial => serializer.serialize_str("INITIAL"),
         LocationType::Universal => serializer.serialize_str("UNIVERSAL"),
+        LocationType::Inconsistent => serializer.serialize_str("INCONSISTENT"),
     }
 }
 
@@ -373,7 +376,7 @@ where
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
     if let Some((first_clock, _)) = it.next() {
-        output = output.add(&format!("{}", first_clock));
+        output = output.add(&first_clock.to_string());
 
         for (clock, _) in it {
             output = output.add(&format!(", {}", clock));

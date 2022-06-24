@@ -12,7 +12,8 @@ fn main() {
     }
 
     tonic_build::compile_protos("Ecdar-ProtoBuf/services.proto").unwrap();
-    println!("cargo:rerun-if-changed=Ecdar-ProtoBuf/*.proto");
+    // Tell cargo to invalidate the crate when the protobuf repository changes
+    println!("cargo:rerun-if-changed=Ecdar-ProtoBuf");
 
     let host = std::env::var("HOST").unwrap();
     let target = std::env::var("TARGET").unwrap();
@@ -26,13 +27,15 @@ fn main() {
     }
 
     println!("cargo:rustc-link-lib=static=udbmwrapper");
-    println!("cargo:rustc-link-lib=static=base");
     println!("cargo:rustc-link-lib=static=dbm");
-    println!("cargo:rustc-link-lib=static=udebug");
     println!("cargo:rustc-link-lib=static=hash");
+    println!("cargo:rustc-link-lib=static=udebug");
+    println!("cargo:rustc-link-lib=static=base");
     println!("cargo:rustc-link-lib=stdc++");
+
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=dbm/wrapper.h");
+    println!("cargo:rerun-if-changed=dbm/out");
 
     // cc::Build::new()
     //     .cpp(true)
@@ -44,7 +47,6 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("dbm/include/dbm/constraints.h")
         .header("dbm/include/dbm/dbm.h")
         .header("dbm/include/dbm/fed.h")
         .header("dbm/wrapper.h")
@@ -66,9 +68,7 @@ fn main() {
         .opaque_type("std::.*")
         //whitelist only relevant functions
         .allowlist_function("dbm_.*")
-        .allowlist_function("constraint_t")
-        .allowlist_function("constrain")
-        .allowlist_function("subtractDown")
+        .allowlist_function("fed_.*")
         // Enable comments for generated bindings
         .generate_comments(true)
         .detect_include_paths(true)

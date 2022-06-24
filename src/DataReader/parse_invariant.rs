@@ -33,10 +33,7 @@ pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> Result<Bo
                 return Ok(BoolExpression::Bool(true));
             }
 
-            let mut inner_pairs = pair.into_inner();
-            let inner_pair = inner_pairs.try_next()?;
-
-            build_expression_from_pair(inner_pair)
+            build_and_from_pair(pair)
         }
         _ => bail!("Unable to match: {:?} as rule, guard", pair),
     }

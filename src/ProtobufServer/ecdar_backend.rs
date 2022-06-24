@@ -19,9 +19,7 @@ impl ConcreteEcdarBackend {
     ) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
         match self.components.lock() {
             Ok(mutex_guard) => Ok(mutex_guard),
-            Err(_) => Err(Status::internal(
-                "Failed to acquire internal mutex, server has likely crashed",
-            )),
+            Err(err) => Ok(err.into_inner()),
         }
     }
 }

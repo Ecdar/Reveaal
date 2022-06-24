@@ -1,258 +1,43 @@
 use crate::bail;
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::representations::BoolExpression;
-use crate::System::input_enabler::build_guard_from_zone;
+use crate::ModelObjects::representations::{build_guard_from_zone, BoolExpression};
 use anyhow::Result;
 use colored::Colorize;
+use std::cmp::{Ordering, PartialOrd};
 use std::collections::HashMap;
-use std::f64;
+use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
-
+use std::{any, ops};
 #[derive(Clone, Debug, std::cmp::PartialEq)]
 pub struct Zone {
     pub(crate) dimension: u32,
     pub(in crate::DBMLib) matrix: Vec<i32>,
 }
 
+pub enum Relation {
+    Different,
+    Superset,
+    Subset,
+    Equal,
+}
+
 impl Zone {
-    pub fn from(vec: Vec<i32>) -> Self {
-        let size = vec.len() as f64;
-        let dim = size.sqrt().floor() as u32;
-        assert_eq!((dim * dim) as usize, vec.len());
-
-        let mut zone = Self {
-            dimension: dim,
-            matrix: vec,
-        };
-        zone.close();
-
-        zone
-    }
-
-    pub fn new(dimension: u32) -> Self {
-        Self {
-            dimension,
-            matrix: vec![1; (dimension * dimension) as usize],
-        }
-    }
-
-    pub fn is_valid(&self) -> bool {
-        lib::rs_dbm_is_valid(&self.matrix[..], self.dimension)
-    }
-
-    pub fn init(dimension: u32) -> Self {
-        let mut zone = Self {
-            dimension,
-            matrix: vec![0; (dimension * dimension) as usize],
-        };
-
-        lib::rs_dbm_init(zone.matrix.as_mut_slice(), zone.dimension);
-
-        zone
-    }
-
-    pub fn satisfies_i_lt_j(&self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
-        lib::rs_dbm_satisfies_i_LT_j(
-            &self.matrix[..],
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            bound,
-        )
-    }
-
-    pub fn satisfies_i_lte_j(&self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
-        lib::rs_dbm_satisfies_i_LTE_j(
-            &self.matrix[..],
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            bound,
-        )
-    }
-
-    pub fn satisfies_i_eq_j(&self, var_index_i: u32, var_index_j: u32) -> bool {
-        lib::rs_dbm_satisfies_i_EQUAL_j(&self.matrix[..], self.dimension, var_index_i, var_index_j)
-    }
-
-    pub fn satisfies_i_eq_j_bounds(
-        &self,
-        var_index_i: u32,
-        var_index_j: u32,
-        bound_i: i32,
-        bound_j: i32,
-    ) -> bool {
-        lib::rs_dbm_satisfies_i_EQUAL_j_bounds(
-            &self.matrix[..],
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            bound_i,
-            bound_j,
-        )
-    }
-
-    pub fn constrain1(&mut self, var_index_i: u32, var_index_j: u32, constraint: i32) -> bool {
-        lib::rs_dbm_constrain1(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            constraint,
-        )
-    }
-
-    pub fn add_lte_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
-        lib::rs_dbm_add_LTE_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            bound,
-        )
-    }
-
-    pub fn add_lt_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
-        lib::rs_dbm_add_LT_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            bound,
-        )
-    }
-
-    pub fn add_eq_constraint(&mut self, var_index_i: u32, var_index_j: u32) -> bool {
-        lib::rs_dbm_add_EQ_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-        )
-    }
-
-    pub fn add_eq_const_constraint(&mut self, var_index: u32, bound: i32) -> bool {
-        lib::rs_dbm_add_EQ_const_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index,
-            bound,
-        )
-    }
-
-    pub fn add_and_constraint(
-        &mut self,
-        var_index_i: u32,
-        var_index_j: u32,
-        constraint1: i32,
-        constraint2: i32,
-    ) -> bool {
-        lib::rs_dbm_add_and_constraint(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index_i,
-            var_index_j,
-            constraint1,
-            constraint2,
-        )
-    }
-
-    pub fn constrain_var_to_val(&mut self, var_index: u32, value: i32) -> bool {
-        lib::rs_dbm_constrain_var_to_val(
-            self.matrix.as_mut_slice(),
-            self.dimension,
-            var_index,
-            value,
-        )
-    }
-
-    pub fn intersection(&mut self, other: &Self) -> bool {
-        assert_eq!(
-            self.dimension, other.dimension,
-            "can not take intersection af two zones with differencing dimension"
-        );
-
-        lib::rs_dmb_intersection(
-            self.matrix.as_mut_slice(),
-            &other.matrix[..],
-            self.dimension,
-        )
-    }
-
-    pub fn update(&mut self, var_index: u32, value: i32) {
-        lib::rs_dbm_update(self.matrix.as_mut_slice(), self.dimension, var_index, value)
-    }
-
-    pub fn free_clock(&mut self, clock_index: u32) {
-        lib::rs_dbm_freeClock(self.matrix.as_mut_slice(), self.dimension, clock_index);
-    }
-
-    pub fn is_subset_eq(&self, other: &Self) -> bool {
-        assert_eq!(
-            self.dimension, other.dimension,
-            "can not take intersection af two zones with differencing dimension"
-        );
-
-        lib::rs_dbm_isSubsetEq(&self.matrix[..], &other.matrix[..], self.dimension)
-    }
-
     pub fn get_constraint(&self, var_index_i: u32, var_index_j: u32) -> (bool, i32) {
-        let raw_constraint =
-            lib::rs_dbm_get_constraint(&self.matrix[..], self.dimension, var_index_i, var_index_j);
+        let index: usize = (var_index_i * self.dimension + var_index_j)
+            .try_into()
+            .unwrap();
+        let raw = self.matrix[index];
 
-        (
-            lib::rs_raw_is_strict(raw_constraint),
-            lib::rs_raw_to_bound(raw_constraint),
-        )
+        (lib::rs_raw_is_strict(raw), lib::rs_raw_to_bound(raw))
     }
 
     pub fn is_constraint_infinity(&self, var_index_i: u32, var_index_j: u32) -> bool {
-        lib::rs_dbm_get_constraint(&self.matrix[..], self.dimension, var_index_i, var_index_j)
-            == lib::DBM_INF
-    }
-
-    pub fn up(&mut self) {
-        lib::rs_dbm_up(self.matrix.as_mut_slice(), self.dimension)
-    }
-
-    pub fn down(&mut self) {
-        lib::rs_dbm_down(self.matrix.as_mut_slice(), self.dimension)
-    }
-
-    pub fn zero(&mut self) {
-        lib::rs_dbm_zero(self.matrix.as_mut_slice(), self.dimension)
-    }
-
-    pub fn dbm_minus_dbm(&self, other: &Self) -> Federation {
-        // NOTE: this function is only used in crate::System::refine::build_state_pair
-        // so the implement is just a copy past from that, and is not as generic as it should be.
-
-        assert_eq!(self.dimension, other.dimension);
-
-        lib::rs_dbm_minus_dbm(&self.matrix[..], &other.matrix[..], self.dimension)
-    }
-
-    pub fn extrapolate_max_bounds(&mut self, max_bounds: &MaxBounds) {
-        lib::rs_dbm_extrapolateMaxBounds(
-            &mut self.matrix.as_mut_slice(),
-            self.dimension,
-            max_bounds.clock_bounds.as_ptr(),
-        );
-    }
-
-    pub fn canDelayIndefinitely(&self) -> bool {
-        for i in 1..self.dimension {
-            if !self.is_constraint_infinity(i, 0) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    pub fn close(&mut self) {
-        lib::rs_dbm_close(&mut self.matrix, self.dimension);
+        let index: usize = (var_index_i * self.dimension + var_index_j)
+            .try_into()
+            .unwrap();
+        let raw = self.matrix[index];
+        raw == lib::DBM_INF
     }
 }
 
@@ -282,85 +67,526 @@ impl Display for Zone {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Federation {
-    zones: Vec<Zone>,
-    dimension: u32,
+    pub(in crate::DBMLib) raw: lib::FedRaw,
 }
 
 impl Federation {
-    pub fn universe(dimension: u32) -> Self {
-        Federation::new(vec![Zone::init(dimension)], dimension)
+    /// Get a new federation of a given dimension with the constraints that all clocks are equal to 0
+    pub fn zero(dimension: u32) -> Self {
+        let mut fed = lib::rs_fed_new(dimension);
+        lib::rs_fed_zero(&mut fed);
+        fed
     }
 
-    pub fn new(zones: Vec<Zone>, dimension: u32) -> Self {
-        // TODO check zone's dimension
-        Self { zones, dimension }
+    /// Get a new empty federation of a given dimension, representing no possible clock valuations
+    pub fn empty(dimension: u32) -> Self {
+        lib::rs_fed_new(dimension)
     }
 
-    fn as_raw(&self) -> Vec<*const i32> {
-        self.zones.iter().map(|zone| zone.matrix.as_ptr()).collect()
+    /// Get a new federation of a given dimension without any constraints, representing all possible clock valuation
+    pub fn full(dimension: u32) -> Self {
+        let mut fed = lib::rs_fed_new(dimension);
+        lib::rs_fed_init(&mut fed);
+        fed
     }
 
-    pub fn minus_fed(&self, other: &Self) -> Federation {
-        assert_eq!(self.dimension, other.dimension);
+    // Get a new federation of a given dimension with the constraints that all clocks are equal (zero(); up())
+    pub fn init(dimension: u32) -> Self {
+        let mut fed = Federation::zero(dimension);
+        fed.up();
+        fed
+    }
 
-        lib::rs_dbm_fed_minus_fed(&self.as_raw(), &other.as_raw(), self.dimension)
+    /// Get a federation containing the subtraction of the federations
+    ///
+    /// `self` is unchanged, for change of `self` see `subtract`
+    /// Can be called with operator `-` consuming both operands
+    ///
+    /// [`subtract`]: Federation::subtract
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let fed1 = Federation::zero();
+    /// let fed2 = Federation::init();
+    ///
+    /// let fed3 = fed1.subtraction(&fed2);
+    /// // fed1 and fed2 remain unchanged
+    ///
+    /// assert_eq!(Federation::empty(), fed3);
+    /// ```
+    #[must_use]
+    pub fn subtraction(&self, other: &Self) -> Federation {
+        let mut result = self.clone();
+        lib::rs_fed_subtract(&mut result, &other);
+        result
+    }
+
+    /// Update the federation to contain the subtraction of the federations
+    ///
+    /// `self` is changed, for unchanged `self` see  [`subtraction`].
+    /// Can be called with operator `-=` consuming the other federation
+    ///
+    /// [`subtraction`]: Federation::subtraction
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let mut fed1 = Federation::zero();
+    /// let fed2 = Federation::init();
+    ///
+    /// fed1.subtract(&fed2);
+    /// // fed1 is changed and fed2 remains unchanged
+    ///
+    /// assert_eq!(Federation::empty(), fed1);
+    /// ```
+    pub fn subtract(&mut self, other: &Self) {
+        lib::rs_fed_subtract(self, &other);
     }
 
     pub fn is_subset_eq(&self, other: &Self) -> bool {
-        self.minus_fed(other).is_empty()
+        lib::rs_fed_subset_eq(self, other)
     }
 
+    /// Get a federation containing the intersection of the federations
+    ///
+    /// `self` is unchanged, for change of `self` see `intersect`
+    /// Can be called with operator `-` consuming both operands
+    ///
+    /// [`intersect`]: Federation::intersect
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let fed1 = Federation::init();
+    /// let fed2 = Federation::zero();
+    ///
+    /// let fed3 = fed1.intersection(&fed2);
+    /// // fed1 and fed2 remain unchanged
+    ///
+    /// assert_eq!(Federation::zero(), fed3);
+    /// ```
+    #[must_use]
     pub fn intersection(&self, other: &Self) -> Federation {
-        assert_eq!(self.dimension, other.dimension);
-
-        self.minus_fed(&self.minus_fed(other))
+        let mut result = self.clone();
+        lib::rs_fed_intersect(&mut result, &other);
+        result
     }
 
-    pub fn intersect_zone(&self, zone: &Zone) -> Federation {
-        let dim = zone.dimension;
-        self.intersection(&Federation::new(vec![zone.clone()], dim))
+    /// Update the federation to contain the intersection of the federations
+    ///
+    /// `self` is changed, for unchanged `self` see  [`intersection`].
+    /// Can be called with operator `&=` consuming the other federation
+    ///
+    /// [`intersection`]: Federation::intersection
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let mut fed1 = Federation::init();
+    /// let fed2 = Federation::zero();
+    ///
+    /// fed1.intersect(&fed2);
+    /// // fed1 is changed and fed2 remains unchanged
+    ///
+    /// assert_eq!(Federation::zero(), fed1);
+    /// ```
+    pub fn intersect(&mut self, other: &Self) {
+        //assert_eq!(self.dimension, other.dimension);
+        lib::rs_fed_intersect(self, other);
     }
 
-    pub fn inverse(&self, dimensions: u32) -> Federation {
-        Federation::universe(dimensions).minus_fed(self)
+    /// Returns whether the intersection of the federations is non-empty
+    pub fn intersects(&self, other: &Self) -> bool {
+        lib::rs_fed_intersects(self, other)
     }
 
-    pub fn add(&mut self, zone: Zone) {
-        self.zones.push(zone);
+    /// Update the federation to the temporal predecessor of this federation avoiding 'bad'
+    pub fn predt(&mut self, bad: &Self) {
+        lib::rs_fed_predt(self, bad);
     }
 
+    /// Update the federation to contain its inverse
+    ///
+    /// `self` is changed, for unchanged `self` see  [`inverse`].
+    /// Can be called with operator `!` consuming self
+    ///
+    /// [`inverse`]: Federation::inverse
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let mut fed1 = Federation::init();
+    /// fed1.invert();
+    /// fed1 is changed to contain its inverse
+    ///
+    /// assert_eq!(Federation::empty(), fed1);
+    /// ```
+    pub fn invert(&mut self) {
+        lib::rs_fed_invert(self)
+    }
+
+    /// Get a federation containing the inverse of the federation
+    ///
+    /// `self` is unchanged, for change of `self` see [`invert`].
+    /// Can be called with operator `!` consuming self
+    ///
+    /// [`invert`]: Federation::invert
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let fed1 = Federation::init();
+    /// let fed2 = fed1.inverse();
+    /// fed1 remains unchanged
+    ///
+    /// assert_eq!(Federation::empty(), fed2);
+    /// ```
+    #[must_use]
+    pub fn inverse(&self) -> Federation {
+        let mut result = self.clone();
+        lib::rs_fed_invert(&mut result);
+        result
+    }
+
+    /// Updates the federation to contain the (non-convex) union of the federations
+    ///
+    /// `self` is changed, for unchanged `self` see `with_added_fed`
+    /// Can be called with operator `+=` consuming the other federation
+    ///
+    /// [`with_added_fed`]: Federation::with_added_fed
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let mut fed1 = Federation::zero();
+    /// let fed2 = !Federation::zero();
+    ///
+    /// fed1.add_fed(&fed2);
+    /// // fed1 is changed and fed2 remains unchanged
+    ///
+    /// assert_eq!(Federation::init(), fed1);
+    /// ```
+    pub fn add_fed(&mut self, fed: &Federation) {
+        lib::rs_fed_add_fed(self, fed);
+    }
+
+    /// Get a federation containing the (non-convex) union of the federations
+    ///
+    /// `self` is unchanged, for change of `self` see `add_fed`
+    /// Can be called with operator `+` consuming both operands
+    ///
+    /// [`add_fed`]: Federation::add_fed
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let fed1 = Federation::zero();
+    /// let fed2 = !Federation::zero();
+    ///
+    /// let fed3 = fed1.with_added_fed(&fed2);
+    /// // fed1 and fed2 remain unchanged
+    /// assert_eq!(Federation::init(), fed3);
+    /// ```
+    #[must_use]
+    pub fn with_added_fed(&self, fed: &Federation) -> Federation {
+        let mut result = self.clone();
+        lib::rs_fed_add_fed(&mut result, fed);
+        result
+    }
+
+    /// Checks whether the federation is empty
+    ///
+    /// Return `true` if all contained DBMs are empty, or there are no DBMs
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// assert!(Federation::empty().is_empty());
+    /// assert!(!Federation::full().is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
-        self.zones.is_empty()
+        lib::rs_fed_is_empty(self)
     }
 
-    pub fn iter_zones(&self) -> impl Iterator<Item = &Zone> + '_ {
-        self.zones.iter()
+    /// Checks whether the federation is full / unrestrained
+    ///
+    /// Return `true` if all the federation is unrestrained
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// assert!(Federation::full().is_full());
+    /// assert!((!Federation::empty()).is_full());
+    /// ```
+    pub fn is_full(&self) -> bool {
+        self.inverse().is_empty()
     }
 
+    /*
+    fn iter_zones(&self) -> impl Iterator<Item = Zone> + '_ {
+        self.get_zones().into_iter()
+    }*/
+
+    pub fn get_zones(&self) -> Vec<Zone> {
+        let zones = lib::rs_fed_get_zones(self);
+        assert_eq!(zones.len(), self.num_zones());
+        zones
+    }
+
+    /// Get the number of zones in the federation
     pub fn num_zones(&self) -> usize {
-        self.zones.len()
+        lib::rs_fed_size(self)
     }
 
-    pub fn iter_mut_zones(&mut self) -> impl Iterator<Item = &mut Zone> + '_ {
-        self.zones.iter_mut()
+    /// Get the dimension of the federation
+    pub fn get_dimensions(&self) -> u32 {
+        lib::rs_fed_dimensions(self)
     }
 
+    pub fn reduce(&mut self, expensive: bool) {
+        lib::rs_fed_reduce(self, expensive);
+    }
+
+    /// Get the constraints represented by the federation as a boolean expression
     pub fn as_boolexpression(
         &self,
-        clocks: &HashMap<String, u32>,
-    ) -> Result<Option<BoolExpression>> {
-        if self.num_zones() > 1 {
-            bail!("Implementation cannot handle disjunct invariants")
+        clocks: Option<&HashMap<String, u32>>,
+    ) -> Option<BoolExpression> {
+        let mut clone = self.clone();
+        clone.reduce(true);
+        let zones = clone.get_zones();
+        let mut guard = BoolExpression::Bool(false);
+
+        for zone in zones {
+            let zone_guard = build_guard_from_zone(&zone, clocks);
+            let g = match zone_guard {
+                Some(g) => g,
+                None => BoolExpression::Bool(true),
+            };
+            guard = BoolExpression::OrOp(Box::new(guard), Box::new(g));
         }
+        guard.simplify();
+        Some(guard)
+    }
 
-        let mut guard = Some(BoolExpression::Bool(false));
+    /// Check whether the federation is valid (non-empty)
+    pub fn is_valid(&self) -> bool {
+        lib::rs_fed_is_valid(self)
+    }
 
-        if let Some(zone) = self.iter_zones().next() {
-            guard = build_guard_from_zone(&zone, &clocks);
+    /// Perform the 'up' operation on all DBMs in the federation
+    pub fn up(&mut self) {
+        lib::rs_fed_up(self);
+    }
+
+    /// Perform the 'down' operation on all DBMs in the federation
+    pub fn down(&mut self) {
+        lib::rs_fed_down(self);
+    }
+
+    /// Extrapolate max bounds on all DBMs in the federation
+    pub fn extrapolate_max_bounds(&mut self, max_bounds: &MaxBounds) {
+        lib::rs_fed_extrapolate_max_bounds(self, max_bounds);
+    }
+
+    /// Check whether the any DBM in the federation can delay indefinitely
+    pub fn can_delay_indefinitely(&self) -> bool {
+        lib::rs_fed_can_delay_indef(self)
+    }
+
+    /// Sets the clock (clocks[clock_index]) to an integer value in all DBMs in the federation
+    pub fn update(&mut self, clock_index: u32, value: i32) {
+        lib::rs_fed_update_clock(self, clock_index, value);
+    }
+
+    /// Removes the bounds on the clock (clocks[clock_index]) in all DBMs in the federation
+    pub fn free_clock(&mut self, clock_index: u32) {
+        lib::rs_fed_free_clock(self, clock_index);
+    }
+
+    pub fn constrain(
+        &mut self,
+        var_index_i: u32,
+        var_index_j: u32,
+        bound: i32,
+        isStrict: bool,
+    ) -> bool {
+        lib::rs_fed_constrain(self, var_index_i, var_index_j, bound, isStrict)
+    }
+
+    pub fn add_lte_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+        lib::rs_fed_add_LTE_constraint(self, var_index_i, var_index_j, bound)
+    }
+
+    pub fn add_lt_constraint(&mut self, var_index_i: u32, var_index_j: u32, bound: i32) -> bool {
+        lib::rs_fed_add_LT_constraint(self, var_index_i, var_index_j, bound)
+    }
+
+    pub fn add_eq_constraint(&mut self, var_index_i: u32, var_index_j: u32) -> bool {
+        lib::rs_fed_add_EQ_constraint(self, var_index_i, var_index_j)
+    }
+
+    pub fn add_eq_const_constraint(&mut self, var_index: u32, bound: i32) -> bool {
+        lib::rs_fed_add_EQ_const_constraint(self, var_index, bound)
+    }
+
+    pub fn constrain_var_to_val(&mut self, var_index: u32, value: i32) -> bool {
+        unimplemented!()
+    }
+}
+
+impl ops::Add for Federation {
+    type Output = Self;
+
+    /// Get a federation containing the (non-convex) union of the federations
+    fn add(mut self, other: Self) -> Self {
+        self.add_fed(&other);
+        self
+    }
+}
+
+impl ops::Add for &Federation {
+    type Output = Federation;
+
+    /// Get a federation containing the (non-convex) union of the federations
+    fn add(self, other: &Federation) -> Federation {
+        self.with_added_fed(other)
+    }
+}
+
+impl ops::Sub for Federation {
+    type Output = Self;
+
+    /// Get a federation containing the subtraction of the federations
+    fn sub(mut self, other: Self) -> Self {
+        self.subtract(&other);
+        self
+    }
+}
+
+impl ops::Sub for &Federation {
+    type Output = Federation;
+
+    /// Get a federation containing the subtraction of the federations
+    fn sub(self, other: &Federation) -> Federation {
+        self.subtraction(other)
+    }
+}
+
+impl ops::BitAnd for Federation {
+    type Output = Self;
+
+    /// Get a federation containing the intersection of the federations
+    fn bitand(mut self, other: Self) -> Self {
+        self.intersect(&other);
+        self
+    }
+}
+
+impl ops::BitAnd for &Federation {
+    type Output = Federation;
+
+    /// Get a federation containing the intersection of the federations
+    fn bitand(self, other: &Federation) -> Federation {
+        self.intersection(other)
+    }
+}
+
+impl ops::AddAssign for Federation {
+    fn add_assign(&mut self, other: Federation) {
+        self.add_fed(&other);
+    }
+}
+
+impl ops::SubAssign for Federation {
+    fn sub_assign(&mut self, other: Federation) {
+        self.subtract(&other);
+    }
+}
+
+impl ops::BitAndAssign for Federation {
+    fn bitand_assign(&mut self, other: Self) {
+        self.intersect(&other);
+    }
+}
+
+impl PartialOrd for Federation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match lib::rs_fed_relation(self, other) {
+            Relation::Superset => Some(Ordering::Greater),
+            Relation::Subset => Some(Ordering::Less),
+            Relation::Equal => Some(Ordering::Equal),
+            Relation::Different => None,
         }
+    }
+}
 
-        Ok(guard)
+impl ops::Not for Federation {
+    type Output = Self;
+
+    /// Get a federation containing the inverse of the federation
+    fn not(mut self) -> Self {
+        self.invert();
+        self
+    }
+}
+
+impl PartialEq for Federation {
+    fn eq(&self, other: &Self) -> bool {
+        lib::rs_fed_equals(self, other)
+    }
+}
+
+impl Drop for Federation {
+    fn drop(&mut self) {
+        unsafe {
+            lib::rs_fed_destruct(self);
+        }
+    }
+}
+
+impl Clone for Federation {
+    fn clone(&self) -> Federation {
+        lib::rs_fed_copy(self)
+    }
+}
+
+impl Display for Federation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        //return Ok(());
+
+        let fed = self
+            .as_boolexpression(None)
+            .unwrap_or(BoolExpression::Bool(true));
+        write!(f, "{{{}}}", fed)?;
+        /*      for zone in self.get_zones() {
+                    write!(f, "\n{}", zone)?;
+                }
+                write!(f, "}}")?;
+        */
+        Ok(())
     }
 }
