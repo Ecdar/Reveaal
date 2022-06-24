@@ -74,7 +74,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 
         comp.create_edge_io_split();
 
-        self.component_loader.save_component(comp.clone());
+        self.component_loader.save_component(comp.clone())?;
 
         Ok(QueryResult::GetComponent(comp))
     }

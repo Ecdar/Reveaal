@@ -69,7 +69,7 @@ fn save_components(
             .map(|channel| channel.name)
             .collect();
         input_enabler::make_input_enabled(&mut component, &inputs).as_grpc_result()?;
-        component_container.borrow_mut().save_component(component);
+        component_container.borrow_mut().save_component(component)?;
     }
     Ok(())
 }

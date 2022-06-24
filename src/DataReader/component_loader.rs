@@ -1,17 +1,17 @@
 use crate::component::Component;
-use crate::context;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
+use crate::{bail, context};
 use anyhow::Result;
 use std::collections::HashMap;
 
 pub trait ComponentLoader {
     fn get_component(&mut self, component_name: &str) -> Result<&Component>;
-    fn save_component(&mut self, component: Component);
+    fn save_component(&mut self, component: Component) -> Result<()>;
     fn unload_component(&mut self, component_name: &str);
 }
 
@@ -28,10 +28,11 @@ impl ComponentLoader for ComponentContainer {
             component_name
         )
     }
-    fn save_component(&mut self, component: Component) {
+    fn save_component(&mut self, component: Component) -> Result<()> {
         self.unload_component(&component.name);
         self.loaded_components
             .insert(component.get_name().clone(), component);
+        Ok(())
     }
     fn unload_component(&mut self, component_name: &str) {
         self.loaded_components.remove(component_name);
@@ -65,11 +66,12 @@ impl ComponentLoader for JsonProjectLoader {
         )
     }
 
-    fn save_component(&mut self, component: Component) {
+    fn save_component(&mut self, component: Component) -> Result<()> {
         self.unload_component(&component.name);
-        component_to_json_file(&self.project_path, &component);
+        component_to_json_file(&self.project_path, &component)?;
         self.loaded_components
             .insert(component.get_name().clone(), component);
+        Ok(())
     }
 
     fn unload_component(&mut self, component_name: &str) {
@@ -146,12 +148,12 @@ impl ComponentLoader for XmlProjectLoader {
         )
     }
 
-    fn save_component(&mut self, _: Component) {
-        panic!("Saving components is not supported for XML projects")
+    fn save_component(&mut self, _: Component) -> Result<()> {
+        bail!("Saving components is not supported for XML projects")
     }
 
-    fn unload_component(&mut self, _: &str) {
-        panic!("unloading and loading individual components isnt permitted in XML")
+    fn unload_component(&mut self, comp_name: &str) {
+        self.loaded_components.remove(comp_name);
     }
 }
 
