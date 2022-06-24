@@ -544,6 +544,10 @@ impl Location {
     pub fn get_urgency(&self) -> &String {
         &self.urgency
     }
+
+    pub fn is_inconsistent(&self) -> bool {
+        self.location_type == LocationType::Inconsistent
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]

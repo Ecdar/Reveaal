@@ -23,19 +23,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: u32) -> Result<TransitionSyste
         panic!("Trying to prune transitions system which is not least consistent");
     }
 
-    let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
-    input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
-
-    let sys_decl = SystemDeclarations {
-        name: "".to_string(),
-        declarations: SystemSpecification {
-            components: vec![comp.get_name().clone()],
-            input_actions: input_map,
-            output_actions: HashMap::new(),
-        },
-    };
-
-    Ok(prune(&comp, dim, inputs, outputs, &sys_decl)?)
+    Ok(prune(&comp, dim, inputs, outputs)?)
 }
 
 struct PruneContext {
@@ -101,15 +89,14 @@ pub fn prune(
     dim: u32,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    decl: &SystemDeclarations,
 ) -> Result<Box<CompiledComponent>> {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
     let inconsistent_locs: Vec<_> = new_comp
         .locations
         .iter()
-        .filter(|l| is_immediately_inconsistent(l, comp, dim))
-        .map(|l| l.id.clone())
+        .filter(|loc| loc.is_inconsistent())
+        .map(|loc| loc.id.clone())
         .collect();
     let inconsistent_parts: HashMap<String, Federation> = inconsistent_locs
         .iter()
@@ -516,13 +503,4 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) -> Result<()> {
         process_source_location(edge.get_source_location(), &new_incon_part, context);
     }
     Ok(())
-}
-
-fn is_immediately_inconsistent(location: &Location, comp: &Component, dimensions: u32) -> bool {
-    //MUST: check if this works, if so refactor
-
-    // let loc = LocationTuple::simple(location, &comp.declarations, dimensions)?;
-    // return Ok(loc.is_inconsistent());
-
-    location.location_type == LocationType::Inconsistent
 }
