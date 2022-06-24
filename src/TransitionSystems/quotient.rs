@@ -130,6 +130,10 @@ impl Quotient {
         });
         Ok(ts)
     }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Quotient
+    }
 }
 
 impl TransitionSystem for Quotient {
@@ -418,10 +422,6 @@ impl TransitionSystem for Quotient {
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.T, &self.S)
-    }
-
-    fn get_composition_type(&self) -> CompositionType {
-        CompositionType::Quotient
     }
 
     fn get_dim(&self) -> u32 {

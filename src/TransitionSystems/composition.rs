@@ -67,6 +67,10 @@ impl Composition {
             dim,
         }))
     }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Composition
+    }
 }
 
 impl TransitionSystem for Composition {
@@ -130,9 +134,5 @@ impl TransitionSystem for Composition {
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
-    }
-
-    fn get_composition_type(&self) -> CompositionType {
-        CompositionType::Composition
     }
 }

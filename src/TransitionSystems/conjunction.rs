@@ -58,6 +58,10 @@ impl Conjunction {
         }
         Ok(ts)
     }
+
+    fn get_composition_type(&self) -> CompositionType {
+        CompositionType::Conjunction
+    }
 }
 
 impl TransitionSystem for Conjunction {
@@ -100,9 +104,5 @@ impl TransitionSystem for Conjunction {
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
-    }
-
-    fn get_composition_type(&self) -> CompositionType {
-        CompositionType::Conjunction
     }
 }

@@ -102,10 +102,6 @@ impl CompiledComponent {
 }
 
 impl TransitionSystem for CompiledComponent {
-    fn get_composition_type(&self) -> CompositionType {
-        panic!("Components do not have a composition type")
-    }
-
     fn get_decls(&self) -> Vec<&Declarations> {
         vec![&self.comp_info.declarations]
     }
