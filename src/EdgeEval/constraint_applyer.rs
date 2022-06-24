@@ -1,7 +1,7 @@
-use crate::bail;
 use crate::DBMLib::dbm::{Federation, Zone};
 use crate::ModelObjects::component;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::{bail, to_result};
 use anyhow::{format_err, Result};
 use std::collections::HashMap;
 
@@ -173,14 +173,7 @@ fn get_indices(
         None
     };
 
-    result.ok_or_else(|| {
-        format_err!(
-            "Failed to get index from left: {:?} right: {:?} decls: {:?}",
-            left,
-            right,
-            d
-        )
-    })
+    to_result!(result)
 }
 
 fn try_form_index(i: Option<u32>, j: Option<u32>, c: Option<i32>) -> Option<(u32, u32, i32)> {

@@ -1,12 +1,13 @@
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::{build_guard_from_zone, BoolExpression};
+use anyhow::Result;
 use colored::Colorize;
 use std::cmp::{Ordering, PartialOrd};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
-use std::{any, ops};
+use std::ops;
 #[derive(Clone, Debug, std::cmp::PartialEq)]
 pub struct Zone {
     pub(crate) dimension: u32,
@@ -579,6 +580,7 @@ impl Display for Federation {
         let fed = self
             .as_boolexpression(None)
             .unwrap_or(BoolExpression::Bool(true));
+
         write!(f, "{{{}}}", fed)?;
         /*      for zone in self.get_zones() {
                     write!(f, "\n{}", zone)?;

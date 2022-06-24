@@ -1,8 +1,13 @@
 use anyhow::{Context, Result};
+use core::fmt::Display;
 
 #[doc(hidden)]
-pub fn _add_info_to_result<T, E, R: Context<T, E>>(res: R, info: String) -> Result<T> {
-    res.with_context(|| info)
+pub fn _add_info_to_result<T, E, R: Context<T, E>, C, F>(res: R, info: F) -> Result<T>
+where
+    C: Display + Send + Sync + 'static,
+    F: FnOnce() -> C,
+{
+    res.with_context(info)
 }
 
 #[macro_export]
@@ -16,7 +21,7 @@ macro_rules! location {
 #[macro_export]
 macro_rules! context {
     ($result:expr) => { context!($result, "Unexpected error") };
-    ($result:expr, $($args:expr ),*) => { $crate::Macros::errors::_add_info_to_result($result, format!("{}\n\t at {}", format!( $( $args ),* ), crate::location!())) };
+    ($result:expr, $($args:expr ),*) => { $crate::Macros::errors::_add_info_to_result($result, || format!("{}\n\t at {}", format!( $( $args ),* ), crate::location!())) };
 }
 
 /// Construct an anyhow::Error with file and line number information
@@ -29,9 +34,7 @@ macro_rules! error {
 #[macro_export]
 macro_rules! to_result {
     ($option:expr) => {
-        $option.ok_or($crate::error!(
-            "Optional was expected to be Some but was None"
-        ))
+        $option.ok_or_else(|| $crate::error!("Optional was expected to be Some but was None"))
     };
 }
 

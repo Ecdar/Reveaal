@@ -134,10 +134,10 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
             if cond {
                 debug_print!("Created state pairs for output {}", output);
             } else {
-                println!("Refinement check failed for Output {:?}", output);
-                println!("Transitions1:");
+                debug_print!("Refinement check failed for Output {:?}", output);
+                debug_print!("Transitions1:");
                 for t in &output_transition1 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
                 println!("Transitions2:");
                 for t in &output_transition2 {
@@ -175,14 +175,14 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
             if cond {
                 debug_print!("Created state pairs for input {}", input);
             } else {
-                println!("Refinement check failed for Input {:?}", input);
-                println!("Transitions1:");
+                debug_print!("Refinement check failed for Input {:?}", input);
+                debug_print!("Transitions1:");
                 for t in &input_transitions1 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
-                println!("Transitions2:");
+                debug_print!("Transitions2:");
                 for t in &input_transitions2 {
-                    println!("{}", t);
+                    debug_print!("{}", t);
                 }
                 println!("Current pair: {}", curr_pair);
                 println!("Relation:");
