@@ -1,3 +1,4 @@
+use crate::bail;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{
@@ -16,7 +17,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: u32) -> Result<TransitionSyste
     let comp = combine_components(&ts)?;
 
     if !ts.precheck_sys_rep()? {
-        panic!("Trying to prune transitions system which is not least consistent");
+        bail!("Trying to prune transitions system which is not least consistent");
     }
 
     Ok(prune(&comp, dim, inputs, outputs)?)

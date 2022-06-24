@@ -326,7 +326,7 @@ impl Component {
                 }
                 add_state_to_pl(&mut passed_list, full_state);
             } else {
-                panic!("Unable to pop state from waiting list")
+                bail!("Unable to pop state from waiting list")
             }
         }
 
