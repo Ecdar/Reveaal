@@ -4,7 +4,6 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
-use anyhow::bail;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;

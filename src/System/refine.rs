@@ -1,4 +1,3 @@
-use crate::bail;
 use crate::debug_print;
 use crate::DBMLib::dbm::Federation;
 use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};

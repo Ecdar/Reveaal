@@ -1,8 +1,6 @@
-use crate::bail;
 use crate::DBMLib::lib;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::{build_guard_from_zone, BoolExpression};
-use anyhow::Result;
 use colored::Colorize;
 use std::cmp::{Ordering, PartialOrd};
 use std::collections::HashMap;

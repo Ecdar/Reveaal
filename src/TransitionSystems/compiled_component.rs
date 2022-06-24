@@ -1,5 +1,6 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 
+use crate::bail;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component::{

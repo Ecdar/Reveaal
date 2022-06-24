@@ -1,4 +1,3 @@
-use crate::to_result;
 use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer::{apply_constraint, apply_constraints_to_state};
 use crate::ModelObjects::component::{
@@ -10,7 +9,7 @@ use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecifi
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::{CompiledComponent, LocationTuple};
 use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
