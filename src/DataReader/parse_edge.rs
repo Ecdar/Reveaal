@@ -7,7 +7,9 @@ use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::panic::resume_unwind;
+use crate::component::Component;
 use crate::ModelObjects::representations::BoolExpression::Bool;
+use crate::ModelObjects::system_declarations::SystemDeclarations;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -269,23 +271,12 @@ fn build_sub_add_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression 
             let right_side_pair = inner_pair.next().unwrap();
 
             let lside = build_mult_div_mod_from_pair(left_side_pair);
-            let rside = build_mult_div_mod_from_pair(right_side_pair);
+            let rside = build_sub_add_from_pair(right_side_pair);
             match operator.as_str() {
                 "-" => BoolExpression::Difference(Box::new(lside),
                                                   Box::new(rside)),
-                "+" =>BoolExpression::Difference(Box::new(lside),
-                                                 Box::new(-rside)),
-                    /*{
-                    if let BoolExpression::Int(x) = rside {
-                        BoolExpression::Difference(Box::new(lside),
-                                                   Box::new(BoolExpression::Int(-x)))
-                    } else if let BoolExpression::Clock(y) = rside {
-                        BoolExpression::Difference(Box::new(lside),
-                                                   Box::new(BoolExpression::Int(y as i32 * -1)))
-                    } else {
-                        panic!("Cannot add")
-                    };
-                }, */
+                "+" => BoolExpression::Addition(Box::new(lside),
+                                                  Box::new(rside)),
                 unknown_operator => panic!(
                     "Got unknown boolean operator: {}. Only able to match -,+",
                     unknown_operator
@@ -306,20 +297,13 @@ fn build_mult_div_mod_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpres
 
             let lside = build_expression_from_pair(left_side_pair);
             let rside = build_mult_div_mod_from_pair(right_side_pair);
-            let lhs = match lside {
-                BoolExpression::Int(a) => a,
-                BoolExpression::Clock(b) => b as i32,
-                unknown => panic!("L '{:?}' is not a usable number", unknown),
-            };
-            let rhs = match rside {
-                BoolExpression::Int(a) => a,
-                BoolExpression::Clock(b) => b as i32,
-                unknown => panic!("R '{:?}' is not a usable number", unknown),
-            };
             match operator.as_str() {
-                "*" => BoolExpression::Int(lhs * rhs),
-                "/" => BoolExpression::Int((lhs / rhs) as i32),
-                "%" => BoolExpression::Int(lhs % rhs),
+                "*" => BoolExpression::Multiplication(Box::new(lside),
+                                                      Box::new(rside)),
+                "/" => BoolExpression::Division(Box::new(lside),
+                                           Box::new(rside)),
+                "%" => BoolExpression::Modulo(Box::new(lside),
+                                           Box::new(rside)),
                 unknown_operator => panic!(
                     "Got unknown boolean operator: {}. Only able to match /,*,%",
                     unknown_operator

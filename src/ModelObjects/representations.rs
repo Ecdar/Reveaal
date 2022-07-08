@@ -20,6 +20,10 @@ pub enum BoolExpression {
     EQ(Box<BoolExpression>, Box<BoolExpression>),
     Parentheses(Box<BoolExpression>),
     Difference(Box<BoolExpression>, Box<BoolExpression>),
+    Addition(Box<BoolExpression>, Box<BoolExpression>),
+    Multiplication(Box<BoolExpression>, Box<BoolExpression>),
+    Division(Box<BoolExpression>, Box<BoolExpression>),
+    Modulo(Box<BoolExpression>, Box<BoolExpression>),
     Clock(u32),
     VarName(String),
     Bool(bool),
@@ -65,6 +69,23 @@ impl BoolExpression {
                 Box::new(left.swap_clock_names(from_vars, to_vars)),
                 Box::new(right.swap_clock_names(from_vars, to_vars)),
             ),
+            BoolExpression::Addition(left, right) => BoolExpression::Addition(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::Multiplication(left, right) => BoolExpression::Multiplication(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::Division(left, right) => BoolExpression::Division(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            BoolExpression::Modulo(left, right) => BoolExpression::Modulo(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+
 
             BoolExpression::Parentheses(body) => {
                 BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
@@ -115,6 +136,18 @@ impl BoolExpression {
             BoolExpression::Difference(left, right) => {
                 [left.encode_expr(), String::from("-"), right.encode_expr()].concat()
             }
+            BoolExpression::Addition(left, right) => {
+                [left.encode_expr(), String::from("+"), right.encode_expr()].concat()
+            }
+            BoolExpression::Multiplication(left, right) =>  {
+                [left.encode_expr(), String::from("*"), right.encode_expr()].concat()
+            }
+            BoolExpression::Division(left, right) =>  {
+                [left.encode_expr(), String::from("/"), right.encode_expr()].concat()
+            }
+            BoolExpression::Modulo(left, right) =>  {
+                [left.encode_expr(), String::from("%"), right.encode_expr()].concat()
+            }
             BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
             BoolExpression::Bool(boolean) => {
@@ -163,6 +196,22 @@ impl BoolExpression {
                 right.swap_var_name(from_name, to_name);
             }
             BoolExpression::Difference(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Addition(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Multiplication(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Division(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Modulo(left, right) => {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }
@@ -366,14 +415,9 @@ impl ops::BitOr for BoolExpression {
     }
 }
 
-impl ops::Neg for BoolExpression {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        match self {
-            BoolExpression::Int(a) => BoolExpression::Int(-a),
-            BoolExpression::Clock(b) => BoolExpression::Int(-(b as i32)),
-            _ => panic!("Fail"),
-        }
+impl PartialEq<Box<BoolExpression>> for &BoolExpression {
+    fn eq(&self, other: &Box<BoolExpression>) -> bool {
+        self == other
     }
 }
 
@@ -482,6 +526,18 @@ impl Display for BoolExpression {
             }
             BoolExpression::Difference(left, right) => {
                 write!(f, "{}-{}", left, right)?;
+            }
+            BoolExpression::Addition(left, right) => {
+                write!(f, "{}+{}", left, right)?;
+            }
+            BoolExpression::Multiplication(left, right) => {
+                write!(f, "{}*{}", left, right)?;
+            }
+            BoolExpression::Division(left, right) => {
+                write!(f, "{}/{}", left, right)?;
+            }
+            BoolExpression::Modulo(left, right) => {
+                write!(f, "{}%{}", left, right)?;
             }
         }
         Ok(())
