@@ -1,4 +1,3 @@
-//use core::panicking::panic;
 use crate::DBMLib::dbm::Zone;
 use colored::Colorize;
 use serde::Deserialize;
@@ -408,12 +407,6 @@ impl ops::BitOr for BoolExpression {
 
     fn bitor(self, other: Self) -> Self {
         BoolExpression::OrOp(Box::new(self), Box::new(other))
-    }
-}
-
-impl PartialEq<Box<BoolExpression>> for &BoolExpression {
-    fn eq(&self, other: &Box<BoolExpression>) -> bool {
-        self == other
     }
 }
 
