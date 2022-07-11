@@ -305,7 +305,8 @@ fn test_get_indices_int_int() {
 
 
 #[test]
-#[ignore]
+//#[ignore]
+#[should_panic]
 fn test_get_indices_big_expr() {
     let decl = Declarations {
         clocks: HashMap::new(),
@@ -321,8 +322,6 @@ fn test_get_indices_big_expr() {
                                 BoolExpression::BDif(BoolExpression::Int(3),
                                 BoolExpression::Int(2)))))))));
     let right = BoolExpression::Int(2);
-    //left.simplify();
-    //assert_eq!(left, BoolExpression::Int(-34));
     //Testing: left < right
     assert_eq!(get_indices(&left, &right, &decl), (6, 0, 20));
 }
@@ -338,11 +337,88 @@ fn test_get_indices_mix_expr() {
         Box::new(BoolExpression::Int(3)),
     ), BoolExpression::Int(10));
     let right = BoolExpression::Clock(10);
-    //left.simplify();
-    //assert_eq!(left, BoolExpression::Int(-34));
     //Testing: left < right
     assert_eq!(get_indices(&left, &right, &decl), (9, 10, 10));
 }
+
+/// Assumes that the constraint is of the form left <?= right
+fn get_indices(
+    left: &BoolExpression,
+    right: &BoolExpression,
+    d: &Declarations,
+) -> (u32, u32, i32) {
+    let clocks_left = clock_count(left, d);
+    let clocks_right = clock_count(right, d);
+
+    let constant = get_const(right, d) - get_const(left, d);
+
+    let result: Result<(u32, u32, i32), String> = if clocks_left + clocks_right > 2 {
+        Err(String::from("Too many clocks"))
+    } else if clocks_left + clocks_right == 2 {
+        if clocks_left == 1 {
+            let l = get_clock_val(left, d, None);
+            let r = get_clock_val(right, d, None);
+            if l.negated != r.negated {
+                Err(String::from("Same sign"))
+            } else if l.negated == true {
+                Ok((r.value, l.value, constant))
+            } else {
+                Ok((l.value, r.value, constant))
+            }
+        } else if clocks_left == 2 {
+            let v1 = get_clock_val(left, d, None);
+            let v2 = get_clock_val(left, d, find_clock(left, d));
+            if v1.negated == v2.negated {
+                Err(String::from("Same sign"))
+            } else if v1.negated == true {
+                Ok((v2.value, v1.value, constant))
+            } else {
+                Ok((v1.value, v2.value, constant))
+            }
+        } else {
+            let v1 = get_clock_val(right, d, None);
+            let v2 = get_clock_val(right, d, find_clock(right, d));
+            if v1.negated == v2.negated {
+                Err(String::from("Same sign"))
+            } else if v1.negated == true {
+                Ok((v1.value, v2.value, constant))
+            } else {
+                Ok((v2.value, v1.value, constant))
+            }
+        }
+    } else {
+        if clocks_left == 1 {
+            let v = get_clock_val(left, d, None);
+            if v.negated {
+                Ok((0, v.value, constant))
+            } else {
+                Ok((v.value, 0, constant))
+            }
+        } else if clocks_right == 1 {
+            let v = get_clock_val(right, d, None);
+            if !v.negated {
+                Ok((0, v.value, constant))
+            } else {
+                Ok((v.value, 0, constant))
+            }
+        } else {
+            let lhs = get_const(left, d);
+            if lhs.is_negative() {
+                Ok((0, (-lhs) as u32, get_const(right, d)))
+            } else {
+                Ok((lhs as u32, 0, get_const(right, d)))
+            }
+        }
+    };
+
+    if let Some(x) = result.as_ref().ok() {
+        *x
+    } else {
+        panic!("Failed due to error: \"{}\"", result.err().unwrap())
+    }
+}
+
+
 
 fn get_const(expr: &BoolExpression, decls: &Declarations) -> i32 {
     match expr {
@@ -484,7 +560,9 @@ fn find_clock<'a>(expression: &'a BoolExpression, decls: &'a Declarations) -> Op
     while let Some(e) = cur_expr {
         match e {
             BoolExpression::Clock(_) => {
-                if out.is_none() {
+                if parents.len() > 1 {
+                    panic!("Clock too low in expression tree");
+                } else if out.is_none() {
                     out = Some((e, None));
                 } else {
                     out.unwrap().0 = e;
@@ -495,7 +573,9 @@ fn find_clock<'a>(expression: &'a BoolExpression, decls: &'a Declarations) -> Op
             BoolExpression::VarName(name) => {
                 decls.get_clocks().get(name).and_then(|o| Some(*o));
                 if decls.get_clocks().contains_key(name) {
-                    if out.is_none() {
+                    if parents.len() > 1 {
+                        panic!("Clock too low in expression tree");
+                    } else if out.is_none() {
                         out = Some((e, Some(name)));
                     } else {
                         out.unwrap().1 = Some(name);
@@ -531,83 +611,6 @@ fn find_clock<'a>(expression: &'a BoolExpression, decls: &'a Declarations) -> Op
         };
     };
     out
-}
-
-/// Assumes that the constraint is of the form left <?= right
-fn get_indices(
-    left: &BoolExpression,
-    right: &BoolExpression,
-    d: &Declarations,
-) -> (u32, u32, i32) {
-    let clocks_left = clock_count(left, d);
-    let clocks_right = clock_count(right, d);
-
-    let constant = get_const(right, d) - get_const(left, d);
-
-    let result: Result<(u32, u32, i32), String> = if clocks_left + clocks_right > 2 {
-        Err(String::from("temp - too many clocks"))
-    } else if clocks_left + clocks_right == 2 {
-        if clocks_left == 1 {
-            let l = get_clock_val(left, d, None);
-            let r = get_clock_val(right, d, None);
-            if l.negated != r.negated {
-                Err(String::from("Same sign"))
-            } else if l.negated == true {
-                Ok((r.value, l.value, constant))
-            } else {
-                Ok((l.value, r.value, constant))
-            }
-        } else if clocks_left == 2 {
-            let v1 = get_clock_val(left, d, None);
-            let v2 = get_clock_val(left, d, find_clock(left, d));
-            if v1.negated == v2.negated {
-                Err(String::from("Same sign"))
-            } else if v1.negated == true {
-                Ok((v2.value, v1.value, constant))
-            } else {
-                Ok((v1.value, v2.value, constant))
-            }
-        } else {
-            let v1 = get_clock_val(right, d, None);
-            let v2 = get_clock_val(right, d, find_clock(right, d));
-            if v1.negated == v2.negated {
-                Err(String::from("Same sign"))
-            } else if v1.negated == true {
-                Ok((v1.value, v2.value, constant))
-            } else {
-                Ok((v2.value, v1.value, constant))
-            }
-        }
-    } else {
-        if clocks_left == 1 {
-            let v = get_clock_val(left, d, None);
-            if v.negated {
-                Ok((0, v.value, constant))
-            } else {
-                Ok((v.value, 0, constant))
-            }
-        } else if clocks_right == 1 {
-            let v = get_clock_val(right, d, None);
-            if !v.negated {
-                Ok((0, v.value, constant))
-            } else {
-                Ok((v.value, 0, constant))
-            }
-        } else {
-            let lhs = get_const(left, d);
-            if lhs.is_negative() {
-                Ok((0, (-lhs) as u32, get_const(right, d)))
-            } else {
-                Ok((lhs as u32, 0, get_const(right, d)))
-            }
-        }
-    };
-
-    if let Some(x) = result.as_ref().ok() {
-        *x
-    } else {
-        panic!("Failed due to error: \"{}\"", result.err().unwrap())
-    }
 }
 
 fn clock_count(expr: &BoolExpression, decls: &Declarations) -> i32 {
