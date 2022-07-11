@@ -1,20 +1,20 @@
 use crate::DBMLib::dbm::Federation;
-use crate::DataReader::parse_edge::{self, Update};
+use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
-    decode_sync_type, decode_update, encode_boolexpr, DummyComponent, DummyEdge, DummyLocation,
+    decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
 };
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
-use crate::ModelObjects::representations::build_guard_from_zone;
+
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::transition_system::{CompositionType, LocationID};
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::TransitionSystems::LocationTuple;
+use crate::TransitionSystems::{CompositionType, LocationID};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -306,7 +306,7 @@ impl Component {
                         //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
                         let full_new_zone = full_state.zone.clone();
                         let loc = self.get_location_by_name(&edge.target_location);
-                        let mut new_state = create_state(loc, &self.declarations, full_new_zone); //FullState { state: full_state.get_state(), zone:full_new_zone, dimensions:full_state.get_dimensions() };
+                        let mut new_state = create_state(loc, &self.declarations, full_new_zone);
                         if !constraint_applyer::apply_constraint(
                             edge.get_guard(),
                             &self.declarations,
@@ -585,8 +585,8 @@ impl Transition {
         }
     }
 
-    pub fn from(edges: (&Component, &Edge), dim: u32) -> Transition {
-        let (comp, edge) = edges;
+    pub fn from(comp: &Component, edge: &Edge, dim: u32) -> Transition {
+        //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
         let target_loc = comp.get_location_by_name(target_loc_name);
@@ -602,7 +602,7 @@ impl Transition {
         }
 
         Transition {
-            guard_zone: Transition::combine_edge_guards(&vec![edges], dim),
+            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim),
             target_locations,
             updates: compiled_updates,
         }
@@ -629,7 +629,6 @@ impl Transition {
         let mut out: Vec<Transition> = vec![];
         for l in left {
             for r in &*right {
-                //println!("Combining {l} and {r}");
                 let target_locations =
                     LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
@@ -748,7 +747,7 @@ impl fmt::Display for Transition {
                 .unwrap_or("no invariant".to_string()),
             self.updates
                 .iter()
-                .map(|u| format!("{}", u))
+                .map(|u| u.to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ))?;

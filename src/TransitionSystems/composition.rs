@@ -1,11 +1,11 @@
 use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component::{Component, Declarations, State, SyncType, Transition};
+use crate::ModelObjects::component::{Declarations, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::System::local_consistency;
+
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
-use super::transition_system::CompositionType;
+use super::CompositionType;
 
 #[derive(Clone)]
 pub struct Composition {
@@ -122,10 +122,6 @@ impl TransitionSystem for Composition {
             }
         }
         location_tuples
-    }
-
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        (&mut self.left, &mut self.right)
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {

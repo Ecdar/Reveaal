@@ -1,20 +1,15 @@
 use crate::DBMLib::dbm::Federation;
-use crate::DataReader::parse_edge;
-use crate::DataReader::parse_edge::Update;
+
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, DecoratedLocation, Location, LocationType, State, SyncType,
-    Transition,
-};
+use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::System::{local_consistency, pruning};
+
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
-use std::collections::HashMap;
 
-use super::transition_system::CompositionType;
+use super::CompositionType;
 
 #[derive(Clone)]
 pub struct Quotient {
@@ -133,14 +128,11 @@ impl Quotient {
             dim,
         });
         Ok(ts)
-
-        //Ok(pruning::prune_system(ts, dim))
     }
 }
 
 impl TransitionSystem for Quotient {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
-        //println!("Action: {}", action);
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
@@ -194,6 +186,7 @@ impl TransitionSystem for Quotient {
         if self.S.actions_contain(action) && self.T.actions_contain(action) {
             for t_transition in &t {
                 for s_transition in &s {
+                    // In the following comments we use ϕ to symbolize the guard of the transition
                     // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t)
                     let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
@@ -208,8 +201,6 @@ impl TransitionSystem for Quotient {
                     //Union of left and right updates
                     let mut updates = t_transition.updates.clone();
                     updates.append(&mut s_transition.updates.clone());
-
-                    //println!("Rule 1: {}", guard_zone);
 
                     transitions.push(Transition {
                         guard_zone,
@@ -226,8 +217,6 @@ impl TransitionSystem for Quotient {
             for s_transition in &s {
                 let guard_zone = get_allowed_fed(&loc_s, s_transition);
 
-                //println!("Rule 2: {}", guard_zone);
-
                 let target_locations = merge(&loc_t, &s_transition.target_locations);
                 let updates = s_transition.updates.clone();
                 transitions.push(Transition {
@@ -239,7 +228,6 @@ impl TransitionSystem for Quotient {
         }
 
         if self.S.get_output_actions().contains(action) {
-            // TODO: check with Martijn
             // new Rule 3 (includes rule 4 by de-morgan)
             let mut g_s = Federation::empty(self.dim);
 
@@ -248,13 +236,9 @@ impl TransitionSystem for Quotient {
                 g_s.add_fed(&allowed_fed);
             }
 
-            //println!("Rule 3: {}", g_s.inverse());
-
-            // Rule 5
+            // Rule 5 when Rule 3 applies
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
-
-            //println!("Rule 5: {}", inv_l_s.inverse());
 
             transitions.push(Transition {
                 guard_zone: (!inv_l_s) + (!g_s),
@@ -262,11 +246,9 @@ impl TransitionSystem for Quotient {
                 updates: reset_all.clone(),
             });
         } else {
-            // Rule 5
+            // Rule 5 when Rule 3 does not apply
             let mut inv_l_s = Federation::full(self.dim);
             loc_s.apply_invariants(&mut inv_l_s);
-
-            //println!("Rule 5: {}", inv_l_s.inverse());
 
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
@@ -288,6 +270,7 @@ impl TransitionSystem for Quotient {
             let inverse_g_t = !g_t;
 
             for s_transition in &s {
+                // In the following comments we use ϕ to symbolize the guard of the transition
                 // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
                 let mut guard_zone = get_allowed_fed(&loc_s, s_transition);
 
@@ -298,8 +281,6 @@ impl TransitionSystem for Quotient {
                     clock_index: self.new_clock_index,
                     value: 0,
                 }];
-
-                //println!("Rule 6: {}", guard_zone);
 
                 transitions.push(Transition {
                     guard_zone,
@@ -312,9 +293,7 @@ impl TransitionSystem for Quotient {
         //Rule 7
         if action == self.new_input_name {
             let inverse_t_invariant = !get_invariant(loc_t, self.dim);
-            //println!("!inv_t: {}", inverse_t_invariant);
             let s_invariant = get_invariant(loc_s, self.dim);
-            //println!("inv_s: {}", s_invariant);
             let guard_zone = inverse_t_invariant.intersection(&s_invariant);
 
             let updates = vec![CompiledUpdate {
@@ -322,29 +301,21 @@ impl TransitionSystem for Quotient {
                 value: 0,
             }];
 
-            //println!("Rule 7: {}", guard_zone);
-
             transitions.push(Transition {
                 guard_zone,
                 target_locations: inconsistent_location.clone(),
                 updates,
             })
         }
-
-        // TODO: check with Martijn
-        //if self.T.outputs_contain(action) && !self.S.actions_contain(action) {
         //Rule 8
         if self.T.actions_contain(action) && !self.S.actions_contain(action) {
             for t_transition in &t {
                 let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
-                // TODO: check with Martijn as this is new
                 loc_s.apply_invariants(&mut guard_zone);
 
                 let target_locations = merge(&t_transition.target_locations, &loc_s);
                 let updates = t_transition.updates.clone();
-
-                //println!("Rule 8: {}", guard_zone);
 
                 transitions.push(Transition {
                     guard_zone,
@@ -428,13 +399,11 @@ impl TransitionSystem for Quotient {
     }
 
     fn is_deterministic(&self) -> bool {
-        //local_consistency::is_deterministic(self)
         self.T.is_deterministic() && self.S.is_deterministic()
     }
 
     fn is_locally_consistent(&self) -> bool {
         self.T.is_locally_consistent() && self.S.is_locally_consistent()
-        //local_consistency::is_least_consistent(self)
     }
 
     fn get_initial_state(&self) -> Option<State> {
@@ -444,10 +413,6 @@ impl TransitionSystem for Quotient {
             decorated_locations: init_loc,
             zone,
         })
-    }
-
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        (&mut self.T, &mut self.S)
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
@@ -462,25 +427,9 @@ impl TransitionSystem for Quotient {
         self.dim
     }
 }
-/*
-fn create_transitions(
-    fed: Federation,
-    target_locations: &LocationTuple,
-    updates: &HashMap<usize, Vec<parse_edge::Update>>,
-) -> Vec<Transition> {
-    let mut transitions = vec![];
-
-    transitions.push(Transition {
-        guard_zone: fed,
-        target_locations: target_locations.clone(),
-        updates: updates.clone(),
-    });
-
-    transitions
-}*/
 
 fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
-    LocationTuple::merge(t, s, CompositionType::Quotient)
+    LocationTuple::merge_as_quotient(t, s)
 }
 
 fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> Federation {

@@ -7,7 +7,7 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::{CompiledComponent, LocationTuple};
-use crate::TransitionSystems::{PrunedComponent, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};

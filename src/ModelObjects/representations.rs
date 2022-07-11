@@ -150,12 +150,8 @@ impl BoolExpression {
             }
             BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
-            BoolExpression::Bool(boolean) => {
-                format!("{}", boolean)
-            }
-            BoolExpression::Int(num) => {
-                format!("{}", num)
-            }
+            BoolExpression::Bool(boolean) => boolean.to_string(),
+            BoolExpression::Int(num) => num.to_string(),
         }
     }
 
@@ -422,7 +418,7 @@ impl PartialEq<Box<BoolExpression>> for &BoolExpression {
 }
 
 fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
-    match &**exp {
+    match exp.as_ref() {
         BoolExpression::EQ(_, _) => Some("=".to_string()),
         BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
         BoolExpression::LessT(_, _) => Some("<".to_string()),

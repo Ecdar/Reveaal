@@ -76,12 +76,12 @@ impl Display for StatePair {
             self.locations1.id,
             self.locations1
                 .get_invariants()
-                .map(|f| format!("{}", f))
+                .map(|f| f.to_string())
                 .unwrap_or("no invariant".to_string()),
             self.locations2.id,
             self.locations2
                 .get_invariants()
-                .map(|f| format!("{}", f))
+                .map(|f| f.to_string())
                 .unwrap_or("no invariant".to_string()),
             self.zone
         ))?;

@@ -25,7 +25,7 @@ mod UDBM {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
-use lazy_static::lazy_static; // 1.4.0
+use lazy_static::lazy_static;
 use std::sync::{Mutex, RwLock};
 const DEBUG: bool = false;
 
@@ -90,7 +90,6 @@ pub fn rs_fed_get_zones(fed: &Federation) -> Vec<Zone> {
     let zones = fed.num_zones();
     let len = zones * d * d;
 
-    //let out = vec![0; len];
     if len == 0 {
         return vec![];
     }
@@ -118,7 +117,6 @@ pub fn rs_fed_intersect(fed1: &mut Federation, fed2: &Federation) {
     unsafe {
         sync!(UDBM::fed_intersection(&mut fed1.raw, &fed2.raw));
     }
-    //rs_fed_reduce(&mut fed1, true);
 }
 
 pub fn rs_fed_predt(good: &mut Federation, bad: &Federation) {
@@ -131,7 +129,6 @@ pub fn rs_fed_predt(good: &mut Federation, bad: &Federation) {
 ///  oda federation minus federation
 pub fn rs_fed_subtract(fed1: &mut Federation, fed2: &Federation) {
     trace!();
-    //let mut result = fed1.clone();
     unsafe {
         sync!(UDBM::fed_subtraction(&mut fed1.raw, &fed2.raw));
     }
@@ -287,7 +284,6 @@ pub fn rs_fed_add_LT_constraint(
 ///
 pub fn rs_fed_add_EQ_constraint(fed: &mut Federation, var_index_i: u32, var_index_j: u32) -> bool {
     trace!();
-    let constraint = rs_bound_strict_to_raw(0, false);
     let res1 = rs_fed_constrain(fed, var_index_i, var_index_j, 0, false);
     let res2 = rs_fed_constrain(fed, var_index_j, var_index_i, 0, false);
     res1 && res2

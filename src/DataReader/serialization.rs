@@ -357,7 +357,7 @@ where
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
     if let Some((first_clock, _)) = it.next() {
-        output = output.add(&format!("{}", first_clock));
+        output = output.add(&first_clock.to_string());
 
         for (clock, _) in it {
             output = output.add(&format!(", {}", clock));

@@ -27,7 +27,7 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
             let mut zones_federation = Federation::empty(dimension);
 
             for edge in input_edges {
-                let mut guard_zone = Federation::full(dimension); //location_inv_zone.clone();
+                let mut guard_zone = Federation::full(dimension);
                 if let Some(target_invariant) = component
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
@@ -60,7 +60,6 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 zones_federation.add_fed(&guard_zone);
             }
 
-            //let zones_federation = Federation::new(zones, location_inv_zone.dimension);
             let result_federation = full_federation.subtraction(&zones_federation);
 
             if result_federation.is_empty() {
@@ -73,10 +72,7 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 target_location: location.get_id().to_string(),
                 sync_type: component::SyncType::Input,
                 guard: result_federation
-                    .as_boolexpression(Some(component.get_declarations().get_clocks())), //build_guard_from_zone(
-                //    &fed_zone,
-                //    Some(component.get_declarations().get_clocks()),
-                //)
+                    .as_boolexpression(Some(component.get_declarations().get_clocks())),
                 update: None,
                 sync: input.to_string(),
             });

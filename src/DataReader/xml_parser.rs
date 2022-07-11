@@ -205,9 +205,7 @@ fn parse_declarations(variables: &str) -> Declarations {
                         }
                     }
                 } else {
-                    println!("NEWLINE");
-                    println!("not implemented read for type: {}", variable_type);
-                    panic!("\nnot implemented read for type: {}", variable_type);
+                    panic!("not implemented read for type: {}", variable_type);
                 }
             }
         }

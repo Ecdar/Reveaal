@@ -9,7 +9,7 @@ use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystem
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
-use super::transition_system::{CompositionType, LocationID};
+use super::{CompositionType, LocationID};
 
 type Action = String;
 
@@ -57,7 +57,7 @@ impl CompiledComponent {
 
         for edge in component.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
-            let transition = Transition::from((&component, edge), dim);
+            let transition = Transition::from(&component, edge, dim);
             location_edges
                 .get_mut(&id)
                 .unwrap()
@@ -161,10 +161,6 @@ impl TransitionSystem for CompiledComponent {
         let init_loc = self.get_initial_location().unwrap();
 
         State::from_location(init_loc, self.dim)
-    }
-
-    fn get_mut_children(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
-        unimplemented!()
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
