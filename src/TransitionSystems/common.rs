@@ -4,11 +4,6 @@ macro_rules! default_composition {
             self.dim
         }
 
-        fn get_max_bounds(&self) -> MaxBounds {
-            let mut bounds = self.left.get_max_bounds();
-            bounds.add_bounds(&self.right.get_max_bounds());
-            bounds
-        }
         fn get_input_actions(&self) -> HashSet<String> {
             self.inputs.clone()
         }
@@ -21,6 +16,21 @@ macro_rules! default_composition {
                 .map(|action| action.to_string())
                 .collect()
         }
+
+        fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+            if loc.is_universal() || loc.is_inconsistent() {
+                MaxBounds::create(self.get_dim())
+            } else {
+                let (left, right) = self.get_children();
+                let loc_l = loc.get_left();
+                let loc_r = loc.get_right();
+                let mut bounds_l = left.get_local_max_bounds(loc_l);
+                let bounds_r = right.get_local_max_bounds(loc_r);
+                bounds_l.add_bounds(&bounds_r);
+                bounds_l
+            }
+        }
+
         fn get_initial_location(&self) -> Option<LocationTuple> {
             let (left, right) = self.get_children();
             let l = left.get_initial_location()?;

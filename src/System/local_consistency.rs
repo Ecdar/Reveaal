@@ -1,6 +1,5 @@
 use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::State;
-use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
 
 //Local consistency check WITH pruning
@@ -10,15 +9,14 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
     }
 
     let mut passed = vec![];
-    let max_bounds = system.get_max_bounds();
     let state = system.get_initial_state();
     if state.is_none() {
         println!("Empty initial state");
         return false;
     }
     let mut state = state.unwrap();
-    state.zone.extrapolate_max_bounds(&max_bounds);
-    consistency_least_helper(state, &mut passed, system, &max_bounds)
+    state.extrapolate_max_bounds(system);
+    consistency_least_helper(state, &mut passed, system)
 }
 
 pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
@@ -27,7 +25,6 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
     }
 
     let mut passed = vec![];
-    let max_bounds = system.get_max_bounds();
 
     let state = system.get_initial_state();
     if state.is_none() {
@@ -36,7 +33,7 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
     let mut state = state.unwrap();
     state.zone = Federation::full(system.get_dim());
 
-    let res = is_deterministic_helper(state, &mut passed, system, &max_bounds);
+    let res = is_deterministic_helper(state, &mut passed, system);
 
     res
 }
@@ -45,7 +42,6 @@ fn is_deterministic_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-    max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
         return true;
@@ -69,8 +65,8 @@ fn is_deterministic_helper(
                     return false;
                 }
                 location_fed += allowed_fed;
-                new_state.zone.extrapolate_max_bounds(max_bounds);
-                if !is_deterministic_helper(new_state, passed_list, system, max_bounds) {
+                new_state.extrapolate_max_bounds(system);
+                if !is_deterministic_helper(new_state, passed_list, system) {
                     return false;
                 }
             }
@@ -87,20 +83,18 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bo
     }
 
     let mut passed = vec![];
-    let max_bounds = system.get_max_bounds();
     let state = system.get_initial_state();
     if state.is_none() {
         println!("Empty initial state");
         return false;
     }
-    consistency_fully_helper(state.unwrap(), &mut passed, system, &max_bounds)
+    consistency_fully_helper(state.unwrap(), &mut passed, system)
 }
 
 pub fn consistency_least_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-    max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
         return true;
@@ -118,8 +112,8 @@ pub fn consistency_least_helper(
         for transition in &system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
-                if !consistency_least_helper(new_state, passed_list, system, max_bounds) {
+                new_state.extrapolate_max_bounds(system);
+                if !consistency_least_helper(new_state, passed_list, system) {
                     println!(
                         "Input \"{input}\" not consistent from {}",
                         state.get_location().id
@@ -138,9 +132,9 @@ pub fn consistency_least_helper(
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
+                new_state.extrapolate_max_bounds(system);
 
-                if consistency_least_helper(new_state, passed_list, system, max_bounds) {
+                if consistency_least_helper(new_state, passed_list, system) {
                     return true;
                 }
             }
@@ -155,7 +149,6 @@ fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-    max_bounds: &MaxBounds,
 ) -> bool {
     if passed_list.contains(&state) {
         return true;
@@ -166,12 +159,12 @@ fn consistency_fully_helper(
         for transition in system.next_inputs(&state.decorated_locations, &input) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
+                new_state.extrapolate_max_bounds(system);
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
 
-                if !consistency_fully_helper(new_state, passed_list, system, max_bounds) {
+                if !consistency_fully_helper(new_state, passed_list, system) {
                     return false;
                 }
             }
@@ -183,13 +176,13 @@ fn consistency_fully_helper(
         for transition in system.next_outputs(&state.decorated_locations, &output) {
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
-                new_state.zone.extrapolate_max_bounds(max_bounds);
+                new_state.extrapolate_max_bounds(system);
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
 
                 output_existed = true;
-                if !consistency_fully_helper(new_state, passed_list, system, max_bounds) {
+                if !consistency_fully_helper(new_state, passed_list, system) {
                     return false;
                 }
             }
