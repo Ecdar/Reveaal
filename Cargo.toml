@@ -31,6 +31,7 @@ colored = "2.0.0"
 simple-error = "0.2.3"
 force_graph = "0.3.2"
 rand = "0.8.5"
+futures = "0.3.21"
 
 
 [build-dependencies]
