@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 pub enum PruningStrategy {
     Reachable,
-    None,
+    NoPruning,
 }
 
 use PruningStrategy::*;
@@ -28,7 +28,7 @@ pub fn combine_components(
             &clocks,
             dim,
         ),
-        None => {
+        NoPruning => {
             collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks, dim)
         }
     };

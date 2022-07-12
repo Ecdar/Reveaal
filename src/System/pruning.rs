@@ -17,7 +17,7 @@ use super::save_component::PruningStrategy;
 pub fn prune_system(ts: TransitionSystemPtr, dim: u32) -> TransitionSystemPtr {
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
-    let comp = combine_components(&ts, PruningStrategy::None);
+    let comp = combine_components(&ts, PruningStrategy::NoPruning);
 
     if !ts.precheck_sys_rep() {
         panic!("Trying to prune transitions system which is not least consistent");

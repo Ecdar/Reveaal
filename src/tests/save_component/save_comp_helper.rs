@@ -37,7 +37,7 @@ pub mod save_comp_helper {
         if let Err(_) = new_comp {
             return;
         }
-        let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::None);
+        let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::NoPruning);
 
         let new_comp = SystemRecipe::Component(Box::new(new_comp))
             .compile(dim)
