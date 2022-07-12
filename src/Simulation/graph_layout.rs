@@ -13,27 +13,33 @@ use std::path::Path;
 #[derive(Debug, Deserialize)]
 struct Config {
     /// Padding of sides of component
-    PADDING: f32,
+    padding: f32,
     /// Square space needed for each location
-    LOCATION_SPACE: f32,
+    location_space: f32,
     /// Maximal aspect ratio of the component
-    MAX_RATIO: f32,
-    LOCATION_MASS: f32,
-    EDGE_MASS: f32,
+    max_ratio: f32,
+    location_mass: f32,
+    edge_mass: f32,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            padding: 100.0,
+            location_space: 200.0,
+            max_ratio: 1.5,
+            location_mass: 1.0,
+            edge_mass: 1.0,
+        }
+    }
 }
 
 fn get_config() -> Config {
     match read_config("config.json") {
         Ok(config) => config,
         Err(_) => {
-            println!("Could not find config, using defaults");
-            Config {
-                PADDING: 100.0,
-                LOCATION_SPACE: 200.0,
-                MAX_RATIO: 1.5,
-                LOCATION_MASS: 1.0,
-                EDGE_MASS: 1.0,
-            }
+            println!("Could not find graph layout config, using defaults");
+            Config::default()
         }
     }
 }
@@ -56,12 +62,12 @@ struct Data {
 }
 
 pub fn layout_dummy_component(comp: &mut DummyComponent) {
-    let CONFIG = get_config();
+    let config = get_config();
 
     // Compute the grid size
     let locs = comp.locations.len();
     let loc_sqrt = (locs as f32).sqrt();
-    let grid_size = f32::max(loc_sqrt * CONFIG.LOCATION_SPACE, 200.0);
+    let grid_size = f32::max(loc_sqrt * config.location_space, 200.0);
 
     // Construct the force graph with nodes in random locations
     let mut graph = <ForceGraph<Data>>::new(Default::default());
@@ -87,7 +93,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
                 edge_number: 0,
                 nail_number: 0,
             },
-            mass: CONFIG.LOCATION_MASS,
+            mass: config.location_mass,
         });
 
         node_map.insert(location.id.clone(), node);
@@ -111,7 +117,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
                     edge_number: i,
                     nail_number: j,
                 },
-                mass: CONFIG.EDGE_MASS,
+                mass: config.edge_mass,
             });
 
             if first.is_none() {
@@ -167,7 +173,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
     // Normalize bounds to grid size
     let normalize = {
         |num: f32, min: f32, max: f32, ratio: f32| {
-            ((num - min) / (max - min)) * (grid_size * ratio) + CONFIG.PADDING / 2.0
+            ((num - min) / (max - min)) * (grid_size * ratio) + config.padding / 2.0
         }
     };
 
@@ -178,8 +184,8 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
 
     let ratio_x = clamp(
         (max_x - min_x) / (max_y - min_y),
-        1.0 / CONFIG.MAX_RATIO,
-        CONFIG.MAX_RATIO,
+        1.0 / config.max_ratio,
+        config.max_ratio,
     );
 
     let ratio_y = 1.0 / ratio_x;
@@ -200,8 +206,8 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
     });
 
     // Set the component shape
-    comp.width = grid_size * ratio_x + CONFIG.PADDING;
-    comp.height = grid_size * ratio_y + CONFIG.PADDING;
+    comp.width = grid_size * ratio_x + config.padding;
+    comp.height = grid_size * ratio_y + config.padding;
 
     // Translate so it is centered
     comp.x = -comp.width / 2.0;
