@@ -5,14 +5,17 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashMap;
 
-pub enum Reachability {
+pub enum PruningStrategy {
     Reachable,
-    All,
+    None,
 }
 
-use Reachability::*;
+use PruningStrategy::*;
 
-pub fn combine_components(system: &TransitionSystemPtr, reachability: Reachability) -> Component {
+pub fn combine_components(
+    system: &TransitionSystemPtr,
+    reachability: PruningStrategy,
+) -> Component {
     let mut location_tuples = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
@@ -25,7 +28,7 @@ pub fn combine_components(system: &TransitionSystemPtr, reachability: Reachabili
             &clocks,
             dim,
         ),
-        All => {
+        None => {
             collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks, dim)
         }
     };

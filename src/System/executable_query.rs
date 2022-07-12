@@ -4,7 +4,7 @@ use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
-use super::save_component::Reachability;
+use super::save_component::PruningStrategy;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -74,7 +74,7 @@ pub struct GetComponentExecutor<'a> {
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system, Reachability::Reachable);
+        let mut comp = combine_components(&self.system, PruningStrategy::Reachable);
         comp.name = self.comp_name;
 
         comp.create_edge_io_split();
