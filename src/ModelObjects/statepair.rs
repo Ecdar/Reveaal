@@ -55,17 +55,14 @@ impl StatePair {
         }
     }
 
-    pub fn calculate_max_bound(
+    pub fn extrapolate_max_bounds(
         &mut self,
         sys1: &TransitionSystemPtr,
         sys2: &TransitionSystemPtr,
-    ) -> MaxBounds {
-        let dim = self.zone.get_dimensions();
-
-        let mut bounds = sys1.get_max_bounds();
-        bounds.add_bounds(&sys2.get_max_bounds());
-
-        bounds
+    ) {
+        let mut bounds = sys1.get_local_max_bounds(&self.locations1);
+        bounds.add_bounds(&sys2.get_local_max_bounds(&self.locations2));
+        self.zone.extrapolate_max_bounds(&bounds);
     }
 }
 
