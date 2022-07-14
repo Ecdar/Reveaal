@@ -1,5 +1,7 @@
 use crate::DBMLib::dbm::Zone;
+use crate::ModelObjects::statepair::StatePair;
 use colored::Colorize;
+use generic_array::arr_impl;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -10,14 +12,17 @@ use std::ops;
 
 #[derive(Debug, Clone, Deserialize, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum BoolExpression {
+    Parentheses(Box<BoolExpression>),
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),
-    LessEQ(Box<BoolExpression>, Box<BoolExpression>),
-    GreatEQ(Box<BoolExpression>, Box<BoolExpression>),
-    LessT(Box<BoolExpression>, Box<BoolExpression>),
-    GreatT(Box<BoolExpression>, Box<BoolExpression>),
-    EQ(Box<BoolExpression>, Box<BoolExpression>),
-    Parentheses(Box<BoolExpression>),
+    LessEQ(Box<ArithExpression>, Box<ArithExpression>),
+    GreatEQ(Box<ArithExpression>, Box<ArithExpression>),
+    LessT(Box<ArithExpression>, Box<ArithExpression>),
+    GreatT(Box<ArithExpression>, Box<ArithExpression>),
+    EQ(Box<ArithExpression>, Box<ArithExpression>),
+    Bool(bool),
+    Arithmetic(Box<ArithExpression>),
+    /*
     Difference(Box<BoolExpression>, Box<BoolExpression>),
     Addition(Box<BoolExpression>, Box<BoolExpression>),
     Multiplication(Box<BoolExpression>, Box<BoolExpression>),
@@ -27,6 +32,7 @@ pub enum BoolExpression {
     VarName(String),
     Bool(bool),
     Int(i32),
+     */
 }
 
 impl BoolExpression {
@@ -64,39 +70,42 @@ impl BoolExpression {
                 Box::new(left.swap_clock_names(from_vars, to_vars)),
                 Box::new(right.swap_clock_names(from_vars, to_vars)),
             ),
-            BoolExpression::Difference(left, right) => BoolExpression::Difference(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::Addition(left, right) => BoolExpression::Addition(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::Multiplication(left, right) => BoolExpression::Multiplication(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::Division(left, right) => BoolExpression::Division(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-            BoolExpression::Modulo(left, right) => BoolExpression::Modulo(
-                Box::new(left.swap_clock_names(from_vars, to_vars)),
-                Box::new(right.swap_clock_names(from_vars, to_vars)),
-            ),
-
-
             BoolExpression::Parentheses(body) => {
                 BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
             }
-            BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
-            BoolExpression::VarName(name) => {
-                let index = from_vars.get(name).unwrap();
-                let new_name = to_vars[index].clone();
-                BoolExpression::VarName(new_name)
-            },
             BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
-            BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
+            BoolExpression::Arithmetic(x) => {
+                BoolExpression::Arithmetic(Box::new(x.swap_clock_names(from_vars, to_vars)))
+            } /*
+              BoolExpression::Difference(left, right) => BoolExpression::Difference(
+                  Box::new(left.swap_clock_names(from_vars, to_vars)),
+                  Box::new(right.swap_clock_names(from_vars, to_vars)),
+              ),
+              BoolExpression::Addition(left, right) => BoolExpression::Addition(
+                  Box::new(left.swap_clock_names(from_vars, to_vars)),
+                  Box::new(right.swap_clock_names(from_vars, to_vars)),
+              ),
+              BoolExpression::Multiplication(left, right) => BoolExpression::Multiplication(
+                  Box::new(left.swap_clock_names(from_vars, to_vars)),
+                  Box::new(right.swap_clock_names(from_vars, to_vars)),
+              ),
+              BoolExpression::Division(left, right) => BoolExpression::Division(
+                  Box::new(left.swap_clock_names(from_vars, to_vars)),
+                  Box::new(right.swap_clock_names(from_vars, to_vars)),
+              ),
+              BoolExpression::Modulo(left, right) => BoolExpression::Modulo(
+                  Box::new(left.swap_clock_names(from_vars, to_vars)),
+                  Box::new(right.swap_clock_names(from_vars, to_vars)),
+              ),
+              BoolExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
+              BoolExpression::VarName(name) => {
+                  let index = from_vars.get(name).unwrap();
+                  let new_name = to_vars[index].clone();
+                  BoolExpression::VarName(new_name)
+              },
+              BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
+              BoolExpression::Int(val) => BoolExpression::Int(val.clone()),
+               */
         }
     }
 
@@ -132,6 +141,9 @@ impl BoolExpression {
             BoolExpression::Parentheses(expr) => {
                 [String::from("("), expr.encode_expr(), String::from(")")].concat()
             }
+            BoolExpression::Bool(boolean) => boolean.to_string(),
+            BoolExpression::Arithmetic(x) => x.encode_expr(),
+            /*
             BoolExpression::Difference(left, right) => {
                 [left.encode_expr(), String::from("-"), right.encode_expr()].concat()
             }
@@ -149,8 +161,8 @@ impl BoolExpression {
             }
             BoolExpression::Clock(_) => [String::from("??")].concat(),
             BoolExpression::VarName(var) => var.clone(),
-            BoolExpression::Bool(boolean) => boolean.to_string(),
             BoolExpression::Int(num) => num.to_string(),
+             */
         }
     }
 
@@ -159,7 +171,7 @@ impl BoolExpression {
 
         self.iterate_constraints(&mut |left, right| {
             //Start by matching left and right operands to get constant, this might fail if it does we skip constraint defaulting to 0
-            let constant = BoolExpression::get_constant(left, right, clock, clock_name);
+            let constant = ArithExpression::get_constant(left, right, clock, clock_name);
 
             if new_constraint < constant {
                 new_constraint = constant;
@@ -190,6 +202,21 @@ impl BoolExpression {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }
+            BoolExpression::GreatEQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::LessT(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::EQ(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            BoolExpression::Bool(_) => {}
+            BoolExpression::Arithmetic(x) => x.swap_var_name(from_name, to_name),
+            /*
             BoolExpression::Difference(left, right) => {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
@@ -210,18 +237,6 @@ impl BoolExpression {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }
-            BoolExpression::GreatEQ(left, right) => {
-                left.swap_var_name(from_name, to_name);
-                right.swap_var_name(from_name, to_name);
-            }
-            BoolExpression::LessT(left, right) => {
-                left.swap_var_name(from_name, to_name);
-                right.swap_var_name(from_name, to_name);
-            }
-            BoolExpression::EQ(left, right) => {
-                left.swap_var_name(from_name, to_name);
-                right.swap_var_name(from_name, to_name);
-            }
             BoolExpression::Clock(_) => {
                 //Assuming ids are correctly offset we dont have to do anything here
             }
@@ -230,8 +245,8 @@ impl BoolExpression {
                     *name = to_name.to_string();
                 }
             }
-            BoolExpression::Bool(_) => {}
             BoolExpression::Int(_) => {}
+             */
         }
     }
 
@@ -252,44 +267,9 @@ impl BoolExpression {
         }
     }
 
-    fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
-        match left {
-            BoolExpression::Clock(clock_id) => {
-                if *clock_id == clock {
-                    if let BoolExpression::Int(constant) = right {
-                        return *constant;
-                    }
-                }
-            }
-            BoolExpression::VarName(name) => {
-                if name.eq(clock_name) {
-                    if let BoolExpression::Int(constant) = right {
-                        return *constant;
-                    }
-                }
-            }
-            BoolExpression::Int(constant) => match right {
-                BoolExpression::Clock(clock_id) => {
-                    if *clock_id == clock {
-                        return *constant;
-                    }
-                }
-                BoolExpression::VarName(name) => {
-                    if name.eq(clock_name) {
-                        return *constant;
-                    }
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        0
-    }
-
     pub fn iterate_constraints<F>(&self, function: &mut F)
     where
-        F: FnMut(&BoolExpression, &BoolExpression),
+        F: FnMut(&ArithExpression, &ArithExpression),
     {
         match self {
             BoolExpression::AndOp(left, right) => {
@@ -360,37 +340,23 @@ impl BoolExpression {
         }
     }
 
-    pub fn BLessEQ(left: BoolExpression, right: BoolExpression) -> BoolExpression {
+    pub fn BLessEQ(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::LessEQ(Box::new(left), Box::new(right))
     }
-    pub fn BLessT(left: BoolExpression, right: BoolExpression) -> BoolExpression {
+    pub fn BLessT(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::LessT(Box::new(left), Box::new(right))
     }
-    pub fn BGreatEQ(left: BoolExpression, right: BoolExpression) -> BoolExpression {
+    pub fn BGreatEQ(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::GreatEQ(Box::new(left), Box::new(right))
     }
-    pub fn BGreatT(left: BoolExpression, right: BoolExpression) -> BoolExpression {
+    pub fn BGreatT(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::GreatT(Box::new(left), Box::new(right))
     }
-    pub fn BEQ(left: BoolExpression, right: BoolExpression) -> BoolExpression {
+    pub fn BEQ(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::EQ(Box::new(left), Box::new(right))
     }
     pub fn BPar(inner: BoolExpression) -> BoolExpression {
         inner
-    }
-
-    pub fn BDif(left: BoolExpression, right: BoolExpression) -> BoolExpression {
-        if let BoolExpression::Int(0) = right {
-            return left;
-        }
-
-        if let BoolExpression::Int(i) = left {
-            if let BoolExpression::Int(j) = right {
-                return BoolExpression::Int(i - j);
-            }
-        }
-
-        BoolExpression::Difference(Box::new(left), Box::new(right))
     }
 }
 
@@ -407,15 +373,6 @@ impl ops::BitOr for BoolExpression {
 
     fn bitor(self, other: Self) -> Self {
         BoolExpression::OrOp(Box::new(self), Box::new(other))
-    }
-}
-
-fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
-    match exp.as_ref() {
-        BoolExpression::EQ(_, _) => Some("=".to_string()),
-        BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
-        BoolExpression::LessT(_, _) => Some("<".to_string()),
-        _ => None,
     }
 }
 
@@ -497,12 +454,6 @@ impl Display for BoolExpression {
             BoolExpression::EQ(left, right) => {
                 write!(f, "{}={}", left, right)?;
             }
-            BoolExpression::Clock(id) => {
-                write!(f, "{}", format!("c:{}", id).to_string().magenta())?;
-            }
-            BoolExpression::VarName(name) => {
-                write!(f, "{}", name.to_string().blue())?;
-            }
             BoolExpression::Bool(val) => {
                 if *val {
                     write!(f, "{}", val.to_string().green())?;
@@ -510,22 +461,270 @@ impl Display for BoolExpression {
                     write!(f, "{}", val.to_string().red())?;
                 }
             }
-            BoolExpression::Int(num) => {
+            BoolExpression::Arithmetic(x) => {
+                write!(f, "{}", x.encode_expr());
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq, std::cmp::Eq)]
+pub enum ArithExpression {
+    Parentheses(Box<ArithExpression>),
+    Difference(Box<ArithExpression>, Box<ArithExpression>),
+    Addition(Box<ArithExpression>, Box<ArithExpression>),
+    Multiplication(Box<ArithExpression>, Box<ArithExpression>),
+    Division(Box<ArithExpression>, Box<ArithExpression>),
+    Modulo(Box<ArithExpression>, Box<ArithExpression>),
+    Clock(u32),
+    VarName(String),
+    Int(i32),
+}
+
+impl ArithExpression {
+    pub fn swap_clock_names(
+        &self,
+        from_vars: &HashMap<String, u32>,
+        to_vars: &HashMap<u32, String>,
+    ) -> ArithExpression {
+        match self {
+            ArithExpression::Difference(left, right) => ArithExpression::Difference(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            ArithExpression::Addition(left, right) => ArithExpression::Addition(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            ArithExpression::Multiplication(left, right) => ArithExpression::Multiplication(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            ArithExpression::Division(left, right) => ArithExpression::Division(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            ArithExpression::Modulo(left, right) => ArithExpression::Modulo(
+                Box::new(left.swap_clock_names(from_vars, to_vars)),
+                Box::new(right.swap_clock_names(from_vars, to_vars)),
+            ),
+            ArithExpression::Clock(_) => panic!("Did not expect clock index in boolexpression, cannot swap clock names in misformed bexpr"),
+            ArithExpression::VarName(name) => {
+                let index = from_vars.get(name).unwrap();
+                let new_name = to_vars[index].clone();
+                ArithExpression::VarName(new_name)
+            },
+            ArithExpression::Int(val) => ArithExpression::Int(val.clone()),
+            ArithExpression::Parentheses(inner) => inner.swap_clock_names(from_vars, to_vars),
+        }
+    }
+
+    pub fn encode_expr(&self) -> String {
+        match self {
+            ArithExpression::Difference(left, right) => {
+                [left.encode_expr(), String::from("-"), right.encode_expr()].concat()
+            }
+            ArithExpression::Addition(left, right) => {
+                [left.encode_expr(), String::from("+"), right.encode_expr()].concat()
+            }
+            ArithExpression::Multiplication(left, right) => {
+                [left.encode_expr(), String::from("*"), right.encode_expr()].concat()
+            }
+            ArithExpression::Division(left, right) => {
+                [left.encode_expr(), String::from("/"), right.encode_expr()].concat()
+            }
+            ArithExpression::Modulo(left, right) => {
+                [left.encode_expr(), String::from("%"), right.encode_expr()].concat()
+            }
+            ArithExpression::Clock(_) => [String::from("??")].concat(),
+            ArithExpression::VarName(var) => var.clone(),
+            ArithExpression::Int(num) => num.to_string(),
+            ArithExpression::Parentheses(inner) => format!("({})", inner.encode_expr()),
+        }
+    }
+
+    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+        let mut new_constraint = 0;
+
+        self.iterate_constraints(&mut |left, right| {
+            //Start by matching left and right operands to get constant, this might fail if it does we skip constraint defaulting to 0
+            let constant = ArithExpression::get_constant(left, right, clock, clock_name);
+
+            if new_constraint < constant {
+                new_constraint = constant;
+            }
+        });
+
+        new_constraint // * 2 + 1 // This should not actually be a dbm_raw, as it is converted from bound to raw in the c code
+    }
+
+    pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
+        match self {
+            ArithExpression::Difference(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            ArithExpression::Addition(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            ArithExpression::Multiplication(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            ArithExpression::Division(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            ArithExpression::Modulo(left, right) => {
+                left.swap_var_name(from_name, to_name);
+                right.swap_var_name(from_name, to_name);
+            }
+            ArithExpression::Clock(_) => {
+                //Assuming ids are correctly offset we dont have to do anything here
+            }
+            ArithExpression::VarName(name) => {
+                if *name == from_name {
+                    *name = to_name.to_string();
+                }
+            }
+            ArithExpression::Int(_) => {}
+            ArithExpression::Parentheses(inner) => inner.swap_var_name(from_name, to_name),
+        }
+    }
+
+    pub fn conjunction(guards: &mut Vec<BoolExpression>) -> BoolExpression {
+        let num_guards = guards.len();
+
+        if let Some(guard) = guards.pop() {
+            if num_guards == 1 {
+                guard
+            } else {
+                BoolExpression::AndOp(
+                    Box::new(guard),
+                    Box::new(BoolExpression::conjunction(guards)),
+                )
+            }
+        } else {
+            BoolExpression::Bool(false)
+        }
+    }
+
+    pub fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
+        match left {
+            ArithExpression::Clock(clock_id) => {
+                if *clock_id == clock {
+                    if let ArithExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            ArithExpression::VarName(name) => {
+                if name.eq(clock_name) {
+                    if let ArithExpression::Int(constant) = right {
+                        return *constant;
+                    }
+                }
+            }
+            ArithExpression::Int(constant) => match right {
+                ArithExpression::Clock(clock_id) => {
+                    if *clock_id == clock {
+                        return *constant;
+                    }
+                }
+                ArithExpression::VarName(name) => {
+                    if name.eq(clock_name) {
+                        return *constant;
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        0
+    }
+
+    pub fn iterate_constraints<F>(&self, function: &mut F)
+    where
+        F: FnMut(&ArithExpression, &ArithExpression),
+    {
+        match self {
+            //BoolExpression::EQ
+            ArithExpression::Parentheses(inner) => inner.iterate_constraints(function),
+            ArithExpression::Difference(left, right) => function(left, right),
+            ArithExpression::Addition(left, right) => function(left, right),
+            ArithExpression::Multiplication(left, right) => function(left, right),
+            ArithExpression::Division(left, right) => function(left, right),
+            ArithExpression::Modulo(left, right) => function(left, right),
+            ArithExpression::Clock(_) => {}
+            ArithExpression::VarName(_) => {}
+            ArithExpression::Int(_) => {}
+        }
+    }
+
+    pub fn simplify(&mut self) {
+        while self.simplify_helper() {}
+    }
+
+    //TODO: Create
+    fn simplify_helper(&mut self) -> bool {
+        let mut changed = false;
+        //let mut value = None;
+
+        changed
+    }
+
+    pub fn APar(inner: ArithExpression) -> ArithExpression {
+        inner
+    }
+
+    pub fn ADif(left: ArithExpression, right: ArithExpression) -> ArithExpression {
+        if let ArithExpression::Int(0) = right {
+            return left;
+        }
+
+        if let ArithExpression::Int(i) = left {
+            if let ArithExpression::Int(j) = right {
+                return ArithExpression::Int(i - j);
+            }
+        }
+
+        ArithExpression::Difference(Box::new(left), Box::new(right))
+    }
+}
+
+impl Display for ArithExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArithExpression::Parentheses(expr) => {
+                let l_par = "(".to_string().yellow();
+                let r_par = ")".to_string().yellow();
+                write!(f, "{}{}{}", l_par, expr, r_par)?;
+            }
+            ArithExpression::Clock(id) => {
+                write!(f, "{}", format!("c:{}", id).to_string().magenta())?;
+            }
+            ArithExpression::VarName(name) => {
+                write!(f, "{}", name.to_string().blue())?;
+            }
+            ArithExpression::Int(num) => {
                 write!(f, "{}", num)?;
             }
-            BoolExpression::Difference(left, right) => {
+            ArithExpression::Difference(left, right) => {
                 write!(f, "{}-{}", left, right)?;
             }
-            BoolExpression::Addition(left, right) => {
+            ArithExpression::Addition(left, right) => {
                 write!(f, "{}+{}", left, right)?;
             }
-            BoolExpression::Multiplication(left, right) => {
+            ArithExpression::Multiplication(left, right) => {
                 write!(f, "{}*{}", left, right)?;
             }
-            BoolExpression::Division(left, right) => {
+            ArithExpression::Division(left, right) => {
                 write!(f, "{}/{}", left, right)?;
             }
-            BoolExpression::Modulo(left, right) => {
+            ArithExpression::Modulo(left, right) => {
                 write!(f, "{}%{}", left, right)?;
             }
         }
@@ -533,20 +732,33 @@ impl Display for BoolExpression {
     }
 }
 
+pub trait Expression {}
+impl Expression for BoolExpression {}
+impl Expression for ArithExpression {}
+
+fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
+    match exp.as_ref() {
+        BoolExpression::EQ(_, _) => Some("=".to_string()),
+        BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
+        BoolExpression::LessT(_, _) => Some("<".to_string()),
+        _ => None,
+    }
+}
+
 fn var_from_index(
     index: u32,
     clocks: &Option<&HashMap<String, u32>>,
-) -> Option<Box<BoolExpression>> {
+) -> Option<Box<ArithExpression>> {
     let var = if let Some(c) = clocks {
         //If the index exists in dbm it must be in the map, so we unwrap
         let clock = c.keys().find(|&x| *c.get(x).unwrap() == index);
 
         match clock {
-            Some(c) => Some(Box::new(BoolExpression::VarName(c.clone()))),
+            Some(c) => Some(Box::new(ArithExpression::VarName(c.clone()))),
             None => None,
         }
     } else {
-        Some(Box::new(BoolExpression::Clock(index)))
+        Some(Box::new(ArithExpression::Clock(index)))
     };
     var
 }
@@ -601,12 +813,12 @@ pub fn build_guard_from_zone(
         if lower_is_strict || lower_val != 0 {
             if lower_is_strict {
                 guards.push(BoolExpression::LessT(
-                    Box::new(BoolExpression::Int(-lower_val)),
+                    Box::new(ArithExpression::Int(-lower_val)),
                     first_var,
                 ));
             } else {
                 guards.push(BoolExpression::LessEQ(
-                    Box::new(BoolExpression::Int(-lower_val)),
+                    Box::new(ArithExpression::Int(-lower_val)),
                     first_var,
                 ));
             }
@@ -626,12 +838,12 @@ pub fn build_guard_from_zone(
             if upper_is_strict {
                 guards.push(BoolExpression::LessT(
                     last_var,
-                    Box::new(BoolExpression::Int(upper_val)),
+                    Box::new(ArithExpression::Int(upper_val)),
                 ));
             } else {
                 guards.push(BoolExpression::LessEQ(
                     last_var,
-                    Box::new(BoolExpression::Int(upper_val)),
+                    Box::new(ArithExpression::Int(upper_val)),
                 ));
             }
         }
@@ -662,8 +874,8 @@ fn add_diagonal_constraints(
     zone: &Zone,
     index_i: u32,
     index_j: u32,
-    var_i: Box<BoolExpression>,
-    var_j: Box<BoolExpression>,
+    var_i: Box<ArithExpression>,
+    var_j: Box<ArithExpression>,
     guards: &mut Vec<BoolExpression>,
 ) {
     if !zone.is_constraint_infinity(index_i, index_j) {
@@ -682,13 +894,13 @@ fn add_diagonal_constraints(
         {
             if is_strict {
                 guards.push(BoolExpression::BLessT(
-                    BoolExpression::Difference(var_i, var_j),
-                    BoolExpression::Int(val),
+                    ArithExpression::Difference(var_i, var_j),
+                    ArithExpression::Int(val),
                 ))
             } else {
                 guards.push(BoolExpression::BLessEQ(
-                    BoolExpression::Difference(var_i, var_j),
-                    BoolExpression::Int(val),
+                    ArithExpression::Difference(var_i, var_j),
+                    ArithExpression::Int(val),
                 ))
             }
         }

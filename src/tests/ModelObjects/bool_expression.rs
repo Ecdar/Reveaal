@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod bool_expression {
+    use crate::ModelObjects::representations::ArithExpression as AE;
     use crate::ModelObjects::representations::BoolExpression as BE;
-    use BE::{Bool, Int};
+    use AE::Int;
+    use BE::Bool;
     #[test]
     fn simplify_test1() {
         let mut expr = (Bool(false) & BE::BLessEQ(Int(3), Int(2))) | Bool(true);

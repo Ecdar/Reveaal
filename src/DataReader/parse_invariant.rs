@@ -1,5 +1,5 @@
 extern crate pest;
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Expression};
 use pest::error::Error;
 use pest::Parser;
 
@@ -41,7 +41,7 @@ pub fn build_invariant_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpre
 
 fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     match pair.as_rule() {
-        Rule::term => build_term_from_pair(pair),
+        Rule::term => BoolExpression::Arithmetic(Box::new(build_term_from_pair(pair))),
         Rule::parenthesizedExp => {
             let inner_pair = pair.into_inner().next().unwrap();
             BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
@@ -49,24 +49,24 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpressi
         Rule::andExpr => build_and_from_pair(pair),
         Rule::orExpr => build_or_from_pair(pair),
         Rule::compareExpr => build_compareExpr_from_pair(pair),
+        //Rule::sub_add => build_sub_add_from_pair(pair),
+        //Rule::mult_div_mod => build_mult_div_mod_from_pair(pair),
         Rule::terms => build_expression_from_pair(pair.into_inner().next().unwrap()),
         unknown => panic!("Got unknown pair: {:?}", unknown),
     }
 }
 
-fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
+fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
     let inner_pair = pair.into_inner().next().unwrap();
     match inner_pair.as_rule() {
-        Rule::atom => {
-            if let Ok(n) = inner_pair.as_str().trim().parse::<bool>() {
-                BoolExpression::Bool(n)
-            } else if let Ok(n) = inner_pair.as_str().trim().parse::<i32>() {
-                BoolExpression::Int(n)
+        Rule::int => {
+            if let Ok(n) = inner_pair.as_str().trim().parse::<i32>() {
+                ArithExpression::Int(n)
             } else {
                 build_term_from_pair(inner_pair)
             }
         }
-        Rule::variable => BoolExpression::VarName(inner_pair.as_str().trim().to_string()),
+        Rule::variable => ArithExpression::VarName(inner_pair.as_str().trim().to_string()),
         err => panic!("Unable to match: {:?} as rule atom or variable", err),
     }
 }
@@ -101,23 +101,48 @@ fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     }
 }
 
+fn build_arithmetic_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
+    match pair.as_rule() {
+        /*
+        Rule::term => build_term_from_pair(pair),
+        Rule::parenthesizedExp => {
+            let inner_pair = pair.into_inner().next().unwrap();
+            BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
+        }
+        Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
+        Rule::and => build_and_from_pair(pair),
+        Rule::or => build_or_from_pair(pair),
+        Rule::compareExpr => build_compareExpr_from_pair(pair),
+         */
+        Rule::term => build_term_from_pair(pair),
+        Rule::terms => build_arithmetic_expression_from_pair(pair.into_inner().next().unwrap()),
+        unknown => panic!("Got unknown pair: {:?}", unknown),
+    }
+}
+
 fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     let mut inner_pair = pair.into_inner();
     let left_side_pair = inner_pair.next().unwrap();
 
     match inner_pair.next() {
-        None => build_expression_from_pair(left_side_pair),
+        None => match left_side_pair.as_rule() {
+            Rule::bool => {
+                BoolExpression::Bool(left_side_pair.as_str().trim().parse::<bool>().unwrap())
+            }
+            Rule::terms => build_expression_from_pair(left_side_pair),
+            err => panic!("Unable to match: {:?} as rule atom or variable", err),
+        },
         Some(operator_pair) => {
             let right_side_pair = inner_pair.next().unwrap();
 
-            let lside = build_expression_from_pair(left_side_pair);
-            let rside = build_expression_from_pair(right_side_pair);
+            let lside = Box::new(build_arithmetic_expression_from_pair(left_side_pair));
+            let rside = Box::new(build_arithmetic_expression_from_pair(right_side_pair));
 
             match operator_pair.as_str() {
-                ">=" => BoolExpression::GreatEQ(Box::new(lside), Box::new(rside)),
-                "<=" => BoolExpression::LessEQ(Box::new(lside), Box::new(rside)),
-                "<" => BoolExpression::LessT(Box::new(lside), Box::new(rside)),
-                ">" => BoolExpression::GreatT(Box::new(lside), Box::new(rside)),
+                ">=" => BoolExpression::GreatEQ(lside, rside),
+                "<=" => BoolExpression::LessEQ(lside, rside),
+                "<" => BoolExpression::LessT(lside, rside),
+                ">" => BoolExpression::GreatT(lside, rside),
                 unknown_operator => panic!(
                     "Got unknown boolean operator: {}. Only able to match >=,<=,<,>",
                     unknown_operator
