@@ -484,8 +484,8 @@ fn get_indices(
         Err(String::from("Too many clocks"))
     } else if clocks_left + clocks_right == 2 {
         if clocks_left == 1 {
-            let l = get_clock_val(left, d, None)?;
-            let r = get_clock_val(right, d, None)?;
+            let (l, _) = get_clock_val(left, d)?;
+            let (r, _) = get_clock_val(right, d)?;
             if l.negated != r.negated {
                 Err(String::from("Same sign"))
             } else if l.negated == true {
@@ -494,8 +494,8 @@ fn get_indices(
                 Ok((l.value, r.value, constant))
             }
         } else if clocks_left == 2 {
-            let v1 = get_clock_val(left, d, None)?;
-            let v2 = get_clock_val(left, d, find_clock(left, d))?;
+            let (v1, v2) = get_clock_val(left, d)?;
+            let v2 = v2.unwrap();
             if v1.negated == v2.negated {
                 Err(String::from("Same sign"))
             } else if v1.negated == true {
@@ -504,8 +504,8 @@ fn get_indices(
                 Ok((v1.value, v2.value, constant))
             }
         } else {
-            let v1 = get_clock_val(right, d, None)?;
-            let v2 = get_clock_val(right, d, find_clock(right, d))?;
+            let (v1, v2) = get_clock_val(right, d)?;
+            let v2 = v2.unwrap();
             if v1.negated == v2.negated {
                 Err(String::from("Same sign"))
             } else if v1.negated == true {
@@ -516,14 +516,14 @@ fn get_indices(
         }
     } else {
         if clocks_left == 1 {
-            let v = get_clock_val(left, d, None)?;
+            let (v, _) = get_clock_val(left, d)?;
             if v.negated {
                 Ok((0, v.value, constant))
             } else {
                 Ok((v.value, 0, constant))
             }
         } else if clocks_right == 1 {
-            let v = get_clock_val(right, d, None)?;
+            let (v, _) = get_clock_val(right, d)?;
             if !v.negated {
                 Ok((0, v.value, constant))
             } else {
@@ -569,214 +569,176 @@ struct Clock {
 fn get_clock_val(
     expression: &BoolExpression,
     decls: &Declarations,
-    found: Option<(&BoolExpression, Option<&String>)>,
-) -> Result<Clock, String> {
+) -> Result<(Clock, Option<Clock>), String> {
     let mut parents: Vec<&BoolExpression> = vec![];
 
+    let total_count = clock_count(expression, decls);
     let mut cur_expr: Option<&BoolExpression> = Some(expression);
-    let mut value: Option<u32> = None;
+    let mut new_val: Option<Clock> = None;
     let mut neg: bool = false;
-    let mut go_left: bool = true;
+    let mut go_right: bool = false;
     while let Some(e) = cur_expr {
         match e {
             BoolExpression::Clock(x) => {
-                value = if let Some(y) = found {
-                    if y.0 == e {
-                        None
-                    } else {
-                        Some(*x)
-                    }
+                if let Some(y) = new_val {
+                    return Ok((
+                        y,
+                        Some(Clock {
+                            value: *x,
+                            negated: neg,
+                        }),
+                    ));
+                } else if total_count == 1 {
+                    return Ok((
+                        Clock {
+                            value: *x,
+                            negated: neg,
+                        },
+                        None,
+                    ));
                 } else {
-                    Some(*x)
-                };
-                cur_expr = parents.pop();
-                go_left = false;
+                    new_val = Some(Clock {
+                        value: *x,
+                        negated: neg,
+                    });
+                    cur_expr = parents.pop();
+                    go_right = true;
+                }
             }
             BoolExpression::Int(_) => {
                 cur_expr = parents.pop();
-                go_left = false;
             }
             BoolExpression::VarName(name) => {
-                value = if let Some(y) = found {
-                    if y.1.unwrap_or(&String::new()) == name {
-                        None
+                if let Some(x) = decls.get_clocks().get(name).and_then(|o| Some(*o)) {
+                    if let Some(y) = new_val {
+                        return Ok((
+                            y,
+                            Some(Clock {
+                                value: x,
+                                negated: neg,
+                            }),
+                        ));
+                    } else if total_count == 1 {
+                        return Ok((
+                            Clock {
+                                value: x,
+                                negated: neg,
+                            },
+                            None,
+                        ));
                     } else {
-                        decls.get_clocks().get(name).and_then(|o| Some(*o))
+                        new_val = Some(Clock {
+                            value: x,
+                            negated: neg,
+                        });
+                        cur_expr = parents.pop();
+                        go_right = true;
                     }
                 } else {
-                    decls.get_clocks().get(name).and_then(|o| Some(*o))
-                };
-                cur_expr = parents.pop();
+                    cur_expr = parents.pop();
+                }
             }
             BoolExpression::Difference(l, r) => {
-                if let Some(_) = value {
-                    break;
-                }
-                if clock_count(l, decls) > 0 && go_left {
+                let left = clock_count(l, decls);
+                let right = clock_count(r, decls);
+                if left == 2 {
                     parents.push(e);
                     cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 {
+                    neg = false;
+                } else if right == 2 || (right == 1 && go_right) || left == 0 {
                     parents.push(e);
                     cur_expr = Some(r);
                     neg = true;
-                    go_left = true;
+                } else {
+                    parents.push(e);
+                    cur_expr = Some(l);
+                    neg = false;
                 }
             }
             BoolExpression::Addition(l, r) => {
-                if let Some(_) = value {
-                    break;
-                }
-                if clock_count(l, decls) > 0 && go_left {
+                let left = clock_count(l, decls);
+                let right = clock_count(r, decls);
+                if left == 2 {
                     parents.push(e);
                     cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 {
+                    neg = false;
+                } else if right == 2 || (right == 1 && go_right) || left == 0 {
                     parents.push(e);
                     cur_expr = Some(r);
                     neg = false;
-                    go_left = true;
+                } else {
+                    parents.push(e);
+                    cur_expr = Some(l);
+                    neg = false;
                 }
             }
             BoolExpression::Multiplication(l, r) => {
-                if value.is_some() {
+                return Err(format!("Multiplication with clock is illegal"));
+                if new_val.is_some() {
                     return Err(format!("Multiplication with clock is illegal"));
-                    value = Some(
-                        value.unwrap()
-                            * if clock_count(l, decls) >= 1 {
-                                get_const(r, decls) as u32
-                            } else {
-                                get_const(l, decls) as u32
-                            },
-                    );
-                    break;
                 }
-                if clock_count(l, decls) > 0 && go_left {
+                let left = clock_count(l, decls);
+                let right = clock_count(r, decls);
+                if left == 2 {
                     parents.push(e);
                     cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 {
+                    neg = false;
+                } else if right == 2 || (right == 1 && go_right) {
                     parents.push(e);
                     cur_expr = Some(r);
                     neg = false;
-                    go_left = true;
+                } else {
+                    parents.push(e);
+                    cur_expr = Some(l);
+                    neg = false;
                 }
             }
             BoolExpression::Division(l, r) => {
-                if value.is_some() {
+                return Err(format!("Division with clock is illegal"));
+                if new_val.is_some() {
                     return Err(format!("Division with clock is illegal"));
-                    value = Some(
-                        value.unwrap()
-                            / if clock_count(l, decls) >= 1 {
-                                get_const(r, decls) as u32
-                            } else {
-                                get_const(l, decls) as u32
-                            },
-                    );
-                    break;
                 }
-                if clock_count(l, decls) > 0 && go_left {
+                let left = clock_count(l, decls);
+                let right = clock_count(r, decls);
+                if left == 2 {
                     parents.push(e);
                     cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 {
+                    neg = false;
+                } else if right == 2 || (right == 1 && go_right) {
                     parents.push(e);
                     cur_expr = Some(r);
                     neg = false;
-                    go_left = true;
+                } else {
+                    parents.push(e);
+                    cur_expr = Some(l);
+                    neg = false;
                 }
             }
             BoolExpression::Modulo(l, r) => {
-                if value.is_some() {
+                return Err(format!("Modulo with clock is illegal"));
+                if new_val.is_some() {
                     return Err(format!("Modulo with clock is illegal"));
-                    value = Some(
-                        value.unwrap()
-                            % if clock_count(l, decls) >= 1 {
-                                get_const(r, decls) as u32
-                            } else {
-                                get_const(l, decls) as u32
-                            },
-                    );
-                    break;
                 }
-                if clock_count(l, decls) > 0 && go_left {
+                let left = clock_count(l, decls);
+                let right = clock_count(r, decls);
+                if left == 2 {
                     parents.push(e);
                     cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 {
+                    neg = false;
+                } else if right == 2 || (right == 1 && go_right) {
                     parents.push(e);
                     cur_expr = Some(r);
                     neg = false;
-                    go_left = true;
+                } else {
+                    parents.push(e);
+                    cur_expr = Some(l);
+                    neg = false;
                 }
             }
             _ => panic!("lol"),
         };
     }
-
-    Ok(Clock {
-        value: value.unwrap_or_else(|| panic!("gamer")),
-        negated: neg,
-    })
-}
-
-fn find_clock<'a>(
-    expression: &'a BoolExpression,
-    decls: &'a Declarations,
-) -> Option<(&'a BoolExpression, Option<&'a String>)> {
-    let mut parents: Vec<&BoolExpression> = vec![];
-    let mut cur_expr: Option<&BoolExpression> = Some(expression);
-    let mut go_right: bool = false;
-    let mut out: Option<(&BoolExpression, Option<&String>)> = None;
-    while let Some(e) = cur_expr {
-        match e {
-            BoolExpression::Clock(_) => {
-                if parents.len() > 1 {
-                    panic!("Clock too low in expression tree");
-                } else if out.is_none() {
-                    out = Some((e, None));
-                } else {
-                    out.unwrap().0 = e;
-                }
-                break;
-            }
-            BoolExpression::Int(_) => (),
-            BoolExpression::VarName(name) => {
-                decls.get_clocks().get(name).and_then(|o| Some(*o));
-                if decls.get_clocks().contains_key(name) {
-                    if parents.len() > 1 {
-                        panic!("Clock too low in expression tree");
-                    } else if out.is_none() {
-                        out = Some((e, Some(name)));
-                    } else {
-                        out.unwrap().1 = Some(name);
-                    }
-                    break;
-                }
-            }
-            BoolExpression::Difference(l, r) => {
-                if clock_count(l, decls) > 0 && !go_right {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 && go_right {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    go_right = false;
-                } else {
-                    cur_expr = parents.pop();
-                }
-            }
-            BoolExpression::Addition(l, r) => {
-                if clock_count(l, decls) > 0 && !go_right {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                } else if clock_count(r, decls) > 0 && go_right {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    go_right = false;
-                } else {
-                    cur_expr = parents.pop();
-                }
-            }
-            _ => panic!("lol"),
-        };
-    }
-    out
+    Ok((new_val.unwrap(), None))
 }
 
 fn clock_count(expr: &BoolExpression, decls: &Declarations) -> i32 {
