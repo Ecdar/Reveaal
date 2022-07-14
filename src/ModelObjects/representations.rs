@@ -138,13 +138,13 @@ impl BoolExpression {
             BoolExpression::Addition(left, right) => {
                 [left.encode_expr(), String::from("+"), right.encode_expr()].concat()
             }
-            BoolExpression::Multiplication(left, right) =>  {
+            BoolExpression::Multiplication(left, right) => {
                 [left.encode_expr(), String::from("*"), right.encode_expr()].concat()
             }
-            BoolExpression::Division(left, right) =>  {
+            BoolExpression::Division(left, right) => {
                 [left.encode_expr(), String::from("/"), right.encode_expr()].concat()
             }
-            BoolExpression::Modulo(left, right) =>  {
+            BoolExpression::Modulo(left, right) => {
                 [left.encode_expr(), String::from("%"), right.encode_expr()].concat()
             }
             BoolExpression::Clock(_) => [String::from("??")].concat(),

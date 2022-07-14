@@ -602,7 +602,7 @@ impl Transition {
         }
 
         Transition {
-            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim),
+            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim), //TODO: FAILS HERE AFTER FOURTH 'L8&&L9'
             target_locations,
             updates: compiled_updates,
         }
@@ -709,7 +709,7 @@ impl Transition {
     pub fn combine_edge_guards(edges: &Vec<(&Component, &Edge)>, dim: u32) -> Federation {
         let mut zone = Federation::full(dim);
         for (comp, edge) in edges {
-            edge.apply_guard(comp.get_declarations(), &mut zone);
+            edge.apply_guard(comp.get_declarations(), &mut zone); //TODO: FAILS HERE AT LOCATION 'L8&&L9'
         }
         zone
     }
@@ -816,7 +816,10 @@ impl Edge {
 
     pub fn apply_guard(&self, decl: &Declarations, zone: &mut Federation) -> bool {
         return if let Some(guards) = self.get_guard() {
-            apply_constraints_to_state(guards, decl, zone)
+            match apply_constraints_to_state(guards, decl, zone) {
+                Ok(x) => x,
+                Err(e) => panic!("Error du to: {}", e), //TODO: Fix/Remove panic
+            }
         } else {
             true
         };
@@ -889,7 +892,10 @@ impl<'a> DecoratedLocation<'a> {
 
     pub fn apply_invariant(&self, zone: &mut Federation) -> bool {
         if let Some(inv) = self.get_location().get_invariant() {
-            apply_constraints_to_state(&inv, self.decls, zone)
+            match apply_constraints_to_state(&inv, self.decls, zone) {
+                Ok(x) => x,
+                Err(e) => panic!("Erorr due to: {}", e), //TODO: Fix/Remove panic
+            }
         } else {
             true
         }

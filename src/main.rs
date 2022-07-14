@@ -26,11 +26,11 @@ use System::executable_query::QueryResult;
 #[macro_use]
 extern crate pest_derive;
 extern crate colored;
+extern crate core;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
-extern crate core;
 
 // The debug version
 #[macro_export]
