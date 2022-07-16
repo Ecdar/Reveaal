@@ -6,6 +6,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::ops;
+//use serde::de::Unexpected::Option;
+use serde_json::Value;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -329,7 +331,54 @@ impl BoolExpression {
             BoolExpression::Parentheses(inner) => {
                 value = Some((**inner).clone());
             }
-            _ => {}
+
+            BoolExpression::LessEQ(l, r) => {
+                **l = l.simplify().expect("Can't simplify");
+                **r = r.simplify().expect("Can't simplify");
+                if let ArithExpression::Int(x) = **l {
+                    if let ArithExpression::Int(y) = **r {
+                        value = Some(BoolExpression::Bool(x <= y))
+                    }
+                }
+            }
+            BoolExpression::GreatEQ(l, r) => {
+                **l = l.simplify().expect("Can't simplify");
+                **r = r.simplify().expect("Can't simplify");
+                if let ArithExpression::Int(x) = **l {
+                    if let ArithExpression::Int(y) = **r {
+                        value = Some(BoolExpression::Bool(x >= y))
+                    }
+                }
+            }
+            BoolExpression::LessT(l, r) => {
+                **l = l.simplify().expect("Can't simplify");
+                **r = r.simplify().expect("Can't simplify");
+                if let ArithExpression::Int(x) = **l {
+                    if let ArithExpression::Int(y) = **r {
+                        value = Some(BoolExpression::Bool(x < y))
+                    }
+                }
+            }
+            BoolExpression::GreatT(l, r) => {
+                **l = l.simplify().expect("Can't simplify");
+                **r = r.simplify().expect("Can't simplify");
+                if let ArithExpression::Int(x) = **l {
+                    if let ArithExpression::Int(y) = **r {
+                        value = Some(BoolExpression::Bool(x > y))
+                    }
+                }
+            }
+            BoolExpression::EQ(l, r) => {
+                **l = l.simplify().expect("Can't simplify");
+                **r = r.simplify().expect("Can't simplify");
+                if let ArithExpression::Int(x) = **l {
+                    if let ArithExpression::Int(y) = **r {
+                        value = Some(BoolExpression::Bool(x == y))
+                    }
+                }
+            }
+            BoolExpression::Arithmetic(x) => **x = x.simplify().expect("Can't simplify"),
+            BoolExpression::Bool(_) => {}
         }
 
         if let Some(new_val) = value {
@@ -594,23 +643,6 @@ impl ArithExpression {
         }
     }
 
-    pub fn conjunction(guards: &mut Vec<BoolExpression>) -> BoolExpression {
-        let num_guards = guards.len();
-
-        if let Some(guard) = guards.pop() {
-            if num_guards == 1 {
-                guard
-            } else {
-                BoolExpression::AndOp(
-                    Box::new(guard),
-                    Box::new(BoolExpression::conjunction(guards)),
-                )
-            }
-        } else {
-            BoolExpression::Bool(false)
-        }
-    }
-
     pub fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
         match left {
             ArithExpression::Clock(clock_id) => {
@@ -664,16 +696,347 @@ impl ArithExpression {
         }
     }
 
-    pub fn simplify(&mut self) {
-        while self.simplify_helper() {}
+    pub fn simplify(&self) -> Result<ArithExpression, String> {
+        let mut out = self.clone();
+        let mut diffs: Vec<(ArithExpression, String, bool)> = vec![];
+        let mut op = String::from("");
+        while let Some(x) = out.move_diffs(op)? {
+            op = x.1.clone();
+            diffs.push(x);
+        }
+        while let Some((val, op, right)) = diffs.pop() {
+            match op.as_str() {
+                "-" => {
+                    if right {
+                        out = ArithExpression::ADif(out, val);
+                    } else {
+                        out = ArithExpression::ADif(val, out);
+                    }
+                }
+                "+" => {
+                    if right {
+                        out = ArithExpression::Addition(Box::new(out), Box::new(val));
+                    } else {
+                        out = ArithExpression::Addition(Box::new(val), Box::new(out));
+                    }
+                }
+                "*" => {
+                    if right {
+                        out = ArithExpression::Multiplication(Box::new(out), Box::new(val));
+                    } else {
+                        out = ArithExpression::Multiplication(Box::new(val), Box::new(out));
+                    }
+                }
+                "/" => {
+                    if right {
+                        out = ArithExpression::Division(Box::new(out), Box::new(val));
+                    } else {
+                        out = ArithExpression::Division(Box::new(val), Box::new(out));
+                    }
+                }
+                "%" => {
+                    if right {
+                        out = ArithExpression::Modulo(Box::new(out), Box::new(val));
+                    } else {
+                        out = ArithExpression::Modulo(Box::new(val), Box::new(out));
+                    }
+                }
+                "" => out = val,
+                _ => panic!("Should return Err"),
+            }
+        }
+        while out.simplify_helper() {}
+        Ok(out)
     }
 
-    //TODO: Create
+    fn move_diffs(
+        &mut self,
+        prev_op: String,
+    ) -> Result<Option<(ArithExpression, String, bool)>, String> {
+        let mut switch: Option<ArithExpression> = None;
+        let out = match self {
+            ArithExpression::Parentheses(inner) => inner.move_diffs(prev_op),
+            ArithExpression::Clock(x) => {
+                switch = Some(ArithExpression::Int(0));
+                Ok(Some((ArithExpression::Clock(*x), prev_op, false)))
+            }
+            ArithExpression::VarName(string) => {
+                switch = Some(ArithExpression::Int(0));
+                Ok(Some((
+                    ArithExpression::VarName(string.clone()),
+                    prev_op,
+                    false,
+                )))
+            }
+            ArithExpression::Difference(l, r) => match &**l {
+                ArithExpression::Clock(x) => {
+                    switch = Some(*r.clone());
+                    Ok(Some((ArithExpression::Clock(*x), "-".to_string(), false)))
+                }
+                ArithExpression::VarName(s) => {
+                    switch = Some(*r.clone());
+                    Ok(Some((
+                        ArithExpression::VarName(s.clone()),
+                        "-".to_string(),
+                        false,
+                    )))
+                }
+                _ => Err("Not correct ArithExpression"),
+            }
+            .or_else(|_| match &**r {
+                ArithExpression::Clock(x) => {
+                    switch = Some(*l.clone());
+                    Ok(Some((ArithExpression::Clock(*x), "-".to_string(), true)))
+                }
+                ArithExpression::VarName(s) => {
+                    switch = Some(*l.clone());
+                    Ok(Some((
+                        ArithExpression::VarName(s.clone()),
+                        "-".to_string(),
+                        true,
+                    )))
+                }
+                _ => Err("Not correct ArithExpression"),
+            })
+            .or(l.move_diffs(prev_op.clone()))
+            .and_then(|res| {
+                if res == None {
+                    Err("".to_string())
+                } else {
+                    Ok(res)
+                }
+            })
+            .or(r.move_diffs(prev_op.clone())),
+            ArithExpression::Addition(l, r) => match &**l {
+                ArithExpression::Clock(x) => {
+                    switch = Some(*r.clone());
+                    Ok(Some((ArithExpression::Clock(*x), "+".to_string(), false)))
+                }
+                ArithExpression::VarName(s) => {
+                    switch = Some(*r.clone());
+                    Ok(Some((
+                        ArithExpression::VarName(s.clone()),
+                        "+".to_string(),
+                        false,
+                    )))
+                }
+                _ => Err("Not correct ArithExpression"),
+            }
+            .or_else(|_| match &**r {
+                ArithExpression::Clock(x) => {
+                    switch = Some(*l.clone());
+                    Ok(Some((ArithExpression::Clock(*x), "+".to_string(), true)))
+                }
+                ArithExpression::VarName(s) => {
+                    switch = Some(*l.clone());
+                    Ok(Some((
+                        ArithExpression::VarName(s.clone()),
+                        "+".to_string(),
+                        true,
+                    )))
+                }
+                _ => Err("Not correct ArithExpression"),
+            })
+            .or(l.move_diffs(prev_op.clone()))
+            .and_then(|res| {
+                if res == None {
+                    Err("".to_string())
+                } else {
+                    Ok(res)
+                }
+            })
+            .or(r.move_diffs(prev_op.clone())),
+            ArithExpression::Multiplication(l, r) => {
+                let res = match &**l {
+                    ArithExpression::Clock(x) => {
+                        return Err("Can't parse multiplication with clocks".to_string());
+                    }
+                    ArithExpression::VarName(s) => {
+                        switch = Some(*r.clone());
+                        Ok(Some((
+                            ArithExpression::VarName(s.clone()),
+                            "*".to_string(),
+                            false,
+                        )))
+                    }
+                    _ => Err("Not correct ArithExpression".to_string()),
+                };
+                if res.is_err() {
+                    match &**r {
+                        ArithExpression::Clock(x) => {
+                            return Err("Can't parse multiplication with clocks".to_string());
+                        }
+                        ArithExpression::VarName(s) => {
+                            switch = Some(*l.clone());
+                            Ok(Some((
+                                ArithExpression::VarName(s.clone()),
+                                "*".to_string(),
+                                true,
+                            )))
+                        }
+                        _ => Err("Not correct ArithExpression".to_string()),
+                    }
+                    .or(l.move_diffs(prev_op.clone()))
+                    .and_then(|res| {
+                        if res == None {
+                            Err("".to_string())
+                        } else {
+                            Ok(res)
+                        }
+                    })
+                    .or(r.move_diffs(prev_op.clone()))
+                } else {
+                    res
+                }
+            }
+            ArithExpression::Division(l, r) => {
+                let res = match &**l {
+                    ArithExpression::Clock(x) => {
+                        return Err("Can't parse division with clocks".to_string());
+                    }
+                    ArithExpression::VarName(s) => {
+                        switch = Some(*r.clone());
+                        Ok(Some((
+                            ArithExpression::VarName(s.clone()),
+                            "/".to_string(),
+                            false,
+                        )))
+                    }
+                    _ => Err("Not correct ArithExpression".to_string()),
+                };
+                if res.is_err() {
+                    match &**r {
+                        ArithExpression::Clock(x) => {
+                            return Err("Can't parse division with clocks".to_string());
+                        }
+                        ArithExpression::VarName(s) => {
+                            switch = Some(*l.clone());
+                            Ok(Some((
+                                ArithExpression::VarName(s.clone()),
+                                "/".to_string(),
+                                true,
+                            )))
+                        }
+                        _ => Err("Not correct ArithExpression".to_string()),
+                    }
+                    .or(l.move_diffs(prev_op.clone()))
+                    .and_then(|res| {
+                        if res == None {
+                            Err("".to_string())
+                        } else {
+                            Ok(res)
+                        }
+                    })
+                    .or(r.move_diffs(prev_op.clone()))
+                } else {
+                    res
+                }
+            }
+            ArithExpression::Modulo(l, r) => {
+                let res = match &**l {
+                    ArithExpression::Clock(x) => {
+                        return Err("Can't parse modulo with clocks".to_string());
+                    }
+                    ArithExpression::VarName(s) => {
+                        switch = Some(*r.clone());
+                        Ok(Some((
+                            ArithExpression::VarName(s.clone()),
+                            "%".to_string(),
+                            false,
+                        )))
+                    }
+                    _ => Err("Not correct ArithExpression".to_string()),
+                };
+                if res.is_err() {
+                    match &**r {
+                        ArithExpression::Clock(x) => {
+                            return Err("Can't parse modulo with clocks".to_string());
+                        }
+                        ArithExpression::VarName(s) => {
+                            switch = Some(*l.clone());
+                            Ok(Some((
+                                ArithExpression::VarName(s.clone()),
+                                "%".to_string(),
+                                true,
+                            )))
+                        }
+                        _ => Err("Not correct ArithExpression".to_string()),
+                    }
+                    .or(l.move_diffs(prev_op.clone()))
+                    .and_then(|res| {
+                        if res == None {
+                            Err("".to_string())
+                        } else {
+                            Ok(res)
+                        }
+                    })
+                    .or(r.move_diffs(prev_op.clone()))
+                } else {
+                    res
+                }
+            }
+            ArithExpression::Int(_) => Ok(None),
+        };
+        if let Some(x) = switch {
+            *self = x;
+        }
+        out
+    }
+
     fn simplify_helper(&mut self) -> bool {
         let mut changed = false;
-        //let mut value = None;
+        let mut value: Option<ArithExpression> = None;
+        match self {
+            ArithExpression::Parentheses(inner) => {
+                value = Some((**inner).clone());
+            }
+            ArithExpression::Difference(l, r) => {
+                //let (l, r) = (l.simplify(), r.simplify());
+                changed = l.simplify_helper() | r.simplify_helper();
+                if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
+                {
+                    value = Some(ArithExpression::Int(x - y));
+                }
+            }
+            ArithExpression::Addition(l, r) => {
+                changed = l.simplify_helper() | r.simplify_helper();
+                if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
+                {
+                    value = Some(ArithExpression::Int(x + y));
+                }
+            }
+            ArithExpression::Multiplication(l, r) => {
+                changed = l.simplify_helper() | r.simplify_helper();
+                if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
+                {
+                    value = Some(ArithExpression::Int(x * y));
+                }
+            }
+            ArithExpression::Division(l, r) => {
+                changed = l.simplify_helper() | r.simplify_helper();
+                if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
+                {
+                    value = Some(ArithExpression::Int(x / y));
+                }
+            }
+            ArithExpression::Modulo(l, r) => {
+                changed = l.simplify_helper() | r.simplify_helper();
+                if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
+                {
+                    value = Some(ArithExpression::Int(x % y));
+                }
+            }
+            ArithExpression::Clock(_) => {}
+            ArithExpression::VarName(_) => {}
+            ArithExpression::Int(_) => {}
+        }
 
-        changed
+        if let Some(new_val) = value {
+            *self = new_val;
+            true
+        } else {
+            changed
+        }
     }
 
     pub fn APar(inner: ArithExpression) -> ArithExpression {
@@ -692,6 +1055,60 @@ impl ArithExpression {
         }
 
         ArithExpression::Difference(Box::new(left), Box::new(right))
+    }
+
+    pub fn AAdd(left: ArithExpression, right: ArithExpression) -> ArithExpression {
+        if let ArithExpression::Int(0) = right {
+            return left;
+        } else if let ArithExpression::Int(0) = left {
+            return right;
+        }
+
+        if let ArithExpression::Int(i) = left {
+            if let ArithExpression::Int(j) = right {
+                return ArithExpression::Int(i + j);
+            }
+        }
+
+        ArithExpression::Addition(Box::new(left), Box::new(right))
+    }
+
+    pub fn AMul(left: ArithExpression, right: ArithExpression) -> ArithExpression {
+        if right == ArithExpression::Int(0) || left == ArithExpression::Int(0) {
+            return ArithExpression::Int(0);
+        }
+
+        if let ArithExpression::Int(i) = left {
+            if let ArithExpression::Int(j) = right {
+                return ArithExpression::Int(i * j);
+            }
+        }
+
+        ArithExpression::Multiplication(Box::new(left), Box::new(right))
+    }
+
+    pub fn ADiv(left: ArithExpression, right: ArithExpression) -> ArithExpression {
+        if right == ArithExpression::Int(0) || left == ArithExpression::Int(0) {
+            return ArithExpression::Int(0);
+        }
+
+        if let ArithExpression::Int(i) = left {
+            if let ArithExpression::Int(j) = right {
+                return ArithExpression::Int(i / j);
+            }
+        }
+
+        ArithExpression::Division(Box::new(left), Box::new(right))
+    }
+
+    pub fn AMod(left: ArithExpression, right: ArithExpression) -> ArithExpression {
+        if let ArithExpression::Int(i) = left {
+            if let ArithExpression::Int(j) = right {
+                return ArithExpression::Int(i % j);
+            }
+        }
+
+        ArithExpression::Modulo(Box::new(left), Box::new(right))
     }
 }
 
@@ -735,6 +1152,11 @@ impl Display for ArithExpression {
 pub trait Expression {}
 impl Expression for BoolExpression {}
 impl Expression for ArithExpression {}
+
+pub struct Clock {
+    pub value: u32,
+    pub negated: bool,
+}
 
 fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
     match exp.as_ref() {

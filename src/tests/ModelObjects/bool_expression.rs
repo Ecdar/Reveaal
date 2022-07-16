@@ -10,4 +10,11 @@ mod bool_expression {
         expr.simplify();
         assert_eq!(Bool(true), expr);
     }
+
+    #[test]
+    fn simplify_test2() {
+        let mut expr = BE::BLessEQ(Int(2), Int(3));
+        expr.simplify();
+        assert_eq!(Bool(true), expr);
+    }
 }
