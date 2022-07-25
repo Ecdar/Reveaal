@@ -1,10 +1,9 @@
-use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component::{Declarations, State, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
+use crate::ModelObjects::component::Transition;
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
+use super::common::ComposedTransitionSystem;
 use super::CompositionType;
 
 #[derive(Clone)]
@@ -68,8 +67,7 @@ impl Composition {
     }
 }
 
-impl TransitionSystem for Composition {
-    default_composition!();
+impl ComposedTransitionSystem for Composition {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
@@ -105,23 +103,6 @@ impl TransitionSystem for Composition {
 
     fn is_locally_consistent(&self) -> bool {
         self.left.is_locally_consistent() && self.right.is_locally_consistent()
-        //local_consistency::is_least_consistent(self)
-    }
-
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
-        let mut location_tuples = vec![];
-        let left = self.left.get_all_locations();
-        let right = self.right.get_all_locations();
-        for loc1 in &left {
-            for loc2 in &right {
-                location_tuples.push(LocationTuple::compose(
-                    &loc1,
-                    &loc2,
-                    self.get_composition_type(),
-                ));
-            }
-        }
-        location_tuples
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
@@ -130,5 +111,17 @@ impl TransitionSystem for Composition {
 
     fn get_composition_type(&self) -> CompositionType {
         CompositionType::Composition
+    }
+
+    fn get_dim(&self) -> u32 {
+        self.dim
+    }
+
+    fn get_input_actions(&self) -> HashSet<String> {
+        self.inputs.clone()
+    }
+
+    fn get_output_actions(&self) -> HashSet<String> {
+        self.outputs.clone()
     }
 }
