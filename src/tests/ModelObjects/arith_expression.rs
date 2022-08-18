@@ -4,22 +4,24 @@ mod arith_expression {
     use AE::*;
     #[test]
     fn simplify_test1() {
-        let mut expr = AE::ADif(Int(10), Int(5));
+        let mut expr = AE::ADif(Int(10), Int(5)); //10 - 5
         assert_eq!(Ok(Int(5)), expr.simplify());
 
-        let mut expr = AE::AAdd(Int(10), Int(5));
+        let mut expr = AE::AAdd(Int(10), Int(5)); //10 + 5
         assert_eq!(Ok(Int(15)), expr.simplify());
     }
 
     #[test]
     fn simplify_test2() {
         let mut expr = Multiplication(
+            //(10 - 5) * (5 + 3)
             Box::new(AE::ADif(Int(10), Int(5))),
             Box::new(AE::AAdd(Int(5), Int(3))),
         );
         assert_eq!(Ok(Int(40)), expr.simplify());
 
         let mut expr = Multiplication(
+            //(10 + 5) * (5 - 3)
             Box::new(AE::AAdd(Int(10), Int(5))),
             Box::new(AE::ADif(Int(5), Int(3))),
         );
@@ -27,10 +29,9 @@ mod arith_expression {
     }
     #[test]
     fn simplify_test3() {
-        //5-(4-(3-2))
         let mut expr = AE::ADif(
             Clock(1),
-            AE::ADif(Int(5), AE::ADif(Int(4), AE::ADif(Int(3), Int(2)))),
+            AE::ADif(Int(5), AE::ADif(Int(4), AE::ADif(Int(3), Int(2)))), //5-(4-(3-2))
         );
         assert_eq!(Ok(AE::ADif(Clock(1), Int(2))), expr.simplify());
 

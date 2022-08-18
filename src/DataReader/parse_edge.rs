@@ -2,7 +2,7 @@ extern crate pest;
 use crate::component::Component;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::representations::BoolExpression::Bool;
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Expression};
+use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::{
     DataReader::serialization::{encode_arithexpr, encode_boolexpr},
@@ -176,7 +176,6 @@ fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
 
 fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
     match pair.as_rule() {
-        //Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
             let inner_pair = pair.into_inner().next().unwrap();
             BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
@@ -185,8 +184,6 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpressi
         Rule::and => build_and_from_pair(pair),
         Rule::or => build_or_from_pair(pair),
         Rule::compareExpr => build_compareExpr_from_pair(pair),
-        //Rule::sub_add => build_sub_add_from_pair(pair),
-        //Rule::mult_div_mod => build_mult_div_mod_from_pair(pair),
         Rule::terms => build_expression_from_pair(pair.into_inner().next().unwrap()),
         Rule::term => BoolExpression::Arithmetic(Box::new(build_term_from_pair(pair))),
         unknown => panic!("Got unknown pair: {:?}", unknown),
@@ -195,17 +192,6 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpressi
 
 fn build_arithmetic_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
     match pair.as_rule() {
-        /*
-        Rule::term => build_term_from_pair(pair),
-        Rule::parenthesizedExp => {
-            let inner_pair = pair.into_inner().next().unwrap();
-            BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
-        }
-        Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
-        Rule::and => build_and_from_pair(pair),
-        Rule::or => build_or_from_pair(pair),
-        Rule::compareExpr => build_compareExpr_from_pair(pair),
-         */
         Rule::expression => {
             build_arithmetic_expression_from_pair(pair.into_inner().next().unwrap())
         }

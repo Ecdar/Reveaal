@@ -466,83 +466,67 @@ fn test_get_indices_mix_expr() {
     assert_eq!(get_indices(&left, &right, &decl), Ok((10, 10, 1)));
 }
 
-//TODO: Update functions for getting constant and clocks based on nwq simplify
-
 /// Assumes that the constraint is of the form left <?= right
 fn get_indices(
     left: &ArithExpression,
     right: &ArithExpression,
     d: &Declarations,
 ) -> Result<(u32, u32, i32), String> {
-    let clocks_left = clock_count(left, d);
-    let clocks_right = clock_count(right, d);
+    let left = &(replace_vars(left, d).simplify())?;
+    let right = &(replace_vars(right, d).simplify())?;
+    let (clocks_left, clocks_right) = (left.clock_var_count(), right.clock_var_count());
+
     if clocks_left + clocks_right > 2 {
         return Err(String::from("Too many clocks"));
     }
-    let left = &(replace_vars(left, d).simplify())?;
-    let right = &(replace_vars(right, d).simplify())?;
 
-    let constant = get_const(right, d) - get_const(left, d);
+    let (left_const, right_const) = (get_const(left, d), get_const(right, d));
+    let constant = right_const - left_const;
 
-    let result: Result<(u32, u32, i32), String> = if clocks_left + clocks_right > 2 {
-        Err(String::from("Too many clocks"))
-    } else if clocks_left + clocks_right == 2 {
-        if clocks_left == 1 {
-            let (l, _) = get_clock_val(left, d)?;
-            let (r, _) = get_clock_val(right, d)?;
-            if l.negated != r.negated {
-                Err(String::from("Same sign"))
-            } else if l.negated == true {
-                Ok((r.value, l.value, constant))
+    let result: Result<(u32, u32, i32), String> = match (clocks_left, clocks_right) {
+        (1, 1) => {
+            let (c1, c2) = (
+                get_clock_val(left, d, 1, false)?.0,
+                get_clock_val(right, d, 1, false)?.0,
+            );
+            combine_clocks(c1, c2, constant, true)
+            //Err(String::from("temp"))
+        }
+        (2, 0) => {
+            let (c1, c2) = get_clock_val(left, d, 2, false)?;
+            combine_clocks(c1, c2.unwrap(), constant, false)
+        }
+        (0, 2) => {
+            let (mut c1, c2) = get_clock_val(right, d, 2, false)?;
+            let mut c2 = c2.unwrap();
+            c1.invert();
+            c2.invert();
+            combine_clocks(c1, c2, constant, false)
+        }
+        (1, 0) => {
+            let c = get_clock_val(left, d, 1, false)?.0;
+            if c.negated {
+                Ok((0, c.value, constant))
             } else {
-                Ok((l.value, r.value, constant))
-            }
-        } else if clocks_left == 2 {
-            let (v1, v2) = get_clock_val(left, d)?;
-            let v2 = v2.unwrap();
-            if v1.negated == v2.negated {
-                Err(String::from("Same sign"))
-            } else if v1.negated == true {
-                Ok((v2.value, v1.value, constant))
-            } else {
-                Ok((v1.value, v2.value, constant))
-            }
-        } else {
-            let (v1, v2) = get_clock_val(right, d)?;
-            let v2 = v2.unwrap();
-            if v1.negated == v2.negated {
-                Err(String::from("Same sign"))
-            } else if v1.negated == true {
-                Ok((v1.value, v2.value, constant))
-            } else {
-                Ok((v2.value, v1.value, constant))
+                Ok((c.value, 0, constant))
             }
         }
-    } else {
-        if clocks_left == 1 {
-            let (v, _) = get_clock_val(left, d)?;
-            if v.negated {
-                Ok((0, v.value, constant))
+        (0, 1) => {
+            let c = get_clock_val(right, d, 1, false)?.0;
+            if !c.negated {
+                Ok((0, c.value, constant))
             } else {
-                Ok((v.value, 0, constant))
+                Ok((c.value, 0, constant))
             }
-        } else if clocks_right == 1 {
-            let (v, _) = get_clock_val(right, d)?;
-            if !v.negated {
-                Ok((0, v.value, constant))
+        }
+        _ => {
+            if left_const.is_negative() {
+                Ok((0, (-left_const) as u32, right_const))
             } else {
-                Ok((v.value, 0, constant))
-            }
-        } else {
-            let lhs = get_const(left, d);
-            if lhs.is_negative() {
-                Ok((0, (-lhs) as u32, get_const(right, d)))
-            } else {
-                Ok((lhs as u32, 0, get_const(right, d)))
+                Ok((left_const as u32, 0, right_const))
             }
         }
     };
-
     result
 }
 
@@ -582,33 +566,6 @@ fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> ArithExpression
         ArithExpression::Int(i) => ArithExpression::Int(*i),
     }
 }
-/*
-fn pull_clock(expr: &ArithExpression, decls: &Declarations) -> Option<(Clock, ArithExpression)> {
-    match expr {
-        ArithExpression::Parentheses(inner) => pull_clock(inner, decls),
-        ArithExpression::Difference(l, r) => {
-            if let Some((mut c, mut a)) = pull_clock(r, decls) {
-
-            }
-        }
-
-
-
-        ArithExpression::Addition(l, r) =>
-            ArithExpression::AAdd(replace_vars(&l, decls), replace_vars(&r, decls)),
-        ArithExpression::Multiplication(l, r) =>
-            ArithExpression::AMul(replace_vars(&l, decls), replace_vars(&r, decls)),
-        ArithExpression::Division(l, r) =>
-            ArithExpression::ADiv(replace_vars(&l, decls), replace_vars(&r, decls)),
-        ArithExpression::Modulo(l, r) =>
-            ArithExpression::AMod(replace_vars(&l, decls), replace_vars(&r, decls)),
-        ArithExpression::Clock(x) => ArithExpression::Clock(*x),
-
-        ArithExpression::VarName(name) => None,
-        ArithExpression::Int(i) => None,
-    }
-}
- */
 
 fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
     match expr {
@@ -629,196 +586,73 @@ fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
     }
 }
 
+fn combine_clocks(
+    c1: Clock,
+    c2: Clock,
+    constant: i32,
+    same_sign: bool,
+) -> Result<(u32, u32, i32), String> {
+    if same_sign && c1.negated != c2.negated {
+        Err(String::from("Same sign"))
+    } else if !same_sign && c1.negated == c2.negated {
+        Err(String::from("Same sign"))
+    } else {
+        if c1.negated == false {
+            Ok((c1.value, c2.value, constant))
+        } else {
+            Ok((c2.value, c1.value, constant))
+        }
+    }
+}
+
 fn get_clock_val(
     expression: &ArithExpression,
     decls: &Declarations,
+    count: i32,
+    negated: bool,
 ) -> Result<(Clock, Option<Clock>), String> {
-    let mut parents: Vec<&ArithExpression> = vec![];
-
-    let total_count = clock_count(expression, decls);
-    let mut cur_expr: Option<&ArithExpression> = Some(expression);
-    let mut new_val: Option<Clock> = None;
-    let mut neg: bool = false;
-    let mut go_right: bool = false;
-    while let Some(e) = cur_expr {
-        match e {
-            ArithExpression::Clock(x) => {
-                if let Some(y) = new_val {
-                    return Ok((
-                        y,
-                        Some(Clock {
-                            value: *x,
-                            negated: neg,
-                        }),
-                    ));
-                } else if total_count == 1 {
-                    return Ok((
-                        Clock {
-                            value: *x,
-                            negated: neg,
-                        },
-                        None,
-                    ));
-                } else {
-                    new_val = Some(Clock {
-                        value: *x,
-                        negated: neg,
-                    });
-                    cur_expr = parents.pop();
-                    go_right = true;
-                }
-            }
-            ArithExpression::Int(_) => {
-                cur_expr = parents.pop();
-            }
-            ArithExpression::VarName(name) => {
-                if let Some(x) = decls.get_clocks().get(name).and_then(|o| Some(*o)) {
-                    if let Some(y) = new_val {
-                        return Ok((
-                            y,
-                            Some(Clock {
-                                value: x,
-                                negated: neg,
-                            }),
-                        ));
-                    } else if total_count == 1 {
-                        return Ok((
-                            Clock {
-                                value: x,
-                                negated: neg,
-                            },
-                            None,
-                        ));
-                    } else {
-                        new_val = Some(Clock {
-                            value: x,
-                            negated: neg,
-                        });
-                        cur_expr = parents.pop();
-                        go_right = true;
-                    }
-                } else {
-                    cur_expr = parents.pop();
-                }
-            }
-            ArithExpression::Difference(l, r) => {
-                let left = clock_count(l, decls);
-                let right = clock_count(r, decls);
-                if left == 2 {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                } else if right == 2 || (right == 1 && go_right) || left == 0 {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    neg = true;
-                } else {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                }
-            }
-            ArithExpression::Addition(l, r) => {
-                let left = clock_count(l, decls);
-                let right = clock_count(r, decls);
-                if left == 2 {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                } else if right == 2 || (right == 1 && go_right) || left == 0 {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    neg = false;
-                } else {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                }
-            }
-            ArithExpression::Multiplication(l, r) => {
-                return Err(format!("Multiplication with clock is illegal"));
-                if new_val.is_some() {
-                    return Err(format!("Multiplication with clock is illegal"));
-                }
-                let left = clock_count(l, decls);
-                let right = clock_count(r, decls);
-                if left == 2 {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                } else if right == 2 || (right == 1 && go_right) {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    neg = false;
-                } else {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                }
-            }
-            ArithExpression::Division(l, r) => {
-                return Err(format!("Division with clock is illegal"));
-                if new_val.is_some() {
-                    return Err(format!("Division with clock is illegal"));
-                }
-                let left = clock_count(l, decls);
-                let right = clock_count(r, decls);
-                if left == 2 {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                } else if right == 2 || (right == 1 && go_right) {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    neg = false;
-                } else {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                }
-            }
-            ArithExpression::Modulo(l, r) => {
-                return Err(format!("Modulo with clock is illegal"));
-                if new_val.is_some() {
-                    return Err(format!("Modulo with clock is illegal"));
-                }
-                let left = clock_count(l, decls);
-                let right = clock_count(r, decls);
-                if left == 2 {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                } else if right == 2 || (right == 1 && go_right) {
-                    parents.push(e);
-                    cur_expr = Some(r);
-                    neg = false;
-                } else {
-                    parents.push(e);
-                    cur_expr = Some(l);
-                    neg = false;
-                }
-            }
-            _ => panic!("lol"),
-        };
-    }
-    Ok((new_val.unwrap(), None))
-}
-
-fn clock_count(expr: &ArithExpression, decls: &Declarations) -> i32 {
-    match expr {
-        ArithExpression::Clock(_) => 1,
-        ArithExpression::VarName(name) => {
-            if let Some(_) = decls.get_clocks().get(name) {
-                1
+    let mut nxt_expr: Option<&ArithExpression> = None;
+    let mut nxt_negated = false;
+    let val = match expression {
+        ArithExpression::Parentheses(inner) => get_clock_val(inner, decls, count, negated)?.0,
+        ArithExpression::Difference(l, r) => {
+            if let ArithExpression::Clock(x) = **l {
+                nxt_expr = Some(&**r);
+                nxt_negated = true;
+                Clock::pos(x)
+            } else if let ArithExpression::Clock(x) = **r {
+                nxt_expr = Some(&**l);
+                Clock::neg(x)
             } else {
-                0
+                return Err(String::from("No Clocks"));
             }
         }
-        ArithExpression::Difference(l, r) => clock_count(l, decls) + clock_count(r, decls),
-        ArithExpression::Addition(l, r) => clock_count(l, decls) + clock_count(r, decls),
-        ArithExpression::Multiplication(l, r) => clock_count(l, decls) + clock_count(r, decls),
-        ArithExpression::Division(l, r) => clock_count(l, decls) + clock_count(r, decls),
-        ArithExpression::Modulo(l, r) => clock_count(l, decls) + clock_count(r, decls),
-        _ => 0,
+        ArithExpression::Addition(l, r) => {
+            if let ArithExpression::Clock(x) = **l {
+                nxt_expr = Some(&**r);
+                Clock::pos(x)
+            } else if let ArithExpression::Clock(x) = **r {
+                nxt_expr = Some(&**l);
+                Clock::pos(x)
+            } else {
+                return Err(String::from("No Clocks"));
+            }
+        }
+        ArithExpression::Multiplication(_, _)
+        | ArithExpression::Division(_, _)
+        | ArithExpression::Modulo(_, _) => {
+            return Err(format!("Multiplication with clock is illegal"));
+        }
+        ArithExpression::Clock(x) => Clock::new(*x, negated),
+        _ => return Err(String::from("No Clocks")),
+    };
+
+    if count > 1 {
+        Ok((
+            val,
+            Some(get_clock_val(nxt_expr.unwrap(), decls, count - 1, nxt_negated)?.0),
+        ))
+    } else {
+        Ok((val, None))
     }
 }
