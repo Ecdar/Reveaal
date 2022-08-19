@@ -490,7 +490,6 @@ fn get_indices(
                 get_clock_val(right, d, 1, false)?.0,
             );
             combine_clocks(c1, c2, constant, true)
-            //Err(String::from("temp"))
         }
         (2, 0) => {
             let (c1, c2) = get_clock_val(left, d, 2, false)?;
@@ -592,9 +591,7 @@ fn combine_clocks(
     constant: i32,
     same_sign: bool,
 ) -> Result<(u32, u32, i32), String> {
-    if same_sign && c1.negated != c2.negated {
-        Err(String::from("Same sign"))
-    } else if !same_sign && c1.negated == c2.negated {
+    if (same_sign && c1.negated != c2.negated) || (!same_sign && c1.negated == c2.negated) {
         Err(String::from("Same sign"))
     } else {
         if c1.negated == false {
