@@ -826,7 +826,7 @@ impl ArithExpression {
     pub fn clock_var_count(&self) -> u32 {
         match self {
             ArithExpression::Clock(_) => 1,
-            ArithExpression::VarName(name) => 1,
+            ArithExpression::VarName(_) => 1,
             ArithExpression::Parentheses(inner) => inner.clock_var_count(),
             ArithExpression::Difference(l, r)
             | ArithExpression::Addition(l, r)
@@ -948,7 +948,7 @@ impl Display for ArithExpression {
 }
 
 /// Variants represent whether the clock was on the rhs of an expression or not (true == right)
-#[derive(Debug, Clone, Deserialize, std::cmp::PartialEq, std::cmp::Eq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 enum Operation {
     Dif(bool),
     Add(bool),

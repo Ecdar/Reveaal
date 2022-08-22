@@ -481,7 +481,7 @@ fn create_state(location: &Location, decl: &Declarations, zone: Federation) -> S
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
-#[derive(Clone, std::cmp::PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct State {
     pub decorated_locations: LocationTuple,
     pub zone: Federation,
@@ -521,7 +521,7 @@ impl State {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq, std::cmp::Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub enum LocationType {
     Normal,
     Initial,
@@ -529,7 +529,7 @@ pub enum LocationType {
     Inconsistent,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(into = "DummyLocation")]
 pub struct Location {
     pub id: String,
@@ -537,7 +537,7 @@ pub struct Location {
         deserialize_with = "decode_invariant",
         serialize_with = "encode_opt_boolexpr"
     )]
-    pub invariant: Option<representations::BoolExpression>,
+    pub invariant: Option<BoolExpression>,
     #[serde(
         deserialize_with = "decode_location_type",
         serialize_with = "encode_location_type",
@@ -552,7 +552,7 @@ impl Location {
     pub fn get_id(&self) -> &String {
         &self.id
     }
-    pub fn get_invariant(&self) -> &Option<representations::BoolExpression> {
+    pub fn get_invariant(&self) -> &Option<BoolExpression> {
         &self.invariant
     }
     pub fn get_location_type(&self) -> &LocationType {
@@ -602,7 +602,7 @@ impl Transition {
         }
 
         Transition {
-            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim), //TODO: FAILS HERE AFTER FOURTH 'L8&&L9'
+            guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim),
             target_locations,
             updates: compiled_updates,
         }
@@ -709,7 +709,7 @@ impl Transition {
     pub fn combine_edge_guards(edges: &Vec<(&Component, &Edge)>, dim: u32) -> Federation {
         let mut zone = Federation::full(dim);
         for (comp, edge) in edges {
-            edge.apply_guard(comp.get_declarations(), &mut zone); //TODO: FAILS HERE AT LOCATION 'L8&&L9'
+            edge.apply_guard(comp.get_declarations(), &mut zone);
         }
         zone
     }
@@ -755,7 +755,7 @@ impl fmt::Display for Transition {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, std::cmp::PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
     #[serde(rename = "sourceLocation")]
@@ -772,7 +772,7 @@ pub struct Edge {
         deserialize_with = "decode_guard",
         serialize_with = "encode_opt_boolexpr"
     )]
-    pub guard: Option<representations::BoolExpression>,
+    pub guard: Option<BoolExpression>,
     #[serde(
         deserialize_with = "decode_update",
         serialize_with = "encode_opt_updates"
@@ -782,7 +782,7 @@ pub struct Edge {
     pub sync: String,
 }
 
-const TRUE: representations::BoolExpression = representations::BoolExpression::Bool(true);
+const TRUE: BoolExpression = BoolExpression::Bool(true);
 impl fmt::Display for Edge {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
@@ -818,7 +818,7 @@ impl Edge {
         return if let Some(guards) = self.get_guard() {
             match apply_constraints_to_state(guards, decl, zone) {
                 Ok(x) => x,
-                Err(e) => panic!("Error du to: {}", e), //TODO: Fix/Remove panic
+                Err(e) => panic!("Error du to: {}", e),
             }
         } else {
             true
@@ -837,7 +837,7 @@ impl Edge {
         &self.sync_type
     }
 
-    pub fn get_guard(&self) -> &Option<representations::BoolExpression> {
+    pub fn get_guard(&self) -> &Option<BoolExpression> {
         &self.guard
     }
 
@@ -894,7 +894,7 @@ impl<'a> DecoratedLocation<'a> {
         if let Some(inv) = self.get_location().get_invariant() {
             match apply_constraints_to_state(&inv, self.decls, zone) {
                 Ok(x) => x,
-                Err(e) => panic!("Erorr due to: {}", e), //TODO: Fix/Remove panic
+                Err(e) => panic!("Erorr due to: {}", e),
             }
         } else {
             true
@@ -927,7 +927,7 @@ pub trait DeclarationProvider {
 }
 
 /// The declaration struct is used to hold the indices for each clock, and is meant to be the owner of int variables once implemented
-#[derive(Debug, Deserialize, Clone, std::cmp::PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String, i32>,
     pub clocks: HashMap<String, u32>,

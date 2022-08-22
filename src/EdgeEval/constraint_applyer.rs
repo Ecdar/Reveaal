@@ -11,7 +11,8 @@ pub fn apply_constraint(
     zone: &mut Federation,
 ) -> bool {
     return if let Some(guards) = constraint {
-        apply_constraints_to_state(guards, decls, zone).expect("Error due to: ")
+        apply_constraints_to_state(guards, decls, zone)
+            .expect(format!("Failed to apply constraint {:?}", guards).as_str())
     } else {
         true
     };
@@ -78,394 +79,6 @@ pub fn apply_constraints_to_state_helper(
     }
 }
 
-#[test]
-fn test_get_indices_int_clock() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-
-    let left = ArithExpression::Int(3);
-    let right = ArithExpression::Clock(1);
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), Some((0, 1, -3)));
-}
-
-#[test]
-fn test_get_indices_clock_int() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-
-    let left = ArithExpression::Clock(1);
-    let right = ArithExpression::Int(3);
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 0, 3)));
-}
-
-#[test]
-fn test_get_indices_clock_clock() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-
-    // i-j <= 0 -> i can at most be the value of j
-    let left = ArithExpression::Clock(1);
-    let right = ArithExpression::Clock(2);
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 2, 0)));
-}
-
-#[test]
-fn test_get_indices_diff_int() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    // i-j < c -> c1-c2 < 3
-    let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
-    let right = ArithExpression::Int(3);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 2, 3)));
-
-    let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Int(2));
-    let right = ArithExpression::Int(3);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 0, 5)));
-
-    let left = ArithExpression::ADif(ArithExpression::Int(1), ArithExpression::Clock(2));
-    let right = ArithExpression::Int(3);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((0, 2, 2)));
-}
-
-#[test]
-fn test_get_indices_int_diff() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    // i-j < c -> c1-c2 > 3 -> c2-c1 < -3
-    let left = ArithExpression::Int(3);
-    let right = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((2, 1, -3)));
-}
-
-#[test]
-fn test_get_indices_add_int() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(1)),
-        Box::new(ArithExpression::Clock(2)),
-    );
-    let right = ArithExpression::Int(4);
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-}
-
-#[test]
-fn test_get_indices_clock_diff_clock() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Clock(1);
-    let right = ArithExpression::ADif(ArithExpression::Clock(2), ArithExpression::Int(3));
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 2, -3)));
-
-    let left = ArithExpression::ADif(ArithExpression::Clock(2), ArithExpression::Int(3));
-    let right = ArithExpression::Clock(1);
-    assert_eq!(get_indices(&left, &right, &decl), Ok((2, 1, 3)));
-
-    let left = ArithExpression::ADif(ArithExpression::Int(2), ArithExpression::Clock(3));
-    let right = ArithExpression::Clock(1);
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-}
-
-#[test]
-fn test_get_indices_clock_add_clock() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(1)),
-        Box::new(ArithExpression::Int(2)),
-    );
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(3)),
-        Box::new(ArithExpression::Int(4)),
-    );
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, 2)));
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(1)),
-        Box::new(ArithExpression::Clock(2)),
-    );
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(3)),
-        Box::new(ArithExpression::Int(4)),
-    );
-    assert_eq!(get_indices(&left, &right, &decl), Ok((2, 3, 3)));
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(1)),
-        Box::new(ArithExpression::Int(2)),
-    );
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(3)),
-        Box::new(ArithExpression::Clock(4)),
-    );
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 4, 1)));
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(1)),
-        Box::new(ArithExpression::Clock(2)),
-    );
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(3)),
-        Box::new(ArithExpression::Clock(4)),
-    );
-    assert_eq!(get_indices(&left, &right, &decl), Ok((2, 4, 2)));
-}
-
-#[test]
-fn test_get_indices_clock_int_diff() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    // i-j < c -> c1-c2 > 3 -> c2-c1 < -3
-    let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Int(2));
-    let right = ArithExpression::ADif(ArithExpression::Clock(3), ArithExpression::Int(4));
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, -2)));
-
-    let left = ArithExpression::ADif(ArithExpression::Int(1), ArithExpression::Clock(2));
-    let right = ArithExpression::ADif(ArithExpression::Int(3), ArithExpression::Clock(4));
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((4, 2, 2)));
-}
-
-#[test]
-fn test_get_indices_clock_add_int() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Clock(1);
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(3)),
-        Box::new(ArithExpression::Int(4)),
-    );
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, 4)));
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(3)),
-        Box::new(ArithExpression::Int(4)),
-    );
-    let right = ArithExpression::Clock(1);
-    assert_eq!(get_indices(&left, &right, &decl), Ok((3, 1, -4)));
-}
-
-#[test]
-fn test_get_indices_int_add() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Int(3);
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Clock(1)),
-        Box::new(ArithExpression::Clock(2)),
-    );
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-}
-
-#[test]
-fn test_get_indices_high_operators() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Multiplication(
-        Box::new(ArithExpression::Clock(2)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    let right = ArithExpression::Int(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-
-    let left = ArithExpression::Multiplication(
-        Box::new(ArithExpression::Int(3)),
-        Box::new(ArithExpression::Clock(2)),
-    );
-    let right = ArithExpression::Int(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-
-    let left = ArithExpression::Division(
-        Box::new(ArithExpression::Clock(2)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    let right = ArithExpression::Int(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-
-    let left = ArithExpression::Modulo(
-        Box::new(ArithExpression::Clock(2)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    let right = ArithExpression::Int(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-
-    let left = ArithExpression::Multiplication(
-        Box::new(ArithExpression::Int(4)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    let right = ArithExpression::Clock(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -12)));
-
-    let left = ArithExpression::Division(
-        Box::new(ArithExpression::Int(4)),
-        Box::new(ArithExpression::Int(2)),
-    );
-    let right = ArithExpression::Clock(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -2)));
-
-    let left = ArithExpression::Modulo(
-        Box::new(ArithExpression::Int(4)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    let right = ArithExpression::Clock(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -1)));
-}
-
-#[test]
-fn test_get_indices_many_clocks() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
-    let right = Box::new(ArithExpression::Clock(3));
-
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-}
-
-#[test]
-fn test_get_indices_int_int() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let left = ArithExpression::Int(1);
-    let right = ArithExpression::Int(2);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 0, 2)));
-
-    let left = ArithExpression::Int(1);
-    let right = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(2)),
-        Box::new(ArithExpression::Int(3)),
-    );
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((1, 0, 5)));
-
-    let left = ArithExpression::Addition(
-        Box::new(ArithExpression::Int(1)),
-        Box::new(ArithExpression::Int(2)),
-    );
-    let right = ArithExpression::Int(3);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((3, 0, 3)));
-}
-
-#[test]
-fn test_get_indices_big_expr() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let mut left = ArithExpression::ADif(
-        // = 4
-        ArithExpression::Int(10),
-        ArithExpression::ADif(
-            ArithExpression::Int(9),
-            ArithExpression::ADif(
-                ArithExpression::Int(8),
-                ArithExpression::ADif(
-                    ArithExpression::Int(7),
-                    ArithExpression::ADif(
-                        ArithExpression::Clock(6),
-                        ArithExpression::ADif(
-                            ArithExpression::Int(5),
-                            ArithExpression::ADif(
-                                ArithExpression::Int(4),
-                                ArithExpression::ADif(
-                                    ArithExpression::Int(3),
-                                    ArithExpression::Int(2),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        ),
-    );
-    let right = ArithExpression::Int(2);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((6, 0, 6)));
-}
-
-#[test]
-fn test_get_indices_mix_expr() {
-    let decl = Declarations {
-        clocks: HashMap::new(),
-        ints: HashMap::new(),
-    };
-    let mut left = ArithExpression::ADif(
-        ArithExpression::Multiplication(
-            Box::new(ArithExpression::Clock(3)),
-            Box::new(ArithExpression::Int(3)),
-        ),
-        ArithExpression::Int(10),
-    );
-    let right = ArithExpression::Clock(10);
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl).ok(), None);
-
-    let mut left = ArithExpression::ADif(
-        ArithExpression::Multiplication(
-            Box::new(ArithExpression::Int(3)),
-            Box::new(ArithExpression::Int(3)),
-        ),
-        ArithExpression::Clock(10),
-    );
-    let right = ArithExpression::ADif(ArithExpression::Int(10), ArithExpression::Clock(10));
-    //Testing: left < right
-    assert_eq!(get_indices(&left, &right, &decl), Ok((10, 10, 1)));
-}
-
 /// Assumes that the constraint is of the form left <?= right
 fn get_indices(
     left: &ArithExpression,
@@ -476,7 +89,11 @@ fn get_indices(
     let right = &(replace_vars(right, d).simplify())?;
     let (clocks_left, clocks_right) = (left.clock_var_count(), right.clock_var_count());
 
-    if clocks_left + clocks_right > 2 {
+    if clocks_left + clocks_right == 0 {
+        return Err(String::from(
+            "Expressions must use clocks to get indices, this should be unreachable",
+        ));
+    } else if clocks_left + clocks_right > 2 {
         return Err(String::from("Too many clocks"));
     }
 
@@ -518,13 +135,7 @@ fn get_indices(
                 Ok((c.value, 0, constant))
             }
         }
-        _ => {
-            if left_const.is_negative() {
-                Ok((0, (-left_const) as u32, right_const))
-            } else {
-                Ok((left_const as u32, 0, right_const))
-            }
-        }
+        _ => unreachable!(),
     };
     result
 }
@@ -651,5 +262,404 @@ fn get_clock_val(
         ))
     } else {
         Ok((val, None))
+    }
+}
+
+mod test {
+    use super::get_indices;
+    use crate::component::Declarations;
+    use crate::ModelObjects::representations::ArithExpression;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_get_indices_int_clock() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+
+        let left = ArithExpression::Int(3);
+        let right = ArithExpression::Clock(1);
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), Some((0, 1, -3)));
+    }
+
+    #[test]
+    fn test_get_indices_clock_int() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+
+        let left = ArithExpression::Clock(1);
+        let right = ArithExpression::Int(3);
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 0, 3)));
+    }
+
+    #[test]
+    fn test_get_indices_clock_clock() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+
+        // i-j <= 0 -> i can at most be the value of j
+        let left = ArithExpression::Clock(1);
+        let right = ArithExpression::Clock(2);
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 2, 0)));
+    }
+
+    #[test]
+    fn test_get_indices_diff_int() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        // i-j < c -> c1-c2 < 3
+        let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
+        let right = ArithExpression::Int(3);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 2, 3)));
+
+        let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Int(2));
+        let right = ArithExpression::Int(3);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), Some((1, 0, 5)));
+
+        let left = ArithExpression::ADif(ArithExpression::Int(1), ArithExpression::Clock(2));
+        let right = ArithExpression::Int(3);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((0, 2, 2)));
+    }
+
+    #[test]
+    fn test_get_indices_int_diff() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        // i-j < c -> c1-c2 > 3 -> c2-c1 < -3
+        let left = ArithExpression::Int(3);
+        let right = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((2, 1, -3)));
+    }
+
+    #[test]
+    fn test_get_indices_add_int() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(1)),
+            Box::new(ArithExpression::Clock(2)),
+        );
+        let right = ArithExpression::Int(4);
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+    }
+
+    #[test]
+    fn test_get_indices_clock_diff_clock() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Clock(1);
+        let right = ArithExpression::ADif(ArithExpression::Clock(2), ArithExpression::Int(3));
+        assert_eq!(get_indices(&left, &right, &decl), Ok((1, 2, -3)));
+
+        let left = ArithExpression::ADif(ArithExpression::Clock(2), ArithExpression::Int(3));
+        let right = ArithExpression::Clock(1);
+        assert_eq!(get_indices(&left, &right, &decl), Ok((2, 1, 3)));
+
+        let left = ArithExpression::ADif(ArithExpression::Int(2), ArithExpression::Clock(3));
+        let right = ArithExpression::Clock(1);
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+    }
+
+    #[test]
+    fn test_get_indices_clock_add_clock() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(1)),
+            Box::new(ArithExpression::Int(2)),
+        );
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(3)),
+            Box::new(ArithExpression::Int(4)),
+        );
+        assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, 2)));
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Int(1)),
+            Box::new(ArithExpression::Clock(2)),
+        );
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(3)),
+            Box::new(ArithExpression::Int(4)),
+        );
+        assert_eq!(get_indices(&left, &right, &decl), Ok((2, 3, 3)));
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(1)),
+            Box::new(ArithExpression::Int(2)),
+        );
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Int(3)),
+            Box::new(ArithExpression::Clock(4)),
+        );
+        assert_eq!(get_indices(&left, &right, &decl), Ok((1, 4, 1)));
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Int(1)),
+            Box::new(ArithExpression::Clock(2)),
+        );
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Int(3)),
+            Box::new(ArithExpression::Clock(4)),
+        );
+        assert_eq!(get_indices(&left, &right, &decl), Ok((2, 4, 2)));
+    }
+
+    #[test]
+    fn test_get_indices_clock_int_diff() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        // i-j < c -> c1-c2 > 3 -> c2-c1 < -3
+        let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Int(2));
+        let right = ArithExpression::ADif(ArithExpression::Clock(3), ArithExpression::Int(4));
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, -2)));
+
+        let left = ArithExpression::ADif(ArithExpression::Int(1), ArithExpression::Clock(2));
+        let right = ArithExpression::ADif(ArithExpression::Int(3), ArithExpression::Clock(4));
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((4, 2, 2)));
+    }
+
+    #[test]
+    fn test_get_indices_clock_add_int() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Clock(1);
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(3)),
+            Box::new(ArithExpression::Int(4)),
+        );
+        assert_eq!(get_indices(&left, &right, &decl), Ok((1, 3, 4)));
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(3)),
+            Box::new(ArithExpression::Int(4)),
+        );
+        let right = ArithExpression::Clock(1);
+        assert_eq!(get_indices(&left, &right, &decl), Ok((3, 1, -4)));
+    }
+
+    #[test]
+    fn test_get_indices_int_add() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Int(3);
+        let right = ArithExpression::Addition(
+            Box::new(ArithExpression::Clock(1)),
+            Box::new(ArithExpression::Clock(2)),
+        );
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+    }
+
+    #[test]
+    fn test_get_indices_high_operators() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Multiplication(
+            Box::new(ArithExpression::Clock(2)),
+            Box::new(ArithExpression::Int(3)),
+        );
+        let right = ArithExpression::Int(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+
+        let left = ArithExpression::Multiplication(
+            Box::new(ArithExpression::Int(3)),
+            Box::new(ArithExpression::Clock(2)),
+        );
+        let right = ArithExpression::Int(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+
+        let left = ArithExpression::Division(
+            Box::new(ArithExpression::Clock(2)),
+            Box::new(ArithExpression::Int(3)),
+        );
+        let right = ArithExpression::Int(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+
+        let left = ArithExpression::Modulo(
+            Box::new(ArithExpression::Clock(2)),
+            Box::new(ArithExpression::Int(3)),
+        );
+        let right = ArithExpression::Int(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+
+        let left = ArithExpression::Multiplication(
+            Box::new(ArithExpression::Int(4)),
+            Box::new(ArithExpression::Int(3)),
+        );
+        let right = ArithExpression::Clock(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -12)));
+
+        let left = ArithExpression::Division(
+            Box::new(ArithExpression::Int(4)),
+            Box::new(ArithExpression::Int(2)),
+        );
+        let right = ArithExpression::Clock(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -2)));
+
+        let left = ArithExpression::Modulo(
+            Box::new(ArithExpression::Int(4)),
+            Box::new(ArithExpression::Int(3)),
+        );
+        let right = ArithExpression::Clock(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((0, 10, -1)));
+    }
+
+    #[test]
+    fn test_get_indices_many_clocks() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::ADif(ArithExpression::Clock(1), ArithExpression::Clock(2));
+        let right = Box::new(ArithExpression::Clock(3));
+
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+    }
+
+    #[test]
+    fn test_get_indices_int_int() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let left = ArithExpression::Int(1);
+        let right = ArithExpression::Int(2);
+        //Testing: left < right
+        assert_eq!(
+            get_indices(&left, &right, &decl),
+            Err(
+                "Expressions must use clocks to get indices, this should be unreachable"
+                    .to_string()
+            )
+        );
+
+        let left = ArithExpression::Addition(
+            Box::new(ArithExpression::Int(1)),
+            Box::new(ArithExpression::Int(2)),
+        );
+        let right = ArithExpression::Int(3);
+        //Testing: left < right
+        assert_eq!(
+            get_indices(&left, &right, &decl),
+            Err(
+                "Expressions must use clocks to get indices, this should be unreachable"
+                    .to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn test_get_indices_big_expr() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let mut left = ArithExpression::ADif(
+            // = 4
+            ArithExpression::Int(10),
+            ArithExpression::ADif(
+                ArithExpression::Int(9),
+                ArithExpression::ADif(
+                    ArithExpression::Int(8),
+                    ArithExpression::ADif(
+                        ArithExpression::Int(7),
+                        ArithExpression::ADif(
+                            ArithExpression::Clock(6),
+                            ArithExpression::ADif(
+                                ArithExpression::Int(5),
+                                ArithExpression::ADif(
+                                    ArithExpression::Int(4),
+                                    ArithExpression::ADif(
+                                        ArithExpression::Int(3),
+                                        ArithExpression::Int(2),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        );
+        let right = ArithExpression::Int(2);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((6, 0, 6)));
+    }
+
+    #[test]
+    fn test_get_indices_mix_expr() {
+        let decl = Declarations {
+            clocks: HashMap::new(),
+            ints: HashMap::new(),
+        };
+        let mut left = ArithExpression::ADif(
+            ArithExpression::Multiplication(
+                Box::new(ArithExpression::Clock(3)),
+                Box::new(ArithExpression::Int(3)),
+            ),
+            ArithExpression::Int(10),
+        );
+        let right = ArithExpression::Clock(10);
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl).ok(), None);
+
+        let mut left = ArithExpression::ADif(
+            ArithExpression::Multiplication(
+                Box::new(ArithExpression::Int(3)),
+                Box::new(ArithExpression::Int(3)),
+            ),
+            ArithExpression::Clock(10),
+        );
+        let right = ArithExpression::ADif(ArithExpression::Int(10), ArithExpression::Clock(10));
+        //Testing: left < right
+        assert_eq!(get_indices(&left, &right, &decl), Ok((10, 10, 1)));
     }
 }

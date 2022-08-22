@@ -117,7 +117,7 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpress
                 BoolExpression::Bool(left_side_pair.as_str().trim().parse::<bool>().unwrap())
             }
             Rule::terms => build_expression_from_pair(left_side_pair),
-            err => panic!("Unable to match: {:?} as rule atom or variable", err),
+            err => panic!("Unable to match: {:?} as rule bool or terms", err),
         },
         Some(operator_pair) => {
             let right_side_pair = inner_pair.next().unwrap();
@@ -128,6 +128,7 @@ fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpress
             match operator_pair.as_str() {
                 ">=" => BoolExpression::GreatEQ(lside, rside),
                 "<=" => BoolExpression::LessEQ(lside, rside),
+                "==" => BoolExpression::EQ(lside, rside),
                 "<" => BoolExpression::LessT(lside, rside),
                 ">" => BoolExpression::GreatT(lside, rside),
                 unknown_operator => panic!(

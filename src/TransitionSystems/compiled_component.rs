@@ -54,7 +54,7 @@ impl CompiledComponent {
 
         let mut location_edges: HashMap<LocationID, Vec<(Action, Transition)>> =
             locations.keys().map(|k| (k.clone(), vec![])).collect();
-        let mut index = 0;
+
         for edge in component.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from(&component, edge, dim);
@@ -62,7 +62,6 @@ impl CompiledComponent {
                 .get_mut(&id)
                 .unwrap()
                 .push((edge.sync.clone(), transition));
-            index += 1;
         }
 
         let initial_location = locations.values().find(|loc| loc.is_initial()).cloned();
