@@ -29,7 +29,7 @@ extern crate colored;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
-extern crate xml;
+//extern crate xml;
 
 // The debug version
 #[macro_export]

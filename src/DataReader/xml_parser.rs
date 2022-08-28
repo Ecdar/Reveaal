@@ -18,7 +18,7 @@ pub(crate) fn parse_xml_from_file(
     fileName: &str,
 ) -> (
     Vec<component::Component>,
-    system_declarations::SystemDeclarations,
+    SystemDeclarations,
     Vec<queries::Query>,
 ) {
     //Open file and read xml
@@ -32,7 +32,7 @@ pub(crate) fn parse_xml_from_str(
     xml: &str,
 ) -> (
     Vec<component::Component>,
-    system_declarations::SystemDeclarations,
+    SystemDeclarations,
     Vec<queries::Query>,
 ) {
     let reader = BufReader::new(xml.as_bytes());
@@ -44,7 +44,7 @@ fn parse_xml<R: Read>(
     xml_data: R,
 ) -> (
     Vec<component::Component>,
-    system_declarations::SystemDeclarations,
+    SystemDeclarations,
     Vec<queries::Query>,
 ) {
     let root = Element::from_reader(xml_data).unwrap();
@@ -109,7 +109,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
 }
 
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
-    let mut edges: Vec<component::Edge> = vec![];
+    let mut edges: Vec<Edge> = vec![];
     for e in xml_edges {
         let mut guard: Option<representations::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
@@ -138,7 +138,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                 _ => {}
             }
         }
-        let edge = component::Edge {
+        let edge = Edge {
             source_location: e
                 .find("source")
                 .expect("source edge not found")

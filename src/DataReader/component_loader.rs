@@ -2,6 +2,7 @@ use crate::component::Component;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
+use crate::DataReader::xml_writer::component_to_xml_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
@@ -151,8 +152,10 @@ impl ComponentLoader for XmlProjectLoader {
         }
     }
 
-    fn save_component(&mut self, _: Component) {
-        panic!("Saving components is not supported for XML projects")
+    fn save_component(&mut self, component: Component) {
+        component_to_xml_file(&self.project_path, &component);
+        self.loaded_components
+            .insert(component.get_name().clone(), component);
     }
 
     fn unload_component(&mut self, _: &str) {
