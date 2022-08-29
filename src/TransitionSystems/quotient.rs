@@ -4,7 +4,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::ModelObjects::max_bounds::MaxBounds;
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
@@ -62,8 +62,8 @@ impl Quotient {
             id: INCONSISTENT_LOC_NAME.to_string(),
             // xnew <= 0
             invariant: Some(BoolExpression::LessEQ(
-                Box::new(BoolExpression::VarName("quotient_xnew".to_string())),
-                Box::new(BoolExpression::Int(0)),
+                Box::new(ArithExpression::VarName("quotient_xnew".to_string())),
+                Box::new(ArithExpression::Int(0)),
             )),
             location_type: LocationType::Inconsistent,
             urgency: "".to_string(),
