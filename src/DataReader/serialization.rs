@@ -402,6 +402,29 @@ where
     serializer.serialize_str(&expr.encode_expr())
 }
 
+pub fn encode_opt_arithexpr<S>(
+    opt_expr: &Option<representations::ArithExpression>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if let Some(expr) = opt_expr {
+        encode_arithexpr(expr, serializer)
+    } else {
+        serializer.serialize_str("")
+    }
+}
+pub fn encode_arithexpr<S>(
+    expr: &representations::ArithExpression,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&expr.encode_expr())
+}
+
 pub fn encode_opt_updates<S>(
     opt_updates: &Option<Vec<parse_edge::Update>>,
     serializer: S,
