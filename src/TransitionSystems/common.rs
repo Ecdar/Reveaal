@@ -34,13 +34,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
         self.next_transitions(location, action)
     }
-    fn get_max_bounds(&self) -> MaxBounds {
-        let (left, right) = self.get_children();
 
-        let mut bounds = left.get_max_bounds();
-        bounds.add_bounds(&right.get_max_bounds());
-        bounds
-    }
     fn get_input_actions(&self) -> HashSet<String> {
         self.get_input_actions()
     }
@@ -53,6 +47,21 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             .map(|action| action.to_string())
             .collect()
     }
+
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+        if loc.is_universal() || loc.is_inconsistent() {
+            MaxBounds::create(self.get_dim())
+        } else {
+            let (left, right) = self.get_children();
+            let loc_l = loc.get_left();
+            let loc_r = loc.get_right();
+            let mut bounds_l = left.get_local_max_bounds(loc_l);
+            let bounds_r = right.get_local_max_bounds(loc_r);
+            bounds_l.add_bounds(&bounds_r);
+            bounds_l
+        }
+    }
+
     fn get_initial_location(&self) -> Option<LocationTuple> {
         let (left, right) = self.get_children();
         let l = left.get_initial_location()?;

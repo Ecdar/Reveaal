@@ -4,6 +4,9 @@ use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
+use super::extract_system_rep::SystemRecipe;
+use super::save_component::PruningStrategy;
+
 pub enum QueryResult {
     Refinement(bool),
     GetComponent(Component),
@@ -72,7 +75,7 @@ pub struct GetComponentExecutor<'a> {
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system);
+        let mut comp = combine_components(&self.system, PruningStrategy::Reachable);
         comp.name = self.comp_name;
 
         comp.create_edge_io_split();
@@ -84,12 +87,18 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 }
 
 pub struct ConsistencyExecutor {
-    pub system: TransitionSystemPtr,
+    pub recipe: Box<SystemRecipe>,
+    pub dim: u32,
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.precheck_sys_rep())
+        let res = match self.recipe.compile(self.dim) {
+            Ok(system) => system.precheck_sys_rep(),
+            Err(_) => false,
+        };
+
+        QueryResult::Consistency(res)
     }
 }
 

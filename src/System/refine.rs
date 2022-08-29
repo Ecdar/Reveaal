@@ -38,12 +38,29 @@ fn extra_actions(
     }
 }
 
+struct RefinementContext<'a> {
+    pub passed_list: PassedStateList,
+    pub waiting_list: WaitingStateList,
+    pub sys1: &'a TransitionSystemPtr,
+    pub sys2: &'a TransitionSystemPtr,
+}
+
+impl<'a> RefinementContext<'a> {
+    fn new(sys1: &'a TransitionSystemPtr, sys2: &'a TransitionSystemPtr) -> RefinementContext<'a> {
+        RefinementContext {
+            passed_list: PassedStateList::new(),
+            waiting_list: WaitingStateList::new(),
+            sys1: sys1,
+            sys2: sys2,
+        }
+    }
+}
+
 pub fn check_refinement(
     sys1: TransitionSystemPtr,
     sys2: TransitionSystemPtr,
 ) -> Result<bool, String> {
-    let mut passed_list = PassedStateList::new();
-    let mut waiting_list = WaitingStateList::new();
+    let mut context = RefinementContext::new(&sys1, &sys2);
     let dimensions = sys1.get_dim();
     debug_print!("Dimensions: {}", dimensions);
 
@@ -99,19 +116,16 @@ pub fn check_refinement(
     if !prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2) {
         return Ok(false);
     }
-    let max_bounds = initial_pair.calculate_max_bound(&sys1, &sys2);
-    debug_print!("Max bounds: {:?}", max_bounds);
-
-    initial_pair.zone.extrapolate_max_bounds(&max_bounds);
+    initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
 
     debug_print!("Initial {}", initial_pair);
-    waiting_list.put(initial_pair);
+    context.waiting_list.put(initial_pair);
 
-    while !waiting_list.is_empty() {
-        let curr_pair = waiting_list.pop().unwrap();
+    while !context.waiting_list.is_empty() {
+        let curr_pair = context.waiting_list.pop().unwrap();
         debug_print!("{}", curr_pair);
 
-        passed_list.put(curr_pair.clone());
+        context.passed_list.put(curr_pair.clone());
         for output in &outputs {
             let extra = extra_outputs.contains(output);
 
@@ -126,9 +140,7 @@ pub fn check_refinement(
                 &output_transition1,
                 &output_transition2,
                 &curr_pair,
-                &mut waiting_list,
-                &mut passed_list,
-                &max_bounds,
+                &mut context,
                 true,
             );
 
@@ -146,7 +158,7 @@ pub fn check_refinement(
                 }
                 println!("Current pair: {}", curr_pair);
                 println!("Relation:");
-                print_relation(&passed_list);
+                print_relation(&context.passed_list);
 
                 return Ok(false);
             };
@@ -167,9 +179,7 @@ pub fn check_refinement(
                 &input_transitions2,
                 &input_transitions1,
                 &curr_pair,
-                &mut waiting_list,
-                &mut passed_list,
-                &max_bounds,
+                &mut context,
                 false,
             );
 
@@ -187,7 +197,7 @@ pub fn check_refinement(
                 }
                 println!("Current pair: {}", curr_pair);
                 println!("Relation:");
-                print_relation(&passed_list);
+                print_relation(&context.passed_list);
 
                 return Ok(false);
             };
@@ -195,7 +205,7 @@ pub fn check_refinement(
     }
     println!("Refinement check passed");
     debug_print!("With relation:");
-    print_relation(&passed_list);
+    print_relation(&context.passed_list);
 
     Ok(true)
 }
@@ -225,9 +235,7 @@ fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    waiting_list: &mut WaitingStateList,
-    passed_list: &mut PassedStateList,
-    max_bounds: &MaxBounds,
+    context: &mut RefinementContext,
     is_state1: bool,
 ) -> bool {
     let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
@@ -251,15 +259,7 @@ fn has_valid_state_pairs(
     }
 
     // Finally try to create the pairs
-    let res = try_create_new_state_pairs(
-        transitions1,
-        transitions2,
-        curr_pair,
-        waiting_list,
-        passed_list,
-        max_bounds,
-        is_state1,
-    );
+    let res = try_create_new_state_pairs(transitions1, transitions2, curr_pair, context, is_state1);
 
     match res {
         BuildResult::Success => true,
@@ -310,22 +310,14 @@ fn try_create_new_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    waiting_list: &mut WaitingStateList,
-    passed_list: &mut PassedStateList,
-    max_bounds: &MaxBounds,
+    context: &mut RefinementContext,
     is_state1: bool,
 ) -> BuildResult {
     for transition1 in transitions1 {
         for transition2 in transitions2 {
-            if let BuildResult::Failure = build_state_pair(
-                transition1,
-                transition2,
-                curr_pair,
-                waiting_list,
-                passed_list,
-                max_bounds,
-                is_state1,
-            ) {
+            if let BuildResult::Failure =
+                build_state_pair(transition1, transition2, curr_pair, context, is_state1)
+            {
                 return BuildResult::Failure;
             }
         }
@@ -338,9 +330,7 @@ fn build_state_pair(
     transition1: &Transition,
     transition2: &Transition,
     curr_pair: &StatePair,
-    waiting_list: &mut WaitingStateList,
-    passed_list: &mut PassedStateList,
-    max_bounds: &MaxBounds,
+    context: &mut RefinementContext,
     is_state1: bool,
 ) -> BuildResult {
     //Creates new state pair
@@ -410,12 +400,12 @@ fn build_state_pair(
 
     new_sp.zone = new_sp_zone;
 
-    new_sp.zone.extrapolate_max_bounds(max_bounds);
+    new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
 
-    if !passed_list.has(&new_sp) && !waiting_list.has(&new_sp) {
+    if !context.passed_list.has(&new_sp) && !context.waiting_list.has(&new_sp) {
         debug_print!("New state {}", new_sp);
 
-        waiting_list.put(new_sp);
+        context.waiting_list.put(new_sp);
     }
 
     BuildResult::Success
