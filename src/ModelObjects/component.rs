@@ -12,8 +12,8 @@ use crate::ModelObjects::max_bounds::MaxBounds;
 use crate::ModelObjects::representations;
 
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::LocationTuple;
-use crate::TransitionSystems::{CompositionType, LocationID};
+use crate::TransitionSystems::{CompositionType, LocationID, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -518,6 +518,11 @@ impl State {
 
     pub fn get_location(&self) -> &LocationTuple {
         &self.decorated_locations
+    }
+
+    pub fn extrapolate_max_bounds(&mut self, system: &dyn TransitionSystem) {
+        let bounds = system.get_local_max_bounds(&self.decorated_locations);
+        self.zone.extrapolate_max_bounds(&bounds);
     }
 }
 

@@ -387,7 +387,12 @@ impl Federation {
             guard = BoolExpression::OrOp(Box::new(guard), Box::new(g));
         }
         guard.simplify();
-        Some(guard)
+
+        if let BoolExpression::Bool(true) = guard {
+            None
+        } else {
+            Some(guard)
+        }
     }
 
     /// Check whether the federation is valid (non-empty)
