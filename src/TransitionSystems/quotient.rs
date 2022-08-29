@@ -132,23 +132,25 @@ impl Quotient {
 }
 
 impl TransitionSystem for Quotient {
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+        if loc.is_universal() || loc.is_inconsistent() {
+            MaxBounds::create(self.get_dim())
+        } else {
+            let (left, right) = self.get_children();
+            let loc_l = loc.get_left();
+            let loc_r = loc.get_right();
+            let mut bounds_l = left.get_local_max_bounds(loc_l);
+            let bounds_r = right.get_local_max_bounds(loc_r);
+            bounds_l.add_bounds(&bounds_r);
+            bounds_l
+        }
+    }
+
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
         let mut transitions = vec![];
-        let mut reset_all = vec![];
-        for clock in self
-            .get_decls()
-            .iter()
-            .flat_map(|d| d.get_clocks().values())
-            .copied()
-        {
-            reset_all.push(CompiledUpdate {
-                clock_index: clock,
-                value: 0,
-            });
-        }
 
         //Rules [universal] and [inconsistent]
 
@@ -165,8 +167,6 @@ impl TransitionSystem for Quotient {
         } else if location.is_universal() {
             // Rule 9
             let mut transition = Transition::new(location, self.dim);
-            /* This should be okay */
-            transition.updates = reset_all.clone();
             transitions.push(transition);
             return transitions;
         }
@@ -243,7 +243,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 guard_zone: (!inv_l_s) + (!g_s),
                 target_locations: universal_location.clone(),
-                updates: reset_all.clone(),
+                updates: vec![],
             });
         } else {
             // Rule 5 when Rule 3 does not apply
@@ -253,7 +253,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
                 target_locations: universal_location.clone(),
-                updates: reset_all.clone(),
+                updates: vec![],
             });
         }
 
@@ -351,14 +351,6 @@ impl TransitionSystem for Quotient {
         location_tuples.push(universal);
 
         location_tuples
-    }
-
-    fn get_max_bounds(&self) -> MaxBounds {
-        let mut bounds = self.T.get_max_bounds();
-        bounds.add_bounds(&self.S.get_max_bounds());
-        //Potentially adding xnew bound might save something
-        bounds.add_bound(self.new_clock_index, 0);
-        bounds
     }
     fn get_input_actions(&self) -> HashSet<String> {
         self.inputs.clone()

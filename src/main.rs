@@ -6,6 +6,7 @@ mod DataTypes;
 mod EdgeEval;
 mod ModelObjects;
 mod ProtobufServer;
+mod Simulation;
 mod System;
 mod TransitionSystems;
 mod tests;

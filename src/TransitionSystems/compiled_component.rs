@@ -101,16 +101,20 @@ impl CompiledComponent {
 }
 
 impl TransitionSystem for CompiledComponent {
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+        if loc.is_universal() || loc.is_inconsistent() {
+            MaxBounds::create(self.get_dim())
+        } else {
+            self.comp_info.max_bounds.clone()
+        }
+    }
+
     fn get_composition_type(&self) -> CompositionType {
         panic!("Components do not have a composition type")
     }
 
     fn get_decls(&self) -> Vec<&Declarations> {
         vec![&self.comp_info.declarations]
-    }
-
-    fn get_max_bounds(&self) -> MaxBounds {
-        self.comp_info.max_bounds.clone()
     }
 
     fn get_input_actions(&self) -> HashSet<String> {
