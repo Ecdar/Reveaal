@@ -4,17 +4,15 @@ use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
     decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
 };
-use crate::EdgeEval::constraint_applyer;
+
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::representations;
-
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::{CompositionType, LocationID, TransitionSystem};
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::LocationTuple;
+use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use edbm::zones::OwnedFederation;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -122,7 +120,7 @@ impl Component {
             .filter(|location| location.get_location_type() == &LocationType::Initial)
             .collect();
 
-        vec.first().map(|l| *l)
+        vec.first().copied()
     }
 
     pub fn get_actions(&self) -> Vec<Channel> {
@@ -269,10 +267,6 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-fn create_state(location: &Location, decl: &Declarations, zone: OwnedFederation) -> State {
-    State::create(LocationTuple::simple(location, decl, zone.dim()), zone)
-}
-
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
@@ -290,7 +284,7 @@ impl State {
         }
     }
 
-    pub fn is_contained_in_list(&self, list: &Vec<State>) -> bool {
+    pub fn is_contained_in_list(&self, list: &[State]) -> bool {
         list.iter().any(|s| self.is_subset_of(s))
     }
 
@@ -491,6 +485,8 @@ impl Transition {
         fed
     }
 
+    // TODO: will we ever need this method?
+    #[allow(dead_code)]
     fn get_guard_from_allowed(
         from_loc: &LocationTuple,
         to_loc: &LocationTuple,
@@ -523,7 +519,7 @@ impl Transition {
         self.apply_guards(fed)
     }
 
-    pub fn apply_guards(&self, mut zone: OwnedFederation) -> OwnedFederation {
+    pub fn apply_guards(&self, zone: OwnedFederation) -> OwnedFederation {
         zone.intersection(&self.guard_zone)
     }
 
@@ -572,7 +568,7 @@ impl fmt::Display for Transition {
             self.target_locations
                 .get_invariants()
                 .map(|f| format!("invariant is {}", f))
-                .unwrap_or("no invariant".to_string()),
+                .unwrap_or_else(|| "no invariant".to_string()),
             self.updates
                 .iter()
                 .map(|u| u.to_string())
@@ -719,7 +715,7 @@ impl<'a> DecoratedLocation<'a> {
 
     pub fn apply_invariant(&self, mut fed: OwnedFederation) -> OwnedFederation {
         if let Some(inv) = self.get_location().get_invariant() {
-            fed = apply_constraints_to_state(&inv, self.decls, fed);
+            fed = apply_constraints_to_state(inv, self.decls, fed);
         }
 
         fed
@@ -730,11 +726,11 @@ impl<'a> DecoratedLocation<'a> {
     }
 
     pub fn get_declarations(&self) -> &Declarations {
-        &self.decls
+        self.decls
     }
 
     pub fn get_location(&self) -> &Location {
-        &self.location
+        self.location
     }
 
     pub fn set_location(&mut self, location: &'a Location) {
@@ -809,66 +805,5 @@ impl Declarations {
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
-    }
-}
-
-fn add_state_to_wl(wl: &mut Vec<State>, state: State) {
-    wl.push(state)
-}
-
-fn add_state_to_pl(wl: &mut Vec<State>, state: State) {
-    wl.push(state)
-}
-
-pub fn get_dummy_component(name: String, inputs: &[String], outputs: &[String]) -> Component {
-    let location = Location {
-        id: "EXTRA".to_string(),
-        invariant: None,
-        location_type: LocationType::Initial,
-        urgency: "".to_string(),
-    };
-
-    let mut input_edges = vec![];
-
-    for input in inputs {
-        input_edges.push(Edge {
-            guard: None,
-            source_location: "EXTRA".to_string(),
-            target_location: "EXTRA".to_string(),
-            sync: input.clone(),
-            sync_type: SyncType::Input,
-            update: None,
-        })
-    }
-
-    let mut output_edges = vec![];
-
-    for output in outputs {
-        output_edges.push(Edge {
-            guard: None,
-            source_location: "EXTRA".to_string(),
-            target_location: "EXTRA".to_string(),
-            sync: output.clone(),
-            sync_type: SyncType::Output,
-            update: None,
-        })
-    }
-
-    let edges: Vec<Edge> = input_edges
-        .iter()
-        .cloned()
-        .chain(output_edges.iter().cloned())
-        .collect();
-
-    Component {
-        name,
-        declarations: Declarations {
-            ints: HashMap::new(),
-            clocks: HashMap::new(),
-        },
-        locations: vec![location],
-        edges,
-        input_edges: Some(input_edges),
-        output_edges: Some(output_edges),
     }
 }

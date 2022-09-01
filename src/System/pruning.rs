@@ -3,16 +3,14 @@ use edbm::zones::OwnedFederation;
 
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, Edge, Location, SyncType, Transition,
+    Component, DeclarationProvider, Declarations, Edge, Location, SyncType,
 };
 use crate::ModelObjects::representations::BoolExpression;
-use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::System::save_component::combine_components;
+use crate::TransitionSystems::TransitionSystemPtr;
 use crate::TransitionSystems::{CompiledComponent, LocationTuple};
-use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
-use std::collections::hash_map::DefaultHasher;
+
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 
 use super::save_component::PruningStrategy;
 
@@ -28,16 +26,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
 
-    let sys_decl = SystemDeclarations {
-        name: "".to_string(),
-        declarations: SystemSpecification {
-            components: vec![comp.get_name().clone()],
-            input_actions: input_map,
-            output_actions: HashMap::new(),
-        },
-    };
-
-    let result = prune(&comp, dim, inputs, outputs, &sys_decl);
+    let result = prune(&comp, dim, inputs, outputs);
 
     result.unwrap()
 }
@@ -102,7 +91,6 @@ pub fn prune(
     dim: ClockIndex,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    decl: &SystemDeclarations,
 ) -> Result<Box<CompiledComponent>, String> {
     let mut new_comp = comp.clone();
     new_comp.create_edge_io_split();
@@ -135,15 +123,11 @@ pub fn prune(
             .edges
             .iter()
             .filter(|e| e.target_location == target_loc)
-            .cloned()
         {
             if *edge.get_sync_type() == SyncType::Input {
-                handle_input(&edge, &mut context);
-            } else
-            // If output
-            {
-                handle_output(&edge, &mut context);
+                handle_input(edge, &mut context);
             }
+            handle_output(edge, &mut context);
         }
 
         println!(
@@ -401,7 +385,7 @@ fn back_exploration_on_transition(
         inconsistent_part = apply_constraints_to_state(inv, context.decl(), inconsistent_part);
     }
 
-    return inconsistent_part;
+    inconsistent_part
 }
 
 fn handle_output(edge: &Edge, context: &mut PruneContext) {
@@ -455,15 +439,9 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) {
         // Source is not inconsistent, nothing more to do
     } else {
         let mut fed_that_saves_us = OwnedFederation::empty(context.dim);
-        for other_edge in context
-            .comp
-            .edges
-            .iter()
-            .filter(|e| {
-                e.source_location == edge.source_location && *e.get_sync_type() == SyncType::Output
-            })
-            .cloned()
-        {
+        for other_edge in context.comp.edges.iter().filter(|e| {
+            e.source_location == edge.source_location && *e.get_sync_type() == SyncType::Output
+        }) {
             // calculate and backtrack the part that is NOT inconsistent
 
             // get target invariant
@@ -515,7 +493,9 @@ fn is_immediately_inconsistent(
 ) -> bool {
     let loc = LocationTuple::simple(location, &comp.declarations, dimensions);
 
-    return loc.is_inconsistent();
+    loc.is_inconsistent()
+
+    /*
     let fed = loc.get_invariants();
     let res = match fed {
         Some(fed) => !fed.can_delay_indefinitely(),
@@ -530,4 +510,5 @@ fn is_immediately_inconsistent(
     }
 
     res
+     */
 }

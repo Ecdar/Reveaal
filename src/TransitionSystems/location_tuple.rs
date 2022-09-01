@@ -33,7 +33,7 @@ impl LocationTuple {
     pub fn simple(location: &Location, decls: &Declarations, dim: ClockIndex) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
             let mut fed = OwnedFederation::universe(dim);
-            fed = apply_constraints_to_state(&inv, decls, fed);
+            fed = apply_constraints_to_state(inv, decls, fed);
             Some(fed)
         } else {
             None
@@ -122,21 +122,21 @@ impl LocationTuple {
 
     pub fn apply_invariants(&self, mut fed: OwnedFederation) -> OwnedFederation {
         if let Some(inv) = &self.invariant {
-            fed = fed.intersection(&inv);
+            fed = fed.intersection(inv);
         }
         fed
     }
 
     pub fn get_left(&self) -> &LocationTuple {
         if self.is_universal() || self.is_inconsistent() {
-            return &self;
+            return self;
         }
         self.left.as_ref().unwrap()
     }
 
     pub fn get_right(&self) -> &LocationTuple {
         if self.is_universal() || self.is_inconsistent() {
-            return &self;
+            return self;
         }
         self.right.as_ref().unwrap()
     }

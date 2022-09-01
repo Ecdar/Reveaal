@@ -7,7 +7,7 @@ use crate::System::extract_system_rep::create_executable_query;
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     match xml_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
@@ -15,7 +15,7 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     match json_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }

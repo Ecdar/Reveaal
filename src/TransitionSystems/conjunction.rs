@@ -19,6 +19,7 @@ pub struct Conjunction {
 }
 
 impl Conjunction {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
@@ -68,8 +69,8 @@ impl TransitionSystem for Conjunction {
         let loc_left = location.get_left();
         let loc_right = location.get_right();
 
-        let left = self.left.next_transitions(&loc_left, action);
-        let right = self.right.next_transitions(&loc_right, action);
+        let left = self.left.next_transitions(loc_left, action);
+        let right = self.right.next_transitions(loc_right, action);
 
         Transition::combinations(&left, &right, CompositionType::Conjunction)
     }
@@ -85,8 +86,8 @@ impl TransitionSystem for Conjunction {
         for loc1 in &left {
             for loc2 in &right {
                 location_tuples.push(LocationTuple::compose(
-                    &loc1,
-                    &loc2,
+                    loc1,
+                    loc2,
                     self.get_composition_type(),
                 ));
             }

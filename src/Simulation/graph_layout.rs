@@ -1,5 +1,5 @@
 use crate::DataReader::serialization::DummyComponent;
-use force_graph::{DefaultNodeIdx, ForceGraph, Node, NodeData};
+use force_graph::{DefaultNodeIdx, ForceGraph, NodeData};
 use rand::Rng;
 use serde::Deserialize;
 use std::collections::HashMap;

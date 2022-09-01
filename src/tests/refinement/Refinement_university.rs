@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod Refinement_university {
+mod test {
     use crate::tests::refinement::Helper::json_refinement_check;
 
     static PATH: &str = "samples/json/EcdarUniversity";

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod bool_expression {
+mod test {
     use crate::ModelObjects::representations::ArithExpression as AE;
     use crate::ModelObjects::representations::BoolExpression as BE;
     use AE::Int;

@@ -1,4 +1,3 @@
-use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use edbm::zones::OwnedFederation;
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
@@ -18,17 +17,13 @@ impl StatePair {
         locations1: LocationTuple,
         locations2: LocationTuple,
     ) -> StatePair {
-        let mut zone = OwnedFederation::init(dimensions);
+        let zone = OwnedFederation::init(dimensions);
 
         StatePair {
             locations1,
             locations2,
             zone_sentinel: Some(zone),
         }
-    }
-
-    pub fn dim(&self) -> ClockIndex {
-        self.ref_zone().dim()
     }
 
     pub fn get_locations1(&self) -> &LocationTuple {
@@ -48,6 +43,7 @@ impl StatePair {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple, &LocationTuple) {
         if is_states1 {
             (&self.locations1, &self.locations2)
@@ -56,6 +52,7 @@ impl StatePair {
         }
     }
 
+    #[allow(dead_code)]
     pub fn clone_zone(&self) -> OwnedFederation {
         self.ref_zone().clone()
     }
@@ -92,12 +89,12 @@ impl Display for StatePair {
             self.locations1
                 .get_invariants()
                 .map(|f| f.to_string())
-                .unwrap_or("no invariant".to_string()),
+                .unwrap_or_else(|| "no invariant".to_string()),
             self.locations2.id,
             self.locations2
                 .get_invariants()
                 .map(|f| f.to_string())
-                .unwrap_or("no invariant".to_string()),
+                .unwrap_or_else(|| "no invariant".to_string()),
             self.ref_zone()
         ))?;
 

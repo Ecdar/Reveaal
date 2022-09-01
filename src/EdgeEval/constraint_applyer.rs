@@ -2,10 +2,8 @@ use edbm::util::constraints::{ClockIndex, Inequality};
 use edbm::zones::OwnedFederation;
 
 use crate::component::Declarations;
-use crate::ModelObjects::component;
+
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Clock};
-use std::collections::HashMap;
-use std::convert::TryFrom;
 
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
@@ -30,7 +28,7 @@ fn apply_constraints_to_state_helper(
             apply_constraints_to_state_helper(right, decls, fed)
         }
         BoolExpression::OrOp(left, right) => {
-            let mut clone = fed.clone();
+            let clone = fed.clone();
             let fed1 = apply_constraints_to_state_helper(left, decls, fed);
             let fed2 = apply_constraints_to_state_helper(right, decls, clone);
             fed1 + fed2
@@ -137,34 +135,28 @@ fn get_indices(
 fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> ArithExpression {
     //let mut out = expr.clone();
     match expr {
-        ArithExpression::Parentheses(inner) => replace_vars(&inner, decls),
+        ArithExpression::Parentheses(inner) => replace_vars(inner, decls),
         ArithExpression::Difference(l, r) => {
-            ArithExpression::ADif(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::ADif(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Addition(l, r) => {
-            ArithExpression::AAdd(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AAdd(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Multiplication(l, r) => {
-            ArithExpression::AMul(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AMul(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Division(l, r) => {
-            ArithExpression::ADiv(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::ADiv(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Modulo(l, r) => {
-            ArithExpression::AMod(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AMod(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Clock(x) => ArithExpression::Clock(*x),
         ArithExpression::VarName(name) => {
-            if let Some(x) = decls.get_clocks().get(name.as_str()).and_then(|o| Some(*o)) {
+            if let Some(x) = decls.get_clocks().get(name.as_str()).copied() {
                 ArithExpression::Clock(x)
             } else {
-                ArithExpression::Int(
-                    decls
-                        .get_ints()
-                        .get(name.as_str())
-                        .and_then(|o| Some(*o))
-                        .unwrap(),
-                )
+                ArithExpression::Int(decls.get_ints().get(name.as_str()).copied().unwrap())
             }
         }
         ArithExpression::Int(i) => ArithExpression::Int(*i),
@@ -175,18 +167,13 @@ fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
     match expr {
         ArithExpression::Int(x) => *x,
         ArithExpression::Clock(_) => 0,
-        ArithExpression::VarName(name) => decls
-            .get_ints()
-            .get(name)
-            .and_then(|o| Some(*o))
-            .unwrap_or(0),
+        ArithExpression::VarName(name) => decls.get_ints().get(name).copied().unwrap_or(0),
         ArithExpression::Parentheses(x) => get_const(x, decls),
         ArithExpression::Difference(l, r) => get_const(l, decls) - get_const(r, decls),
         ArithExpression::Addition(l, r) => get_const(l, decls) + get_const(r, decls),
         ArithExpression::Multiplication(l, r) => get_const(l, decls) * get_const(r, decls),
         ArithExpression::Division(l, r) => get_const(l, decls) / get_const(r, decls),
         ArithExpression::Modulo(l, r) => get_const(l, decls) % get_const(r, decls),
-        _ => 0,
     }
 }
 
@@ -198,12 +185,10 @@ fn combine_clocks(
 ) -> Result<(ClockIndex, ClockIndex, i32), String> {
     if (same_sign && c1.negated != c2.negated) || (!same_sign && c1.negated == c2.negated) {
         Err(String::from("Same sign"))
+    } else if !c1.negated {
+        Ok((c1.value, c2.value, constant))
     } else {
-        if c1.negated == false {
-            Ok((c1.value, c2.value, constant))
-        } else {
-            Ok((c2.value, c1.value, constant))
-        }
+        Ok((c2.value, c1.value, constant))
     }
 }
 
@@ -243,7 +228,7 @@ fn get_clock_val(
         ArithExpression::Multiplication(_, _)
         | ArithExpression::Division(_, _)
         | ArithExpression::Modulo(_, _) => {
-            return Err(format!("Multiplication with clock is illegal"));
+            return Err("Multiplication with clock is illegal".to_string());
         }
         ArithExpression::Clock(x) => Clock::new(*x, negated),
         _ => return Err(String::from("No Clocks")),
@@ -259,6 +244,7 @@ fn get_clock_val(
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::get_indices;
     use crate::component::Declarations;
@@ -597,7 +583,7 @@ mod test {
             clocks: HashMap::new(),
             ints: HashMap::new(),
         };
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             // = 4
             ArithExpression::Int(10),
             ArithExpression::ADif(
@@ -634,7 +620,7 @@ mod test {
             clocks: HashMap::new(),
             ints: HashMap::new(),
         };
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             ArithExpression::Multiplication(
                 Box::new(ArithExpression::Clock(3)),
                 Box::new(ArithExpression::Int(3)),
@@ -645,7 +631,7 @@ mod test {
         //Testing: left < right
         assert_eq!(get_indices(&left, &right, &decl).ok(), None);
 
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             ArithExpression::Multiplication(
                 Box::new(ArithExpression::Int(3)),
                 Box::new(ArithExpression::Int(3)),

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::{arch, fmt};
+use std::fmt;
 
 use crate::DataReader::parse_edge;
-use crate::ModelObjects::component::{self, Declarations};
+use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 use colored::Colorize;
 use edbm::util::constraints::ClockIndex;
@@ -18,7 +18,7 @@ impl fmt::Display for CompiledUpdate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
             "{}:={}",
-            format!("c:{}", self.clock_index).to_string().magenta(),
+            format!("c:{}", self.clock_index).magenta(),
             self.value
         ))?;
         Ok(())
@@ -54,7 +54,7 @@ impl CompiledUpdate {
         }
     }
 
-    pub fn apply(&self, mut fed: OwnedFederation) -> OwnedFederation {
+    pub fn apply(&self, fed: OwnedFederation) -> OwnedFederation {
         fed.update_clock_val(self.clock_index, self.value)
     }
 

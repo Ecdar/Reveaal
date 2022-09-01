@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod delay_refinement {
+mod test {
     use crate::tests::refinement::Helper::xml_refinement_check;
 
     static PATH: &str = "samples/xml/delayRefinement.xml";

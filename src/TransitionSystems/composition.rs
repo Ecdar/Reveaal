@@ -23,6 +23,7 @@ pub struct Composition {
 }
 
 impl Composition {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
@@ -79,24 +80,24 @@ impl TransitionSystem for Composition {
         let loc_right = location.get_right();
 
         if self.common_actions.contains(action) {
-            let left = self.left.next_transitions(&loc_left, action);
-            let right = self.right.next_transitions(&loc_right, action);
+            let left = self.left.next_transitions(loc_left, action);
+            let right = self.right.next_transitions(loc_right, action);
             return Transition::combinations(&left, &right, CompositionType::Composition);
         }
 
         if self.left_unique_actions.contains(action) {
-            let left = self.left.next_transitions(&loc_left, action);
+            let left = self.left.next_transitions(loc_left, action);
             return Transition::combinations(
                 &left,
-                &mut vec![Transition::new(loc_right, self.dim)],
+                &vec![Transition::new(loc_right, self.dim)],
                 CompositionType::Composition,
             );
         }
 
         if self.right_unique_actions.contains(action) {
-            let right = self.right.next_transitions(&loc_right, action);
+            let right = self.right.next_transitions(loc_right, action);
             return Transition::combinations(
-                &mut vec![Transition::new(loc_left, self.dim)],
+                &vec![Transition::new(loc_left, self.dim)],
                 &right,
                 CompositionType::Composition,
             );
@@ -117,8 +118,8 @@ impl TransitionSystem for Composition {
         for loc1 in &left {
             for loc2 in &right {
                 location_tuples.push(LocationTuple::compose(
-                    &loc1,
-                    &loc2,
+                    loc1,
+                    loc2,
                     self.get_composition_type(),
                 ));
             }

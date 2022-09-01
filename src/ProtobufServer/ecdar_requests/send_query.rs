@@ -76,7 +76,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         })),
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
             component: Some(Component {
-                rep: Some(Rep::Json(component_to_json(&comp))),
+                rep: Some(Rep::Json(component_to_json(comp))),
             }),
         })),
         QueryResult::Consistency(is_consistent) => {
@@ -90,8 +90,5 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }))
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
-        _ => Some(ProtobufResult::Error(String::from(
-            "Unsupported query type",
-        ))),
     }
 }

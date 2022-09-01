@@ -78,7 +78,7 @@ fn parse_xml<R: Read>(
     }
 
     let system_declarations = SystemDeclarations {
-        name: "".to_string(),
+        //name: "".to_string(),
         declarations: decode_sync_type(root.find("system").unwrap().text()),
     };
 
@@ -158,7 +158,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
             },
             guard,
             update: updates,
-            sync: sync.replace("!", "").replace("?", ""),
+            sync: sync.replace('!', "").replace('?', ""),
         };
         edges.push(edge);
     }
@@ -180,7 +180,7 @@ fn parse_declarations(variables: &str) -> Declarations {
         let sub_decls: Vec<String> = string.split(';').map(|s| s.into()).collect();
 
         for mut sub_decl in sub_decls {
-            sub_decl = sub_decl.replace("\r", "");
+            sub_decl = sub_decl.replace('\r', "");
 
             if !sub_decl.is_empty() {
                 let split_string: Vec<String> = sub_decl.split(' ').map(|s| s.into()).collect();
@@ -242,8 +242,8 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                 if component_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
                     for name in component_names.iter_mut().skip(1) {
-                        let s = name.replace(",", "");
-                        let s_cleaned = s.replace(";", "");
+                        let s = name.replace(',', "");
+                        let s_cleaned = s.replace(';', "");
                         *name = s_cleaned.clone();
                         components.push(s_cleaned);
                     }
@@ -259,17 +259,17 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
 
                 if component_names.contains(&component_name) {
                     for split_str in split_string.iter().skip(2) {
-                        let mut s = split_str.replace("{", "");
-                        s = s.replace("\r", "");
-                        s = s.replace("\n", "");
-                        let p = s.replace("}", "");
+                        let mut s = split_str.replace('{', "");
+                        s = s.replace('\r', "");
+                        s = s.replace('\n', "");
+                        let p = s.replace('}', "");
                         let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {
                             if action.is_empty() {
                                 continue;
                             }
                             if action.ends_with('?') {
-                                let r = action.replace("?", "");
+                                let r = action.replace('?', "");
                                 if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
                                     Channel_vec.push(r)
                                 } else {
@@ -277,7 +277,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                                     input_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else if action.ends_with('!') {
-                                let r = action.replace("!", "");
+                                let r = action.replace('!', "");
                                 if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
                                     Channel_vec.push(r.clone())
                                 } else {

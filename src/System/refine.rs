@@ -6,7 +6,6 @@ use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
-use crate::TransitionSystems::LocationID;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
@@ -52,8 +51,8 @@ impl<'a> RefinementContext<'a> {
         RefinementContext {
             passed_list: PassedStateList::new(),
             waiting_list: WaitingStateList::new(),
-            sys1: sys1,
-            sys2: sys2,
+            sys1,
+            sys2,
         }
     }
 }
@@ -212,6 +211,7 @@ pub fn check_refinement(
     Ok(true)
 }
 
+#[cfg(feature = "verbose")]
 fn print_relation(passed_list: &PassedStateList) {
     let verbose = false;
 
@@ -233,6 +233,9 @@ fn print_relation(passed_list: &PassedStateList) {
     }
 }
 
+#[cfg(not(feature = "verbose"))]
+fn print_relation(_passed_list: &PassedStateList) {}
+
 fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
@@ -240,7 +243,13 @@ fn has_valid_state_pairs(
     context: &mut RefinementContext,
     is_state1: bool,
 ) -> bool {
-    let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
+    let (fed1, fed2) = get_guard_fed_for_sides(
+        transitions1,
+        transitions2,
+        curr_pair,
+        #[cfg(feature = "verbose")]
+        is_state1,
+    );
 
     // If there are no valid transition1s, continue
     if fed1.is_empty() {
@@ -273,7 +282,7 @@ fn get_guard_fed_for_sides(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    is_state1: bool,
+    #[cfg(feature = "verbose")] is_state1: bool,
 ) -> (OwnedFederation, OwnedFederation) {
     let dim = curr_pair.ref_zone().dim();
 
@@ -384,7 +393,7 @@ fn build_state_pair(
         return BuildResult::Success;
     }
 
-    let mut t_invariant = new_sp_zone.clone().down();
+    let t_invariant = new_sp_zone.clone().down();
     // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays, so it is fine and we can call down:
 
     // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure

@@ -1,6 +1,5 @@
-use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, LocationType, State, SyncType, Transition,
+    Component, DeclarationProvider, Declarations, State, Transition,
 };
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
@@ -16,7 +15,7 @@ type Action = String;
 
 #[derive(Clone)]
 struct ComponentInfo {
-    name: String,
+    //name: String,
     declarations: Declarations,
     max_bounds: Bounds,
 }
@@ -75,7 +74,7 @@ impl CompiledComponent {
             initial_location,
             dim,
             comp_info: ComponentInfo {
-                name: component.name,
+                //name: component.name,
                 declarations: component.declarations,
                 max_bounds,
             },

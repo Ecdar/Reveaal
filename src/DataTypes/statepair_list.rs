@@ -107,9 +107,6 @@ impl DepthFirstWaitingStateList {
     pub fn is_empty(&self) -> bool {
         self.queue.is_empty()
     }
-    pub fn len(&self) -> usize {
-        self.queue.len()
-    }
 }
 impl PassedStateListExt for PassedStateListFed {
     fn put(&mut self, mut pair: StatePair) {

@@ -1,7 +1,7 @@
 extern crate pest;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
-use pest::iterators::Pair;
+
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
@@ -136,9 +136,9 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
                 Operator::new(Rule::composition_op, Assoc::Left),
                 Operator::new(Rule::conjunction_op, Assoc::Left),
             ]);
-            let primary = |pair| build_expression_from_pair(pair);
-            let inner: Vec<Pair<Rule>> = pair.into_inner().collect();
-            precedence_climber.climb(inner.into_iter(), primary, |lhs, op, rhs| {
+            let primary = build_expression_from_pair;
+
+            precedence_climber.climb(pair.into_inner(), primary, |lhs, op, rhs| {
                 match op.as_rule() {
                     Rule::composition_op => {
                         QueryExpression::Composition(Box::new(lhs), Box::new(rhs))

@@ -4,7 +4,6 @@ use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::TransitionSystem;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
     let dimension = component.declarations.get_clock_count() + 1;

@@ -1,7 +1,7 @@
 use edbm::zones::OwnedFederation;
 
 use crate::ModelObjects::component::State;
-use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::TransitionSystem;
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
@@ -34,9 +34,7 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
     let mut state = state.unwrap();
     state.set_zone(OwnedFederation::universe(system.get_dim()));
 
-    let res = is_deterministic_helper(state, &mut passed, system);
-
-    res
+    is_deterministic_helper(state, &mut passed, system)
 }
 
 fn is_deterministic_helper(
@@ -77,8 +75,9 @@ fn is_deterministic_helper(
     true
 }
 
-//Local consistency check WITHOUT pruning
-pub fn is_fully_consistent(system: &dyn TransitionSystem, dimensions: u32) -> bool {
+/// Local consistency check WITHOUT pruning
+#[allow(dead_code)]
+pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
     if system.get_initial_location() == None {
         return false;
     }
@@ -146,6 +145,7 @@ pub fn consistency_least_helper(
     false
 }
 
+#[allow(dead_code)]
 fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,

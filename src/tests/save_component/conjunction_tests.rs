@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod Conjunction_tests {
-    use crate::tests::save_component::save_comp_helper::save_comp_helper::json_reconstructed_component_refines_base_self;
+    use crate::tests::save_component::save_comp_helper::util::json_reconstructed_component_refines_base_self;
 
     static PATH: &str = "samples/json/Conjunction";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";

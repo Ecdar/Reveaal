@@ -6,15 +6,15 @@ use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     RefinementExecutor,
 };
-use crate::System::save_component::combine_components;
+
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystem, TransitionSystemPtr,
+    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
 use crate::System::pruning;
 use edbm::util::constraints::ClockIndex;
 use simple_error::bail;
-use std::borrow::BorrowMut;
+
 use std::error::Error;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
@@ -136,7 +136,7 @@ pub fn get_system_recipe(
             let left = get_system_recipe(left, component_loader, clock_index);
             let right = get_system_recipe(right, component_loader, clock_index);
             *clock_index += 1;
-            let mut quotient = Box::new(SystemRecipe::Quotient(left, right, *clock_index));
+            let quotient = Box::new(SystemRecipe::Quotient(left, right, *clock_index));
             println!("Quotient clock index: {}", *clock_index);
             quotient
         }
@@ -144,7 +144,8 @@ pub fn get_system_recipe(
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
             println!("{} Clocks: {:?}", name, component.declarations.clocks);
-            return Box::new(SystemRecipe::Component(Box::new(component)));
+
+            Box::new(SystemRecipe::Component(Box::new(component)))
         }
         QueryExpression::SaveAs(comp, _) => get_system_recipe(comp, component_loader, clock_index),
         _ => panic!("Got unexpected query side: {:?}", side),
