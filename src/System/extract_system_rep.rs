@@ -35,11 +35,12 @@ pub fn create_executable_query<'a>(
                 sys2: right.compile(dim)?,
             }))},
             QueryExpression::Consistency(query_expression) => Ok(Box::new(ConsistencyExecutor {
-                system: get_system_recipe(
+                recipe: get_system_recipe(
                     query_expression,
                     component_loader,
                     &mut dim,
-                ).compile(dim)?,
+                ),
+                dim
             })),
             QueryExpression::Determinism(query_expression) => Ok(Box::new(DeterminismExecutor {
                 system: get_system_recipe(
