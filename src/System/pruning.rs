@@ -368,8 +368,8 @@ fn predt_of_all_outputs(
         }
 
         // do temporal predecessor avoiding saving fed
-        let mut predt_fed = incons_fed.clone();
-        predt_fed.predt(&saving_fed);
+        let predt_fed = incons_fed.predt(&saving_fed);
+
         incons_fed += predt_fed;
     }
 
