@@ -1,9 +1,11 @@
-use crate::DBMLib::dbm::Federation;
+use edbm::util::constraints::ClockIndex;
+use edbm::zones::OwnedFederation;
 
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
+use edbm::util::bounds::Bounds;
+
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
@@ -20,10 +22,10 @@ pub struct Quotient {
     universal_location: Location,
     inconsistent_location: Location,
     decls: Declarations,
-    new_clock_index: u32,
+    new_clock_index: ClockIndex,
     new_input_name: String,
 
-    dim: u32,
+    dim: ClockIndex,
 }
 
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
@@ -32,8 +34,8 @@ impl Quotient {
     pub fn new(
         T: TransitionSystemPtr,
         S: TransitionSystemPtr,
-        new_clock_index: u32,
-        dim: u32,
+        new_clock_index: ClockIndex,
+        dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
         if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
             return Err(format!(
@@ -132,9 +134,9 @@ impl Quotient {
 }
 
 impl TransitionSystem for Quotient {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
-            MaxBounds::create(self.get_dim())
+            Bounds::new(self.get_dim())
         } else {
             let (left, right) = self.get_children();
             let loc_l = loc.get_left();
@@ -158,9 +160,7 @@ impl TransitionSystem for Quotient {
             //Rule 10
             if is_input {
                 let mut transition = Transition::new(location, self.dim);
-                transition
-                    .guard_zone
-                    .add_eq_const_constraint(self.new_clock_index, 0);
+                transition.guard_zone = transition.guard_zone.constrain_eq(self.new_clock_index, 0);
                 transitions.push(transition);
             }
             return transitions;
@@ -187,11 +187,9 @@ impl TransitionSystem for Quotient {
             for t_transition in &t {
                 for s_transition in &s {
                     // In the following comments we use ϕ to symbolize the guard of the transition
-                    // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t)
-                    let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
-
                     // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t) ∧ ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
-                    guard_zone.intersect(&get_allowed_fed(&loc_s, s_transition));
+                    let mut guard_zone = get_allowed_fed(&loc_t, t_transition)
+                        .intersection(&get_allowed_fed(&loc_s, s_transition));
 
                     let target_locations = merge(
                         &t_transition.target_locations,
@@ -229,16 +227,15 @@ impl TransitionSystem for Quotient {
 
         if self.S.get_output_actions().contains(action) {
             // new Rule 3 (includes rule 4 by de-morgan)
-            let mut g_s = Federation::empty(self.dim);
+            let mut g_s = OwnedFederation::empty(self.dim);
 
             for s_transition in &s {
                 let allowed_fed = get_allowed_fed(&loc_s, s_transition);
-                g_s.add_fed(&allowed_fed);
+                g_s += allowed_fed;
             }
 
             // Rule 5 when Rule 3 applies
-            let mut inv_l_s = Federation::full(self.dim);
-            loc_s.apply_invariants(&mut inv_l_s);
+            let mut inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
                 guard_zone: (!inv_l_s) + (!g_s),
@@ -247,8 +244,7 @@ impl TransitionSystem for Quotient {
             });
         } else {
             // Rule 5 when Rule 3 does not apply
-            let mut inv_l_s = Federation::full(self.dim);
-            loc_s.apply_invariants(&mut inv_l_s);
+            let mut inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
                 guard_zone: !inv_l_s,
@@ -262,20 +258,17 @@ impl TransitionSystem for Quotient {
             && self.T.get_output_actions().contains(action)
         {
             //Calculate inverse G_T
-            let mut g_t = Federation::empty(self.dim);
+            let mut g_t = OwnedFederation::empty(self.dim);
             for t_transition in &t {
-                let allowed_fed = get_allowed_fed(&loc_t, t_transition);
-                g_t.add_fed(&allowed_fed);
+                g_t = g_t.union(&get_allowed_fed(&loc_t, t_transition));
             }
-            let inverse_g_t = !g_t;
+            let inverse_g_t = g_t.inverse();
 
             for s_transition in &s {
                 // In the following comments we use ϕ to symbolize the guard of the transition
-                // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
-                let mut guard_zone = get_allowed_fed(&loc_s, s_transition);
-
                 // ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s) ∧ ¬G_T
-                guard_zone.intersect(&inverse_g_t);
+                let mut guard_zone =
+                    get_allowed_fed(&loc_s, s_transition).intersection(&inverse_g_t);
 
                 let updates = vec![CompiledUpdate {
                     clock_index: self.new_clock_index,
@@ -292,7 +285,7 @@ impl TransitionSystem for Quotient {
 
         //Rule 7
         if action == self.new_input_name {
-            let inverse_t_invariant = !get_invariant(loc_t, self.dim);
+            let inverse_t_invariant = get_invariant(loc_t, self.dim).inverse();
             let s_invariant = get_invariant(loc_s, self.dim);
             let guard_zone = inverse_t_invariant.intersection(&s_invariant);
 
@@ -312,7 +305,7 @@ impl TransitionSystem for Quotient {
             for t_transition in &t {
                 let mut guard_zone = get_allowed_fed(&loc_t, t_transition);
 
-                loc_s.apply_invariants(&mut guard_zone);
+                guard_zone = loc_s.apply_invariants(guard_zone);
 
                 let target_locations = merge(&t_transition.target_locations, &loc_s);
                 let updates = t_transition.updates.clone();
@@ -327,7 +320,7 @@ impl TransitionSystem for Quotient {
 
         transitions
             .into_iter()
-            .filter(|e| e.guard_zone.is_valid())
+            .filter(|e| !e.guard_zone.is_empty())
             .collect()
     }
 
@@ -400,11 +393,8 @@ impl TransitionSystem for Quotient {
 
     fn get_initial_state(&self) -> Option<State> {
         let mut init_loc = self.get_initial_location()?;
-        let zone = Federation::init(self.dim);
-        Some(State {
-            decorated_locations: init_loc,
-            zone,
-        })
+        let zone = OwnedFederation::init(self.dim);
+        Some(State::create(init_loc, zone))
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
@@ -415,7 +405,7 @@ impl TransitionSystem for Quotient {
         CompositionType::Quotient
     }
 
-    fn get_dim(&self) -> u32 {
+    fn get_dim(&self) -> ClockIndex {
         self.dim
     }
 }
@@ -424,15 +414,14 @@ fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
     LocationTuple::merge_as_quotient(t, s)
 }
 
-fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> Federation {
-    let mut fed = transition.get_allowed_federation();
-    from.apply_invariants(&mut fed);
-    fed
+fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> OwnedFederation {
+    let fed = transition.get_allowed_federation();
+    from.apply_invariants(fed)
 }
 
-fn get_invariant(loc: &LocationTuple, dim: u32) -> Federation {
+fn get_invariant(loc: &LocationTuple, dim: ClockIndex) -> OwnedFederation {
     match loc.get_invariants() {
         Some(inv) => inv.clone(),
-        None => Federation::full(dim),
+        None => OwnedFederation::universe(dim),
     }
 }

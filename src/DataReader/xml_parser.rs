@@ -3,6 +3,7 @@ use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{component, queries, representations, system_declarations};
+use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
 use std::fs::File;
@@ -169,8 +170,8 @@ fn parse_declarations(variables: &str) -> Declarations {
     //Split string into vector of strings
     let decls: Vec<String> = variables.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
-    let mut clocks: HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut clocks: HashMap<String, ClockIndex> = HashMap::new();
+    let mut counter: ClockIndex = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string.is_empty() {

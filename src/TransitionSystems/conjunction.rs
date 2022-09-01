@@ -1,6 +1,8 @@
-use crate::DBMLib::dbm::Federation;
 use crate::ModelObjects::component::{Declarations, State, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
+use edbm::util::bounds::Bounds;
+use edbm::util::constraints::ClockIndex;
+use edbm::zones::OwnedFederation;
+
 use crate::System::local_consistency;
 use crate::TransitionSystems::{
     CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
@@ -13,14 +15,14 @@ pub struct Conjunction {
     right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    dim: u32,
+    dim: ClockIndex,
 }
 
 impl Conjunction {
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-        dim: u32,
+        dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();

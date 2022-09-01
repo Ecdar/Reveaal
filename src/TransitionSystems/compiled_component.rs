@@ -1,9 +1,10 @@
-use crate::DBMLib::dbm::Federation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, LocationType, State, SyncType, Transition,
 };
-use crate::ModelObjects::max_bounds::MaxBounds;
+use edbm::util::bounds::Bounds;
+use edbm::util::constraints::ClockIndex;
+
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
@@ -17,8 +18,7 @@ type Action = String;
 struct ComponentInfo {
     name: String,
     declarations: Declarations,
-    max_bounds: MaxBounds,
-    deterministic: bool,
+    max_bounds: Bounds,
 }
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ pub struct CompiledComponent {
     location_edges: HashMap<LocationID, Vec<(Action, Transition)>>,
     initial_location: Option<LocationTuple>,
     comp_info: ComponentInfo,
-    dim: u32,
+    dim: ClockIndex,
 }
 
 impl CompiledComponent {
@@ -37,7 +37,7 @@ impl CompiledComponent {
         component: Component,
         inputs: HashSet<String>,
         outputs: HashSet<String>,
-        dim: u32,
+        dim: ClockIndex,
     ) -> Result<Box<Self>, String> {
         if !inputs.is_disjoint(&outputs) {
             return Err("Inputs and outputs must be disjoint in component".to_string());
@@ -67,7 +67,6 @@ impl CompiledComponent {
         let initial_location = locations.values().find(|loc| loc.is_initial()).cloned();
 
         let max_bounds = component.get_max_bounds(dim);
-        let deterministic = component.is_deterministic(dim);
         Ok(Box::new(CompiledComponent {
             inputs,
             outputs,
@@ -79,12 +78,11 @@ impl CompiledComponent {
                 name: component.name,
                 declarations: component.declarations,
                 max_bounds,
-                deterministic,
             },
         }))
     }
 
-    pub fn compile(component: Component, dim: u32) -> Result<Box<Self>, String> {
+    pub fn compile(component: Component, dim: ClockIndex) -> Result<Box<Self>, String> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()
@@ -101,9 +99,9 @@ impl CompiledComponent {
 }
 
 impl TransitionSystem for CompiledComponent {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
-            MaxBounds::create(self.get_dim())
+            Bounds::new(self.get_dim())
         } else {
             self.comp_info.max_bounds.clone()
         }
@@ -192,7 +190,7 @@ impl TransitionSystem for CompiledComponent {
         local_consistency::is_least_consistent(self)
     }
 
-    fn get_dim(&self) -> u32 {
+    fn get_dim(&self) -> ClockIndex {
         self.dim
     }
 }

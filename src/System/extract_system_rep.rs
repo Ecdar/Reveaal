@@ -12,6 +12,7 @@ use crate::TransitionSystems::{
 };
 
 use crate::System::pruning;
+use edbm::util::constraints::ClockIndex;
 use simple_error::bail;
 use std::borrow::BorrowMut;
 use std::error::Error;
@@ -22,7 +23,7 @@ pub fn create_executable_query<'a>(
     full_query: &Query,
     component_loader: &'a mut (dyn ComponentLoader + 'static),
 ) -> Result<Box<dyn ExecutableQuery + 'a>, Box<dyn Error>> {
-    let mut dim: u32 = 0;
+    let mut dim: ClockIndex = 0;
 
     if let Some(query) = full_query.get_query() {
         match query {
@@ -87,12 +88,12 @@ pub fn create_executable_query<'a>(
 pub enum SystemRecipe {
     Composition(Box<SystemRecipe>, Box<SystemRecipe>),
     Conjunction(Box<SystemRecipe>, Box<SystemRecipe>),
-    Quotient(Box<SystemRecipe>, Box<SystemRecipe>, u32),
+    Quotient(Box<SystemRecipe>, Box<SystemRecipe>, ClockIndex),
     Component(Box<Component>),
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: u32) -> Result<TransitionSystemPtr, String> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, String> {
         match self {
             SystemRecipe::Composition(left, right) => {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
@@ -117,7 +118,7 @@ impl SystemRecipe {
 pub fn get_system_recipe(
     side: &QueryExpression,
     component_loader: &mut dyn ComponentLoader,
-    clock_index: &mut u32,
+    clock_index: &mut ClockIndex,
 ) -> Box<SystemRecipe> {
     match side {
         QueryExpression::Parentheses(expression) => {

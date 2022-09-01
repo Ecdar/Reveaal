@@ -32,11 +32,15 @@ simple-error = "0.2.3"
 force_graph = "0.3.2"
 rand = "0.8.5"
 futures = "0.3.21"
+# edbm = {git = "https://github.com/Ecdar/EDBM"}
+edbm = {path = "../EDBM"}
 
+
+# Enable optimizations for EDBM in debug mode, but not for our code:
+[profile.dev.package.edbm]
+opt-level = 3
 
 [build-dependencies]
-bindgen = "0.60.0"
-cc = "1.0.73"
 tonic-build = "0.5.*"
 
 

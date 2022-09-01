@@ -1,5 +1,6 @@
+use edbm::{util::constraints::ClockIndex, zones::OwnedFederation};
+
 use crate::{
-    DBMLib::dbm::Federation,
     EdgeEval::constraint_applyer::apply_constraints_to_state,
     ModelObjects::component::{Declarations, Location, LocationType},
 };
@@ -13,10 +14,10 @@ pub enum CompositionType {
     Quotient,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct LocationTuple {
     pub id: LocationID,
-    invariant: Option<Federation>,
+    invariant: Option<OwnedFederation>,
     pub loc_type: LocationType,
     left: Option<Box<LocationTuple>>,
     right: Option<Box<LocationTuple>>,
@@ -29,10 +30,10 @@ impl PartialEq for LocationTuple {
 }
 
 impl LocationTuple {
-    pub fn simple(location: &Location, decls: &Declarations, dim: u32) -> Self {
+    pub fn simple(location: &Location, decls: &Declarations, dim: ClockIndex) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
-            let mut fed = Federation::full(dim);
-            apply_constraints_to_state(&inv, decls, &mut fed);
+            let mut fed = OwnedFederation::universe(dim);
+            fed = apply_constraints_to_state(&inv, decls, fed);
             Some(fed)
         } else {
             None
@@ -91,7 +92,7 @@ impl LocationTuple {
 
         let invariant = if let Some(inv1) = &left.invariant {
             if let Some(inv2) = &right.invariant {
-                Some(inv1.intersection(inv2))
+                Some(inv1.clone().intersection(inv2))
             } else {
                 Some(inv1.clone())
             }
@@ -115,15 +116,15 @@ impl LocationTuple {
         }
     }
 
-    pub fn get_invariants(&self) -> Option<&Federation> {
+    pub fn get_invariants(&self) -> Option<&OwnedFederation> {
         self.invariant.as_ref()
     }
 
-    pub fn apply_invariants(&self, zone: &mut Federation) -> bool {
+    pub fn apply_invariants(&self, mut fed: OwnedFederation) -> OwnedFederation {
         if let Some(inv) = &self.invariant {
-            zone.intersect(&inv);
+            fed = fed.intersection(&inv);
         }
-        zone.is_valid()
+        fed
     }
 
     pub fn get_left(&self) -> &LocationTuple {

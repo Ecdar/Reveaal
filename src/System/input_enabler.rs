@@ -1,7 +1,9 @@
-use crate::DBMLib::dbm::Federation;
+use edbm::zones::OwnedFederation;
+
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
+use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::TransitionSystem;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
@@ -9,13 +11,13 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
     let mut new_edges: Vec<component::Edge> = vec![];
 
     for location in component.get_locations() {
-        let mut location_inv_zone = Federation::full(dimension);
+        let mut location_inv_zone = OwnedFederation::universe(dimension);
 
         if let Some(invariant) = location.get_invariant() {
-            constraint_applyer::apply_constraints_to_state(
+            location_inv_zone = constraint_applyer::apply_constraints_to_state(
                 invariant,
                 component.get_declarations(),
-                &mut location_inv_zone,
+                location_inv_zone,
             );
         }
 
@@ -24,43 +26,41 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
 
         for input in inputs {
             let input_edges = component.get_next_edges(location, input, component::SyncType::Input);
-            let mut zones_federation = Federation::empty(dimension);
+            let mut zones_federation = OwnedFederation::empty(dimension);
 
             for edge in input_edges {
-                let mut guard_zone = Federation::full(dimension);
+                let mut guard_zone = OwnedFederation::universe(dimension);
                 if let Some(target_invariant) = component
                     .get_location_by_name(edge.get_target_location())
                     .get_invariant()
                 {
-                    constraint_applyer::apply_constraints_to_state(
+                    guard_zone = constraint_applyer::apply_constraints_to_state(
                         target_invariant,
                         component.get_declarations(),
-                        &mut guard_zone,
+                        guard_zone,
                     );
                 }
 
                 if let Some(updates) = edge.get_update() {
                     for update in updates {
                         let cu = update.compiled(component.get_declarations());
-                        cu.apply_as_guard(&mut guard_zone);
-                        cu.apply_as_free(&mut guard_zone);
+                        guard_zone = cu.apply_as_guard(guard_zone);
+                        guard_zone = cu.apply_as_free(guard_zone);
                     }
                 }
 
                 if let Some(guard) = edge.get_guard() {
-                    constraint_applyer::apply_constraints_to_state(
+                    guard_zone = constraint_applyer::apply_constraints_to_state(
                         guard,
                         component.get_declarations(),
-                        &mut guard_zone,
+                        guard_zone,
                     );
                 }
 
-                guard_zone.intersect(&location_inv_zone);
-
-                zones_federation.add_fed(&guard_zone);
+                zones_federation += guard_zone.intersection(&location_inv_zone);
             }
 
-            let result_federation = full_federation.subtraction(&zones_federation);
+            let result_federation = full_federation.clone().subtraction(&zones_federation);
 
             if result_federation.is_empty() {
                 continue;
@@ -71,8 +71,10 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 source_location: location.get_id().to_string(),
                 target_location: location.get_id().to_string(),
                 sync_type: component::SyncType::Input,
-                guard: result_federation
-                    .as_boolexpression(Some(component.get_declarations().get_clocks())),
+                guard: BoolExpression::from_disjunction(
+                    &result_federation.minimal_constraints(),
+                    component.get_declarations().get_clocks(),
+                ),
                 update: None,
                 sync: input.to_string(),
             });

@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use std::{arch, fmt};
 
-use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component::{self, Declarations};
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 use colored::Colorize;
+use edbm::util::constraints::ClockIndex;
+use edbm::zones::OwnedFederation;
 
 #[derive(Debug, Clone)]
 pub struct CompiledUpdate {
-    pub clock_index: u32,
+    pub clock_index: ClockIndex,
     pub value: i32,
 }
 
@@ -53,12 +54,12 @@ impl CompiledUpdate {
         }
     }
 
-    pub fn apply(&self, zone: &mut Federation) {
-        zone.update(self.clock_index, self.value);
+    pub fn apply(&self, mut fed: OwnedFederation) -> OwnedFederation {
+        fed.update_clock_val(self.clock_index, self.value)
     }
 
-    pub fn as_update(&self, clocks: &HashMap<String, u32>) -> parse_edge::Update {
-        let map: HashMap<u32, String> = clocks.clone().into_iter().map(|(l, r)| (r, l)).collect();
+    pub fn as_update(&self, clocks: &HashMap<String, usize>) -> parse_edge::Update {
+        let map: HashMap<usize, String> = clocks.clone().into_iter().map(|(l, r)| (r, l)).collect();
 
         parse_edge::Update {
             variable: map.get(&self.clock_index).unwrap().clone(),
@@ -66,11 +67,11 @@ impl CompiledUpdate {
         }
     }
 
-    pub fn apply_as_free(&self, zone: &mut Federation) {
-        zone.free_clock(self.clock_index);
+    pub fn apply_as_free(&self, fed: OwnedFederation) -> OwnedFederation {
+        fed.free_clock(self.clock_index)
     }
 
-    pub fn apply_as_guard(&self, zone: &mut Federation) {
-        zone.add_eq_const_constraint(self.clock_index, self.value);
+    pub fn apply_as_guard(&self, fed: OwnedFederation) -> OwnedFederation {
+        fed.constrain_eq(self.clock_index, self.value)
     }
 }

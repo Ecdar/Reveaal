@@ -12,6 +12,7 @@ pub mod save_comp_helper {
     use crate::System::save_component::PruningStrategy;
     use crate::TransitionSystems::CompiledComponent;
     use crate::TransitionSystems::TransitionSystem;
+    use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let project_loader = JsonProjectLoader::new(String::from(input_path));
@@ -21,7 +22,7 @@ pub mod save_comp_helper {
         let str_query = format!("get-component: {} save-as test", system);
         let query = parse_queries::parse_to_expression_tree(str_query.as_str()).remove(0);
 
-        let mut dim: u32 = 0;
+        let mut dim: ClockIndex = 0;
         let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
             (

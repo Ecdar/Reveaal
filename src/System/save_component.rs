@@ -10,6 +10,7 @@ pub enum PruningStrategy {
     NoPruning,
 }
 
+use edbm::util::constraints::ClockIndex;
 use PruningStrategy::*;
 
 pub fn combine_components(
@@ -51,15 +52,15 @@ pub fn combine_components(
 
 fn get_locations_from_tuples(
     location_tuples: &Vec<LocationTuple>,
-    clock_map: &HashMap<String, u32>,
+    clock_map: &HashMap<String, ClockIndex>,
 ) -> Vec<Location> {
     location_tuples
         .iter()
         .cloned()
         .map(|loc_vec| {
-            let invariant: Option<BoolExpression> = loc_vec
-                .get_invariants()
-                .map_or(None, |fed| fed.as_boolexpression(Some(clock_map)));
+            let invariant: Option<BoolExpression> = loc_vec.get_invariants().map_or(None, |fed| {
+                BoolExpression::from_disjunction(&fed.minimal_constraints(), clock_map)
+            });
 
             Location {
                 id: loc_vec.id.to_string(),
@@ -71,7 +72,7 @@ fn get_locations_from_tuples(
         .collect()
 }
 
-fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, u32> {
+fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, ClockIndex> {
     let mut clocks = HashMap::new();
     let decls = sysrep.get_decls();
 
@@ -95,8 +96,8 @@ fn collect_all_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
     locations: &mut Vec<LocationTuple>,
     edges: &mut Vec<Edge>,
-    clock_map: &HashMap<String, u32>,
-    dim: u32,
+    clock_map: &HashMap<String, ClockIndex>,
+    dim: ClockIndex,
 ) {
     let l = representation.get_all_locations();
     locations.extend(l);
@@ -109,8 +110,8 @@ fn collect_reachable_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
     locations: &mut Vec<LocationTuple>,
     edges: &mut Vec<Edge>,
-    clock_map: &HashMap<String, u32>,
-    dim: u32,
+    clock_map: &HashMap<String, ClockIndex>,
+    dim: ClockIndex,
 ) {
     let l = representation.get_initial_location();
 
@@ -158,8 +159,8 @@ fn collect_edges_from_location(
     location: &LocationTuple,
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
-    clock_map: &HashMap<String, u32>,
-    dim: u32,
+    clock_map: &HashMap<String, ClockIndex>,
+    dim: ClockIndex,
 ) {
     collect_specific_edges_from_location(location, representation, edges, true, clock_map, dim);
     collect_specific_edges_from_location(location, representation, edges, false, clock_map, dim);
@@ -170,8 +171,8 @@ fn collect_specific_edges_from_location(
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     input: bool,
-    clock_map: &HashMap<String, u32>,
-    dim: u32,
+    clock_map: &HashMap<String, ClockIndex>,
+    dim: ClockIndex,
 ) {
     for sync in if input {
         representation.get_input_actions()

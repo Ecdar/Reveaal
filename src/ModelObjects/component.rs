@@ -1,4 +1,3 @@
-use crate::DBMLib::dbm::Federation;
 use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
@@ -8,12 +7,15 @@ use crate::DataReader::serialization::{
 use crate::EdgeEval::constraint_applyer;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::max_bounds::MaxBounds;
+use edbm::util::bounds::Bounds;
+use edbm::util::constraints::ClockIndex;
+
 use crate::ModelObjects::representations;
 
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, LocationID, TransitionSystem};
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use edbm::zones::OwnedFederation;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -45,7 +47,7 @@ impl DeclarationProvider for Component {
 
 #[allow(dead_code)]
 impl Component {
-    pub fn set_clock_indices(&mut self, indices: &mut u32) {
+    pub fn set_clock_indices(&mut self, indices: &mut ClockIndex) {
         self.declarations.set_clock_indices(*indices);
         *indices += self.declarations.get_clock_count();
     }
@@ -210,8 +212,8 @@ impl Component {
         result
     }
 
-    pub fn get_max_bounds(&self, dimensions: u32) -> MaxBounds {
-        let mut max_bounds = MaxBounds::create(dimensions);
+    pub fn get_max_bounds(&self, dimensions: ClockIndex) -> Bounds {
+        let mut max_bounds = Bounds::new(dimensions);
         for (clock_name, clock_id) in &self.declarations.clocks {
             let mut max_bound = 0;
             for edge in &self.edges {
@@ -232,7 +234,9 @@ impl Component {
                 }
             }
 
-            max_bounds.add_bound(*clock_id, max_bound);
+            // TODO: find more precise upper and lower bounds for clocks
+            max_bounds.add_lower(*clock_id, max_bound);
+            max_bounds.add_upper(*clock_id, max_bound);
         }
 
         max_bounds
@@ -253,212 +257,6 @@ impl Component {
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
     }
-
-    /// method to verify that component is deterministic, remember to verify the clock indices before calling this - check call in refinement.rs for reference
-    pub fn is_deterministic(&self, dim: u32) -> bool {
-        let mut passed_list: Vec<State> = vec![];
-        let mut waiting_list: Vec<State> = vec![];
-
-        let maybe_loc = self.get_initial_location();
-        if maybe_loc.is_none() {
-            println!("No initial location.");
-            return true;
-        }
-        let initial_loc = maybe_loc.unwrap();
-
-        let dimension = dim;
-
-        let state = create_state(initial_loc, &self.declarations, Federation::init(dimension));
-        add_state_to_wl(&mut waiting_list, state);
-
-        while !waiting_list.is_empty() {
-            if let Some(state) = waiting_list.pop() {
-                let mut full_state = state;
-                let mut edges: Vec<&Edge> = vec![];
-                let loc = if let LocationID::Simple(name) = &full_state.get_location().id {
-                    self.get_location_by_name(&name)
-                } else {
-                    panic!("Component should only have simple locations.")
-                };
-                for input_action in self.get_input_actions() {
-                    edges.append(&mut self.get_next_edges(
-                        &loc,
-                        input_action.get_name(),
-                        SyncType::Input,
-                    ));
-                }
-                if self.check_moves_overlap(&edges, &mut full_state) {
-                    return false;
-                }
-                let mut edges: Vec<&Edge> = vec![];
-                for output_action in self.get_output_actions() {
-                    edges.append(&mut self.get_next_edges(
-                        &loc,
-                        output_action.get_name(),
-                        SyncType::Output,
-                    ));
-                }
-
-                if self.check_moves_overlap(&edges, &mut full_state) {
-                    return false;
-                } else {
-                    for edge in edges {
-                        //apply the guard and updates from the edge to a cloned zone and add the new zone and location to the waiting list
-                        let full_new_zone = full_state.zone.clone();
-                        let loc = self.get_location_by_name(&edge.target_location);
-                        let mut new_state = create_state(loc, &self.declarations, full_new_zone);
-                        if !constraint_applyer::apply_constraint(
-                            edge.get_guard(),
-                            &self.declarations,
-                            &mut new_state.zone,
-                        ) {
-                            //If the constraint cannot be applied, continue.
-                            continue;
-                        }
-                        if let Some(updates) = edge.get_update() {
-                            for update in updates {
-                                update
-                                    .compiled(self.get_declarations())
-                                    .apply(&mut new_state.zone)
-                            }
-                        }
-
-                        if is_new_state(&mut new_state, &mut passed_list)
-                            && is_new_state(&mut new_state, &mut waiting_list)
-                        {
-                            add_state_to_wl(&mut waiting_list, new_state);
-                        }
-                    }
-                }
-                add_state_to_pl(&mut passed_list, full_state);
-            } else {
-                panic!("Unable to pop state from waiting list")
-            }
-        }
-
-        true
-    }
-
-    /// Method to check if moves are overlapping to for instance to verify that component is deterministic
-    fn check_moves_overlap(&self, edges: &[&Edge], state: &mut State) -> bool {
-        if edges.len() < 2 {
-            return false;
-        }
-
-        for i in 0..edges.len() {
-            for j in i + 1..edges.len() {
-                if edges[i].get_target_location() == edges[j].get_target_location() {
-                    if let Some(update_i) = edges[i].get_update() {
-                        if let Some(update_j) = edges[j].get_update() {
-                            if update_i == update_j {
-                                continue;
-                            }
-                        }
-                    }
-                }
-
-                if edges[i].get_sync() != edges[j].get_sync() {
-                    continue;
-                }
-                let location_source = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[i].get_source_location()))
-                    .unwrap();
-                let location_i = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[i].get_target_location()))
-                    .unwrap();
-                let location_j = self
-                    .get_locations()
-                    .iter()
-                    .find(|l| (l.get_id() == edges[j].get_target_location()))
-                    .unwrap();
-
-                let mut state_i = state.clone();
-                if !constraint_applyer::apply_constraint(
-                    location_source.get_invariant(),
-                    &self.declarations,
-                    &mut state_i.zone,
-                ) {
-                    continue;
-                }
-
-                if !constraint_applyer::apply_constraint(
-                    &edges[i].guard,
-                    &self.declarations,
-                    &mut state_i.zone,
-                ) {
-                    continue;
-                }
-
-                if !constraint_applyer::apply_constraint(
-                    location_i.get_invariant(),
-                    &self.declarations,
-                    &mut state_i.zone,
-                ) {
-                    continue;
-                }
-
-                let mut state_j = state.clone();
-                if !constraint_applyer::apply_constraint(
-                    location_source.get_invariant(),
-                    &self.declarations,
-                    &mut state_j.zone,
-                ) {
-                    continue;
-                }
-
-                if !constraint_applyer::apply_constraint(
-                    &edges[j].guard,
-                    &self.declarations,
-                    &mut state_j.zone,
-                ) {
-                    continue;
-                }
-
-                if !constraint_applyer::apply_constraint(
-                    location_j.get_invariant(),
-                    &self.declarations,
-                    &mut state_j.zone,
-                ) {
-                    continue;
-                }
-
-                //TODO: this should consider resets, inv(target)[r|->0]
-
-                if state_i.zone.is_valid() && state_j.zone.is_valid() {
-                    if state_i.zone.intersects(&state_j.zone) {
-                        println!(
-                            "Edges {} and {} overlap with zones {} and {}",
-                            edges[i], edges[j], state_i.zone, state_j.zone
-                        );
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
-}
-
-/// Function to check if a state is contained in the passed list, similar to the method impl by component
-fn is_new_state(state: &mut State, passed_list: &mut Vec<State>) -> bool {
-    for passed_state_pair in passed_list {
-        if state.get_location().id != passed_state_pair.get_location().id {
-            continue;
-        }
-        if state.zone.get_dimensions() != passed_state_pair.zone.get_dimensions() {
-            panic!("dimensions of dbm didn't match - fatal error")
-        }
-        if state.zone.is_subset_eq(&passed_state_pair.zone) {
-            return false;
-        }
-    }
-
-    true
 }
 
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
@@ -471,41 +269,58 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-fn create_state(location: &Location, decl: &Declarations, zone: Federation) -> State {
-    State {
-        decorated_locations: LocationTuple::simple(location, decl, zone.get_dimensions()),
-        zone,
-    }
+fn create_state(location: &Location, decl: &Declarations, zone: OwnedFederation) -> State {
+    State::create(LocationTuple::simple(location, decl, zone.dim()), zone)
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
 /// This is done as the type used in refinement state pair assumes to sides of an operation
 /// this should probably be refactored as it causes unnecessary confusion
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct State {
     pub decorated_locations: LocationTuple,
-    pub zone: Federation,
+    zone_sentinel: Option<OwnedFederation>,
 }
 
 impl State {
-    pub fn create(decorated_locations: LocationTuple, zone: Federation) -> Self {
+    pub fn create(decorated_locations: LocationTuple, zone: OwnedFederation) -> Self {
         State {
             decorated_locations,
-            zone,
+            zone_sentinel: Some(zone),
         }
     }
 
-    pub fn from_location(decorated_locations: LocationTuple, dimensions: u32) -> Option<Self> {
-        let mut zone = Federation::init(dimensions);
+    pub fn is_contained_in_list(&self, list: &Vec<State>) -> bool {
+        list.iter().any(|s| self.is_subset_of(s))
+    }
 
-        if !decorated_locations.apply_invariants(&mut zone) {
+    pub fn from_location(
+        decorated_locations: LocationTuple,
+        dimensions: ClockIndex,
+    ) -> Option<Self> {
+        let mut fed = OwnedFederation::init(dimensions);
+
+        fed = decorated_locations.apply_invariants(fed);
+        if fed.is_empty() {
             return None;
         }
 
         Some(State {
             decorated_locations,
-            zone,
+            zone_sentinel: Some(fed),
         })
+    }
+
+    pub fn zone_ref(&self) -> &OwnedFederation {
+        self.zone_sentinel.as_ref().unwrap()
+    }
+
+    pub fn take_zone(&mut self) -> OwnedFederation {
+        self.zone_sentinel.take().unwrap()
+    }
+
+    pub fn set_zone(&mut self, zone: OwnedFederation) {
+        self.zone_sentinel = Some(zone);
     }
 
     pub fn is_subset_of(&self, other: &Self) -> bool {
@@ -513,7 +328,7 @@ impl State {
             return false;
         }
 
-        self.zone.is_subset_eq(&other.zone)
+        self.zone_ref().subset_eq(other.zone_ref())
     }
 
     pub fn get_location(&self) -> &LocationTuple {
@@ -522,7 +337,8 @@ impl State {
 
     pub fn extrapolate_max_bounds(&mut self, system: &dyn TransitionSystem) {
         let bounds = system.get_local_max_bounds(&self.decorated_locations);
-        self.zone.extrapolate_max_bounds(&bounds);
+        let zone = self.take_zone().extrapolate_max_bounds(&bounds);
+        self.set_zone(zone);
     }
 }
 
@@ -577,20 +393,20 @@ pub enum SyncType {
 //Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition {
-    pub guard_zone: Federation,
+    pub guard_zone: OwnedFederation,
     pub target_locations: LocationTuple,
     pub updates: Vec<CompiledUpdate>,
 }
 impl Transition {
-    pub fn new(target_locations: &LocationTuple, dim: u32) -> Transition {
+    pub fn new(target_locations: &LocationTuple, dim: ClockIndex) -> Transition {
         Transition {
-            guard_zone: Federation::full(dim),
+            guard_zone: OwnedFederation::universe(dim),
             target_locations: target_locations.clone(),
             updates: vec![],
         }
     }
 
-    pub fn from(comp: &Component, edge: &Edge, dim: u32) -> Transition {
+    pub fn from(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
         //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
@@ -614,15 +430,18 @@ impl Transition {
     }
 
     pub fn use_transition(&self, state: &mut State) -> bool {
-        if self.apply_guards(&mut state.zone) {
-            self.apply_updates(&mut state.zone);
+        let mut zone = state.take_zone();
+        zone = self.apply_guards(zone);
+        if !zone.is_empty() {
+            zone = self.apply_updates(zone).up();
             self.move_locations(&mut state.decorated_locations);
-            state.zone.up();
-            if state.decorated_locations.apply_invariants(&mut state.zone) {
+            zone = state.decorated_locations.apply_invariants(zone);
+            if !zone.is_empty() {
+                state.set_zone(zone);
                 return true;
             }
         }
-
+        state.set_zone(zone);
         false
     }
 
@@ -637,7 +456,7 @@ impl Transition {
                 let target_locations =
                     LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
-                let guard_zone = l.guard_zone.intersection(&r.guard_zone);
+                let guard_zone = l.guard_zone.clone().intersection(&r.guard_zone);
 
                 let mut updates = l.updates.clone();
                 updates.append(&mut r.updates.clone());
@@ -653,82 +472,86 @@ impl Transition {
         out
     }
 
-    pub fn apply_updates(&self, zone: &mut Federation) {
+    pub fn apply_updates(&self, mut fed: OwnedFederation) -> OwnedFederation {
         for update in &self.updates {
-            update.apply(zone);
+            fed = update.apply(fed);
         }
+
+        fed
     }
 
-    pub fn inverse_apply_updates(&self, zone: &mut Federation) {
+    pub fn inverse_apply_updates(&self, mut fed: OwnedFederation) -> OwnedFederation {
         for update in &self.updates {
-            update.apply_as_guard(zone);
+            fed = update.apply_as_guard(fed);
         }
         for update in &self.updates {
-            update.apply_as_free(zone);
+            fed = update.apply_as_free(fed);
         }
+
+        fed
     }
 
     fn get_guard_from_allowed(
         from_loc: &LocationTuple,
         to_loc: &LocationTuple,
         updates: Vec<CompiledUpdate>,
-        guard: Option<Federation>,
-        dim: u32,
-    ) -> Federation {
+        guard: Option<OwnedFederation>,
+        dim: ClockIndex,
+    ) -> OwnedFederation {
         let mut fed = match to_loc.get_invariants() {
             Some(fed) => fed.clone(),
-            None => Federation::full(dim),
+            None => OwnedFederation::universe(dim),
         };
         for update in &updates {
-            update.apply_as_guard(&mut fed);
+            fed = update.apply_as_guard(fed);
         }
         for update in &updates {
-            update.apply_as_free(&mut fed);
+            fed = update.apply_as_free(fed);
         }
         if let Some(g) = guard {
-            fed.intersect(&g);
+            fed = fed.intersection(&g);
         }
-        from_loc.apply_invariants(&mut fed);
-        fed
+        from_loc.apply_invariants(fed)
     }
 
-    pub fn get_allowed_federation(&self) -> Federation {
+    pub fn get_allowed_federation(&self) -> OwnedFederation {
         let mut fed = match self.target_locations.get_invariants() {
             Some(fed) => fed.clone(),
-            None => Federation::full(self.guard_zone.get_dimensions()),
+            None => OwnedFederation::universe(self.guard_zone.dim()),
         };
-        self.inverse_apply_updates(&mut fed);
-        self.apply_guards(&mut fed);
-        fed
+        fed = self.inverse_apply_updates(fed);
+        self.apply_guards(fed)
     }
 
-    pub fn apply_guards(&self, zone: &mut Federation) -> bool {
-        zone.intersect(&self.guard_zone);
-        zone.is_valid()
+    pub fn apply_guards(&self, mut zone: OwnedFederation) -> OwnedFederation {
+        zone.intersection(&self.guard_zone)
     }
 
     pub fn move_locations(&self, locations: &mut LocationTuple) {
         *locations = self.target_locations.clone();
     }
 
-    pub fn combine_edge_guards(edges: &Vec<(&Component, &Edge)>, dim: u32) -> Federation {
-        let mut zone = Federation::full(dim);
+    pub fn combine_edge_guards(
+        edges: &Vec<(&Component, &Edge)>,
+        dim: ClockIndex,
+    ) -> OwnedFederation {
+        let mut fed = OwnedFederation::universe(dim);
         for (comp, edge) in edges {
-            edge.apply_guard(comp.get_declarations(), &mut zone);
+            fed = edge.apply_guard(comp.get_declarations(), fed);
         }
-        zone
+        fed
     }
 
     pub fn get_renamed_guard_expression(
         &self,
-        naming: &HashMap<String, u32>,
+        naming: &HashMap<String, ClockIndex>,
     ) -> Option<BoolExpression> {
-        self.guard_zone.as_boolexpression(Some(naming))
+        BoolExpression::from_disjunction(&self.guard_zone.minimal_constraints(), naming)
     }
 
     pub fn get_renamed_updates(
         &self,
-        naming: &HashMap<String, u32>,
+        naming: &HashMap<String, ClockIndex>,
     ) -> Option<Vec<parse_edge::Update>> {
         let updates: Vec<_> = self.updates.iter().map(|u| u.as_update(naming)).collect();
 
@@ -810,24 +633,23 @@ impl Edge {
     pub fn apply_update(
         &self,
         decl: &Declarations, //Will eventually be mutable
-        zone: &mut Federation,
-    ) {
+        mut fed: OwnedFederation,
+    ) -> OwnedFederation {
         if let Some(updates) = self.get_update() {
             for update in updates {
-                update.compiled(decl).apply(zone);
+                fed = update.compiled(decl).apply(fed);
             }
         }
+
+        fed
     }
 
-    pub fn apply_guard(&self, decl: &Declarations, zone: &mut Federation) -> bool {
-        return if let Some(guards) = self.get_guard() {
-            match apply_constraints_to_state(guards, decl, zone) {
-                Ok(x) => x,
-                Err(e) => panic!("Error du to: {}", e),
-            }
-        } else {
-            true
+    pub fn apply_guard(&self, decl: &Declarations, mut fed: OwnedFederation) -> OwnedFederation {
+        if let Some(guards) = self.get_guard() {
+            fed = apply_constraints_to_state(guards, decl, fed);
         };
+
+        fed
     }
 
     pub fn get_source_location(&self) -> &String {
@@ -895,15 +717,12 @@ impl<'a> DecoratedLocation<'a> {
         DecoratedLocation { location, decls }
     }
 
-    pub fn apply_invariant(&self, zone: &mut Federation) -> bool {
+    pub fn apply_invariant(&self, mut fed: OwnedFederation) -> OwnedFederation {
         if let Some(inv) = self.get_location().get_invariant() {
-            match apply_constraints_to_state(&inv, self.decls, zone) {
-                Ok(x) => x,
-                Err(e) => panic!("Erorr due to: {}", e),
-            }
-        } else {
-            true
+            fed = apply_constraints_to_state(&inv, self.decls, fed);
         }
+
+        fed
     }
 
     pub fn get_invariant(&self) -> &Option<BoolExpression> {
@@ -922,7 +741,7 @@ impl<'a> DecoratedLocation<'a> {
         self.location = location;
     }
 
-    pub fn get_clock_count(&self) -> u32 {
+    pub fn get_clock_count(&self) -> ClockIndex {
         self.get_declarations().get_clock_count()
     }
 }
@@ -935,7 +754,7 @@ pub trait DeclarationProvider {
 #[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String, i32>,
-    pub clocks: HashMap<String, u32>,
+    pub clocks: HashMap<String, ClockIndex>,
 }
 
 #[allow(dead_code)]
@@ -955,25 +774,25 @@ impl Declarations {
         &mut self.ints
     }
 
-    pub fn get_clocks(&self) -> &HashMap<String, u32> {
+    pub fn get_clocks(&self) -> &HashMap<String, ClockIndex> {
         &self.clocks
     }
 
-    pub fn get_clock_count(&self) -> u32 {
-        self.clocks.len() as u32
+    pub fn get_clock_count(&self) -> usize {
+        self.clocks.len()
     }
 
-    pub fn get_max_clock_index(&self) -> u32 {
+    pub fn get_max_clock_index(&self) -> ClockIndex {
         *self.clocks.values().max().unwrap_or(&0)
     }
 
-    pub fn set_clock_indices(&mut self, start_index: u32) {
+    pub fn set_clock_indices(&mut self, start_index: ClockIndex) {
         for (_, v) in self.clocks.iter_mut() {
             *v += start_index
         }
     }
 
-    pub fn update_clock_indices(&mut self, start_index: u32, old_offset: u32) {
+    pub fn update_clock_indices(&mut self, start_index: ClockIndex, old_offset: ClockIndex) {
         for (_, v) in self.clocks.iter_mut() {
             *v -= old_offset;
             *v += start_index;
@@ -988,7 +807,7 @@ impl Declarations {
         }
     }
 
-    pub fn get_clock_index_by_name(&self, name: &str) -> Option<&u32> {
+    pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
     }
 }

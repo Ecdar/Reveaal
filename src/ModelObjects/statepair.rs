@@ -1,5 +1,6 @@
-use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::max_bounds::MaxBounds;
+use edbm::util::{bounds::Bounds, constraints::ClockIndex};
+use edbm::zones::OwnedFederation;
+
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
 
@@ -7,27 +8,27 @@ use std::fmt::{Display, Formatter};
 pub struct StatePair {
     pub locations1: LocationTuple,
     pub locations2: LocationTuple,
-    pub zone: Federation,
+    /// The sentinel (Option) allows us to take ownership of the internal fed from a mutable reference
+    zone_sentinel: Option<OwnedFederation>,
 }
 
 impl StatePair {
     pub fn create(
-        dimensions: u32,
+        dimensions: usize,
         locations1: LocationTuple,
         locations2: LocationTuple,
     ) -> StatePair {
-        let mut zone = Federation::zero(dimensions);
-        zone.up();
+        let mut zone = OwnedFederation::init(dimensions);
 
         StatePair {
             locations1,
             locations2,
-            zone,
+            zone_sentinel: Some(zone),
         }
     }
 
-    pub fn get_dimensions(&self) -> u32 {
-        self.zone.get_dimensions()
+    pub fn dim(&self) -> ClockIndex {
+        self.ref_zone().dim()
     }
 
     pub fn get_locations1(&self) -> &LocationTuple {
@@ -55,6 +56,22 @@ impl StatePair {
         }
     }
 
+    pub fn clone_zone(&self) -> OwnedFederation {
+        self.ref_zone().clone()
+    }
+
+    pub fn ref_zone(&self) -> &OwnedFederation {
+        self.zone_sentinel.as_ref().unwrap()
+    }
+
+    pub fn take_zone(&mut self) -> OwnedFederation {
+        self.zone_sentinel.take().unwrap()
+    }
+
+    pub fn set_zone(&mut self, zone: OwnedFederation) {
+        self.zone_sentinel = Some(zone);
+    }
+
     pub fn extrapolate_max_bounds(
         &mut self,
         sys1: &TransitionSystemPtr,
@@ -62,7 +79,8 @@ impl StatePair {
     ) {
         let mut bounds = sys1.get_local_max_bounds(&self.locations1);
         bounds.add_bounds(&sys2.get_local_max_bounds(&self.locations2));
-        self.zone.extrapolate_max_bounds(&bounds);
+        let zone = self.take_zone().extrapolate_max_bounds(&bounds);
+        self.set_zone(zone);
     }
 }
 
@@ -80,7 +98,7 @@ impl Display for StatePair {
                 .get_invariants()
                 .map(|f| f.to_string())
                 .unwrap_or("no invariant".to_string()),
-            self.zone
+            self.ref_zone()
         ))?;
 
         Ok(())

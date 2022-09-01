@@ -5,6 +5,7 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::representations;
 use crate::Simulation::graph_layout::layout_dummy_component;
+use edbm::util::constraints::ClockIndex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -184,8 +185,8 @@ where
     //Split string into vector of strings
     let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
-    let mut clocks: HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut clocks: HashMap<String, ClockIndex> = HashMap::new();
+    let mut counter: ClockIndex = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string.is_empty() {

@@ -8,6 +8,7 @@ use crate::{
     DataReader::serialization::{encode_arithexpr, encode_boolexpr},
     ModelObjects::component::Declarations,
 };
+use edbm::util::constraints::ClockIndex;
 use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -53,8 +54,8 @@ impl Update {
 
     pub fn swap_clock_names(
         &mut self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) {
         if let Some(index) = from_vars.get(&self.variable) {
             self.variable = to_vars[index].clone();

@@ -1,4 +1,5 @@
-use crate::DBMLib::dbm::Federation;
+use edbm::zones::OwnedFederation;
+
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::{TransitionSystem, TransitionSystemPtr};
 
@@ -31,7 +32,7 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
         return true;
     }
     let mut state = state.unwrap();
-    state.zone = Federation::full(system.get_dim());
+    state.set_zone(OwnedFederation::universe(system.get_dim()));
 
     let res = is_deterministic_helper(state, &mut passed, system);
 
@@ -43,21 +44,21 @@ fn is_deterministic_helper(
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
 ) -> bool {
-    if passed_list.contains(&state) {
+    if state.is_contained_in_list(passed_list) {
         return true;
     }
 
     passed_list.push(state.clone());
 
     for action in system.get_actions() {
-        let mut location_fed = Federation::empty(system.get_dim());
+        let mut location_fed = OwnedFederation::empty(system.get_dim());
         for transition in &system.next_transitions(&state.decorated_locations, &action) {
             let mut new_state = state.clone();
 
             if transition.use_transition(&mut new_state) {
                 let mut allowed_fed = transition.get_allowed_federation();
-                state.decorated_locations.apply_invariants(&mut allowed_fed);
-                if allowed_fed.intersects(&location_fed) {
+                allowed_fed = state.decorated_locations.apply_invariants(allowed_fed);
+                if allowed_fed.has_intersection(&location_fed) {
                     println!(
                         "Not deterministic from location {}",
                         state.get_location().id
@@ -96,7 +97,7 @@ pub fn consistency_least_helper(
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
 ) -> bool {
-    if passed_list.contains(&state) {
+    if state.is_contained_in_list(passed_list) {
         return true;
     }
     if state.decorated_locations.is_universal() {
@@ -124,7 +125,7 @@ pub fn consistency_least_helper(
         }
     }
 
-    if state.zone.can_delay_indefinitely() {
+    if state.zone_ref().can_delay_indefinitely() {
         return true;
     }
 
@@ -150,7 +151,7 @@ fn consistency_fully_helper(
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
 ) -> bool {
-    if passed_list.contains(&state) {
+    if state.is_contained_in_list(passed_list) {
         return true;
     }
     passed_list.push(state.clone());
@@ -192,6 +193,10 @@ fn consistency_fully_helper(
     if output_existed {
         true
     } else {
-        passed_list.last().unwrap().zone.can_delay_indefinitely()
+        passed_list
+            .last()
+            .unwrap()
+            .zone_ref()
+            .can_delay_indefinitely()
     }
 }

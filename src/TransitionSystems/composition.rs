@@ -1,6 +1,8 @@
-use crate::DBMLib::dbm::Federation;
+use edbm::util::bounds::Bounds;
+use edbm::util::constraints::ClockIndex;
+use edbm::zones::OwnedFederation;
+
 use crate::ModelObjects::component::{Declarations, State, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
@@ -17,14 +19,14 @@ pub struct Composition {
     right_unique_actions: HashSet<String>,
     common_actions: HashSet<String>,
 
-    dim: u32,
+    dim: ClockIndex,
 }
 
 impl Composition {
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-        dim: u32,
+        dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();

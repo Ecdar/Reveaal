@@ -1,7 +1,7 @@
-use crate::DBMLib::dbm::Zone;
 use crate::ModelObjects::statepair::StatePair;
 use boolean_expression::CubeVar::False;
 use colored::Colorize;
+use edbm::util::constraints::{ClockIndex, Conjunction, Constraint, Disjunction};
 use generic_array::arr_impl;
 use serde::Deserialize;
 use std::borrow::BorrowMut;
@@ -31,8 +31,8 @@ pub enum BoolExpression {
 impl BoolExpression {
     pub fn swap_clock_names(
         &self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) -> BoolExpression {
         match self {
             BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
@@ -110,7 +110,131 @@ impl BoolExpression {
         }
     }
 
-    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+    pub fn from_disjunction(
+        disjunction: &Disjunction,
+        naming: &HashMap<String, ClockIndex>,
+    ) -> Option<Self> {
+        let naming = naming
+            .iter()
+            .map(|(name, index)| (*index, name.clone()))
+            .collect();
+        if disjunction.conjunctions.is_empty() {
+            Some(BoolExpression::Bool(false))
+        } else if disjunction.conjunctions.len() == 1 {
+            BoolExpression::from_conjunction(&disjunction.conjunctions[0], &naming)
+        } else {
+            let mut result = None;
+
+            for conjunction in &disjunction.conjunctions {
+                let expr = BoolExpression::from_conjunction(conjunction, &naming);
+                if expr.is_none() {
+                    // If any is None (true), the disjuntion is None (true)
+                    return None;
+                }
+                let expr = expr.unwrap();
+                match result {
+                    None => result = Some(expr),
+                    Some(res) => result = Some(BoolExpression::OrOp(Box::new(res), Box::new(expr))),
+                }
+            }
+
+            result
+        }
+    }
+
+    pub fn from_conjunction(
+        conjunction: &Conjunction,
+        naming: &HashMap<ClockIndex, String>,
+    ) -> Option<Self> {
+        if conjunction.constraints.is_empty() {
+            //BoolExpression::Bool(true)
+            None
+        } else if conjunction.constraints.len() == 1 {
+            Some(BoolExpression::from_constraint(
+                &conjunction.constraints[0],
+                naming,
+            ))
+        } else {
+            let mut result = None;
+
+            for constraint in &conjunction.constraints {
+                let expr = BoolExpression::from_constraint(constraint, naming);
+                match result {
+                    None => result = Some(expr),
+                    Some(res) => {
+                        result = Some(BoolExpression::AndOp(Box::new(res), Box::new(expr)))
+                    }
+                }
+            }
+
+            result
+        }
+    }
+
+    pub fn from_constraint(constraint: &Constraint, naming: &HashMap<ClockIndex, String>) -> Self {
+        let ineq = constraint.ineq();
+        let is_strict = ineq.is_strict();
+        let bound = ineq.bound();
+        let i = constraint.i;
+        let j = constraint.j;
+
+        match (i, j) {
+            (0, 0) => {
+                unreachable!("Constraint with i == 0 and j == 0 is not allowed");
+            }
+            (0, j) => {
+                // negated lower bound
+                match is_strict {
+                    true => {
+                        BoolExpression::GreatT(var_from_naming(naming, j), arith_from_int(-bound))
+                    }
+                    false => {
+                        BoolExpression::GreatEQ(var_from_naming(naming, j), arith_from_int(-bound))
+                    }
+                }
+            }
+            (i, 0) => {
+                // upper bound
+                match is_strict {
+                    true => {
+                        BoolExpression::LessT(var_from_naming(naming, i), arith_from_int(bound))
+                    }
+                    false => {
+                        BoolExpression::LessEQ(var_from_naming(naming, i), arith_from_int(bound))
+                    }
+                }
+            }
+            (i, j) => {
+                // difference
+                if bound == 0 {
+                    // i-j<=0 -> i <= 0+j
+                    match is_strict {
+                        true => BoolExpression::LessT(
+                            var_from_naming(naming, i),
+                            var_from_naming(naming, j),
+                        ),
+                        false => BoolExpression::LessEQ(
+                            var_from_naming(naming, i),
+                            var_from_naming(naming, j),
+                        ),
+                    }
+                } else {
+                    match is_strict {
+                        true => BoolExpression::LessT(
+                            var_diff_from_naming(naming, i, j),
+                            arith_from_int(bound),
+                        ),
+                        false => BoolExpression::LessEQ(
+                            var_diff_from_naming(naming, i, j),
+                            arith_from_int(bound),
+                        ),
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_max_constant(&self, clock: ClockIndex, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
@@ -122,7 +246,7 @@ impl BoolExpression {
             }
         });
 
-        new_constraint // * 2 + 1 // This should not actually be a dbm_raw, as it is converted from bound to raw in the c code
+        new_constraint
     }
 
     pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
@@ -320,6 +444,30 @@ impl BoolExpression {
     }
 }
 
+fn var_from_naming(
+    naming: &HashMap<ClockIndex, String>,
+    index: ClockIndex,
+) -> Box<ArithExpression> {
+    Box::new(ArithExpression::VarName(
+        naming.get(&index).unwrap().to_string(),
+    ))
+}
+
+fn var_diff_from_naming(
+    naming: &HashMap<ClockIndex, String>,
+    i: ClockIndex,
+    j: ClockIndex,
+) -> Box<ArithExpression> {
+    Box::new(ArithExpression::Difference(
+        var_from_naming(naming, i),
+        var_from_naming(naming, j),
+    ))
+}
+
+fn arith_from_int(value: i32) -> Box<ArithExpression> {
+    Box::new(ArithExpression::Int(value))
+}
+
 impl ops::BitAnd for BoolExpression {
     type Output = Self;
 
@@ -437,7 +585,7 @@ pub enum ArithExpression {
     Multiplication(Box<ArithExpression>, Box<ArithExpression>),
     Division(Box<ArithExpression>, Box<ArithExpression>),
     Modulo(Box<ArithExpression>, Box<ArithExpression>),
-    Clock(u32),
+    Clock(ClockIndex),
     VarName(String),
     Int(i32),
 }
@@ -445,8 +593,8 @@ pub enum ArithExpression {
 impl ArithExpression {
     pub fn swap_clock_names(
         &self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) -> ArithExpression {
         match self {
             ArithExpression::Difference(left, right) => ArithExpression::Difference(
@@ -504,7 +652,7 @@ impl ArithExpression {
         }
     }
 
-    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+    pub fn get_max_constant(&self, clock: ClockIndex, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
@@ -554,7 +702,7 @@ impl ArithExpression {
         }
     }
 
-    pub fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
+    pub fn get_constant(left: &Self, right: &Self, clock: ClockIndex, clock_name: &str) -> i32 {
         match left {
             ArithExpression::Clock(clock_id) => {
                 if *clock_id == clock {
@@ -982,26 +1130,26 @@ impl Operation {
 }
 
 pub struct Clock {
-    pub value: u32,
+    pub value: ClockIndex,
     pub negated: bool,
 }
 
 impl Clock {
-    pub fn new(v: u32, n: bool) -> Clock {
+    pub fn new(v: ClockIndex, n: bool) -> Clock {
         Clock {
             value: v,
             negated: n,
         }
     }
 
-    pub fn neg(v: u32) -> Clock {
+    pub fn neg(v: ClockIndex) -> Clock {
         Clock {
             value: v,
             negated: true,
         }
     }
 
-    pub fn pos(v: u32) -> Clock {
+    pub fn pos(v: ClockIndex) -> Clock {
         Clock {
             value: v,
             negated: false,
@@ -1023,8 +1171,8 @@ fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
 }
 
 fn var_from_index(
-    index: u32,
-    clocks: &Option<&HashMap<String, u32>>,
+    index: ClockIndex,
+    clocks: &Option<&HashMap<String, ClockIndex>>,
 ) -> Option<Box<ArithExpression>> {
     let var = if let Some(c) = clocks {
         //If the index exists in dbm it must be in the map, so we unwrap
@@ -1039,7 +1187,7 @@ fn var_from_index(
     };
     var
 }
-
+/*
 fn get_groups_from_zone(zone: &Zone, clocks: &Option<&HashMap<String, u32>>) -> Vec<Vec<u32>> {
     let mut groups: Vec<Vec<u32>> = vec![];
     let mut grouped: Vec<u32> = vec![];
@@ -1147,6 +1295,7 @@ pub fn build_guard_from_zone(
     Some(res)
 }
 
+
 fn add_diagonal_constraints(
     zone: &Zone,
     index_i: u32,
@@ -1183,6 +1332,7 @@ fn add_diagonal_constraints(
         }
     }
 }
+
 
 fn is_equal(zone: &Zone, index_i: u32, index_j: u32) -> bool {
     let d1 = zone.get_constraint(index_i, index_j);
@@ -1222,6 +1372,7 @@ fn constraint_sum(c1_strict: bool, c1: i32, c2_strict: bool, c2: i32) -> (bool, 
     let c = c1 + c2;
     (strict, c)
 }
+*/
 
 fn build_guard_from_zone_helper(guards: &mut Vec<BoolExpression>) -> BoolExpression {
     let num_guards = guards.len();

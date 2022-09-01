@@ -1,6 +1,6 @@
 macro_rules! default_composition {
     () => {
-        fn get_dim(&self) -> u32 {
+        fn get_dim(&self) -> ClockIndex {
             self.dim
         }
 
@@ -17,9 +17,9 @@ macro_rules! default_composition {
                 .collect()
         }
 
-        fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+        fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
             if loc.is_universal() || loc.is_inconsistent() {
-                MaxBounds::create(self.get_dim())
+                Bounds::new(self.get_dim())
             } else {
                 let (left, right) = self.get_children();
                 let loc_l = loc.get_left();
@@ -65,16 +65,15 @@ macro_rules! default_composition {
 
         fn get_initial_state(&self) -> Option<State> {
             let init_loc = self.get_initial_location().unwrap();
-            let mut zone = Federation::init(self.dim);
-            if !init_loc.apply_invariants(&mut zone) {
+            let mut zone = OwnedFederation::init(self.dim);
+
+            zone = init_loc.apply_invariants(zone);
+            if zone.is_empty() {
                 println!("Empty initial state");
                 return None;
             }
 
-            Some(State {
-                decorated_locations: init_loc,
-                zone,
-            })
+            Some(State::create(init_loc, zone))
         }
     };
 }
