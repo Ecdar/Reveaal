@@ -32,8 +32,7 @@ simple-error = "0.2.3"
 force_graph = "0.3.2"
 rand = "0.8.5"
 futures = "0.3.21"
-# edbm = {git = "https://github.com/Ecdar/EDBM"}
-edbm = {path = "../EDBM"}
+edbm = {git = "https://github.com/Ecdar/EDBM"}
 
 
 # Enable optimizations for EDBM in debug mode, but not for our code:
