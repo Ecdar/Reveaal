@@ -39,7 +39,7 @@ jobs:
         with:
           submodules: 'true'
       - name: Install llvm-config
-        run: sudo apt-get install llvm protobuf-compiler
+        run: sudo apt-get install llvm protobuf-compiler mingw-w64
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
