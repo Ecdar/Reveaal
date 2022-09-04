@@ -1,50 +1,9 @@
-#![allow(non_snake_case)]
-
-mod DataReader;
-mod DataTypes;
-mod EdgeEval;
-mod ModelObjects;
-mod ProtobufServer;
-mod Simulation;
-mod System;
-mod TransitionSystems;
-mod tests;
-
-use crate::DataReader::component_loader::{
-    ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
-};
-use crate::DataReader::{parse_queries, xml_parser};
-use crate::ModelObjects::queries::Query;
-use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
+use reveaal::{
+    extract_system_rep, parse_queries, queries, start_grpc_server_with_tokio, xml_parser,
+    ComponentLoader, JsonProjectLoader, ProjectLoader, Query, QueryResult, XmlProjectLoader,
+};
 use std::env;
-use ModelObjects::component;
-use ModelObjects::queries;
-use ProtobufServer::start_grpc_server_with_tokio;
-use System::executable_query::QueryResult;
-
-#[macro_use]
-extern crate pest_derive;
-extern crate colored;
-extern crate core;
-extern crate serde;
-extern crate serde_xml_rs;
-extern crate simple_error;
-extern crate xml;
-
-// The debug version
-#[macro_export]
-#[cfg(feature = "verbose")]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => { println!( $( $args ),* ); }
-}
-
-// Non-debug version
-#[macro_export]
-#[cfg(not(feature = "verbose"))]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => {};
-}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = load_yaml!("cli.yml");

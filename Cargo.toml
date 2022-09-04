@@ -1,9 +1,13 @@
 [package]
-name = "Reveaal"
+name = "reveaal"
 version = "0.1.0"
 build = "src/build.rs"
 authors = ["Peter Greve <Pgreve16@student.aau.dk>"]
 edition = "2018"
+
+[lib]
+name = "reveaal"
+path = "src/lib.rs"
 
 [features]
 dbm-stub = []
@@ -42,5 +46,9 @@ opt-level = 3
 [build-dependencies]
 tonic-build = "0.5.*"
 
+[dev-dependencies]
+criterion = "0.3.6"
 
-
+[[bench]]
+name = "bench"
+harness = false
