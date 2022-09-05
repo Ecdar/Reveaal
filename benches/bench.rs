@@ -1,5 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use criterion::{criterion_group, criterion_main, Criterion};
 use reveaal::tests::refinement::Helper::json_refinement_check;
 
 static PATH: &str = "samples/json/EcdarUniversity";
