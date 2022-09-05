@@ -1,6 +1,7 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackendServer;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use core::time::Duration;
+use log::info;
 use tokio::runtime;
 use tonic::transport::Server;
 
@@ -16,7 +17,7 @@ pub fn start_grpc_server_with_tokio(ip_endpoint: &str) -> Result<(), Box<dyn std
 }
 
 async fn start_grpc_server(ip_endpoint: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting grpc server on '{}'", ip_endpoint.trim());
+    info!("Starting grpc server on '{}'", ip_endpoint.trim());
 
     Server::builder()
         .http2_keepalive_interval(Some(Duration::from_secs(120)))

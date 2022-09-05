@@ -1,4 +1,5 @@
 use crate::ModelObjects::component::Component;
+use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
@@ -90,7 +91,7 @@ where
         if !declaration.is_empty() {
             if first_run {
                 let component_decls = &declaration;
-                println!("Comp decls: {component_decls}");
+                debug!("Comp decls: {component_decls}");
                 component_names = component_decls.split(' ').map(|s| s.into()).collect();
 
                 if component_names[0] == "system" {

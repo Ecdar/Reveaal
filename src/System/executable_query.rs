@@ -1,4 +1,5 @@
 use edbm::util::constraints::ClockIndex;
+use log::info;
 
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
@@ -61,7 +62,7 @@ impl ExecutableQuery for RefinementExecutor {
 
         match refine::check_refinement(sys1, sys2) {
             Ok(res) => {
-                println!("Refinement result: {:?}", res);
+                info!("Refinement result: {:?}", res);
                 QueryResult::Refinement(res)
             }
             Err(err_msg) => QueryResult::Error(err_msg),

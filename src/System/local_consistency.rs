@@ -1,4 +1,5 @@
 use edbm::zones::OwnedFederation;
+use log::warn;
 
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::TransitionSystem;
@@ -12,7 +13,7 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
-        println!("Empty initial state");
+        warn!("Empty initial state");
         return false;
     }
     let mut state = state.unwrap();
@@ -57,7 +58,7 @@ fn is_deterministic_helper(
                 let mut allowed_fed = transition.get_allowed_federation();
                 allowed_fed = state.decorated_locations.apply_invariants(allowed_fed);
                 if allowed_fed.has_intersection(&location_fed) {
-                    println!(
+                    warn!(
                         "Not deterministic from location {}",
                         state.get_location().id
                     );
@@ -85,7 +86,7 @@ pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
-        println!("Empty initial state");
+        warn!("Empty initial state");
         return false;
     }
     consistency_fully_helper(state.unwrap(), &mut passed, system)
@@ -114,7 +115,7 @@ pub fn consistency_least_helper(
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
                 if !consistency_least_helper(new_state, passed_list, system) {
-                    println!(
+                    warn!(
                         "Input \"{input}\" not consistent from {}",
                         state.get_location().id
                     );
@@ -140,7 +141,7 @@ pub fn consistency_least_helper(
             }
         }
     }
-    println!("No saving outputs from {}", state.get_location().id);
+    warn!("No saving outputs from {}", state.get_location().id);
 
     false
 }

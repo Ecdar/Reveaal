@@ -1,6 +1,5 @@
 use edbm::zones::OwnedFederation;
-
-use crate::debug_print;
+use log::{debug, info, log_enabled, trace, warn, Level};
 
 use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
@@ -63,11 +62,11 @@ pub fn check_refinement(
 ) -> Result<bool, String> {
     let mut context = RefinementContext::new(&sys1, &sys2);
     let dimensions = sys1.get_dim();
-    debug_print!("Dimensions: {}", dimensions);
+    debug!("Dimensions: {}", dimensions);
 
     //Firstly we check the preconditions
     if !check_preconditions(&sys1, &sys2) {
-        debug_print!("preconditions failed - refinement false");
+        warn!("preconditions failed - refinement false");
         return Ok(false);
     }
 
@@ -75,14 +74,14 @@ pub fn check_refinement(
     let inputs = common_actions(&sys1, &sys2, true);
     let outputs = common_actions(&sys1, &sys2, false);
 
-    println!(
-        "Inp left {:?} out left {:?}",
+    info!(
+        "Left inputs: {:?}, Left outputs: {:?}",
         sys1.get_input_actions(),
         sys1.get_output_actions()
     );
 
-    println!(
-        "Inp right {:?} out right {:?}",
+    info!(
+        "Right inputs: {:?}, Right outputs; {:?}",
         sys2.get_input_actions(),
         sys2.get_output_actions()
     );
@@ -94,8 +93,8 @@ pub fn check_refinement(
     let initial_locations_1 = sys1.get_initial_location();
     let initial_locations_2 = sys2.get_initial_location();
 
-    println!("Extra inputs {:?}", extra_inputs);
-    println!("Extra outputs {:?}", extra_outputs);
+    debug!("Extra inputs {:?}", extra_inputs);
+    debug!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
         return Ok(initial_locations_2 == None);
@@ -119,12 +118,12 @@ pub fn check_refinement(
     }
     initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
 
-    debug_print!("Initial {}", initial_pair);
+    debug!("Initial {}", initial_pair);
     context.waiting_list.put(initial_pair);
 
     while !context.waiting_list.is_empty() {
         let curr_pair = context.waiting_list.pop().unwrap();
-        debug_print!("{}", curr_pair);
+        trace!("Checking {}", curr_pair);
 
         context.passed_list.put(curr_pair.clone());
         for output in &outputs {
@@ -146,20 +145,22 @@ pub fn check_refinement(
             );
 
             if cond {
-                debug_print!("Created state pairs for output {}", output);
+                trace!("Created state pairs for output {}", output);
             } else {
-                println!("Refinement check failed for Output {:?}", output);
-                println!("Transitions1:");
-                for t in &output_transition1 {
-                    println!("{}", t);
+                info!("Refinement check failed for Output {:?}", output);
+                if log_enabled!(Level::Debug) {
+                    debug!("Transitions1:");
+                    for t in &output_transition1 {
+                        debug!("{}", t);
+                    }
+                    debug!("Transitions2:");
+                    for t in &output_transition2 {
+                        debug!("{}", t);
+                    }
+                    debug!("Current pair: {}", curr_pair);
+                    debug!("Relation:");
+                    print_relation(&context.passed_list);
                 }
-                println!("Transitions2:");
-                for t in &output_transition2 {
-                    println!("{}", t);
-                }
-                println!("Current pair: {}", curr_pair);
-                println!("Relation:");
-                print_relation(&context.passed_list);
 
                 return Ok(false);
             };
@@ -185,33 +186,36 @@ pub fn check_refinement(
             );
 
             if cond {
-                debug_print!("Created state pairs for input {}", input);
+                trace!("Created state pairs for input {}", input);
             } else {
-                println!("Refinement check failed for Input {:?}", input);
-                println!("Transitions1:");
-                for t in &input_transitions1 {
-                    println!("{}", t);
+                info!("Refinement check failed for Input {:?}", input);
+                if log_enabled!(Level::Debug) {
+                    debug!("Transitions1:");
+                    for t in &input_transitions1 {
+                        debug!("{}", t);
+                    }
+                    debug!("Transitions2:");
+                    for t in &input_transitions2 {
+                        debug!("{}", t);
+                    }
+                    debug!("Current pair: {}", curr_pair);
+                    debug!("Relation:");
+                    print_relation(&context.passed_list);
                 }
-                println!("Transitions2:");
-                for t in &input_transitions2 {
-                    println!("{}", t);
-                }
-                println!("Current pair: {}", curr_pair);
-                println!("Relation:");
-                print_relation(&context.passed_list);
 
                 return Ok(false);
             };
         }
     }
-    println!("Refinement check passed");
-    debug_print!("With relation:");
-    print_relation(&context.passed_list);
+    info!("Refinement check passed");
+    if log_enabled!(Level::Debug) {
+        debug!("With relation:");
+        print_relation(&context.passed_list);
+    }
 
     Ok(true)
 }
 
-#[cfg(feature = "verbose")]
 fn print_relation(passed_list: &PassedStateList) {
     let verbose = false;
 
@@ -220,7 +224,7 @@ fn print_relation(passed_list: &PassedStateList) {
     for (id1, id2) in sorted_keys {
         let zones = passed_list.zones(&(id1.clone(), id2.clone()));
 
-        debug_print!(
+        debug!(
             "{}",
             if zones.len() != 1 {
                 format!("1:{} 2:{} {} zones", id1, id2, zones.len())
@@ -233,9 +237,6 @@ fn print_relation(passed_list: &PassedStateList) {
     }
 }
 
-#[cfg(not(feature = "verbose"))]
-fn print_relation(_passed_list: &PassedStateList) {}
-
 fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
@@ -243,13 +244,7 @@ fn has_valid_state_pairs(
     context: &mut RefinementContext,
     is_state1: bool,
 ) -> bool {
-    let (fed1, fed2) = get_guard_fed_for_sides(
-        transitions1,
-        transitions2,
-        curr_pair,
-        #[cfg(feature = "verbose")]
-        is_state1,
-    );
+    let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
 
     // If there are no valid transition1s, continue
     if fed1.is_empty() {
@@ -258,7 +253,7 @@ fn has_valid_state_pairs(
 
     // If there are (valid) transition1s but no transition2s there are no valid pairs
     if fed2.is_empty() {
-        println!("Empty transition2s");
+        trace!("Empty transition2s");
         return false;
     };
 
@@ -282,31 +277,31 @@ fn get_guard_fed_for_sides(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    #[cfg(feature = "verbose")] is_state1: bool,
+    is_state1: bool,
 ) -> (OwnedFederation, OwnedFederation) {
     let dim = curr_pair.ref_zone().dim();
 
     let pair_zone = curr_pair.ref_zone();
-    debug_print!("Zone: {}", pair_zone);
+    trace!("Zone: {}", pair_zone);
     //create guard zones left
     let mut feds = OwnedFederation::empty(dim);
-    debug_print!("{}", if is_state1 { "Left:" } else { "Right:" });
+    trace!("{}", if is_state1 { "Left:" } else { "Right:" });
     for transition in transitions1 {
-        debug_print!("{}", transition);
+        trace!("{}", transition);
         feds += transition.get_allowed_federation();
     }
     let fed1 = feds.intersection(pair_zone);
-    debug_print!("{}", fed1);
+    trace!("{}", fed1);
 
-    debug_print!("{}", if is_state1 { "Right:" } else { "Left:" });
+    trace!("{}", if is_state1 { "Right:" } else { "Left:" });
     //Create guard zones right
     let mut feds = OwnedFederation::empty(dim);
     for transition in transitions2 {
-        debug_print!("{}", transition);
+        trace!("{}", transition);
         feds += transition.get_allowed_federation();
     }
     let fed2 = feds.intersection(pair_zone);
-    debug_print!("{}", fed2);
+    trace!("{}", fed2);
 
     (fed1, fed2)
 }
@@ -408,7 +403,7 @@ fn build_state_pair(
     new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
 
     if !context.passed_list.has(&new_sp) && !context.waiting_list.has(&new_sp) {
-        debug_print!("New state {}", new_sp);
+        debug!("New state {}", new_sp);
 
         context.waiting_list.put(new_sp);
     }
@@ -432,7 +427,7 @@ fn prepare_init_state(
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -> bool {
     if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
-        println!("precheck failed");
+        info!("Preconditions failed");
         return false;
     }
     let s_outputs = sys1.get_output_actions();
@@ -445,9 +440,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
 
     let subset = s_inputs.is_subset(&t_inputs) && t_outputs.is_subset(&s_outputs);
 
-    debug_print!("Disjoint {disjoint}, subset {subset}");
-    debug_print!("S i:{s_inputs:?} o:{s_outputs:?}");
-    debug_print!("T i:{t_inputs:?} o:{t_outputs:?}");
+    debug!("Disjoint {disjoint}, subset {subset}");
+    debug!("S i:{s_inputs:?} o:{s_outputs:?}");
+    debug!("T i:{t_inputs:?} o:{t_outputs:?}");
 
     disjoint && subset
 }

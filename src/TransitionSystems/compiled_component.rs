@@ -3,6 +3,7 @@ use crate::ModelObjects::component::{
 };
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
+use log::warn;
 
 use crate::System::local_consistency;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
@@ -170,12 +171,12 @@ impl TransitionSystem for CompiledComponent {
 
     fn precheck_sys_rep(&self) -> bool {
         if !self.is_deterministic() {
-            println!("NOT DETERMINISTIC");
+            warn!("Not deterministic");
             return false;
         }
 
         if !self.is_locally_consistent() {
-            println!("NOT CONSISTENT");
+            warn!("Not consistent");
             return false;
         }
         true

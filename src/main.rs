@@ -1,4 +1,7 @@
 use clap::{load_yaml, App};
+mod logging;
+use logging::setup_logger;
+
 use reveaal::{
     extract_system_rep, parse_queries, queries, start_grpc_server_with_tokio, xml_parser,
     ComponentLoader, JsonProjectLoader, ProjectLoader, Query, QueryResult, XmlProjectLoader,
@@ -6,6 +9,9 @@ use reveaal::{
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "logging")]
+    setup_logger().unwrap();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
@@ -77,7 +83,6 @@ fn get_project_loader(project_path: String) -> Box<dyn ProjectLoader> {
 
 pub fn set_working_directory(folder_path: &str) {
     let mut path = std::path::Path::new(folder_path);
-    println!("env {}", path.to_str().unwrap());
     if path.is_file() {
         path = path
             .parent()

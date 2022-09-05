@@ -219,10 +219,7 @@ where
                         }
                     }
                 } else {
-                    let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(variable_type);
-                    println!("Variable type: {:?}", variable_type);
-                    panic!("{}", error_string);
+                    panic!("Not implemented read for type: \"{}\"", variable_type);
                 }
             }
         }

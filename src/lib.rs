@@ -7,6 +7,7 @@ pub mod ProtobufServer;
 pub mod Simulation;
 pub mod System;
 pub mod TransitionSystems;
+pub(crate) mod logging;
 pub mod tests;
 
 pub use crate::DataReader::component_loader::{
@@ -28,17 +29,3 @@ extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
 extern crate xml;
-
-// The debug version
-#[macro_export]
-#[cfg(feature = "verbose")]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => { println!( $( $args ),* ); }
-}
-
-// Non-debug version
-#[macro_export]
-#[cfg(not(feature = "verbose"))]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => {};
-}

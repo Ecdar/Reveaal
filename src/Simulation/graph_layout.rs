@@ -1,5 +1,6 @@
 use crate::DataReader::serialization::DummyComponent;
 use force_graph::{DefaultNodeIdx, ForceGraph, NodeData};
+use log::info;
 use rand::Rng;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -38,7 +39,7 @@ fn get_config() -> Config {
     match read_config("config.json") {
         Ok(config) => config,
         Err(_) => {
-            println!("Could not find graph layout config, using defaults");
+            info!("Could not find graph layout config, using defaults");
             Config::default()
         }
     }
