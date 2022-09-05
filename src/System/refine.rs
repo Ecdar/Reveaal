@@ -384,17 +384,19 @@ fn build_state_pair(
 
     new_sp_zone = left_loc.apply_invariants(new_sp_zone);
 
-    // Apply right side invariants on a copy of the zone
-    let s_invariant = right_loc.apply_invariants(new_sp_zone.clone());
-    // Maybe apply inv_t, then up, then inv_s?
+    // Clone the zone before applying right side invariants
+    let s_invariant = new_sp_zone.clone();
+
+    // Apply right side invariants on the zone
+    new_sp_zone = right_loc.apply_invariants(new_sp_zone);
 
     // Continue to the next transition pair if the newly built zones are empty
     if new_sp_zone.is_empty() || s_invariant.is_empty() {
         return BuildResult::Success;
     }
 
-    let t_invariant = new_sp_zone.clone().down();
     // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays, so it is fine and we can call down:
+    let t_invariant = new_sp_zone.clone().down();
 
     // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure
     if !(s_invariant.subset_eq(&t_invariant)) {

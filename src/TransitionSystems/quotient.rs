@@ -22,7 +22,7 @@ pub struct Quotient {
     universal_location: Location,
     inconsistent_location: Location,
     decls: Declarations,
-    new_clock_index: ClockIndex,
+    quotient_clock_index: ClockIndex,
     new_input_name: String,
 
     dim: ClockIndex,
@@ -126,7 +126,7 @@ impl Quotient {
             universal_location,
             inconsistent_location,
             decls,
-            new_clock_index,
+            quotient_clock_index: new_clock_index,
             new_input_name,
             dim,
         });
@@ -137,7 +137,9 @@ impl Quotient {
 impl TransitionSystem for Quotient {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
-            Bounds::new(self.get_dim())
+            let mut b = Bounds::new(self.get_dim());
+            b.add_upper(self.quotient_clock_index, 0);
+            b
         } else {
             let (left, right) = self.get_children();
             let loc_l = loc.get_left();
@@ -145,6 +147,7 @@ impl TransitionSystem for Quotient {
             let mut bounds_l = left.get_local_max_bounds(loc_l);
             let bounds_r = right.get_local_max_bounds(loc_r);
             bounds_l.add_bounds(&bounds_r);
+            bounds_l.add_upper(self.quotient_clock_index, 0);
             bounds_l
         }
     }
@@ -161,7 +164,9 @@ impl TransitionSystem for Quotient {
             //Rule 10
             if is_input {
                 let mut transition = Transition::new(location, self.dim);
-                transition.guard_zone = transition.guard_zone.constrain_eq(self.new_clock_index, 0);
+                transition.guard_zone = transition
+                    .guard_zone
+                    .constrain_eq(self.quotient_clock_index, 0);
                 transitions.push(transition);
             }
             return transitions;
@@ -271,7 +276,7 @@ impl TransitionSystem for Quotient {
                 let guard_zone = get_allowed_fed(loc_s, s_transition).intersection(&inverse_g_t);
 
                 let updates = vec![CompiledUpdate {
-                    clock_index: self.new_clock_index,
+                    clock_index: self.quotient_clock_index,
                     value: 0,
                 }];
 
@@ -290,7 +295,7 @@ impl TransitionSystem for Quotient {
             let guard_zone = inverse_t_invariant.intersection(&s_invariant);
 
             let updates = vec![CompiledUpdate {
-                clock_index: self.new_clock_index,
+                clock_index: self.quotient_clock_index,
                 value: 0,
             }];
 
