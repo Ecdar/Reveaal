@@ -21,8 +21,18 @@ pub mod util {
         let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
             (
-                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
-                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
+                extract_system_rep::get_system_recipe(
+                    expr.as_ref(),
+                    &mut *comp_loader,
+                    &mut dim,
+                    &mut None,
+                ),
+                extract_system_rep::get_system_recipe(
+                    expr.as_ref(),
+                    &mut *comp_loader,
+                    &mut dim,
+                    &mut None,
+                ),
             )
         } else {
             panic!("Failed to create system")
