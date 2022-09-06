@@ -9,6 +9,10 @@ edition = "2018"
 name = "reveaal"
 path = "src/lib.rs"
 
+[[bin]]
+name = "Reveaal"
+path = "src/main.rs"
+
 [features]
 default = ["logging"]
 logging = ["dep:env_logger", "dep:chrono"]
