@@ -29,7 +29,7 @@ pub trait ComposedTransitionSystem: DynClone {
 
 clone_trait_object!(ComposedTransitionSystem);
 
-impl<T: ComposedTransitionSystem> TransitionSystem for T {
+impl<T: ComposedTransitionSystem + Sync + Send> TransitionSystem for T {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
         self.next_transitions(location, action)
     }

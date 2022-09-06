@@ -6,7 +6,7 @@ use std::collections::hash_set::HashSet;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
-pub trait TransitionSystem: DynClone {
+pub trait TransitionSystem: DynClone + Sync + Send {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
 
     fn get_dim(&self) -> ClockIndex;

@@ -1,12 +1,15 @@
+use crossbeam_channel::{Receiver, SendError, Sender};
 use edbm::zones::OwnedFederation;
 use log::{debug, info, log_enabled, trace, warn, Level};
 
-use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
+use crate::DataTypes::{PassedStateList, PassedStateListExt};
 use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread::{self, JoinHandle};
 
 fn common_actions(
     sys1: &TransitionSystemPtr,
@@ -38,20 +41,92 @@ fn extra_actions(
     }
 }
 
-struct RefinementContext<'a> {
-    pub passed_list: PassedStateList,
-    pub waiting_list: WaitingStateList,
-    pub sys1: &'a TransitionSystemPtr,
-    pub sys2: &'a TransitionSystemPtr,
+fn create_dispatcher_and_context(
+    sys1: Arc<TransitionSystemPtr>,
+    sys2: Arc<TransitionSystemPtr>,
+    initial_pair: StatePair,
+) -> (RefinementDispatcher, RefinementContext) {
+    let (result_sender, result_receiver) = crossbeam_channel::unbounded();
+    let (state_sender, state_receiver) = crossbeam_channel::unbounded();
+
+    let dispatcher = RefinementDispatcher::new(initial_pair, result_receiver, state_sender);
+    let context = RefinementContext::new(sys1, sys2, result_sender, state_receiver);
+
+    (dispatcher, context)
 }
 
-impl<'a> RefinementContext<'a> {
-    fn new(sys1: &'a TransitionSystemPtr, sys2: &'a TransitionSystemPtr) -> RefinementContext<'a> {
+enum DispatchResult {
+    NewState(Box<StatePair>),
+    RefinementFalse,
+    Done,
+}
+
+struct RefinementDispatcher {
+    initial_pair: StatePair,
+    result_receiver: crossbeam_channel::Receiver<DispatchResult>,
+    state_sender: crossbeam_channel::Sender<StatePair>,
+}
+
+impl RefinementDispatcher {
+    pub fn new(
+        initial_pair: StatePair,
+        result_receiver: crossbeam_channel::Receiver<DispatchResult>,
+        state_sender: crossbeam_channel::Sender<StatePair>,
+    ) -> Self {
+        Self {
+            initial_pair,
+            result_receiver,
+            state_sender,
+        }
+    }
+
+    pub fn dispatch(self) -> JoinHandle<bool> {
+        thread::spawn(|| {
+            self.state_sender.send(self.initial_pair).unwrap();
+            let mut floating_requests = 1;
+
+            while floating_requests != 0 {
+                match self.result_receiver.recv().unwrap() {
+                    DispatchResult::NewState(state) => {
+                        self.state_sender.send(*state).unwrap();
+                        floating_requests += 1;
+                    }
+                    DispatchResult::RefinementFalse => {
+                        return false;
+                    }
+                    DispatchResult::Done => {
+                        floating_requests -= 1;
+                    }
+                }
+            }
+
+            true
+        })
+    }
+}
+
+#[derive(Clone)]
+struct RefinementContext {
+    pub passed_list: Arc<Mutex<PassedStateList>>,
+    pub sys1: Arc<TransitionSystemPtr>,
+    pub sys2: Arc<TransitionSystemPtr>,
+    pub sender: Sender<DispatchResult>,
+    pub receiver: Receiver<StatePair>,
+}
+
+impl RefinementContext {
+    fn new(
+        sys1: Arc<TransitionSystemPtr>,
+        sys2: Arc<TransitionSystemPtr>,
+        sender: Sender<DispatchResult>,
+        receiver: Receiver<StatePair>,
+    ) -> RefinementContext {
         RefinementContext {
-            passed_list: PassedStateList::new(),
-            waiting_list: WaitingStateList::new(),
+            passed_list: Arc::new(Mutex::new(PassedStateList::new())),
             sys1,
             sys2,
+            sender,
+            receiver,
         }
     }
 }
@@ -60,7 +135,7 @@ pub fn check_refinement(
     sys1: TransitionSystemPtr,
     sys2: TransitionSystemPtr,
 ) -> Result<bool, String> {
-    let mut context = RefinementContext::new(&sys1, &sys2);
+    let num_threads = num_cpus::get();
     let dimensions = sys1.get_dim();
     debug!("Dimensions: {}", dimensions);
 
@@ -116,17 +191,67 @@ pub fn check_refinement(
     if !prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2) {
         return Ok(false);
     }
-    initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
+    initial_pair.extrapolate_max_bounds(&sys1, &sys2);
 
     debug!("Initial {}", initial_pair);
-    context.waiting_list.put(initial_pair);
+    let (dispatcher, context) =
+        create_dispatcher_and_context(Arc::new(sys1), Arc::new(sys2), initial_pair);
 
-    while !context.waiting_list.is_empty() {
-        let curr_pair = context.waiting_list.pop().unwrap();
+    let inputs = Arc::new(inputs);
+    let outputs = Arc::new(outputs);
+    let extra_inputs = Arc::new(extra_inputs);
+    let extra_outputs = Arc::new(extra_outputs);
+
+    for _ in 0..num_threads {
+        let context = context.clone();
+        let inputs = inputs.clone();
+        let outputs = outputs.clone();
+        let extra_inputs = extra_inputs.clone();
+        let extra_outputs = extra_outputs.clone();
+
+        thread::spawn(move || {
+            check_refinement_from_channel(
+                dimensions,
+                &inputs,
+                &outputs,
+                &extra_inputs,
+                &extra_outputs,
+                context,
+            )
+            .ok()
+        });
+    }
+
+    let res = dispatcher.dispatch().join().unwrap();
+
+    if res {
+        info!("Refinement check passed");
+    } else {
+        info!("Refinement check failed");
+    }
+
+    if log_enabled!(Level::Debug) {
+        debug!("With relation:");
+        print_relation(&context.passed_list);
+    }
+
+    Ok(res)
+}
+
+fn check_refinement_from_channel(
+    dimensions: usize,
+    inputs: &HashSet<String>,
+    outputs: &HashSet<String>,
+    extra_inputs: &HashSet<String>,
+    extra_outputs: &HashSet<String>,
+    context: RefinementContext,
+) -> Result<(), SendError<DispatchResult>> {
+    let sys1 = &context.sys1;
+    let sys2 = &context.sys2;
+    while let Ok(curr_pair) = context.receiver.recv() {
         trace!("Checking {}", curr_pair);
 
-        context.passed_list.put(curr_pair.clone());
-        for output in &outputs {
+        for output in outputs {
             let extra = extra_outputs.contains(output);
 
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
@@ -140,9 +265,9 @@ pub fn check_refinement(
                 &output_transition1,
                 &output_transition2,
                 &curr_pair,
-                &mut context,
+                &context,
                 true,
-            );
+            )?;
 
             if cond {
                 trace!("Created state pairs for output {}", output);
@@ -162,11 +287,12 @@ pub fn check_refinement(
                     print_relation(&context.passed_list);
                 }
 
-                return Ok(false);
+                context.sender.send(DispatchResult::RefinementFalse)?;
+                return Ok(());
             };
         }
 
-        for input in &inputs {
+        for input in inputs {
             let extra = extra_inputs.contains(input);
 
             let input_transitions1 = if extra {
@@ -181,9 +307,9 @@ pub fn check_refinement(
                 &input_transitions2,
                 &input_transitions1,
                 &curr_pair,
-                &mut context,
+                &context,
                 false,
-            );
+            )?;
 
             if cond {
                 trace!("Created state pairs for input {}", input);
@@ -203,22 +329,20 @@ pub fn check_refinement(
                     print_relation(&context.passed_list);
                 }
 
-                return Ok(false);
+                context.sender.send(DispatchResult::RefinementFalse)?;
+                return Ok(());
             };
         }
-    }
-    info!("Refinement check passed");
-    if log_enabled!(Level::Debug) {
-        debug!("With relation:");
-        print_relation(&context.passed_list);
+        context.sender.send(DispatchResult::Done)?;
     }
 
-    Ok(true)
+    Ok(())
 }
 
-fn print_relation(passed_list: &PassedStateList) {
+fn print_relation(passed_list: &Mutex<PassedStateList>) {
     let verbose = false;
 
+    let passed_list = passed_list.lock().unwrap();
     let mut sorted_keys: Vec<_> = passed_list.keys().collect();
     sorted_keys.sort_by_key(|(a, b)| format!("1:{}, 2:{}", a, b));
     for (id1, id2) in sorted_keys {
@@ -241,36 +365,37 @@ fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    context: &mut RefinementContext,
+    context: &RefinementContext,
     is_state1: bool,
-) -> bool {
+) -> Result<bool, SendError<DispatchResult>> {
     let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
 
     // If there are no valid transition1s, continue
     if fed1.is_empty() {
-        return true;
+        return Ok(true);
     }
 
     // If there are (valid) transition1s but no transition2s there are no valid pairs
     if fed2.is_empty() {
         trace!("Empty transition2s");
-        return false;
+        return Ok(false);
     };
 
     let result_federation = fed1.subtraction(&fed2);
 
     // If the entire zone of transition1s cannot be matched by transition2s
     if !result_federation.is_empty() {
-        return false;
+        return Ok(false);
     }
 
     // Finally try to create the pairs
-    let res = try_create_new_state_pairs(transitions1, transitions2, curr_pair, context, is_state1);
+    let res =
+        try_create_new_state_pairs(transitions1, transitions2, curr_pair, context, is_state1)?;
 
-    match res {
+    Ok(match res {
         BuildResult::Success => true,
         BuildResult::Failure => false,
-    }
+    })
 }
 
 fn get_guard_fed_for_sides(
@@ -316,29 +441,29 @@ fn try_create_new_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    context: &mut RefinementContext,
+    context: &RefinementContext,
     is_state1: bool,
-) -> BuildResult {
+) -> Result<BuildResult, SendError<DispatchResult>> {
     for transition1 in transitions1 {
         for transition2 in transitions2 {
             if let BuildResult::Failure =
-                build_state_pair(transition1, transition2, curr_pair, context, is_state1)
+                build_state_pair(transition1, transition2, curr_pair, context, is_state1)?
             {
-                return BuildResult::Failure;
+                return Ok(BuildResult::Failure);
             }
         }
     }
 
-    BuildResult::Success
+    Ok(BuildResult::Success)
 }
 
 fn build_state_pair(
     transition1: &Transition,
     transition2: &Transition,
     curr_pair: &StatePair,
-    context: &mut RefinementContext,
+    context: &RefinementContext,
     is_state1: bool,
-) -> BuildResult {
+) -> Result<BuildResult, SendError<DispatchResult>> {
     //Creates new state pair
     let mut new_sp: StatePair = curr_pair.clone();
     //Creates DBM for that state pair
@@ -353,7 +478,7 @@ fn build_state_pair(
 
     // Continue to the next transition pair if the zone is empty
     if new_sp_zone.is_empty() {
-        return BuildResult::Success;
+        return Ok(BuildResult::Success);
     }
 
     //Apply updates on both sides
@@ -387,7 +512,7 @@ fn build_state_pair(
 
     // Continue to the next transition pair if the newly built zones are empty
     if new_sp_zone.is_empty() || s_invariant.is_empty() {
-        return BuildResult::Success;
+        return Ok(BuildResult::Success);
     }
 
     // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays, so it is fine and we can call down:
@@ -395,20 +520,24 @@ fn build_state_pair(
 
     // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure
     if !(s_invariant.subset_eq(&t_invariant)) {
-        return BuildResult::Failure;
+        return Ok(BuildResult::Failure);
     }
 
     new_sp.set_zone(new_sp_zone);
 
-    new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
+    new_sp.extrapolate_max_bounds(&context.sys1, &context.sys2);
 
-    if !context.passed_list.has(&new_sp) && !context.waiting_list.has(&new_sp) {
+    let mut passed_list = context.passed_list.lock().unwrap();
+    if !passed_list.has(&new_sp) {
         debug!("New state {}", new_sp);
 
-        context.waiting_list.put(new_sp);
+        passed_list.put(new_sp.clone());
+        context
+            .sender
+            .send(DispatchResult::NewState(Box::new(new_sp)))?;
     }
 
-    BuildResult::Success
+    Ok(BuildResult::Success)
 }
 
 fn prepare_init_state(
