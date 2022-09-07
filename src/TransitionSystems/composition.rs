@@ -1,3 +1,5 @@
+use edbm::util::constraints::ClockIndex;
+
 use crate::ModelObjects::component::Transition;
 
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
@@ -16,14 +18,15 @@ pub struct Composition {
     right_unique_actions: HashSet<String>,
     common_actions: HashSet<String>,
 
-    dim: u32,
+    dim: ClockIndex,
 }
 
 impl Composition {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-        dim: u32,
+        dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
@@ -75,24 +78,24 @@ impl ComposedTransitionSystem for Composition {
         let loc_right = location.get_right();
 
         if self.common_actions.contains(action) {
-            let left = self.left.next_transitions(&loc_left, action);
-            let right = self.right.next_transitions(&loc_right, action);
+            let left = self.left.next_transitions(loc_left, action);
+            let right = self.right.next_transitions(loc_right, action);
             return Transition::combinations(&left, &right, CompositionType::Composition);
         }
 
         if self.left_unique_actions.contains(action) {
-            let left = self.left.next_transitions(&loc_left, action);
+            let left = self.left.next_transitions(loc_left, action);
             return Transition::combinations(
                 &left,
-                &mut vec![Transition::new(loc_right, self.dim)],
+                &vec![Transition::new(loc_right, self.dim)],
                 CompositionType::Composition,
             );
         }
 
         if self.right_unique_actions.contains(action) {
-            let right = self.right.next_transitions(&loc_right, action);
+            let right = self.right.next_transitions(loc_right, action);
             return Transition::combinations(
-                &mut vec![Transition::new(loc_left, self.dim)],
+                &vec![Transition::new(loc_left, self.dim)],
                 &right,
                 CompositionType::Composition,
             );
@@ -113,7 +116,7 @@ impl ComposedTransitionSystem for Composition {
         CompositionType::Composition
     }
 
-    fn get_dim(&self) -> u32 {
+    fn get_dim(&self) -> ClockIndex {
         self.dim
     }
 

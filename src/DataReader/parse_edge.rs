@@ -1,18 +1,15 @@
 extern crate pest;
-use crate::component::Component;
+
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::representations::BoolExpression::Bool;
+
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
-use crate::ModelObjects::system_declarations::SystemDeclarations;
-use crate::{
-    DataReader::serialization::{encode_arithexpr, encode_boolexpr},
-    ModelObjects::component::Declarations,
-};
+
+use crate::{DataReader::serialization::encode_boolexpr, ModelObjects::component::Declarations};
+use edbm::util::constraints::ClockIndex;
 use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::panic::resume_unwind;
 
 ///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
 ///For clarification see documentation on pest crate
@@ -53,8 +50,8 @@ impl Update {
 
     pub fn swap_clock_names(
         &mut self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) {
         if let Some(index) = from_vars.get(&self.variable) {
             self.variable = to_vars[index].clone();

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod extrapolation_tests {
+mod test {
     use crate::tests::refinement::Helper::xml_refinement_check;
 
     static PATH: &str = "samples/xml/extrapolation_test.xml";
@@ -7,9 +7,6 @@ mod extrapolation_tests {
     // Self Refinements
     #[test]
     fn InfRefinesInf() {
-        assert!(xml_refinement_check(
-            PATH,
-            "refinement: Inf <= Inf"
-        ));
+        assert!(xml_refinement_check(PATH, "refinement: Inf <= Inf"));
     }
 }

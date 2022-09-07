@@ -1,32 +1,38 @@
 #[cfg(test)]
-pub mod save_comp_helper {
+pub mod util {
     use crate::DataReader::component_loader::JsonProjectLoader;
     use crate::DataReader::parse_queries;
-    use crate::ModelObjects::component::DeclarationProvider;
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
-    use crate::System::input_enabler;
     use crate::System::refine;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
-    use crate::TransitionSystems::CompiledComponent;
-    use crate::TransitionSystems::TransitionSystem;
+    use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let project_loader = JsonProjectLoader::new(String::from(input_path));
-        let mut decl = project_loader.get_declarations().clone();
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
         let query = parse_queries::parse_to_expression_tree(str_query.as_str()).remove(0);
 
-        let mut dim: u32 = 0;
+        let mut dim: ClockIndex = 0;
         let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
             let mut comp_loader = project_loader.to_comp_loader();
             (
-                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
-                extract_system_rep::get_system_recipe(expr.as_ref(), &mut *comp_loader, &mut dim),
+                extract_system_rep::get_system_recipe(
+                    expr.as_ref(),
+                    &mut *comp_loader,
+                    &mut dim,
+                    &mut None,
+                ),
+                extract_system_rep::get_system_recipe(
+                    expr.as_ref(),
+                    &mut *comp_loader,
+                    &mut dim,
+                    &mut None,
+                ),
             )
         } else {
             panic!("Failed to create system")
@@ -34,7 +40,7 @@ pub mod save_comp_helper {
 
         let new_comp = new_system.compile(dim);
 
-        if let Err(_) = new_comp {
+        if new_comp.is_err() {
             return;
         }
         let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::NoPruning);

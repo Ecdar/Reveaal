@@ -1,3 +1,5 @@
+use edbm::util::constraints::ClockIndex;
+
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
 use crate::System::refine;
@@ -88,7 +90,7 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 
 pub struct ConsistencyExecutor {
     pub recipe: Box<SystemRecipe>,
-    pub dim: u32,
+    pub dim: ClockIndex,
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {

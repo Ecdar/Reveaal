@@ -1,14 +1,12 @@
 use std::collections::HashSet;
 
 use dyn_clone::{clone_trait_object, DynClone};
-
-use crate::{
-    DBMLib::dbm::Federation,
-    ModelObjects::{
-        component::{Declarations, State, Transition},
-        max_bounds::MaxBounds,
-    },
+use edbm::{
+    util::{bounds::Bounds, constraints::ClockIndex},
+    zones::OwnedFederation,
 };
+
+use crate::ModelObjects::component::{Declarations, State, Transition};
 
 use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
 
@@ -21,7 +19,7 @@ pub trait ComposedTransitionSystem: DynClone {
 
     fn get_composition_type(&self) -> CompositionType;
 
-    fn get_dim(&self) -> u32;
+    fn get_dim(&self) -> ClockIndex;
 
     fn get_input_actions(&self) -> HashSet<String>;
 
@@ -48,9 +46,9 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             .collect()
     }
 
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds {
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
-            MaxBounds::create(self.get_dim())
+            Bounds::new(self.get_dim())
         } else {
             let (left, right) = self.get_children();
             let loc_l = loc.get_left();
@@ -98,19 +96,17 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn get_initial_state(&self) -> Option<State> {
         let init_loc = self.get_initial_location().unwrap();
-        let mut zone = Federation::init(self.get_dim());
-        if !init_loc.apply_invariants(&mut zone) {
+        let mut zone = OwnedFederation::init(self.get_dim());
+        zone = init_loc.apply_invariants(zone);
+        if zone.is_empty() {
             println!("Empty initial state");
             return None;
         }
 
-        Some(State {
-            decorated_locations: init_loc,
-            zone,
-        })
+        Some(State::create(init_loc, zone))
     }
 
-    fn get_dim(&self) -> u32 {
+    fn get_dim(&self) -> ClockIndex {
         self.get_dim()
     }
 
@@ -122,8 +118,8 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         for loc1 in &left {
             for loc2 in &right {
                 location_tuples.push(LocationTuple::compose(
-                    &loc1,
-                    &loc2,
+                    loc1,
+                    loc2,
                     self.get_composition_type(),
                 ));
             }

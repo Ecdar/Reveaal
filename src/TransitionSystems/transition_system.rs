@@ -1,15 +1,15 @@
 use super::{CompositionType, LocationTuple};
 use crate::ModelObjects::component::{Declarations, State, Transition};
-use crate::ModelObjects::max_bounds::MaxBounds;
 use dyn_clone::{clone_trait_object, DynClone};
+use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
 pub trait TransitionSystem: DynClone {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> MaxBounds;
+    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
 
-    fn get_dim(&self) -> u32;
+    fn get_dim(&self) -> ClockIndex;
 
     fn next_transitions_if_available(
         &self,

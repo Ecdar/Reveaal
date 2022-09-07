@@ -33,7 +33,7 @@ impl<'a> State<'a> {
             return false;
         }
 
-        self.zone.is_subset_eq(&other.zone)
+        self.zone.subset_eq(&other.zone)
     }
 
     pub fn get_location(&self, index: usize) -> &Location {

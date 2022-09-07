@@ -1,10 +1,11 @@
+use edbm::zones::OwnedFederation;
+
 use crate::debug_print;
-use crate::DBMLib::dbm::Federation;
+
 use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
-use crate::ModelObjects::max_bounds::MaxBounds;
+
 use crate::ModelObjects::statepair::StatePair;
-use crate::TransitionSystems::LocationID;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
@@ -50,8 +51,8 @@ impl<'a> RefinementContext<'a> {
         RefinementContext {
             passed_list: PassedStateList::new(),
             waiting_list: WaitingStateList::new(),
-            sys1: sys1,
-            sys2: sys2,
+            sys1,
+            sys2,
         }
     }
 }
@@ -210,6 +211,7 @@ pub fn check_refinement(
     Ok(true)
 }
 
+#[cfg(feature = "verbose")]
 fn print_relation(passed_list: &PassedStateList) {
     let verbose = false;
 
@@ -231,6 +233,9 @@ fn print_relation(passed_list: &PassedStateList) {
     }
 }
 
+#[cfg(not(feature = "verbose"))]
+fn print_relation(_passed_list: &PassedStateList) {}
+
 fn has_valid_state_pairs(
     transitions1: &[Transition],
     transitions2: &[Transition],
@@ -238,7 +243,13 @@ fn has_valid_state_pairs(
     context: &mut RefinementContext,
     is_state1: bool,
 ) -> bool {
-    let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
+    let (fed1, fed2) = get_guard_fed_for_sides(
+        transitions1,
+        transitions2,
+        curr_pair,
+        #[cfg(feature = "verbose")]
+        is_state1,
+    );
 
     // If there are no valid transition1s, continue
     if fed1.is_empty() {
@@ -271,28 +282,28 @@ fn get_guard_fed_for_sides(
     transitions1: &[Transition],
     transitions2: &[Transition],
     curr_pair: &StatePair,
-    is_state1: bool,
-) -> (Federation, Federation) {
-    let dim = curr_pair.zone.get_dimensions();
+    #[cfg(feature = "verbose")] is_state1: bool,
+) -> (OwnedFederation, OwnedFederation) {
+    let dim = curr_pair.ref_zone().dim();
 
-    let pair_zone = &curr_pair.zone;
+    let pair_zone = curr_pair.ref_zone();
     debug_print!("Zone: {}", pair_zone);
     //create guard zones left
-    let mut feds = Federation::empty(dim);
+    let mut feds = OwnedFederation::empty(dim);
     debug_print!("{}", if is_state1 { "Left:" } else { "Right:" });
     for transition in transitions1 {
         debug_print!("{}", transition);
-        feds.add_fed(&transition.get_allowed_federation());
+        feds += transition.get_allowed_federation();
     }
     let fed1 = feds.intersection(pair_zone);
     debug_print!("{}", fed1);
 
     debug_print!("{}", if is_state1 { "Right:" } else { "Left:" });
     //Create guard zones right
-    let mut feds = Federation::empty(dim);
+    let mut feds = OwnedFederation::empty(dim);
     for transition in transitions2 {
         debug_print!("{}", transition);
-        feds.add_fed(&transition.get_allowed_federation());
+        feds += transition.get_allowed_federation();
     }
     let fed2 = feds.intersection(pair_zone);
     debug_print!("{}", fed2);
@@ -334,32 +345,28 @@ fn build_state_pair(
     is_state1: bool,
 ) -> BuildResult {
     //Creates new state pair
-    let mut new_sp: StatePair = StatePair::create(
-        curr_pair.get_dimensions(),
-        curr_pair.locations1.clone(),
-        curr_pair.locations2.clone(),
-    );
+    let mut new_sp: StatePair = curr_pair.clone();
     //Creates DBM for that state pair
-    let mut new_sp_zone = curr_pair.zone.clone();
+    let mut new_sp_zone = new_sp.take_zone();
     //Apply guards on both sides
     let (locations1, locations2) = new_sp.get_mut_states(is_state1);
 
     //Applies the left side guards and checks if zone is valid
-    let g1_success = transition1.apply_guards(&mut new_sp_zone);
+    new_sp_zone = transition1.apply_guards(new_sp_zone);
     //Applies the right side guards and checks if zone is valid
-    let g2_success = transition2.apply_guards(&mut new_sp_zone);
+    new_sp_zone = transition2.apply_guards(new_sp_zone);
 
     // Continue to the next transition pair if the zone is empty
-    if !g1_success || !g2_success {
+    if new_sp_zone.is_empty() {
         return BuildResult::Success;
     }
 
     //Apply updates on both sides
-    transition1.apply_updates(&mut new_sp_zone);
-    transition2.apply_updates(&mut new_sp_zone);
+    new_sp_zone = transition1.apply_updates(new_sp_zone);
+    new_sp_zone = transition2.apply_updates(new_sp_zone);
 
     //Perform a delay on the zone after the updates were applied
-    new_sp_zone.up();
+    new_sp_zone = new_sp_zone.up();
 
     //Update locations in states
 
@@ -375,30 +382,28 @@ fn build_state_pair(
         (locations2, locations1)
     };
 
-    let inv_success1 = left_loc.apply_invariants(&mut new_sp_zone);
+    new_sp_zone = left_loc.apply_invariants(new_sp_zone);
 
-    // Perform a copy of the zone and apply right side invariants on the copied zone
+    // Clone the zone before applying right side invariants
     let s_invariant = new_sp_zone.clone();
 
-    // Maybe apply inv_t, then up, then inv_s?
-
-    let inv_success2 = right_loc.apply_invariants(&mut new_sp_zone);
+    // Apply right side invariants on the zone
+    new_sp_zone = right_loc.apply_invariants(new_sp_zone);
 
     // Continue to the next transition pair if the newly built zones are empty
-    if !(inv_success1 && inv_success2) {
+    if new_sp_zone.is_empty() || s_invariant.is_empty() {
         return BuildResult::Success;
     }
 
-    let mut t_invariant = new_sp_zone.clone();
     // inv_s = x<10, inv_t = x>2 -> t cuts solutions but not delays, so it is fine and we can call down:
-    t_invariant.down();
+    let t_invariant = new_sp_zone.clone().down();
 
     // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure
-    if !(s_invariant.is_subset_eq(&t_invariant)) {
+    if !(s_invariant.subset_eq(&t_invariant)) {
         return BuildResult::Failure;
     }
 
-    new_sp.zone = new_sp_zone;
+    new_sp.set_zone(new_sp_zone);
 
     new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
 
@@ -416,8 +421,13 @@ fn prepare_init_state(
     initial_locations_1: LocationTuple,
     initial_locations_2: LocationTuple,
 ) -> bool {
-    initial_locations_1.apply_invariants(&mut initial_pair.zone)
-        && initial_locations_2.apply_invariants(&mut initial_pair.zone)
+    let mut sp_zone = initial_pair.take_zone();
+    sp_zone = initial_locations_1.apply_invariants(sp_zone);
+    sp_zone = initial_locations_2.apply_invariants(sp_zone);
+
+    initial_pair.set_zone(sp_zone);
+
+    !initial_pair.ref_zone().is_empty()
 }
 
 fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -> bool {

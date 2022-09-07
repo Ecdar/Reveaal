@@ -1,81 +1,73 @@
-use crate::component::Declarations;
-use crate::DBMLib::dbm::Federation;
-use crate::ModelObjects::component;
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Clock};
-use std::collections::HashMap;
-use std::convert::TryFrom;
+use edbm::util::constraints::{ClockIndex, Inequality};
+use edbm::zones::OwnedFederation;
 
-pub fn apply_constraint(
-    constraint: &Option<BoolExpression>,
-    decls: &Declarations,
-    zone: &mut Federation,
-) -> bool {
-    return if let Some(guards) = constraint {
-        apply_constraints_to_state(guards, decls, zone)
-            .expect(format!("Failed to apply constraint {:?}", guards).as_str())
-    } else {
-        true
-    };
-}
+use crate::component::Declarations;
+
+use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Clock};
 
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
     decls: &Declarations,
-    zone: &mut Federation,
-) -> Result<bool, String> {
-    apply_constraints_to_state_helper(guard, decls, zone)
+    fed: OwnedFederation,
+) -> OwnedFederation {
+    apply_constraints_to_state_helper(guard, decls, fed)
 }
 
-pub fn apply_constraints_to_state_helper(
+fn apply_constraints_to_state_helper(
     guard: &BoolExpression,
     decls: &Declarations,
-    zone: &mut Federation,
-) -> Result<bool, String> {
+    fed: OwnedFederation,
+) -> OwnedFederation {
+    if fed.is_empty() {
+        return fed;
+    }
+    use Inequality::*;
     match guard {
         BoolExpression::AndOp(left, right) => {
-            Ok(apply_constraints_to_state_helper(left, decls, zone)?
-                && apply_constraints_to_state_helper(right, decls, zone)?)
+            let fed = apply_constraints_to_state_helper(left, decls, fed);
+            apply_constraints_to_state_helper(right, decls, fed)
         }
         BoolExpression::OrOp(left, right) => {
-            let mut clone = zone.clone();
-            let res1 = apply_constraints_to_state_helper(left, decls, zone)?;
-            let res2 = apply_constraints_to_state_helper(right, decls, &mut clone)?;
-            *zone += clone;
-            Ok(res1 || res2)
+            let clone = fed.clone();
+            let fed1 = apply_constraints_to_state_helper(left, decls, fed);
+            let fed2 = apply_constraints_to_state_helper(right, decls, clone);
+            fed1 + fed2
         }
         BoolExpression::LessEQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls)?;
+            let (i, j, c) = get_indices(left, right, decls).unwrap();
             // i-j<=c
-            Ok(zone.constrain(i, j, c, false))
+            fed.constrain(i, j, LE(c))
         }
         BoolExpression::GreatEQ(left, right) => {
-            let (i, j, c) = get_indices(right, left, decls)?;
+            let (i, j, c) = get_indices(right, left, decls).unwrap();
             // j-i <= -c -> c <= i-j
-            Ok(zone.constrain(i, j, c, false))
+            fed.constrain(i, j, LE(c))
         }
         BoolExpression::EQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls)?;
+            let (i, j, c) = get_indices(left, right, decls).unwrap();
             // i-j <= c && j-i <= -c -> c <= i-j
-            Ok(zone.constrain(i, j, c, false) && zone.constrain(j, i, -c, false))
+
+            // TODO: maybe use fed.constrain_many(...)
+            fed.constrain(i, j, LE(c)).constrain(j, i, LE(-c))
         }
         BoolExpression::LessT(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls)?;
+            let (i, j, c) = get_indices(left, right, decls).unwrap();
             // i-j < c
-            Ok(zone.constrain(i, j, c, true))
+            fed.constrain(i, j, LS(c))
         }
         BoolExpression::GreatT(left, right) => {
-            let (i, j, c) = get_indices(right, left, decls)?;
+            let (i, j, c) = get_indices(right, left, decls).unwrap();
             // j-i < -c -> c < i-j
-            Ok(zone.constrain(i, j, c, true))
+            fed.constrain(i, j, LS(c))
         }
-        BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, zone),
+        BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, fed),
         BoolExpression::Bool(val) => {
             if !*val {
-                *zone = Federation::empty(zone.get_dimensions());
+                return fed.set_empty();
             }
-            Ok(*val)
+            fed
         }
-        _ => Err(format!("Unexpected BoolExpression")),
+        _ => panic!("Unexpected BoolExpression"),
     }
 }
 
@@ -84,7 +76,7 @@ fn get_indices(
     left: &ArithExpression,
     right: &ArithExpression,
     d: &Declarations,
-) -> Result<(u32, u32, i32), String> {
+) -> Result<(ClockIndex, ClockIndex, i32), String> {
     let left = &(replace_vars(left, d).simplify())?;
     let right = &(replace_vars(right, d).simplify())?;
     let (clocks_left, clocks_right) = (left.clock_var_count(), right.clock_var_count());
@@ -100,7 +92,7 @@ fn get_indices(
     let (left_const, right_const) = (get_const(left, d), get_const(right, d));
     let constant = right_const - left_const;
 
-    let result: Result<(u32, u32, i32), String> = match (clocks_left, clocks_right) {
+    let result: Result<(ClockIndex, ClockIndex, i32), String> = match (clocks_left, clocks_right) {
         (1, 1) => {
             let (c1, c2) = (
                 get_clock_val(left, d, 1, false)?.0,
@@ -143,34 +135,28 @@ fn get_indices(
 fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> ArithExpression {
     //let mut out = expr.clone();
     match expr {
-        ArithExpression::Parentheses(inner) => replace_vars(&inner, decls),
+        ArithExpression::Parentheses(inner) => replace_vars(inner, decls),
         ArithExpression::Difference(l, r) => {
-            ArithExpression::ADif(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::ADif(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Addition(l, r) => {
-            ArithExpression::AAdd(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AAdd(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Multiplication(l, r) => {
-            ArithExpression::AMul(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AMul(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Division(l, r) => {
-            ArithExpression::ADiv(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::ADiv(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Modulo(l, r) => {
-            ArithExpression::AMod(replace_vars(&l, decls), replace_vars(&r, decls))
+            ArithExpression::AMod(replace_vars(l, decls), replace_vars(r, decls))
         }
         ArithExpression::Clock(x) => ArithExpression::Clock(*x),
         ArithExpression::VarName(name) => {
-            if let Some(x) = decls.get_clocks().get(name.as_str()).and_then(|o| Some(*o)) {
+            if let Some(x) = decls.get_clocks().get(name.as_str()).copied() {
                 ArithExpression::Clock(x)
             } else {
-                ArithExpression::Int(
-                    decls
-                        .get_ints()
-                        .get(name.as_str())
-                        .and_then(|o| Some(*o))
-                        .unwrap(),
-                )
+                ArithExpression::Int(decls.get_ints().get(name.as_str()).copied().unwrap())
             }
         }
         ArithExpression::Int(i) => ArithExpression::Int(*i),
@@ -181,18 +167,13 @@ fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
     match expr {
         ArithExpression::Int(x) => *x,
         ArithExpression::Clock(_) => 0,
-        ArithExpression::VarName(name) => decls
-            .get_ints()
-            .get(name)
-            .and_then(|o| Some(*o))
-            .unwrap_or(0),
+        ArithExpression::VarName(name) => decls.get_ints().get(name).copied().unwrap_or(0),
         ArithExpression::Parentheses(x) => get_const(x, decls),
         ArithExpression::Difference(l, r) => get_const(l, decls) - get_const(r, decls),
         ArithExpression::Addition(l, r) => get_const(l, decls) + get_const(r, decls),
         ArithExpression::Multiplication(l, r) => get_const(l, decls) * get_const(r, decls),
         ArithExpression::Division(l, r) => get_const(l, decls) / get_const(r, decls),
         ArithExpression::Modulo(l, r) => get_const(l, decls) % get_const(r, decls),
-        _ => 0,
     }
 }
 
@@ -201,15 +182,13 @@ fn combine_clocks(
     c2: Clock,
     constant: i32,
     same_sign: bool,
-) -> Result<(u32, u32, i32), String> {
+) -> Result<(ClockIndex, ClockIndex, i32), String> {
     if (same_sign && c1.negated != c2.negated) || (!same_sign && c1.negated == c2.negated) {
         Err(String::from("Same sign"))
+    } else if !c1.negated {
+        Ok((c1.value, c2.value, constant))
     } else {
-        if c1.negated == false {
-            Ok((c1.value, c2.value, constant))
-        } else {
-            Ok((c2.value, c1.value, constant))
-        }
+        Ok((c2.value, c1.value, constant))
     }
 }
 
@@ -249,7 +228,7 @@ fn get_clock_val(
         ArithExpression::Multiplication(_, _)
         | ArithExpression::Division(_, _)
         | ArithExpression::Modulo(_, _) => {
-            return Err(format!("Multiplication with clock is illegal"));
+            return Err("Multiplication with clock is illegal".to_string());
         }
         ArithExpression::Clock(x) => Clock::new(*x, negated),
         _ => return Err(String::from("No Clocks")),
@@ -265,6 +244,7 @@ fn get_clock_val(
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::get_indices;
     use crate::component::Declarations;
@@ -603,7 +583,7 @@ mod test {
             clocks: HashMap::new(),
             ints: HashMap::new(),
         };
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             // = 4
             ArithExpression::Int(10),
             ArithExpression::ADif(
@@ -640,7 +620,7 @@ mod test {
             clocks: HashMap::new(),
             ints: HashMap::new(),
         };
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             ArithExpression::Multiplication(
                 Box::new(ArithExpression::Clock(3)),
                 Box::new(ArithExpression::Int(3)),
@@ -651,7 +631,7 @@ mod test {
         //Testing: left < right
         assert_eq!(get_indices(&left, &right, &decl).ok(), None);
 
-        let mut left = ArithExpression::ADif(
+        let left = ArithExpression::ADif(
             ArithExpression::Multiplication(
                 Box::new(ArithExpression::Int(3)),
                 Box::new(ArithExpression::Int(3)),

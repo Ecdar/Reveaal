@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-mod DBMLib;
 mod DataReader;
 mod DataTypes;
 mod EdgeEval;

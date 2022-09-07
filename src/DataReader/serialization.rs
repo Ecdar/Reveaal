@@ -5,6 +5,7 @@ use crate::ModelObjects::component::{
 };
 use crate::ModelObjects::representations;
 use crate::Simulation::graph_layout::layout_dummy_component;
+use edbm::util::constraints::ClockIndex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -184,8 +185,8 @@ where
     //Split string into vector of strings
     let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
-    let mut clocks: HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut clocks: HashMap<String, ClockIndex> = HashMap::new();
+    let mut counter: ClockIndex = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string.is_empty() {
@@ -219,7 +220,7 @@ where
                     }
                 } else {
                     let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(&variable_type.to_string());
+                    error_string.push_str(variable_type);
                     println!("Variable type: {:?}", variable_type);
                     panic!("{}", error_string);
                 }
@@ -318,10 +319,10 @@ where
 {
     let s = String::deserialize(deserializer)?;
     if s.contains('!') {
-        let res = s.replace("!", "");
+        let res = s.replace('!', "");
         Ok(res)
     } else if s.contains('?') {
-        let res = s.replace("?", "");
+        let res = s.replace('?', "");
         Ok(res)
     } else {
         Ok(s)
@@ -366,7 +367,7 @@ where
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
     if let Some((first_clock, _)) = it.next() {
-        output = output.add(&first_clock.to_string());
+        output = output.add(first_clock);
 
         for (clock, _) in it {
             output = output.add(&format!(", {}", clock));
@@ -394,29 +395,6 @@ where
 
 pub fn encode_boolexpr<S>(
     expr: &representations::BoolExpression,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&expr.encode_expr())
-}
-
-pub fn encode_opt_arithexpr<S>(
-    opt_expr: &Option<representations::ArithExpression>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if let Some(expr) = opt_expr {
-        encode_arithexpr(expr, serializer)
-    } else {
-        serializer.serialize_str("")
-    }
-}
-pub fn encode_arithexpr<S>(
-    expr: &representations::ArithExpression,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where

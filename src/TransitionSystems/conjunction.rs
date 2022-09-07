@@ -1,3 +1,5 @@
+use edbm::util::constraints::ClockIndex;
+
 use crate::ModelObjects::component::Transition;
 use crate::System::local_consistency;
 use crate::TransitionSystems::{
@@ -13,14 +15,15 @@ pub struct Conjunction {
     right: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    dim: u32,
+    dim: ClockIndex,
 }
 
 impl Conjunction {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-        dim: u32,
+        dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
@@ -65,8 +68,8 @@ impl ComposedTransitionSystem for Conjunction {
         let loc_left = location.get_left();
         let loc_right = location.get_right();
 
-        let left = self.left.next_transitions(&loc_left, action);
-        let right = self.right.next_transitions(&loc_right, action);
+        let left = self.left.next_transitions(loc_left, action);
+        let right = self.right.next_transitions(loc_right, action);
 
         Transition::combinations(&left, &right, CompositionType::Conjunction)
     }
@@ -83,7 +86,7 @@ impl ComposedTransitionSystem for Conjunction {
         CompositionType::Conjunction
     }
 
-    fn get_dim(&self) -> u32 {
+    fn get_dim(&self) -> ClockIndex {
         self.dim
     }
 

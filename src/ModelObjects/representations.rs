@@ -1,15 +1,12 @@
-use crate::DBMLib::dbm::Zone;
-use crate::ModelObjects::statepair::StatePair;
-use boolean_expression::CubeVar::False;
 use colored::Colorize;
-use generic_array::arr_impl;
+use edbm::util::constraints::{ClockIndex, Conjunction, Constraint, Disjunction};
+
 use serde::Deserialize;
-use std::borrow::BorrowMut;
+
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::ops;
 //use serde::de::Unexpected::Option;
-use serde_json::Value;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -31,8 +28,8 @@ pub enum BoolExpression {
 impl BoolExpression {
     pub fn swap_clock_names(
         &self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) -> BoolExpression {
         match self {
             BoolExpression::AndOp(left, right) => BoolExpression::AndOp(
@@ -66,7 +63,7 @@ impl BoolExpression {
             BoolExpression::Parentheses(body) => {
                 BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
             }
-            BoolExpression::Bool(val) => BoolExpression::Bool(val.clone()),
+            BoolExpression::Bool(val) => BoolExpression::Bool(*val),
             BoolExpression::Arithmetic(x) => {
                 BoolExpression::Arithmetic(Box::new(x.swap_clock_names(from_vars, to_vars)))
             }
@@ -110,7 +107,128 @@ impl BoolExpression {
         }
     }
 
-    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+    pub fn from_disjunction(
+        disjunction: &Disjunction,
+        naming: &HashMap<String, ClockIndex>,
+    ) -> Option<Self> {
+        let naming = naming
+            .iter()
+            .map(|(name, index)| (*index, name.clone()))
+            .collect();
+        if disjunction.conjunctions.is_empty() {
+            Some(BoolExpression::Bool(false))
+        } else if disjunction.conjunctions.len() == 1 {
+            BoolExpression::from_conjunction(&disjunction.conjunctions[0], &naming)
+        } else {
+            let mut result = None;
+
+            for conjunction in &disjunction.conjunctions {
+                // If any is None (true), the disjuntion is None (true) so we use ?
+                let expr = BoolExpression::from_conjunction(conjunction, &naming)?;
+
+                match result {
+                    None => result = Some(expr),
+                    Some(res) => result = Some(BoolExpression::OrOp(Box::new(res), Box::new(expr))),
+                }
+            }
+
+            result
+        }
+    }
+
+    pub fn from_conjunction(
+        conjunction: &Conjunction,
+        naming: &HashMap<ClockIndex, String>,
+    ) -> Option<Self> {
+        if conjunction.constraints.is_empty() {
+            //BoolExpression::Bool(true)
+            None
+        } else if conjunction.constraints.len() == 1 {
+            Some(BoolExpression::from_constraint(
+                &conjunction.constraints[0],
+                naming,
+            ))
+        } else {
+            let mut result = None;
+
+            for constraint in &conjunction.constraints {
+                let expr = BoolExpression::from_constraint(constraint, naming);
+                match result {
+                    None => result = Some(expr),
+                    Some(res) => {
+                        result = Some(BoolExpression::AndOp(Box::new(res), Box::new(expr)))
+                    }
+                }
+            }
+
+            result
+        }
+    }
+
+    pub fn from_constraint(constraint: &Constraint, naming: &HashMap<ClockIndex, String>) -> Self {
+        let ineq = constraint.ineq();
+        let is_strict = ineq.is_strict();
+        let bound = ineq.bound();
+        let i = constraint.i;
+        let j = constraint.j;
+
+        match (i, j) {
+            (0, 0) => {
+                unreachable!("Constraint with i == 0 and j == 0 is not allowed");
+            }
+            (0, j) => {
+                // negated lower bound
+                match is_strict {
+                    true => {
+                        BoolExpression::GreatT(var_from_naming(naming, j), arith_from_int(-bound))
+                    }
+                    false => {
+                        BoolExpression::GreatEQ(var_from_naming(naming, j), arith_from_int(-bound))
+                    }
+                }
+            }
+            (i, 0) => {
+                // upper bound
+                match is_strict {
+                    true => {
+                        BoolExpression::LessT(var_from_naming(naming, i), arith_from_int(bound))
+                    }
+                    false => {
+                        BoolExpression::LessEQ(var_from_naming(naming, i), arith_from_int(bound))
+                    }
+                }
+            }
+            (i, j) => {
+                // difference
+                if bound == 0 {
+                    // i-j<=0 -> i <= 0+j
+                    match is_strict {
+                        true => BoolExpression::LessT(
+                            var_from_naming(naming, i),
+                            var_from_naming(naming, j),
+                        ),
+                        false => BoolExpression::LessEQ(
+                            var_from_naming(naming, i),
+                            var_from_naming(naming, j),
+                        ),
+                    }
+                } else {
+                    match is_strict {
+                        true => BoolExpression::LessT(
+                            var_diff_from_naming(naming, i, j),
+                            arith_from_int(bound),
+                        ),
+                        false => BoolExpression::LessEQ(
+                            var_diff_from_naming(naming, i, j),
+                            arith_from_int(bound),
+                        ),
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_max_constant(&self, clock: ClockIndex, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
@@ -122,7 +240,7 @@ impl BoolExpression {
             }
         });
 
-        new_constraint // * 2 + 1 // This should not actually be a dbm_raw, as it is converted from bound to raw in the c code
+        new_constraint
     }
 
     pub fn swap_var_name(&mut self, from_name: &str, to_name: &str) {
@@ -320,6 +438,30 @@ impl BoolExpression {
     }
 }
 
+fn var_from_naming(
+    naming: &HashMap<ClockIndex, String>,
+    index: ClockIndex,
+) -> Box<ArithExpression> {
+    Box::new(ArithExpression::VarName(
+        naming.get(&index).unwrap().to_string(),
+    ))
+}
+
+fn var_diff_from_naming(
+    naming: &HashMap<ClockIndex, String>,
+    i: ClockIndex,
+    j: ClockIndex,
+) -> Box<ArithExpression> {
+    Box::new(ArithExpression::Difference(
+        var_from_naming(naming, i),
+        var_from_naming(naming, j),
+    ))
+}
+
+fn arith_from_int(value: i32) -> Box<ArithExpression> {
+    Box::new(ArithExpression::Int(value))
+}
+
 impl ops::BitAnd for BoolExpression {
     type Output = Self;
 
@@ -422,7 +564,7 @@ impl Display for BoolExpression {
                 }
             }
             BoolExpression::Arithmetic(x) => {
-                write!(f, "{}", x.encode_expr());
+                write!(f, "{}", x.encode_expr())?;
             }
         }
         Ok(())
@@ -437,7 +579,7 @@ pub enum ArithExpression {
     Multiplication(Box<ArithExpression>, Box<ArithExpression>),
     Division(Box<ArithExpression>, Box<ArithExpression>),
     Modulo(Box<ArithExpression>, Box<ArithExpression>),
-    Clock(u32),
+    Clock(ClockIndex),
     VarName(String),
     Int(i32),
 }
@@ -445,8 +587,8 @@ pub enum ArithExpression {
 impl ArithExpression {
     pub fn swap_clock_names(
         &self,
-        from_vars: &HashMap<String, u32>,
-        to_vars: &HashMap<u32, String>,
+        from_vars: &HashMap<String, ClockIndex>,
+        to_vars: &HashMap<ClockIndex, String>,
     ) -> ArithExpression {
         match self {
             ArithExpression::Difference(left, right) => ArithExpression::Difference(
@@ -475,7 +617,7 @@ impl ArithExpression {
                 let new_name = to_vars[index].clone();
                 ArithExpression::VarName(new_name)
             },
-            ArithExpression::Int(val) => ArithExpression::Int(val.clone()),
+            ArithExpression::Int(val) => ArithExpression::Int(*val),
             ArithExpression::Parentheses(inner) => inner.swap_clock_names(from_vars, to_vars),
         }
     }
@@ -504,7 +646,7 @@ impl ArithExpression {
         }
     }
 
-    pub fn get_max_constant(&self, clock: u32, clock_name: &str) -> i32 {
+    pub fn get_max_constant(&self, clock: ClockIndex, clock_name: &str) -> i32 {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
@@ -554,7 +696,7 @@ impl ArithExpression {
         }
     }
 
-    pub fn get_constant(left: &Self, right: &Self, clock: u32, clock_name: &str) -> i32 {
+    pub fn get_constant(left: &Self, right: &Self, clock: ClockIndex, clock_name: &str) -> i32 {
         match left {
             ArithExpression::Clock(clock_id) => {
                 if *clock_id == clock {
@@ -751,18 +893,18 @@ impl ArithExpression {
     }
 
     fn clone_expr(
-        checker: &Box<ArithExpression>,
-        cloner: &Box<ArithExpression>,
+        checker: &ArithExpression,
+        cloner: &ArithExpression,
         err_msg: Option<&str>,
     ) -> Result<Option<ArithExpression>, String> {
-        if let ArithExpression::Clock(_) = **checker {
+        if let ArithExpression::Clock(_) = *checker {
             if let Some(e) = err_msg {
                 Err(e.to_string())
             } else {
-                Ok(Some(*cloner.clone()))
+                Ok(Some(cloner.clone()))
             }
-        } else if let ArithExpression::VarName(_) = **checker {
-            Ok(Some(*cloner.clone()))
+        } else if let ArithExpression::VarName(_) = *checker {
+            Ok(Some(cloner.clone()))
         } else {
             Ok(None)
         }
@@ -919,7 +1061,7 @@ impl Display for ArithExpression {
                 write!(f, "{}{}{}", l_par, expr, r_par)?;
             }
             ArithExpression::Clock(id) => {
-                write!(f, "{}", format!("c:{}", id).to_string().magenta())?;
+                write!(f, "{}", format!("c:{}", id).magenta())?;
             }
             ArithExpression::VarName(name) => {
                 write!(f, "{}", name.to_string().blue())?;
@@ -957,6 +1099,8 @@ enum Operation {
     Mod(bool),
     None,
 }
+
+#[allow(dead_code)]
 impl Operation {
     pub fn left(&self) -> Operation {
         match self {
@@ -982,26 +1126,26 @@ impl Operation {
 }
 
 pub struct Clock {
-    pub value: u32,
+    pub value: ClockIndex,
     pub negated: bool,
 }
 
 impl Clock {
-    pub fn new(v: u32, n: bool) -> Clock {
+    pub fn new(v: ClockIndex, n: bool) -> Clock {
         Clock {
             value: v,
             negated: n,
         }
     }
 
-    pub fn neg(v: u32) -> Clock {
+    pub fn neg(v: ClockIndex) -> Clock {
         Clock {
             value: v,
             negated: true,
         }
     }
 
-    pub fn pos(v: u32) -> Clock {
+    pub fn pos(v: ClockIndex) -> Clock {
         Clock {
             value: v,
             negated: false,
@@ -1013,230 +1157,12 @@ impl Clock {
     }
 }
 
-fn get_op(exp: &Box<BoolExpression>) -> Option<String> {
-    match exp.as_ref() {
+fn get_op(exp: &BoolExpression) -> Option<String> {
+    match exp {
         BoolExpression::EQ(_, _) => Some("=".to_string()),
         BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
         BoolExpression::LessT(_, _) => Some("<".to_string()),
         _ => None,
-    }
-}
-
-fn var_from_index(
-    index: u32,
-    clocks: &Option<&HashMap<String, u32>>,
-) -> Option<Box<ArithExpression>> {
-    let var = if let Some(c) = clocks {
-        //If the index exists in dbm it must be in the map, so we unwrap
-        let clock = c.keys().find(|&x| *c.get(x).unwrap() == index);
-
-        match clock {
-            Some(c) => Some(Box::new(ArithExpression::VarName(c.clone()))),
-            None => None,
-        }
-    } else {
-        Some(Box::new(ArithExpression::Clock(index)))
-    };
-    var
-}
-
-fn get_groups_from_zone(zone: &Zone, clocks: &Option<&HashMap<String, u32>>) -> Vec<Vec<u32>> {
-    let mut groups: Vec<Vec<u32>> = vec![];
-    let mut grouped: Vec<u32> = vec![];
-    for index_i in 1..zone.dimension {
-        if grouped.contains(&index_i) {
-            continue;
-        }
-
-        if var_from_index(index_i, &clocks).is_none() {
-            continue;
-        }
-
-        let mut group = vec![index_i];
-
-        // Find next equal
-        for index_j in index_i + 1..zone.dimension {
-            if var_from_index(index_j, &clocks).is_none() {
-                continue;
-            }
-            if is_equal(zone, index_i, index_j) {
-                group.push(index_j);
-                grouped.push(index_j);
-            }
-        }
-
-        groups.push(group);
-    }
-    groups
-}
-
-pub fn build_guard_from_zone(
-    zone: &Zone,
-    clocks: Option<&HashMap<String, u32>>,
-) -> Option<BoolExpression> {
-    let mut guards: Vec<BoolExpression> = vec![];
-    let groups = get_groups_from_zone(zone, &clocks);
-
-    for group in &groups {
-        let first = *group.first().unwrap();
-        let last = *group.last().unwrap();
-        let first_var = var_from_index(first, &clocks).unwrap();
-        let last_var = var_from_index(last, &clocks).unwrap();
-
-        let (upper_is_strict, upper_val) = zone.get_constraint(first, 0);
-        let (lower_is_strict, lower_val) = zone.get_constraint(0, first);
-
-        // if lower bound is different from (>=, 0)
-        if lower_is_strict || lower_val != 0 {
-            if lower_is_strict {
-                guards.push(BoolExpression::LessT(
-                    Box::new(ArithExpression::Int(-lower_val)),
-                    first_var,
-                ));
-            } else {
-                guards.push(BoolExpression::LessEQ(
-                    Box::new(ArithExpression::Int(-lower_val)),
-                    first_var,
-                ));
-            }
-        }
-
-        for index in 0..group.len() - 1 {
-            let (a, b) = (group[index], group[index + 1]);
-            let (a, b) = (
-                var_from_index(a, &clocks).unwrap(),
-                var_from_index(b, &clocks).unwrap(),
-            );
-            guards.push(BoolExpression::EQ(a, b));
-        }
-
-        // Upper bound
-        if !zone.is_constraint_infinity(last, 0) {
-            if upper_is_strict {
-                guards.push(BoolExpression::LessT(
-                    last_var,
-                    Box::new(ArithExpression::Int(upper_val)),
-                ));
-            } else {
-                guards.push(BoolExpression::LessEQ(
-                    last_var,
-                    Box::new(ArithExpression::Int(upper_val)),
-                ));
-            }
-        }
-
-        for other_group in &groups {
-            let other_first = *other_group.first().unwrap();
-            if other_first == first {
-                continue;
-            }
-
-            add_diagonal_constraints(
-                zone,
-                other_first,
-                first,
-                var_from_index(other_first, &clocks).unwrap(),
-                var_from_index(first, &clocks).unwrap(),
-                &mut guards,
-            );
-        }
-    }
-    guards.reverse();
-
-    let res = build_guard_from_zone_helper(&mut guards);
-    Some(res)
-}
-
-fn add_diagonal_constraints(
-    zone: &Zone,
-    index_i: u32,
-    index_j: u32,
-    var_i: Box<ArithExpression>,
-    var_j: Box<ArithExpression>,
-    guards: &mut Vec<BoolExpression>,
-) {
-    if !zone.is_constraint_infinity(index_i, index_j) {
-        if is_constraint_unnecessary(zone, index_i, index_j) {
-            return;
-        }
-        // i-j <= c
-        let (is_strict, val) = zone.get_constraint(index_i, index_j);
-        /*if val == 0 {
-            if is_strict {
-                guards.push(BoolExpression::BLessT(*var_i, *var_j))
-            } else {
-                guards.push(BoolExpression::BLessEQ(*var_i, *var_j))
-            }
-        } else*/
-        {
-            if is_strict {
-                guards.push(BoolExpression::BLessT(
-                    ArithExpression::Difference(var_i, var_j),
-                    ArithExpression::Int(val),
-                ))
-            } else {
-                guards.push(BoolExpression::BLessEQ(
-                    ArithExpression::Difference(var_i, var_j),
-                    ArithExpression::Int(val),
-                ))
-            }
-        }
-    }
-}
-
-fn is_equal(zone: &Zone, index_i: u32, index_j: u32) -> bool {
-    let d1 = zone.get_constraint(index_i, index_j);
-    let d2 = zone.get_constraint(index_j, index_i);
-
-    const EQ_ZERO: (bool, i32) = (false, 0);
-
-    d1 == EQ_ZERO && d2 == EQ_ZERO
-}
-
-fn is_constraint_unnecessary(zone: &Zone, index_i: u32, index_j: u32) -> bool {
-    let max_i = zone.get_constraint(index_i, 0);
-    let min_j = zone.get_constraint(0, index_j);
-
-    // let max_j = zone.get_constraint(index_j, 0);
-    // let min_i = zone.get_constraint(0, index_i);
-
-    // i-j <= c
-    let c = zone.get_constraint(index_i, index_j);
-
-    if zone.is_constraint_infinity(index_i, 0) {
-        return true;
-    }
-
-    // max(i)-min(j) <? c
-    // --> max(i) <? c + min(j)
-    let c_plus_min_j = constraint_sum(c.0, c.1, min_j.0, min_j.1);
-
-    if c_plus_min_j == max_i {
-        return true;
-    }
-    false
-}
-
-fn constraint_sum(c1_strict: bool, c1: i32, c2_strict: bool, c2: i32) -> (bool, i32) {
-    let strict = c1_strict || c2_strict;
-    let c = c1 + c2;
-    (strict, c)
-}
-
-fn build_guard_from_zone_helper(guards: &mut Vec<BoolExpression>) -> BoolExpression {
-    let num_guards = guards.len();
-
-    if let Some(guard) = guards.pop() {
-        if num_guards == 1 {
-            guard
-        } else {
-            BoolExpression::AndOp(
-                Box::new(guard),
-                Box::new(build_guard_from_zone_helper(guards)),
-            )
-        }
-    } else {
-        BoolExpression::Bool(true)
     }
 }
 

@@ -45,12 +45,12 @@ impl ConcreteEcdarBackend {
 }
 
 fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
-    return match json_to_component(json) {
+    match json_to_component(json) {
         Ok(comp) => Ok(vec![comp]),
         Err(_) => Err(tonic::Status::invalid_argument(
             "Failed to parse json component",
         )),
-    };
+    }
 }
 
 fn parse_xml_components(xml: &str) -> Vec<Component> {

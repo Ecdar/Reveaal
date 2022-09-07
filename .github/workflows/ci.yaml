@@ -11,15 +11,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: 'true'
-      - name: Install compiler tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install llvm automake libxml2-dev gperf build-essential libboost-all-dev cmake make protobuf-compiler
-      - name: Compile UDBM wrapper
-        run: |
-          cd dbm
-          cmake -B build/
-          cmake --build build/
+      - name: Install llvm-config 
+        run: sudo apt-get install llvm protobuf-compiler
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -28,7 +21,6 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- --skip "DBMLib::lib_dbm::UDBM::bindgen_test_layout_dbm_idbm_t"
   fmt:
     name: Check code is formatted
     runs-on: ubuntu-latest
