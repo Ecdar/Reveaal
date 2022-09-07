@@ -1,5 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
+use log::{debug, trace};
 
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{
@@ -58,7 +59,7 @@ impl PruneContext {
 
     fn remove_edge(&mut self, edge: &Edge) {
         if let Some(index) = self.comp.edges.iter().position(|e| *e == *edge) {
-            println!("Removing {}", edge);
+            trace!("Removing {}", edge);
             self.comp.edges.remove(index);
             self.comp.create_edge_io_split();
         }
@@ -71,7 +72,7 @@ impl PruneContext {
                 &self.decl().clocks,
             );
 
-            println!(
+            trace!(
                 "Updating {} with guard {}",
                 edge,
                 guard.as_ref().unwrap_or(&BoolExpression::Bool(true))
@@ -105,7 +106,7 @@ pub fn prune(
         .map(|id| (id.clone(), OwnedFederation::universe(dim)))
         .collect();
 
-    println!("Inconsistent locs: {:?}", inconsistent_locs);
+    trace!("Inconsistent locs: {:?}", inconsistent_locs);
 
     let mut context = PruneContext {
         comp: new_comp,
@@ -130,7 +131,7 @@ pub fn prune(
             handle_output(edge, &mut context);
         }
 
-        println!(
+        trace!(
             "Step {}",
             context
                 .inconsistent_parts
@@ -143,7 +144,7 @@ pub fn prune(
     let (mut new_comp, incons_parts) = context.finish();
     add_inconsistent_parts_to_invariants(&mut new_comp, incons_parts, dim);
 
-    println!(
+    debug!(
         "Pruned component from {} edges to {} edges",
         comp.get_edges().len(),
         new_comp.get_edges().len()
@@ -502,7 +503,7 @@ fn is_immediately_inconsistent(
         None => false,
     };
     if res {
-        println!(
+        log::warn!(
             "loc: {} inv: {} inconsistent",
             loc.id,
             loc.get_invariants().unwrap()

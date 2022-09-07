@@ -13,6 +13,7 @@ use crate::TransitionSystems::{
 
 use crate::System::pruning;
 use edbm::util::constraints::ClockIndex;
+use log::debug;
 use simple_error::bail;
 
 use std::error::Error;
@@ -145,7 +146,7 @@ pub fn get_system_recipe(
                 Some(q_i) => *q_i,
                 None => {
                     *clock_index += 1;
-                    println!("Quotient clock index: {}", *clock_index);
+                    debug!("Quotient clock index: {}", *clock_index);
 
                     quotient_index.replace(*clock_index);
                     quotient_index.unwrap()
@@ -157,7 +158,7 @@ pub fn get_system_recipe(
         QueryExpression::VarName(name) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
-            println!("{} Clocks: {:?}", name, component.declarations.clocks);
+            debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
         }

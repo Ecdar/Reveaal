@@ -1,5 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
+use log::{debug, warn};
 
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
@@ -106,13 +107,13 @@ impl Quotient {
             .clocks
             .insert("quotient_xnew".to_string(), new_clock_index);
 
-        println!("S//T Inputs: {inputs:?}, Outputs: {outputs:?}");
-        println!(
+        debug!("S//T Inputs: {inputs:?}, Outputs: {outputs:?}");
+        debug!(
             "S Inputs: {:?}, Outputs: {:?}",
             S.get_input_actions(),
             S.get_output_actions()
         );
-        println!(
+        debug!(
             "T Inputs: {:?}, Outputs: {:?}",
             T.get_input_actions(),
             T.get_output_actions()
@@ -376,12 +377,12 @@ impl TransitionSystem for Quotient {
 
     fn precheck_sys_rep(&self) -> bool {
         if !self.is_deterministic() {
-            println!("NOT DETERMINISTIC");
+            warn!("Not deterministic");
             return false;
         }
 
         if !self.is_locally_consistent() {
-            println!("NOT CONSISTENT");
+            warn!("Not consistent");
             return false;
         }
 

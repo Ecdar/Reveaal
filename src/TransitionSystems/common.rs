@@ -5,6 +5,7 @@ use edbm::{
     util::{bounds::Bounds, constraints::ClockIndex},
     zones::OwnedFederation,
 };
+use log::warn;
 
 use crate::ModelObjects::component::{Declarations, State, Transition};
 
@@ -78,12 +79,12 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn precheck_sys_rep(&self) -> bool {
         if !self.is_deterministic() {
-            println!("NOT DETERMINISTIC");
+            warn!("Not deterministic");
             return false;
         }
 
         if !self.is_locally_consistent() {
-            println!("NOT CONSISTENT");
+            warn!("Not consistent");
             return false;
         }
         true
@@ -99,7 +100,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         let mut zone = OwnedFederation::init(self.get_dim());
         zone = init_loc.apply_invariants(zone);
         if zone.is_empty() {
-            println!("Empty initial state");
+            warn!("Empty initial state");
             return None;
         }
 
