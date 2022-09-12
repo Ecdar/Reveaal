@@ -12,7 +12,7 @@ use std::env;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "logging")]
     setup_logger().unwrap();
-
+    println!("Yeet Ivi");
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
