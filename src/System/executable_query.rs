@@ -94,7 +94,7 @@ pub struct ConsistencyExecutor {
     pub dim: ClockIndex,
 }
 
-impl<'a> ExecutableQuery for ConsistencyExecutor {
+impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
             Ok(system) => system.precheck_sys_rep(),
@@ -109,7 +109,7 @@ pub struct DeterminismExecutor {
     pub system: TransitionSystemPtr,
 }
 
-impl<'a> ExecutableQuery for DeterminismExecutor {
+impl ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let is_deterministic = self.system.is_deterministic();
 
