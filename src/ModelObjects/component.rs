@@ -579,7 +579,7 @@ impl fmt::Display for Transition {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
     #[serde(rename = "sourceLocation")]

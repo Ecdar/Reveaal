@@ -94,7 +94,7 @@ pub struct ConsistencyExecutor {
     pub dim: ClockIndex,
 }
 
-impl<'a> ExecutableQuery for ConsistencyExecutor {
+impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
             Ok(system) => system.precheck_sys_rep(),
