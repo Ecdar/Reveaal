@@ -344,7 +344,7 @@ pub enum LocationType {
     Inconsistent,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyLocation")]
 pub struct Location {
     pub id: String,
@@ -378,7 +378,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum SyncType {
     Input,
     Output,
@@ -446,7 +446,7 @@ impl Transition {
     ) -> Vec<Transition> {
         let mut out: Vec<Transition> = vec![];
         for l in left {
-            for r in &*right {
+            for r in right {
                 let target_locations =
                     LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
 
@@ -747,7 +747,7 @@ pub trait DeclarationProvider {
 }
 
 /// The declaration struct is used to hold the indices for each clock, and is meant to be the owner of int variables once implemented
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Serialize)]
 pub struct Declarations {
     pub ints: HashMap<String, i32>,
     pub clocks: HashMap<String, ClockIndex>,

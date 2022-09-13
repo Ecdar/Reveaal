@@ -39,13 +39,13 @@ where
         }
     }
 
-    return match future.catch_unwind().await {
+    match future.catch_unwind().await {
         Ok(response) => response,
         Err(e) => Err(Status::internal(format!(
             "{}, please report this bug to the developers",
             downcast_to_string(e)
         ))),
-    };
+    }
 }
 
 #[tonic::async_trait]
