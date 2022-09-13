@@ -109,7 +109,7 @@ pub struct DeterminismExecutor {
     pub system: TransitionSystemPtr,
 }
 
-impl<'a> ExecutableQuery for DeterminismExecutor {
+impl ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let is_deterministic = self.system.is_deterministic();
 
