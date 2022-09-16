@@ -24,7 +24,6 @@ mod xml_parser_tests {
 
     #[test]
     fn ImplTests() {
-        // TODO: Newline in xml file causes error (G11)
         xml_parsing_test_helper(format!("{}/ImplTests.xml", DIR_PATH).as_str());
     }
 

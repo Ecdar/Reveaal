@@ -1,4 +1,4 @@
 {
   "name": "System Declarations",
-  "declarations": "system A1, A2, B, C1, C2, D1, D2, E1, E2, T1, T2, T3, S1, S2;\n\nIO A1 {a!, b!, o!}\nIO A2 {a?, b?}\nIO B {o!}\nIO C1 {o!}\nIO C2 {o!}\nIO D1 {i?, o!}\nIO D2 {i?, o2!}\nIO E1 {i?, o!}\nIO E2 {i?}\nIO T1 {ri?, i?, ro!}\nIO T2 {i!}\nIO T3 {ri?, ro!}\nIO S1 {i?}\nIO S2 {i!}"
+  "declarations": "system A1, A2, B, C1, C2, D1, D2, E1, E2, T1, T2, T3;\n\nIO A1 {a!, b!, o!}\nIO A2 {a?, b?}\nIO B {o!}\nIO C1 {o!}\nIO C2 {o!}\nIO D1 {i?, o!}\nIO D2 {i?, o2!}\nIO E1 {i?, o!}\nIO E2 {i?}\nIO T1 {ri?, i?, ro!}\nIO T2 {i!}\nIO T3 {ri?, ro!}"
 }

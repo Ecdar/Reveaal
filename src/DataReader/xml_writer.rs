@@ -1,5 +1,7 @@
-use crate::DataReader::serialization::DummyComponent;
+use crate::DataReader::serialization::{DummyComponent, DummyLocation};
 use crate::ModelObjects::component::Component;
+use crate::ModelObjects::representations::BoolExpression;
+use elementtree::Element;
 use serde::de::Unexpected::Str;
 use serde::{Serialize, Serializer};
 use std::any::Any;
@@ -12,23 +14,14 @@ pub fn component_to_xml_file(project_path: &str, component: &Component) {
         std::path::MAIN_SEPARATOR,
         component.get_name()
     );
-    let file = File::create(path).expect("Couldnt open file");
+    let file = File::create(path).expect("Couldn't open file");
 
+    //TODO: Place string right before `<system>`, should be located next to another `</template>`
     serde_xml_rs::to_writer(&file, component).expect("Failed to serialize component");
 }
 
 pub fn component_to_xml(component: &Component) -> String {
-    // let mut buf = vec![];
-    //let s = component.serialize(&mut serde_xml_rs::Serializer::new(buf));
-    //serde_xml_rs::to_string(&DummyComponent::from(component.clone())).unwrap()
-    //String::from_utf8(buf).unwrap()
-    //serde_xml_rs::to_string(&component).unwrap()
-    //let mut buffer = vec![];
-    //let ser: serde_xml_rs::Serializer<Vec<u8>> = Serializer::new(buffer);
-    //String::from_utf8(buffer).unwrap()
-    //ser.to_string()
-    match serde_xml_rs::to_string(component) {
-        Ok(s) => s,
-        Err(e) => panic!("Error: {:?}", e),
-    }
+    // Does not work, only with looping. Try when `serde_xml_rs` has updated
+    let dc: DummyComponent = component.clone().into();
+    serde_xml_rs::to_string(&dc.locations.into_iter().map(|x| DummyLocation::from(x)).collect::<Vec<DummyLocation>>()).expect("Failed to serialize component")
 }

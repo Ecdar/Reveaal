@@ -1,3 +1,4 @@
+use crate::component::Component;
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
@@ -82,6 +83,38 @@ fn parse_xml<R: Read>(
     };
 
     (xml_components, system_declarations, vec![])
+}
+
+pub fn parse_xml_comp_from_str(xml: &str) -> Component {
+    let xml_data = BufReader::new(xml.as_bytes());
+
+    let root = Element::from_reader(xml_data).unwrap();
+    println!("{:?}", root);
+    let declarations = match root.find("declaration") {
+        Some(e) => parse_declarations(e.text()),
+        None => parse_declarations(""),
+    };
+    let edges = collect_edges(root.find_all("transition"));
+    println!("{:?}", root);
+    println!("{:?}", root.find("name"));
+    println!("{:?}", declarations);
+
+    let comp = Component {
+        name: root.find("name").unwrap().text().to_string(),
+        declarations,
+        locations: collect_locations(
+            root.find_all("location"),
+            root.find("init")
+                .expect("No initial location")
+                .get_attr("ref")
+                .unwrap(),
+        ),
+        edges,
+        input_edges: None,
+        output_edges: None,
+    };
+
+    comp
 }
 
 fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<component::Location> {
@@ -216,12 +249,11 @@ fn parse_declarations(variables: &str) -> Declarations {
 
 fn decode_sync_type(global_decl: &str) -> SystemSpecification {
     let mut first_run = true;
+    let mut multiline_decls = true;
     let decls: Vec<String> = global_decl.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut output_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut components: Vec<String> = vec![];
-
-    let mut component_names: Vec<String> = vec![];
 
     for declaration in &decls {
         //skip comments
@@ -230,19 +262,23 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
         }
 
         if !declaration.trim().is_empty() {
-            if first_run {
+            if first_run || multiline_decls {
                 let component_decls = declaration;
-
-                component_names = component_decls
+                let mut component_names: Vec<String> = component_decls
                     .split(' ')
                     .map(|s| s.chars().filter(|c| !c.is_whitespace()).collect())
                     .collect();
 
-                if component_names[0] == "system" {
+                if component_names[0] == "system" || multiline_decls {
                     //do not include element 0 as that is the system keyword
                     for name in component_names.iter_mut().skip(1) {
                         let s = name.replace(",", "");
-                        let s_cleaned = s.replace(";", "");
+                        let s_cleaned = if s.contains(";") {
+                            multiline_decls = false;
+                            s.replace(";", "")
+                        } else {
+                            s
+                        };
                         *name = s_cleaned.clone();
                         components.push(s_cleaned);
                     }
@@ -256,7 +292,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
             if split_string[0].as_str() == "IO" {
                 let component_name = split_string[1].clone();
 
-                if component_names.contains(&component_name) {
+                if components.contains(&component_name) {
                     for split_str in split_string.iter().skip(2) {
                         let mut s = split_str.replace("{", "");
                         s = s.replace("\r", "");
@@ -289,7 +325,7 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                         }
                     }
                 } else {
-                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, components)
                 }
             }
         }
