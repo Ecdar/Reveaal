@@ -1,10 +1,11 @@
 use crate::ModelObjects::component::Component;
+use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SystemDeclarations {
-    pub(crate) name: String,
+    //pub(crate) name: String,
     #[serde(deserialize_with = "decode_sync_type")]
     pub(crate) declarations: SystemSpecification,
 }
@@ -90,14 +91,14 @@ where
         if !declaration.is_empty() {
             if first_run {
                 let component_decls = &declaration;
-                println!("Comp decls: {component_decls}");
+                debug!("Comp decls: {component_decls}");
                 component_names = component_decls.split(' ').map(|s| s.into()).collect();
 
                 if component_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
                     for name in component_names.iter_mut().skip(1) {
-                        let s = name.replace(",", "");
-                        let s_cleaned = s.replace(";", "");
+                        let s = name.replace(',', "");
+                        let s_cleaned = s.replace(';', "");
                         *name = s_cleaned.clone();
                         components.push(s_cleaned);
                     }
@@ -113,15 +114,15 @@ where
 
                 if component_names.contains(&component_name) {
                     for split_str in split_string.iter().skip(2) {
-                        let s = split_str.replace("{", "");
-                        let p = s.replace("}", "");
+                        let s = split_str.replace('{', "");
+                        let p = s.replace('}', "");
                         let comp_actions: Vec<String> = p.split(',').map(|s| s.into()).collect();
                         for action in comp_actions {
                             if action.is_empty() {
                                 continue;
                             }
                             if action.ends_with('?') {
-                                let r = action.replace("?", "");
+                                let r = action.replace('?', "");
                                 if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
                                     Channel_vec.push(r)
                                 } else {
@@ -129,7 +130,7 @@ where
                                     input_actions.insert(component_name.clone(), Channel_vec);
                                 }
                             } else if action.ends_with('!') {
-                                let r = action.replace("!", "");
+                                let r = action.replace('!', "");
                                 if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
                                     Channel_vec.push(r.clone())
                                 } else {

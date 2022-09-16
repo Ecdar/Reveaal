@@ -31,7 +31,7 @@ where
     let queries = parse_queries::parse_to_expression_tree(&s);
     if queries.len() > 1 {
         panic!("Could not parse query {} contains multiple queries", s);
-    } else if queries.len() == 0 {
+    } else if queries.is_empty() {
         panic!("Could not parse query {} contains no queries", s);
     } else {
         Ok(queries.into_iter().next())

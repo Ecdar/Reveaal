@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod xml_parser_tests {
     use crate::tests::parser::helper::xml_parsing_test_helper;
     static DIR_PATH: &str = "samples/xml";

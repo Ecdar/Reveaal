@@ -1,8 +1,14 @@
+use edbm::util::constraints::ClockIndex;
+use log::info;
+
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
 use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
+
+use super::extract_system_rep::SystemRecipe;
+use super::save_component::PruningStrategy;
 
 pub enum QueryResult {
     Refinement(bool),
@@ -56,7 +62,7 @@ impl ExecutableQuery for RefinementExecutor {
 
         match refine::check_refinement(sys1, sys2) {
             Ok(res) => {
-                println!("Refinement result: {:?}", res);
+                info!("Refinement result: {:?}", res);
                 QueryResult::Refinement(res)
             }
             Err(err_msg) => QueryResult::Error(err_msg),
@@ -72,7 +78,7 @@ pub struct GetComponentExecutor<'a> {
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system);
+        let mut comp = combine_components(&self.system, PruningStrategy::Reachable);
         comp.name = self.comp_name;
 
         comp.create_edge_io_split();
@@ -84,12 +90,18 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 }
 
 pub struct ConsistencyExecutor {
-    pub system: TransitionSystemPtr,
+    pub recipe: Box<SystemRecipe>,
+    pub dim: ClockIndex,
 }
 
 impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        QueryResult::Consistency(self.system.precheck_sys_rep())
+        let res = match self.recipe.compile(self.dim) {
+            Ok(system) => system.precheck_sys_rep(),
+            Err(_) => false,
+        };
+
+        QueryResult::Consistency(res)
     }
 }
 

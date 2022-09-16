@@ -1,10 +1,5 @@
 use crate::DataReader::serialization::{DummyComponent, DummyLocation};
 use crate::ModelObjects::component::Component;
-use crate::ModelObjects::representations::BoolExpression;
-use elementtree::Element;
-use serde::de::Unexpected::Str;
-use serde::{Serialize, Serializer};
-use std::any::Any;
 use std::fs::File;
 
 pub fn component_to_xml_file(project_path: &str, component: &Component) {

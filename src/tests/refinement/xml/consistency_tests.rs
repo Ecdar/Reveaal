@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod consistency_tests {
+mod test {
     use crate::tests::refinement::Helper::xml_run_query;
     use crate::System::executable_query::QueryResult;
 

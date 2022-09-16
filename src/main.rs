@@ -1,51 +1,18 @@
 #![allow(non_snake_case)]
-
-mod DBMLib;
-mod DataReader;
-mod DataTypes;
-mod EdgeEval;
-mod ModelObjects;
-mod ProtobufServer;
-mod System;
-mod TransitionSystems;
-mod tests;
-
-use crate::DataReader::component_loader::{
-    ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
-};
-use crate::DataReader::{parse_queries, xml_parser};
-use crate::ModelObjects::queries::Query;
-use crate::System::extract_system_rep;
 use clap::{load_yaml, App};
+mod logging;
+use logging::setup_logger;
+
+use reveaal::{
+    extract_system_rep, parse_queries, queries, start_grpc_server_with_tokio, xml_parser,
+    ComponentLoader, JsonProjectLoader, ProjectLoader, Query, QueryResult, XmlProjectLoader,
+};
 use std::env;
-use ModelObjects::component;
-use ModelObjects::queries;
-use ProtobufServer::start_grpc_server_with_tokio;
-use System::executable_query::QueryResult;
-
-#[macro_use]
-extern crate pest_derive;
-extern crate colored;
-extern crate serde;
-extern crate serde_xml_rs;
-extern crate simple_error;
-//extern crate xml;
-
-// The debug version
-#[macro_export]
-#[cfg(feature = "verbose")]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => { println!( $( $args ),* ); }
-}
-
-// Non-debug version
-#[macro_export]
-#[cfg(not(feature = "verbose"))]
-macro_rules! debug_print {
-    ($( $args:expr ),*) => {};
-}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "logging")]
+    setup_logger().unwrap();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
 
@@ -117,7 +84,6 @@ fn get_project_loader(project_path: String) -> Box<dyn ProjectLoader> {
 
 pub fn set_working_directory(folder_path: &str) {
     let mut path = std::path::Path::new(folder_path);
-    println!("env {}", path.to_str().unwrap());
     if path.is_file() {
         path = path
             .parent()

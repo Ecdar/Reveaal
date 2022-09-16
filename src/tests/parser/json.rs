@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod json_parser_tests {
     use crate::tests::parser::helper::json_parsing_test_helper;
     static DIR_PATH: &str = "samples/json";

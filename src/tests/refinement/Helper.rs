@@ -1,21 +1,30 @@
+use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
 
+fn try_setup_logging() {
+    #[cfg(feature = "logging")]
+    let _ = setup_logger();
+}
+
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
+    try_setup_logging();
     match xml_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
 
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
+    try_setup_logging();
+
     match json_run_query(PATH, QUERY) {
         QueryResult::Refinement(result) => result,
-        QueryResult::Error(err) => panic!(err),
+        QueryResult::Error(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }

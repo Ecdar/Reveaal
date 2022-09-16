@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod Refinement_delay_add {
+mod test {
     use crate::tests::refinement::Helper::json_refinement_check;
 
     static PATH: &str = "samples/json/DelayAdd";

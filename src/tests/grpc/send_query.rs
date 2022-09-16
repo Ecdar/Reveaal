@@ -7,7 +7,7 @@ mod refinements {
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
 
-    static CONJUN: &str = "samples/xml/conjun.xml";
+    //static CONJUN: &str = "samples/xml/conjun.xml";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
 
     #[tokio::test]
@@ -80,10 +80,10 @@ mod refinements {
         if let Some(result) = query_result.result {
             match result {
                 query_response::Result::Refinement(refine) => assert!(refine.success),
-                _ => assert!(false),
+                _ => panic!(),
             }
         } else {
-            assert!(false);
+            panic!();
         }
     }
 
@@ -117,10 +117,10 @@ mod refinements {
         if let Some(result) = query_result.result {
             match result {
                 query_response::Result::Consistency(consistent) => assert!(consistent.success),
-                _ => assert!(false),
+                _ => panic!(),
             }
         } else {
-            assert!(false);
+            panic!();
         }
     }
 
@@ -154,10 +154,10 @@ mod refinements {
         if let Some(result) = query_result.result {
             match result {
                 query_response::Result::Determinism(determinsm) => assert!(determinsm.success),
-                _ => assert!(false),
+                _ => panic!(),
             }
         } else {
-            assert!(false);
+            panic!();
         }
     }
 }

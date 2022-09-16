@@ -7,5 +7,3 @@ pub mod parse_queries;
 pub mod serialization;
 pub mod xml_parser;
 pub mod xml_writer;
-
-use serialization::{DummyComponent, DummyEdge, DummyLocation};

@@ -4,6 +4,8 @@ use crate::ModelObjects::component::{
     Component, Declarations, Edge, Location, LocationType, SyncType,
 };
 use crate::ModelObjects::representations;
+use crate::Simulation::graph_layout::layout_dummy_component;
+use edbm::util::constraints::ClockIndex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -70,6 +72,10 @@ impl From<Edge> for DummyEdge {
 
         nails.push(DummyNail::new("SYNCHRONIZATION"));
 
+        if nails.len() < 2 && item.source_location == item.target_location {
+            nails.push(DummyNail::new("NONE"));
+        }
+
         DummyEdge {
             source_location: item.source_location,
             target_location: item.target_location,
@@ -92,8 +98,8 @@ pub struct DummyComponent {
         serialize_with = "encode_declarations"
     )]
     pub declarations: Declarations,
-    pub locations: Vec<Location>,
-    pub edges: Vec<Edge>,
+    pub locations: Vec<DummyLocation>,
+    pub edges: Vec<DummyEdge>,
 
     pub description: String,
     pub includeInPeriodicCheck: bool,
@@ -106,19 +112,23 @@ pub struct DummyComponent {
 
 impl From<Component> for DummyComponent {
     fn from(item: Component) -> Self {
-        DummyComponent {
+        let mut comp = DummyComponent {
             name: item.name,
             declarations: item.declarations,
-            locations: item.locations,
-            edges: item.edges,
+            locations: item.locations.into_iter().map(|l| l.into()).collect(),
+            edges: item.edges.into_iter().map(|l| l.into()).collect(),
             description: "".to_string(),
             includeInPeriodicCheck: false,
             color: 6.to_string(),
-            x: 5.0,
-            y: 5.0,
-            width: 450.0,
-            height: 600.0,
-        }
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        };
+
+        layout_dummy_component(&mut comp);
+
+        comp
     }
 }
 
@@ -175,8 +185,8 @@ where
     //Split string into vector of strings
     let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut ints: HashMap<String, i32> = HashMap::new();
-    let mut clocks: HashMap<String, u32> = HashMap::new();
-    let mut counter: u32 = 1;
+    let mut clocks: HashMap<String, ClockIndex> = HashMap::new();
+    let mut counter: ClockIndex = 1;
     for string in decls {
         //skip comments
         if string.starts_with("//") || string.is_empty() {
@@ -209,10 +219,7 @@ where
                         }
                     }
                 } else {
-                    let mut error_string = "not implemented read for type: ".to_string();
-                    error_string.push_str(&variable_type.to_string());
-                    println!("Variable type: {:?}", variable_type);
-                    panic!("{}", error_string);
+                    panic!("Not implemented read for type: \"{}\"", variable_type);
                 }
             }
         }
@@ -309,10 +316,10 @@ where
 {
     let s = String::deserialize(deserializer)?;
     if s.contains('!') {
-        let res = s.replace("!", "");
+        let res = s.replace('!', "");
         Ok(res)
     } else if s.contains('?') {
-        let res = s.replace("?", "");
+        let res = s.replace('?', "");
         Ok(res)
     } else {
         Ok(s)
@@ -357,7 +364,7 @@ where
     let mut output = String::from("clock ");
     let mut it = decls.clocks.iter();
     if let Some((first_clock, _)) = it.next() {
-        output = output.add(&first_clock.to_string());
+        output = output.add(first_clock);
 
         for (clock, _) in it {
             output = output.add(&format!(", {}", clock));
@@ -402,16 +409,19 @@ where
 {
     let mut output = String::new();
     if let Some(updates) = opt_updates {
-        for update in updates {
+        for (i, update) in updates.iter().enumerate() {
             output = output.add(
                 &[
                     update.get_variable_name(),
                     "=",
                     &update.get_expression().encode_expr(),
-                    ", ",
                 ]
                 .concat(),
             );
+
+            if i != updates.len() - 1 {
+                output = output.add(", ");
+            }
         }
         serializer.serialize_str(&output)
     } else {

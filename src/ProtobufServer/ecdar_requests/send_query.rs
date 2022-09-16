@@ -1,6 +1,5 @@
 use std::panic::AssertUnwindSafe;
 
-use crate::debug_print;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
@@ -12,6 +11,7 @@ use crate::ProtobufServer::services::query_response::{
 use crate::ProtobufServer::services::{Component, Query as ProtobufQuery, QueryResponse};
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
+use log::trace;
 use tonic::{Request, Response, Status};
 
 use crate::ProtobufServer::ConcreteEcdarBackend;
@@ -21,7 +21,7 @@ impl ConcreteEcdarBackend {
         &self,
         request: AssertUnwindSafe<Request<ProtobufQuery>>,
     ) -> Result<Response<QueryResponse>, Status> {
-        debug_print!("Received query: {:?}", request);
+        trace!("Received query: {:?}", request);
         let query_request = request.0.into_inner();
 
         let query = parse_query(&query_request)?;
@@ -76,7 +76,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         })),
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
             component: Some(Component {
-                rep: Some(Rep::Json(component_to_json(&comp))),
+                rep: Some(Rep::Json(component_to_json(comp))),
             }),
         })),
         QueryResult::Consistency(is_consistent) => {
@@ -90,8 +90,5 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }))
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
-        _ => Some(ProtobufResult::Error(String::from(
-            "Unsupported query type",
-        ))),
     }
 }

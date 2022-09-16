@@ -14,9 +14,9 @@ and = { or ~ "&&" ~ and | or }
 
 or = { compareExpr ~ "||" ~ or | compareExpr }
 
-compareExpr = { terms ~ lowOperator ~ compareExpr | terms }
+compareExpr = { sub_add ~ lowOperator ~ sub_add | bool | terms }
 
-sub_add = {mult_div_mod ~ operator ~ sub_add   | mult_div_mod}
+sub_add = {mult_div_mod ~ operator ~ sub_add  | mult_div_mod}
 
 mult_div_mod = {terms  ~ highOperator ~  mult_div_mod | terms}
 
@@ -32,8 +32,8 @@ parenthesizedExp = { "(" ~ expression ~ ")"}
 variable = { (variable_name ~ ("." | "þ" | "€")?)+ ~ (int | variable_name)?}
 variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "þ" | "ð" | "đ" | "œ")*}
 
-term = {atom | variable}
-atom = {int | "true" | "false" }
+term = {int | variable}
+bool = { "true" | "false" }
 
 number = @{ int ~ ("." ~ ASCII_DIGIT+)? }
 int    = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }

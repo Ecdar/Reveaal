@@ -22,7 +22,7 @@ pub struct ComponentContainer {
 impl ComponentLoader for ComponentContainer {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
-            &component
+            component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
         }
@@ -37,13 +37,7 @@ impl ComponentLoader for ComponentContainer {
     }
 }
 
-impl ComponentContainer {
-    pub fn input_enable_components(&mut self, inputs: &[String]) {
-        for (_, comp) in &mut self.loaded_components {
-            input_enabler::make_input_enabled(comp, inputs);
-        }
-    }
-}
+impl ComponentContainer {}
 
 pub trait ProjectLoader: ComponentLoader {
     fn get_declarations(&self) -> &SystemDeclarations;
@@ -66,7 +60,7 @@ impl ComponentLoader for JsonProjectLoader {
         }
 
         if let Some(component) = self.loaded_components.get(component_name) {
-            &component
+            component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
         }
@@ -103,6 +97,7 @@ impl ProjectLoader for JsonProjectLoader {
 }
 
 impl JsonProjectLoader {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
         let system_declarations = json_reader::read_system_declarations(&project_path).unwrap();
         let queries = json_reader::read_queries(&project_path).unwrap();
@@ -124,7 +119,7 @@ impl JsonProjectLoader {
             .get_declarations()
             .get_component_inputs(component.get_name());
         if let Some(inputs) = opt_inputs {
-            input_enabler::make_input_enabled(&mut component, &inputs);
+            input_enabler::make_input_enabled(&mut component, inputs);
         }
 
         self.loaded_components
@@ -146,7 +141,7 @@ pub struct XmlProjectLoader {
 impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
-            &component
+            component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
         }
@@ -182,6 +177,7 @@ impl ProjectLoader for XmlProjectLoader {
 }
 
 impl XmlProjectLoader {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(project_path: String) -> Box<dyn ProjectLoader> {
         let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
 
@@ -190,8 +186,8 @@ impl XmlProjectLoader {
             component.create_edge_io_split();
 
             let opt_inputs = system_declarations.get_component_inputs(component.get_name());
-            if opt_inputs.is_some() {
-                input_enabler::make_input_enabled(&mut component, opt_inputs.unwrap());
+            if let Some(opt_inputs) = opt_inputs {
+                input_enabler::make_input_enabled(&mut component, opt_inputs);
             }
 
             let name = String::from(component.get_name());
