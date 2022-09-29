@@ -8,6 +8,20 @@ use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
+pub enum RefinementResult{
+    Success,
+    Failure(RefinementFailure),
+}
+
+pub enum RefinementFailure{
+    EmptyAutomata,
+    NotDisjoint,
+    NotSubset, //TODO: Add state that fails
+    CutsDelaySolutions(StatePair), //TODO: StatePair or something else?
+    EmptyTransition2,
+    Other, //TODO: More types of failures?
+}
+
 fn common_actions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
@@ -65,7 +79,7 @@ pub fn check_refinement(
     debug!("Dimensions: {}", dimensions);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2) {
+    if !check_preconditions(&sys1, &sys2) { //TODO: Match on the returned value from check_preconditions
         warn!("preconditions failed - refinement false");
         return Ok(false);
     }
