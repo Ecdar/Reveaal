@@ -8,7 +8,7 @@ use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
-pub enum RefinementResult {
+pub enum RefinementResult{
     Success,
     Failure(RefinementFailure),
 }
