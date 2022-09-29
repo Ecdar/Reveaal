@@ -79,7 +79,7 @@ pub fn check_refinement(
     debug!("Dimensions: {}", dimensions);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2) { 
+    if !check_preconditions(&sys1, &sys2) {
         //TODO: Match on the returned value from check_preconditions
         warn!("preconditions failed - refinement false");
         return Ok(false);
