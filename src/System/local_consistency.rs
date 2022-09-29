@@ -2,7 +2,17 @@ use edbm::zones::OwnedFederation;
 use log::warn;
 
 use crate::ModelObjects::component::State;
-use crate::TransitionSystems::TransitionSystem;
+use crate::TransitionSystems::{LocationID, TransitionSystem};
+
+pub enum ConsistencyResult {
+    Success,
+    Failure(LocationID),
+}
+
+pub enum DeterminismResult {
+    Success,
+    Failure(LocationID),
+}
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
