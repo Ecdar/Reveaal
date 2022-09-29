@@ -20,6 +20,14 @@ pub enum QueryResult {
     Error(String),
 }
 
+/* pub enum QueryResult {
+    Refinement(RefinementResult),
+    GetComponent(Component),
+    Consistency(ConsistencyResult),
+    Determinism(DeterminismResult),
+    Error(String),
+} */
+
 impl QueryResult {
     pub fn print_result(&self, query_str: &str) {
         match self {
@@ -119,7 +127,7 @@ pub struct ConsistencyExecutor {
     pub dim: ClockIndex,
 }
 
-impl ExecutableQuery for ConsistencyExecutor {
+impl<'a> ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
             Ok(system) => system.precheck_sys_rep(),
@@ -134,7 +142,7 @@ pub struct DeterminismExecutor {
     pub system: TransitionSystemPtr,
 }
 
-impl ExecutableQuery for DeterminismExecutor {
+impl<'a> ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let is_deterministic = self.system.is_deterministic();
 
