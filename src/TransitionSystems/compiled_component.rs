@@ -175,7 +175,7 @@ impl TransitionSystem for CompiledComponent {
             return false;
         }
 
-        if !self.is_locally_consistent() {
+        if !self.is_locally_consistent()  {
             warn!("Not consistent");
             return false;
         }
