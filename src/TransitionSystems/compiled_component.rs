@@ -5,7 +5,7 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
 
-use crate::System::local_consistency;
+use crate::System::local_consistency::{self, ConsistencyResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
@@ -175,7 +175,7 @@ impl TransitionSystem for CompiledComponent {
             return false;
         }
 
-        if !self.is_locally_consistent() {
+        if !self.is_locally_consistent()  {
             warn!("Not consistent");
             return false;
         }
@@ -186,8 +186,12 @@ impl TransitionSystem for CompiledComponent {
         local_consistency::is_deterministic(self)
     }
 
+    //TODO - Convertion to T/F should be moved
     fn is_locally_consistent(&self) -> bool {
-        local_consistency::is_least_consistent(self)
+        match local_consistency::is_least_consistent(self){
+            ConsistencyResult::Success => true, 
+            ConsistencyResult::Failure(_) => false,
+        }
     }
 
     fn get_dim(&self) -> ClockIndex {

@@ -1,30 +1,38 @@
 use edbm::zones::OwnedFederation;
 use log::warn;
 
+
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::{LocationID, TransitionSystem};
 
 pub enum ConsistencyResult {
     Success,
-    Failure(LocationID),
+    Failure(ConsistencyResultRefined),
 }
 
 pub enum DeterminismResult {
     Success,
+    Failure(LocationID)
+}
+    
+    pub enum ConsistencyResultRefined{
+    NoInitialState,
+    EmptyInitialState,
     Failure(LocationID),
 }
 
+
 //Local consistency check WITH pruning
-pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
+pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location() == None {
-        return false; //TODO: figure out whether we want empty TS to be consistent
+        return ConsistencyResult::Failure(ConsistencyResultRefined::NoInitialState); //TODO: figure out whether we want empty TS to be consistent
     }
 
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
         warn!("Empty initial state");
-        return false;
+        return ConsistencyResult::Failure(ConsistencyResultRefined::EmptyInitialState);
     }
     let mut state = state.unwrap();
     state.extrapolate_max_bounds(system);
@@ -88,16 +96,16 @@ fn is_deterministic_helper(
 
 /// Local consistency check WITHOUT pruning
 #[allow(dead_code)]
-pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
+pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location() == None {
-        return false;
+        return ConsistencyResult::Failure(ConsistencyResultRefined::NoInitialState);
     }
 
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
         warn!("Empty initial state");
-        return false;
+        return ConsistencyResult::Failure(ConsistencyResultRefined::EmptyInitialState);
     }
     consistency_fully_helper(state.unwrap(), &mut passed, system)
 }
@@ -106,15 +114,15 @@ pub fn consistency_least_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> ConsistencyResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return ConsistencyResult::Success;
     }
     if state.decorated_locations.is_universal() {
-        return true;
+        return ConsistencyResult::Success;
     }
     if state.decorated_locations.is_inconsistent() {
-        return false;
+        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
     }
 
     passed_list.push(state.clone());
@@ -124,19 +132,22 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                if !consistency_least_helper(new_state, passed_list, system) {
+                match consistency_least_helper(new_state, passed_list, system)  {
+                    ConsistencyResult::Success =>(),
+                    ConsistencyResult::Failure(_) => {
                     warn!(
                         "Input \"{input}\" not consistent from {}",
                         state.get_location().id
                     );
-                    return false;
+                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
+                }
                 }
             }
         }
     }
 
     if state.zone_ref().can_delay_indefinitely() {
-        return true;
+        return ConsistencyResult::Success;
     }
 
     for output in system.get_output_actions() {
@@ -145,15 +156,18 @@ pub fn consistency_least_helper(
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
 
-                if consistency_least_helper(new_state, passed_list, system) {
-                    return true;
+                match consistency_least_helper(new_state, passed_list, system) {
+                    ConsistencyResult::Success =>{
+                        return ConsistencyResult::Success;
+                    }
+                    ConsistencyResult::Failure(_) => (),
                 }
             }
         }
     }
     warn!("No saving outputs from {}", state.get_location().id);
-
-    false
+    //TODO - Why you no work
+    ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()))
 }
 
 #[allow(dead_code)]
@@ -161,9 +175,9 @@ fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> ConsistencyResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return ConsistencyResult::Success;
     }
     passed_list.push(state.clone());
 
@@ -176,8 +190,11 @@ fn consistency_fully_helper(
                     continue;
                 }
 
-                if !consistency_fully_helper(new_state, passed_list, system) {
-                    return false;
+                match consistency_fully_helper(new_state, passed_list, system) {
+                    ConsistencyResult::Success => (),
+                    ConsistencyResult::Failure(_) => {
+                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
+                    }
                 }
             }
         }
@@ -194,20 +211,26 @@ fn consistency_fully_helper(
                 }
 
                 output_existed = true;
-                if !consistency_fully_helper(new_state, passed_list, system) {
-                    return false;
+                match consistency_fully_helper(new_state, passed_list, system) {
+                    ConsistencyResult::Failure(_) => {
+                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
+                    },
+                    ConsistencyResult::Success => (),
                 }
             }
         }
     }
-
+    
     if output_existed {
-        true
+        ConsistencyResult::Success
     } else {
-        passed_list
+        match passed_list
             .last()
             .unwrap()
             .zone_ref()
-            .can_delay_indefinitely()
+            .can_delay_indefinitely(){
+                false => ConsistencyResult::Failure(ConsistencyResultRefined::EmptyInitialState),
+                true => ConsistencyResult::Success,
+            }
     }
 }
