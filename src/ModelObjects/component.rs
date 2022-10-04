@@ -267,7 +267,7 @@ pub fn contain(channels: &[Channel], channel: &str) -> bool {
     false
 }
 
-enum Reason {
+enum ClockReductionReason {
     Duplicate(String),
     Unused
 }
@@ -276,7 +276,7 @@ struct RedundantClock {
     clock: String,
     edges: Vec<usize>,
     locs: Vec<usize>,
-    reason: ClockReason,
+    reason: ClockReductionReason,
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
