@@ -6,8 +6,8 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
 
+use crate::System::local_consistency::DeterminismResult;
 use crate::System::local_consistency::{self, ConsistencyResult};
-use crate::System::local_consistency::{is_deterministic, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
