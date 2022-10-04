@@ -1,5 +1,4 @@
 use edbm::util::constraints::ClockIndex;
-use log::info;
 
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
@@ -8,10 +7,11 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
+use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
 pub enum QueryResult {
-    Refinement(bool),
+    Refinement(RefinementResult),
     GetComponent(Component),
     Consistency(bool),
     Determinism(bool),
@@ -29,8 +29,8 @@ pub enum QueryResult {
 impl QueryResult {
     pub fn print_result(&self, query_str: &str) {
         match self {
-            QueryResult::Refinement(true) => satisfied(query_str),
-            QueryResult::Refinement(false) => not_satisfied(query_str),
+            QueryResult::Refinement(RefinementResult::Success) => satisfied(query_str),
+            QueryResult::Refinement(RefinementResult::Failure(_)) => not_satisfied(query_str),
 
             QueryResult::Consistency(true) => satisfied(query_str),
             QueryResult::Consistency(false) => not_satisfied(query_str),
@@ -69,11 +69,10 @@ impl ExecutableQuery for RefinementExecutor {
         let (sys1, sys2) = (self.sys1, self.sys2);
 
         match refine::check_refinement(sys1, sys2) {
-            Ok(res) => {
-                info!("Refinement result: {:?}", res);
-                QueryResult::Refinement(res)
+            RefinementResult::Success => QueryResult::Refinement(RefinementResult::Success),
+            RefinementResult::Failure(the_failure) => {
+                QueryResult::Refinement(RefinementResult::Failure(the_failure))
             }
-            Err(err_msg) => QueryResult::Error(err_msg),
         }
     }
 }

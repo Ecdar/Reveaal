@@ -31,16 +31,16 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
     consistency_least_helper(state, &mut passed, system)
 }
 
-pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
+pub fn is_deterministic(system: &dyn TransitionSystem) -> DeterminismResult {
     if system.get_initial_location() == None {
-        return true;
+        return DeterminismResult::Success;
     }
 
     let mut passed = vec![];
 
     let state = system.get_initial_state();
     if state.is_none() {
-        return true;
+        return DeterminismResult::Success;
     }
     let mut state = state.unwrap();
     state.set_zone(OwnedFederation::universe(system.get_dim()));
@@ -48,13 +48,14 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
     is_deterministic_helper(state, &mut passed, system)
 }
 
+
 fn is_deterministic_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> DeterminismResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return DeterminismResult::Success;
     }
 
     passed_list.push(state.clone());
@@ -65,25 +66,34 @@ fn is_deterministic_helper(
             let mut new_state = state.clone();
 
             if transition.use_transition(&mut new_state) {
+
                 let mut allowed_fed = transition.get_allowed_federation();
                 allowed_fed = state.decorated_locations.apply_invariants(allowed_fed);
+
                 if allowed_fed.has_intersection(&location_fed) {
                     warn!(
                         "Not deterministic from location {}",
                         state.get_location().id
                     );
-                    return false;
+                    return DeterminismResult::Failure(state.get_location().id.clone());
+
                 }
+
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
-                if !is_deterministic_helper(new_state, passed_list, system) {
-                    return false;
+
+                match is_deterministic_helper(new_state, passed_list, system) {
+                    DeterminismResult::Success => {}
+                    DeterminismResult::Failure(_) => {
+                        return DeterminismResult::Failure(state.get_location().id.clone());
+                        // ikke sikker på at det korrect
+                    }
                 }
             }
         }
     }
 
-    true
+    DeterminismResult::Success
 }
 
 /// Local consistency check WITHOUT pruning

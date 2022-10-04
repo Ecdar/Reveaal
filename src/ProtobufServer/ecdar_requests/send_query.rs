@@ -68,12 +68,21 @@ fn parse_query(query_request: &ProtobufQuery) -> Result<Query, Status> {
     }
 }
 
+//TODO: Change this when the Protobuf changes
 fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
     match query_result {
-        QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
-            success: *refines,
-            relation: vec![],
-        })),
+        QueryResult::Refinement(crate::System::refine::RefinementResult::Success) => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: true,
+                relation: vec![],
+            }))
+        }
+        QueryResult::Refinement(crate::System::refine::RefinementResult::Failure(the_failure)) => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: false,
+                relation: vec![],
+            }))
+        }
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
             component: Some(Component {
                 rep: Some(Rep::Json(component_to_json(comp))),
