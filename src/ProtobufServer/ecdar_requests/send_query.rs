@@ -20,7 +20,7 @@ use crate::ProtobufServer::services::{
 };
 use crate::System::executable_query::QueryResult;
 use crate::System::{extract_system_rep, input_enabler};
-use log::trace;
+use log::{info, trace};
 use tonic::{Request, Response, Status};
 
 use crate::ProtobufServer::ConcreteEcdarBackend;
