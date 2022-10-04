@@ -1,6 +1,7 @@
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
+use crate::ProtobufServer::services::query_response::DeterminismResult;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
@@ -9,6 +10,7 @@ use crate::System::local_consistency::{self, ConsistencyResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use crate::System::local_consistency::{DeterminismResult, is_deterministic};
 
 use super::{CompositionType, LocationID};
 
@@ -183,7 +185,10 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn is_deterministic(&self) -> bool {
-        local_consistency::is_deterministic(self)
+        match local_consistency::is_deterministic(self){
+            DeterminismResult::Success => true, 
+            DeterminismResult::Failure(_) => false,
+        }
     }
 
     //TODO - Convertion to T/F should be moved
