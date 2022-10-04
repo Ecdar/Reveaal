@@ -11,7 +11,7 @@ use crate::ProtobufServer::services::query_response::{
 use crate::ProtobufServer::services::{Component, Query as ProtobufQuery, QueryResponse};
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
-use log::trace;
+use log::{info, trace};
 use tonic::{Request, Response, Status};
 
 use crate::ProtobufServer::ConcreteEcdarBackend;
@@ -68,7 +68,6 @@ fn parse_query(query_request: &ProtobufQuery) -> Result<Query, Status> {
     }
 }
 
-//TODO: Change this when the Protobuf changes
 fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
     match query_result {
         QueryResult::Refinement(crate::System::refine::RefinementResult::Success) => {
@@ -77,7 +76,9 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 relation: vec![],
             }))
         }
+        //TODO: Change this when the gRPC protobuf is ready
         QueryResult::Refinement(crate::System::refine::RefinementResult::Failure(the_failure)) => {
+            info!("Refinement check failed - {:?}", the_failure);
             Some(ProtobufResult::Refinement(RefinementResult {
                 success: false,
                 relation: vec![],

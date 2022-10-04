@@ -8,11 +8,13 @@ use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
+#[allow(clippy::large_enum_variant)] //TODO: consider boxing the large fields to reduce the total size of the enum
 pub enum RefinementResult {
     Success,
     Failure(RefinementFailure),
 }
 
+#[derive(Debug)]
 pub enum RefinementFailure {
     NotDisjointAndNotSubset,
     NotDisjoint,
@@ -212,8 +214,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &output_transition1,
                         &output_transition2,
                         &curr_pair,
-                        &mut context,
-                        &output,
+                        &context,
+                        output,
                         false,
                     );
                     return RefinementResult::Failure(RefinementFailure::EmptyTransition2s(
@@ -225,8 +227,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &output_transition1,
                         &output_transition2,
                         &curr_pair,
-                        &mut context,
-                        &output,
+                        &context,
+                        output,
                         false,
                     );
                     return RefinementResult::Failure(RefinementFailure::NotEmptyResult(curr_pair));
@@ -236,8 +238,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &output_transition1,
                         &output_transition2,
                         &curr_pair,
-                        &mut context,
-                        &output,
+                        &context,
+                        output,
                         false,
                     );
                     return RefinementResult::Failure(RefinementFailure::CutsDelaySolutions(
@@ -271,8 +273,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &input_transitions1,
                         &input_transitions2,
                         &curr_pair,
-                        &mut context,
-                        &input,
+                        &context,
+                        input,
                         true,
                     );
                     return RefinementResult::Failure(RefinementFailure::EmptyTransition2s(
@@ -284,8 +286,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &input_transitions1,
                         &input_transitions2,
                         &curr_pair,
-                        &mut context,
-                        &input,
+                        &context,
+                        input,
                         true,
                     );
                     return RefinementResult::Failure(RefinementFailure::NotEmptyResult(curr_pair));
@@ -295,8 +297,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
                         &input_transitions1,
                         &input_transitions2,
                         &curr_pair,
-                        &mut context,
-                        &input,
+                        &context,
+                        input,
                         true,
                     );
                     return RefinementResult::Failure(RefinementFailure::CutsDelaySolutions(
@@ -577,7 +579,7 @@ fn check_preconditions(
     debug!("S i:{s_inputs:?} o:{s_outputs:?}");
     debug!("T i:{t_inputs:?} o:{t_outputs:?}");
 
-    if !(disjoint && subset) {
+    if !disjoint && !subset {
         PreconditionsResult::NotDisjointAndNotSubset
     } else if !subset {
         PreconditionsResult::NotSubset

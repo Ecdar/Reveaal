@@ -6,6 +6,7 @@ pub mod util {
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::refine;
+    use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
     use edbm::util::constraints::ClockIndex;
@@ -56,8 +57,20 @@ pub mod util {
 
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
-            assert!(refine::check_refinement(new_comp.clone(), base_system.clone()).unwrap());
-            assert!(refine::check_refinement(base_system.clone(), new_comp.clone()).unwrap());
+            assert!(if let RefinementResult::Success =
+                refine::check_refinement(new_comp.clone(), base_system.clone())
+            {
+                true
+            } else {
+                false
+            });
+            assert!(if let RefinementResult::Success =
+                refine::check_refinement(base_system.clone(), new_comp.clone())
+            {
+                true
+            } else {
+                false
+            });
         }
     }
 }
