@@ -41,19 +41,15 @@ pub fn is_deterministic(system: &dyn TransitionSystem) -> DeterminismResult {
     if system.get_initial_location() == None {
         return DeterminismResult::Success;
     }
-
     let mut passed = vec![];
-
     let state = system.get_initial_state();
     if state.is_none() {
         return DeterminismResult::Success;
     }
     let mut state = state.unwrap();
     state.set_zone(OwnedFederation::universe(system.get_dim()));
-
     is_deterministic_helper(state, &mut passed, system)
 }
-
 
 fn is_deterministic_helper(
     state: State,
@@ -70,21 +66,16 @@ fn is_deterministic_helper(
         let mut location_fed = OwnedFederation::empty(system.get_dim());
         for transition in &system.next_transitions(&state.decorated_locations, &action) {
             let mut new_state = state.clone();
-
             if transition.use_transition(&mut new_state) {
-
                 let mut allowed_fed = transition.get_allowed_federation();
                 allowed_fed = state.decorated_locations.apply_invariants(allowed_fed);
-
                 if allowed_fed.has_intersection(&location_fed) {
                     warn!(
                         "Not deterministic from location {}",
                         state.get_location().id
                     );
                     return DeterminismResult::Failure(state.get_location().id.clone());
-
                 }
-
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
 

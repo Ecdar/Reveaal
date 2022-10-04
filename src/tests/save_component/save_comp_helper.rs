@@ -58,19 +58,19 @@ pub mod util {
         //Only do refinement check if both pass precheck
         if base_precheck && new_precheck {
             assert!(if let RefinementResult::Success =
-                 refine::check_refinement(new_comp.clone(), base_system.clone())
-                 {
-                    true
-                 } else {
-                    false
-                 });
-                 assert!(if let RefinementResult::Success =
-                    refine::check_refinement(base_system.clone(), new_comp.clone())
-                 {
-                    true
-                 } else {
-                    false
-                 });
+                refine::check_refinement(new_comp.clone(), base_system.clone())
+            {
+                true
+            } else {
+                false
+            });
+            assert!(if let RefinementResult::Success =
+                refine::check_refinement(base_system.clone(), new_comp.clone())
+            {
+                true
+            } else {
+                false
+            });
         }
     }
 }

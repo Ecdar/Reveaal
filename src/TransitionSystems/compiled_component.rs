@@ -7,10 +7,10 @@ use edbm::util::constraints::ClockIndex;
 use log::warn;
 
 use crate::System::local_consistency::{self, ConsistencyResult};
+use crate::System::local_consistency::{is_deterministic, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use crate::System::local_consistency::{DeterminismResult, is_deterministic};
 
 use super::{CompositionType, LocationID};
 
@@ -185,8 +185,8 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn is_deterministic(&self) -> bool {
-        match local_consistency::is_deterministic(self){
-            DeterminismResult::Success => true, 
+        match local_consistency::is_deterministic(self) {
+            DeterminismResult::Success => true,
             DeterminismResult::Failure(_) => false,
         }
     }
