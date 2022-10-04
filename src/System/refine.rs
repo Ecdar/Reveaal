@@ -14,13 +14,43 @@ pub enum RefinementResult {
 }
 
 pub enum RefinementFailure {
-    EmptyAutomata,
+    NotDisjointAndNotSubset,
     NotDisjoint,
     NotSubset,                     //TODO: Add state that fails
     CutsDelaySolutions(StatePair), //TODO: StatePair or something else?
-    EmptyTransition2,
+    InitialState(StatePair),
+    EmptySpecification,
+    EmptyImplementation,
+    EmptyTransition2s(StatePair),
+    NotEmptyResult(StatePair),
     Other, //TODO: More types of failures?
 }
+
+pub enum PreconditionsResult {
+    Success,
+    NotDisjointAndNotSubset,
+    NotDisjoint,
+    NotSubset,
+    OtherFailure,
+}
+
+pub enum StatePairResult {
+    Valid,
+    EmptyTransition2s, //TODO: Better name? Based on description in comment
+    NotEmptyResult,    //TODO: Better name? Based on description in comment
+    CutsDelaySolutions,
+}
+
+/* impl StatePairResult {
+    fn into(&self) -> RefinementResult {
+        match self {
+            StatePairResult::Valid => RefinementResult::Success,
+            StatePairResult::EmptyTransition2s => RefinementResult::Failure(RefinementFailure::EmptyTransition2s),
+            StatePairResult::NotEmptyResult => todo!(),
+            StatePairResult::CutsDelaySolutions => todo!(),
+        }
+    }
+} */
 
 fn common_actions(
     sys1: &TransitionSystemPtr,
@@ -70,19 +100,32 @@ impl<'a> RefinementContext<'a> {
     }
 }
 
-pub fn check_refinement(
-    sys1: TransitionSystemPtr,
-    sys2: TransitionSystemPtr,
-) -> Result<bool, String> {
+pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) -> RefinementResult {
     let mut context = RefinementContext::new(&sys1, &sys2);
     let dimensions = sys1.get_dim();
     debug!("Dimensions: {}", dimensions);
 
     //Firstly we check the preconditions
-    if !check_preconditions(&sys1, &sys2) {
+    match check_preconditions(&sys1, &sys2) {
         //TODO: Match on the returned value from check_preconditions
-        warn!("preconditions failed - refinement false");
-        return Ok(false);
+        PreconditionsResult::Success => (),
+        PreconditionsResult::NotDisjointAndNotSubset => {
+            warn!("Refinement failed - Systems are not disjoint and not subset");
+            return RefinementResult::Failure(RefinementFailure::NotDisjointAndNotSubset);
+        }
+        PreconditionsResult::NotDisjoint => {
+            warn!("Refinement failed - Systems not disjoint");
+            return RefinementResult::Failure(RefinementFailure::NotDisjoint);
+        }
+        PreconditionsResult::NotSubset => {
+            warn!("Refinement failed - Systems are not subset");
+            return RefinementResult::Failure(RefinementFailure::NotSubset);
+        }
+        PreconditionsResult::OtherFailure => {
+            //TODO: Change this
+            warn!("Refinement failed - Preconditions not met");
+            return RefinementResult::Failure(RefinementFailure::Other);
+        }
     }
 
     // Common inputs and outputs
@@ -112,11 +155,16 @@ pub fn check_refinement(
     debug!("Extra outputs {:?}", extra_outputs);
 
     if initial_locations_1 == None {
-        return Ok(initial_locations_2 == None);
+        if initial_locations_2 == None {
+            // Both are empty, so trivially true
+            return RefinementResult::Success;
+        }
+        return RefinementResult::Failure(RefinementFailure::EmptyImplementation);
     }
 
     if initial_locations_2 == None {
-        return Ok(false); //The empty automata cannot implement
+        //The empty automata cannot implement
+        return RefinementResult::Failure(RefinementFailure::EmptySpecification);
     }
 
     let initial_locations_1 = initial_locations_1.unwrap();
@@ -129,7 +177,7 @@ pub fn check_refinement(
     );
 
     if !prepare_init_state(&mut initial_pair, initial_locations_1, initial_locations_2) {
-        return Ok(false);
+        return RefinementResult::Failure(RefinementFailure::InitialState(initial_pair));
     }
     initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
 
@@ -151,34 +199,52 @@ pub fn check_refinement(
                 sys2.next_outputs(curr_pair.get_locations2(), output)
             };
 
-            let cond = has_valid_state_pairs(
+            match has_valid_state_pairs(
                 &output_transition1,
                 &output_transition2,
                 &curr_pair,
                 &mut context,
                 true,
-            );
-
-            if cond {
-                trace!("Created state pairs for output {}", output);
-            } else {
-                info!("Refinement check failed for Output {:?}", output);
-                if log_enabled!(Level::Debug) {
-                    debug!("Transitions1:");
-                    for t in &output_transition1 {
-                        debug!("{}", t);
-                    }
-                    debug!("Transitions2:");
-                    for t in &output_transition2 {
-                        debug!("{}", t);
-                    }
-                    debug!("Current pair: {}", curr_pair);
-                    debug!("Relation:");
-                    print_relation(&context.passed_list);
+            ) {
+                StatePairResult::Valid => trace!("Created state pairs for input {}", output),
+                StatePairResult::EmptyTransition2s => {
+                    log_refinement_check_failure(
+                        &output_transition1,
+                        &output_transition2,
+                        &curr_pair,
+                        &mut context,
+                        &output,
+                        false,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::EmptyTransition2s(
+                        curr_pair,
+                    ));
                 }
-
-                return Ok(false);
-            };
+                StatePairResult::NotEmptyResult => {
+                    log_refinement_check_failure(
+                        &output_transition1,
+                        &output_transition2,
+                        &curr_pair,
+                        &mut context,
+                        &output,
+                        false,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::NotEmptyResult(curr_pair));
+                }
+                StatePairResult::CutsDelaySolutions => {
+                    log_refinement_check_failure(
+                        &output_transition1,
+                        &output_transition2,
+                        &curr_pair,
+                        &mut context,
+                        &output,
+                        false,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::CutsDelaySolutions(
+                        curr_pair,
+                    ));
+                }
+            }
         }
 
         for input in &inputs {
@@ -192,34 +258,52 @@ pub fn check_refinement(
 
             let input_transitions2 = sys2.next_inputs(curr_pair.get_locations2(), input);
 
-            let cond = has_valid_state_pairs(
+            match has_valid_state_pairs(
                 &input_transitions2,
                 &input_transitions1,
                 &curr_pair,
                 &mut context,
                 false,
-            );
-
-            if cond {
-                trace!("Created state pairs for input {}", input);
-            } else {
-                info!("Refinement check failed for Input {:?}", input);
-                if log_enabled!(Level::Debug) {
-                    debug!("Transitions1:");
-                    for t in &input_transitions1 {
-                        debug!("{}", t);
-                    }
-                    debug!("Transitions2:");
-                    for t in &input_transitions2 {
-                        debug!("{}", t);
-                    }
-                    debug!("Current pair: {}", curr_pair);
-                    debug!("Relation:");
-                    print_relation(&context.passed_list);
+            ) {
+                StatePairResult::Valid => trace!("Created state pairs for input {}", input),
+                StatePairResult::EmptyTransition2s => {
+                    log_refinement_check_failure(
+                        &input_transitions1,
+                        &input_transitions2,
+                        &curr_pair,
+                        &mut context,
+                        &input,
+                        true,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::EmptyTransition2s(
+                        curr_pair,
+                    ));
                 }
-
-                return Ok(false);
-            };
+                StatePairResult::NotEmptyResult => {
+                    log_refinement_check_failure(
+                        &input_transitions1,
+                        &input_transitions2,
+                        &curr_pair,
+                        &mut context,
+                        &input,
+                        true,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::NotEmptyResult(curr_pair));
+                }
+                StatePairResult::CutsDelaySolutions => {
+                    log_refinement_check_failure(
+                        &input_transitions1,
+                        &input_transitions2,
+                        &curr_pair,
+                        &mut context,
+                        &input,
+                        true,
+                    );
+                    return RefinementResult::Failure(RefinementFailure::CutsDelaySolutions(
+                        curr_pair,
+                    ));
+                }
+            }
         }
     }
     info!("Refinement check passed");
@@ -228,7 +312,36 @@ pub fn check_refinement(
         print_relation(&context.passed_list);
     }
 
-    Ok(true)
+    RefinementResult::Success
+}
+
+fn log_refinement_check_failure(
+    transitions1: &Vec<Transition>,
+    transitions2: &Vec<Transition>,
+    curr_pair: &StatePair,
+    context: &RefinementContext,
+    action: &String,
+    is_input: bool,
+) {
+    let action_type = if is_input {
+        String::from("Input")
+    } else {
+        String::from("Output")
+    };
+    info!("Refinement check failed for {} {:?}", action_type, action);
+    if log_enabled!(Level::Debug) {
+        debug!("Transitions1:");
+        for t in transitions1 {
+            debug!("{}", t);
+        }
+        debug!("Transitions2:");
+        for t in transitions2 {
+            debug!("{}", t);
+        }
+        debug!("Current pair: {}", curr_pair);
+        debug!("Relation:");
+        print_relation(&context.passed_list);
+    }
 }
 
 fn print_relation(passed_list: &PassedStateList) {
@@ -258,33 +371,34 @@ fn has_valid_state_pairs(
     curr_pair: &StatePair,
     context: &mut RefinementContext,
     is_state1: bool,
-) -> bool {
+) -> StatePairResult {
     let (fed1, fed2) = get_guard_fed_for_sides(transitions1, transitions2, curr_pair, is_state1);
 
     // If there are no valid transition1s, continue
     if fed1.is_empty() {
-        return true;
+        return StatePairResult::Valid;
     }
 
     // If there are (valid) transition1s but no transition2s there are no valid pairs
     if fed2.is_empty() {
         trace!("Empty transition2s");
-        return false;
+        return StatePairResult::EmptyTransition2s;
     };
 
     let result_federation = fed1.subtraction(&fed2);
 
     // If the entire zone of transition1s cannot be matched by transition2s
     if !result_federation.is_empty() {
-        return false;
+        return StatePairResult::NotEmptyResult;
     }
 
     // Finally try to create the pairs
     let res = try_create_new_state_pairs(transitions1, transitions2, curr_pair, context, is_state1);
 
     match res {
-        BuildResult::Success => true,
-        BuildResult::Failure => false,
+        BuildResult::Success => StatePairResult::Valid,
+        //TODO: Should we do something with this?
+        BuildResult::Failure => StatePairResult::CutsDelaySolutions,
     }
 }
 
@@ -440,10 +554,14 @@ fn prepare_init_state(
     !initial_pair.ref_zone().is_empty()
 }
 
-fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -> bool {
+fn check_preconditions(
+    sys1: &TransitionSystemPtr,
+    sys2: &TransitionSystemPtr,
+) -> PreconditionsResult {
     if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
         info!("Preconditions failed");
-        return false;
+        //TODO: Change this failure enum
+        return PreconditionsResult::OtherFailure;
     }
     let s_outputs = sys1.get_output_actions();
     let t_outputs = sys2.get_output_actions();
@@ -459,5 +577,13 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
     debug!("S i:{s_inputs:?} o:{s_outputs:?}");
     debug!("T i:{t_inputs:?} o:{t_outputs:?}");
 
-    disjoint && subset
+    if !(disjoint && subset) {
+        PreconditionsResult::NotDisjointAndNotSubset
+    } else if !subset {
+        PreconditionsResult::NotSubset
+    } else if !disjoint {
+        PreconditionsResult::NotDisjoint
+    } else {
+        PreconditionsResult::Success
+    }
 }
