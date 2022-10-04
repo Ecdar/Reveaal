@@ -1,7 +1,7 @@
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::component::Transition;
-use crate::System::local_consistency;
+use crate::System::local_consistency::{self, ConsistencyResult};
 use crate::TransitionSystems::{
     CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
 };
@@ -54,8 +54,11 @@ impl Conjunction {
             outputs,
             dim,
         });
-        if !local_consistency::is_least_consistent(ts.as_ref()) {
-            return Err("Conjunction is empty after pruning".to_string());
+        match local_consistency::is_least_consistent(ts.as_ref()) {
+            ConsistencyResult::Failure(_) => {
+                return Err("Conjunction is empty after pruning".to_string())
+            }
+            ConsistencyResult::Success => (),
         }
         Ok(ts)
     }
