@@ -1,7 +1,6 @@
 use edbm::zones::OwnedFederation;
 use log::warn;
 
-
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::{LocationID, TransitionSystem};
 
@@ -10,22 +9,21 @@ pub enum ConsistencyResult {
     Failure(ConsistencyResultRefined),
 }
 
-pub enum DeterminismResult {
-    Success,
-    Failure(LocationID)
-}
-    
-    pub enum ConsistencyResultRefined{
+pub enum ConsistencyResultRefined {
     NoInitialState,
     EmptyInitialState,
     Failure(LocationID),
 }
-
+pub enum DeterminismResult {
+    Success,
+    Failure(LocationID),
+}
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location() == None {
-        return ConsistencyResult::Failure(ConsistencyResultRefined::NoInitialState); //TODO: figure out whether we want empty TS to be consistent
+        return ConsistencyResult::Failure(ConsistencyResultRefined::NoInitialState);
+        //TODO: figure out whether we want empty TS to be consistent
     }
 
     let mut passed = vec![];
@@ -132,7 +130,9 @@ pub fn consistency_least_helper(
         return ConsistencyResult::Success;
     }
     if state.decorated_locations.is_inconsistent() {
-        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
+        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(
+            state.get_location().id.clone(),
+        ));
     }
 
     passed_list.push(state.clone());
@@ -142,15 +142,17 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                match consistency_least_helper(new_state, passed_list, system)  {
-                    ConsistencyResult::Success =>(),
+                match consistency_least_helper(new_state, passed_list, system) {
+                    ConsistencyResult::Success => (),
                     ConsistencyResult::Failure(_) => {
-                    warn!(
-                        "Input \"{input}\" not consistent from {}",
-                        state.get_location().id
-                    );
-                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
-                }
+                        warn!(
+                            "Input \"{input}\" not consistent from {}",
+                            state.get_location().id
+                        );
+                        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(
+                            state.get_location().id.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -167,7 +169,7 @@ pub fn consistency_least_helper(
                 new_state.extrapolate_max_bounds(system);
 
                 match consistency_least_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success =>{
+                    ConsistencyResult::Success => {
                         return ConsistencyResult::Success;
                     }
                     ConsistencyResult::Failure(_) => (),
@@ -177,7 +179,9 @@ pub fn consistency_least_helper(
     }
     warn!("No saving outputs from {}", state.get_location().id);
     //TODO - Why you no work
-    ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()))
+    ConsistencyResult::Failure(ConsistencyResultRefined::Failure(
+        state.get_location().id.clone(),
+    ))
 }
 
 #[allow(dead_code)]
@@ -203,7 +207,9 @@ fn consistency_fully_helper(
                 match consistency_fully_helper(new_state, passed_list, system) {
                     ConsistencyResult::Success => (),
                     ConsistencyResult::Failure(_) => {
-                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
+                        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(
+                            state.get_location().id.clone(),
+                        ));
                     }
                 }
             }
@@ -223,14 +229,15 @@ fn consistency_fully_helper(
                 output_existed = true;
                 match consistency_fully_helper(new_state, passed_list, system) {
                     ConsistencyResult::Failure(_) => {
-                    return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(state.get_location().id.clone()));
-                    },
+                        return ConsistencyResult::Failure(ConsistencyResultRefined::Failure(
+                            state.get_location().id.clone(),
+                        ));
+                    }
                     ConsistencyResult::Success => (),
                 }
             }
         }
     }
-    
     if output_existed {
         ConsistencyResult::Success
     } else {
@@ -238,9 +245,10 @@ fn consistency_fully_helper(
             .last()
             .unwrap()
             .zone_ref()
-            .can_delay_indefinitely(){
-                false => ConsistencyResult::Failure(ConsistencyResultRefined::EmptyInitialState),
-                true => ConsistencyResult::Success,
-            }
+            .can_delay_indefinitely()
+        {
+            false => ConsistencyResult::Failure(ConsistencyResultRefined::EmptyInitialState),
+            true => ConsistencyResult::Success,
+        }
     }
 }

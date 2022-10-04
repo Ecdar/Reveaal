@@ -55,7 +55,9 @@ impl Conjunction {
             dim,
         });
         match local_consistency::is_least_consistent(ts.as_ref()) {
-            ConsistencyResult::Failure(_) => return Err("Conjunction is empty after pruning".to_string()),
+            ConsistencyResult::Failure(_) => {
+                return Err("Conjunction is empty after pruning".to_string())
+            }
             ConsistencyResult::Success => (),
         }
         Ok(ts)
