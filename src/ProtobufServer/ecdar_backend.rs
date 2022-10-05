@@ -1,6 +1,6 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
-use crate::ProtobufServer::services::{ComponentsUpdateRequest, Query, QueryResponse};
+use crate::ProtobufServer::services::{QueryResponse, SimulationStartRequest, SimulationStartResponse, SimulationStepRequest, SimulationStepResponse, SimulationStopRequest, UserTokenResponse, QueryRequest};
 use futures::FutureExt;
 use std::cell::RefCell;
 use std::panic::UnwindSafe;
@@ -50,16 +50,36 @@ where
 
 #[tonic::async_trait]
 impl EcdarBackend for ConcreteEcdarBackend {
-    async fn send_query(&self, request: Request<Query>) -> Result<Response<QueryResponse>, Status> {
+    async fn get_user_token(
+        &self, 
+        request: Request<()>
+    ) -> Result<Response<UserTokenResponse>, Status> {
+        panic!("not implemented")
+    }
+
+    async fn send_query(&self, request: Request<QueryRequest>) -> Result<Response<QueryResponse>, Status> {
         let request = std::panic::AssertUnwindSafe(request);
         catch_unwind(self.handle_send_query(request)).await
     }
 
-    async fn update_components(
-        &self,
-        request: Request<ComponentsUpdateRequest>,
-    ) -> Result<Response<()>, tonic::Status> {
-        let request = std::panic::AssertUnwindSafe(request);
-        catch_unwind(self.handle_update_components(request)).await
+    async fn start_simulation(
+        &self, 
+        request: Request<SimulationStartRequest>
+    ) -> Result<Response<SimulationStartResponse>, Status> {
+        panic!("not implemented")
+    }
+
+    async fn take_simulation_step(
+        &self, 
+        request: Request<SimulationStepRequest>
+    ) -> Result<Response<SimulationStepResponse>, Status> {
+        panic!("not implemented")
+    }
+
+    async fn stop_simulation(
+        &self, 
+        request: Request<SimulationStopRequest>
+    ) -> Result<Response<()>, Status> {
+        panic!("not implemented")
     }
 }
