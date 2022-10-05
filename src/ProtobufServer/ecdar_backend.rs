@@ -1,6 +1,9 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
-use crate::ProtobufServer::services::{QueryResponse, SimulationStartRequest, SimulationStartResponse, SimulationStepRequest, SimulationStepResponse, SimulationStopRequest, UserTokenResponse, QueryRequest};
+use crate::ProtobufServer::services::{
+    QueryRequest, QueryResponse, SimulationStartRequest, SimulationStartResponse,
+    SimulationStepRequest, SimulationStepResponse, SimulationStopRequest, UserTokenResponse,
+};
 use futures::FutureExt;
 use std::cell::RefCell;
 use std::panic::UnwindSafe;
@@ -51,34 +54,37 @@ where
 #[tonic::async_trait]
 impl EcdarBackend for ConcreteEcdarBackend {
     async fn get_user_token(
-        &self, 
-        request: Request<()>
+        &self,
+        request: Request<()>,
     ) -> Result<Response<UserTokenResponse>, Status> {
         panic!("not implemented")
     }
 
-    async fn send_query(&self, request: Request<QueryRequest>) -> Result<Response<QueryResponse>, Status> {
+    async fn send_query(
+        &self,
+        request: Request<QueryRequest>,
+    ) -> Result<Response<QueryResponse>, Status> {
         let request = std::panic::AssertUnwindSafe(request);
         catch_unwind(self.handle_send_query(request)).await
     }
 
     async fn start_simulation(
-        &self, 
-        request: Request<SimulationStartRequest>
+        &self,
+        request: Request<SimulationStartRequest>,
     ) -> Result<Response<SimulationStartResponse>, Status> {
         panic!("not implemented")
     }
 
     async fn take_simulation_step(
-        &self, 
-        request: Request<SimulationStepRequest>
+        &self,
+        request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
         panic!("not implemented")
     }
 
     async fn stop_simulation(
-        &self, 
-        request: Request<SimulationStopRequest>
+        &self,
+        request: Request<SimulationStopRequest>,
     ) -> Result<Response<()>, Status> {
         panic!("not implemented")
     }

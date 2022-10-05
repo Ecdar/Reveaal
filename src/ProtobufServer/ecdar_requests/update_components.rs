@@ -4,7 +4,7 @@ use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::xml_parser::parse_xml_from_str;
 use crate::ModelObjects::component::Component;
 use crate::ProtobufServer::services::component::Rep;
-use crate::ProtobufServer::services::{Component as ProtobufComponent};
+use crate::ProtobufServer::services::Component as ProtobufComponent;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::input_enabler;
 use log::trace;
