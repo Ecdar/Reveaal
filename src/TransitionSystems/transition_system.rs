@@ -1,5 +1,5 @@
 use super::{CompositionType, LocationTuple};
-use crate::ModelObjects::component::{Declarations, State, Transition};
+use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::ConsistencyResult};
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
@@ -63,7 +63,7 @@ pub trait TransitionSystem: DynClone {
 
     fn is_deterministic(&self) -> bool;
 
-    fn is_locally_consistent(&self) -> bool;
+    fn is_locally_consistent(&self) -> ConsistencyResult;
 
     fn get_initial_state(&self) -> Option<State>;
 

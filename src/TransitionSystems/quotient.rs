@@ -5,6 +5,7 @@ use log::{debug, warn};
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
+use crate::System::local_consistency::ConsistencyResult;
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
@@ -381,7 +382,7 @@ impl TransitionSystem for Quotient {
             return false;
         }
 
-        if !self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
             return false;
         }
@@ -393,8 +394,16 @@ impl TransitionSystem for Quotient {
         self.T.is_deterministic() && self.S.is_deterministic()
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        self.T.is_locally_consistent() && self.S.is_locally_consistent()
+    fn is_locally_consistent(&self) -> ConsistencyResult {
+        if let ConsistencyResult::Success = self.T.is_locally_consistent() {
+            if let ConsistencyResult::Success = self.S.is_locally_consistent()  {
+                return ConsistencyResult::Success;                
+            }else{
+                return self.S.is_locally_consistent();
+            }
+        }else{
+            return self.T.is_locally_consistent();
+        }
     }
 
     fn get_initial_state(&self) -> Option<State> {

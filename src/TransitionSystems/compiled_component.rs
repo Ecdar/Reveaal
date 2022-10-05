@@ -177,7 +177,7 @@ impl TransitionSystem for CompiledComponent {
             return false;
         }
 
-        if !self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent()   {
             warn!("Not consistent");
             return false;
         }
@@ -192,11 +192,12 @@ impl TransitionSystem for CompiledComponent {
     }
 
     //TODO - Convertion to T/F should be moved
-    fn is_locally_consistent(&self) -> bool {
-        match local_consistency::is_least_consistent(self) {
-            ConsistencyResult::Success => true,
-            ConsistencyResult::Failure(_) => false,
-        }
+    fn is_locally_consistent(&self) -> ConsistencyResult {
+//        match local_consistency::is_least_consistent(self) {
+//            ConsistencyResult::Success => true,
+//            ConsistencyResult::Failure(_) => false,
+//        }
+        local_consistency::is_least_consistent(self)
     }
 
     fn get_dim(&self) -> ClockIndex {

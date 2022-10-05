@@ -7,14 +7,14 @@ use edbm::{
 };
 use log::warn;
 
-use crate::ModelObjects::component::{Declarations, State, Transition};
+use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::ConsistencyResult};
 
 use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
 
 pub trait ComposedTransitionSystem: DynClone {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
 
-    fn is_locally_consistent(&self) -> bool;
+    fn is_locally_consistent(&self) -> ConsistencyResult;
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
@@ -83,7 +83,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             return false;
         }
 
-        if !self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
             return false;
         }
@@ -128,7 +128,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         location_tuples
     }
 
-    fn is_locally_consistent(&self) -> bool {
+    fn is_locally_consistent(&self) -> ConsistencyResult {
         self.is_locally_consistent()
     }
 
