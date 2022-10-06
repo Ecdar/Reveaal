@@ -1,8 +1,8 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
 use crate::ProtobufServer::services::{
-    QueryRequest, QueryResponse, SimulationStartRequest, SimulationStartResponse,
-    SimulationStepRequest, SimulationStepResponse, SimulationStopRequest, UserTokenResponse,
+    QueryRequest, QueryResponse, SimulationStartRequest,
+    SimulationStepRequest, SimulationStepResponse, UserTokenResponse,
 };
 use futures::FutureExt;
 use std::cell::RefCell;
@@ -71,7 +71,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
     async fn start_simulation(
         &self,
         request: Request<SimulationStartRequest>,
-    ) -> Result<Response<SimulationStartResponse>, Status> {
+    ) -> Result<Response<SimulationStepResponse>, Status> {
         panic!("not implemented")
     }
 
@@ -79,13 +79,6 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        panic!("not implemented")
-    }
-
-    async fn stop_simulation(
-        &self,
-        request: Request<SimulationStopRequest>,
-    ) -> Result<Response<()>, Status> {
         panic!("not implemented")
     }
 }
