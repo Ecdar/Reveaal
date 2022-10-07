@@ -167,3 +167,63 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }
 }
+
+fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufResult> {
+    match failure {
+        RefinementFailure::NotDisjointAndNotSubset |
+        RefinementFailure::NotDisjoint |
+        RefinementFailure::NotSubset |
+        RefinementFailure::EmptySpecification |
+        RefinementFailure::EmptyImplementation =>             
+        Some(ProtobufResult::Refinement(RefinementResult {
+            success: false,
+            relation: vec![],
+            state: None,
+        })),
+        RefinementFailure::CutsDelaySolutions(state_pair) |
+        RefinementFailure::InitialState(state_pair) |
+        RefinementFailure::EmptyTransition2s(state_pair) |
+        RefinementFailure::NotEmptyResult(state_pair) =>
+        Some(ProtobufResult::Refinement(RefinementResult {
+            success: false,
+            relation: vec![],
+            state: Some(StateTuple {
+                location: Some(LocationTuple{
+                    name: state_pair.to_string(),
+                }),
+                federation: make_proto_zone(state_pair.take_zone().minimal_constraints()),
+            }),
+        })),
+        RefinementFailure::Other => todo!(),
+    }
+}
+
+fn make_proto_zone(disjunction: edbm::util::constraints::Disjunction) -> Vec<Zone> {
+    let mut zone:Vec<Zone> = vec![];
+    let mut conjunctions:Vec<Conjunction> = vec![];
+    for conjunction in disjunction.conjunctions.iter(){
+        let mut constraints:Vec<Constraint> = vec![];
+        for constraint in conjunction.constraints.iter(){
+            constraints.push(Constraint {
+                x: Some(ComponentClock {
+                    //TODO: Add this when we support component index
+                    specific_component: None, 
+                    clock_name: constraint.i.to_string(),
+                }),
+                y: Some(ComponentClock {
+                    specific_component: None,
+                    clock_name: constraint.j.to_string(),
+                }),
+                strict: constraint.ineq().is_strict(),
+                c: constraint.ineq().bound(),
+            });
+        }
+        conjunctions.push(Conjunction{
+            constraints: constraints,
+        })
+    }
+    zone.push(Zone {
+        disjunction: Some(Disjunction{ conjunctions: conjunctions }),
+    });
+    return zone;
+}
