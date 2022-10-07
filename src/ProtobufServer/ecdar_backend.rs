@@ -7,7 +7,7 @@ use crate::ProtobufServer::services::{
 use futures::FutureExt;
 use std::cell::RefCell;
 use std::panic::UnwindSafe;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::Mutex;
 use tonic::{Request, Response, Status};
 
 use crate::DataReader::component_loader::ComponentContainer;
