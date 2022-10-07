@@ -36,7 +36,13 @@ impl ComponentLoader for ComponentContainer {
     }
 }
 
-impl ComponentContainer {}
+impl ComponentContainer {
+    fn new(map: HashMap<String, Component>) -> Self {
+        ComponentContainer {
+            loaded_components: map,
+        }
+    }
+}
 
 pub trait ProjectLoader: ComponentLoader {
     fn get_declarations(&self) -> &SystemDeclarations;
