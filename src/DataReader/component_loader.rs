@@ -25,7 +25,7 @@ impl ComponentLoader for ComponentContainer {
             panic!("The component '{}' could not be retrieved", component_name);
         }
     }
-    fn save_component(&mut self, component: Component) {
+    fn save_component(&mut self, _component: Component) {
         //Intentionally left blank (no-op func)
     }
 }
