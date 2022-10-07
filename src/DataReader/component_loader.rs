@@ -37,7 +37,7 @@ impl ComponentLoader for ComponentContainer {
 }
 
 impl ComponentContainer {
-    fn new(map: HashMap<String, Component>) -> Self {
+    pub fn new(map: HashMap<String, Component>) -> Self {
         ComponentContainer {
             loaded_components: map,
         }
