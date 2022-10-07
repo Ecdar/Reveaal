@@ -17,17 +17,6 @@ pub struct ConcreteEcdarBackend {
     pub components: Mutex<RefCell<ComponentContainer>>,
 }
 
-impl ConcreteEcdarBackend {
-    pub fn get_components_lock(
-        &self,
-    ) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
-        match self.components.lock() {
-            Ok(mutex_guard) => Ok(mutex_guard),
-            Err(err) => Ok(err.into_inner()),
-        }
-    }
-}
-
 async fn catch_unwind<T, O>(future: T) -> Result<O, Status>
 where
     T: UnwindSafe + futures::Future<Output = Result<O, Status>>,
