@@ -5,17 +5,11 @@ use crate::ProtobufServer::services::{
     SimulationStepRequest, SimulationStepResponse, SimulationStopRequest, UserTokenResponse,
 };
 use futures::FutureExt;
-use std::cell::RefCell;
 use std::panic::UnwindSafe;
-use std::sync::Mutex;
 use tonic::{Request, Response, Status};
 
-use crate::DataReader::component_loader::ComponentContainer;
-
 #[derive(Debug, Default)]
-pub struct ConcreteEcdarBackend {
-    pub components: Mutex<RefCell<ComponentContainer>>,
-}
+pub struct ConcreteEcdarBackend {}
 
 async fn catch_unwind<T, O>(future: T) -> Result<O, Status>
 where
