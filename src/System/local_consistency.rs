@@ -83,13 +83,11 @@ fn is_deterministic_helper(
                     DeterminismResult::Success => {}
                     DeterminismResult::Failure(_) => {
                         return DeterminismResult::Failure(state.get_location().id.clone());
-                        // ikke sikker på at det korrect
                     }
                 }
             }
         }
     }
-
     DeterminismResult::Success
 }
 

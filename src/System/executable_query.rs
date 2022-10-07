@@ -7,7 +7,7 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
-use super::local_consistency::DeterminismResult;
+use super::local_consistency::{DeterminismResult, ConsistencyResult};
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
@@ -108,7 +108,7 @@ impl ExecutableQuery for ConsistencyExecutor {
             Ok(system) => system.precheck_sys_rep(),
             Err(_) => false,
         };
-
+        
         QueryResult::Consistency(res)
     }
 }
