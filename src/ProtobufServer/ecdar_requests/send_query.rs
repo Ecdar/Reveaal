@@ -51,7 +51,7 @@ impl ConcreteEcdarBackend {
 
         let reply = QueryResponse {
             response: Some(QueryOkOrErrorResponse::QueryOk(QueryOk {
-                query_id: 0, // TODO: this is a placeholde value
+                query_id: query_request.query_id,
                 result: convert_ecdar_result(&result),
             })),
         };
