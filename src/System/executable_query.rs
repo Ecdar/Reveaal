@@ -7,6 +7,7 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
+use super::local_consistency::DeterminismResult;
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
@@ -14,7 +15,7 @@ pub enum QueryResult {
     Refinement(RefinementResult),
     GetComponent(Component),
     Consistency(bool),
-    Determinism(bool),
+    Determinism(DeterminismResult),
     Error(String),
 }
 
@@ -35,8 +36,8 @@ impl QueryResult {
             QueryResult::Consistency(true) => satisfied(query_str),
             QueryResult::Consistency(false) => not_satisfied(query_str),
 
-            QueryResult::Determinism(true) => satisfied(query_str),
-            QueryResult::Determinism(false) => not_satisfied(query_str),
+            QueryResult::Determinism(DeterminismResult::Success) => satisfied(query_str),
+            QueryResult::Determinism(DeterminismResult::Failure(_)) => not_satisfied(query_str),
 
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)

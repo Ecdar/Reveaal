@@ -4,13 +4,14 @@ use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::services::component::Rep;
-use crate::ProtobufServer::services::query_response::Result as ProtobufResult;
+use crate::ProtobufServer::services::query_response::{Result as ProtobufResult, DeterminismResult};
 use crate::ProtobufServer::services::query_response::{
-    ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
+    ComponentResult, ConsistencyResult, RefinementResult,
 };
 use crate::ProtobufServer::services::{Component, Query as ProtobufQuery, QueryResponse};
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
+use crate::System;
 use log::{info, trace};
 use tonic::{Request, Response, Status};
 
@@ -95,9 +96,15 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }))
         }
         QueryResult::Determinism(is_deterministic) => {
-            Some(ProtobufResult::Determinism(DeterminismResult {
-                success: *is_deterministic,
-            }))
+            if let System::local_consistency::DeterminismResult::Failure(_) = *is_deterministic {
+                Some(ProtobufResult::Determinism(DeterminismResult {
+                    success: false,
+                }))
+            }else{
+                Some(ProtobufResult::Determinism(DeterminismResult {
+                    success: true,
+                }))
+            }
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }
