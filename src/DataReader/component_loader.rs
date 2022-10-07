@@ -26,8 +26,7 @@ impl ComponentLoader for ComponentContainer {
         }
     }
     fn save_component(&mut self, component: Component) {
-        self.loaded_components
-            .insert(component.get_name().clone(), component);
+        //Intentionally left blank (no-op func)
     }
 }
 
