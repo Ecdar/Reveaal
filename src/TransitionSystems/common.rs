@@ -77,17 +77,19 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> bool {
+    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
+
         if let DeterminismResult::Failure(_) = self.is_deterministic() {
-            warn!("Not deterministic");
-            return false;
+            warn!("Not consistent");
+            return (self.is_locally_consistent(), self.is_deterministic());
         }
 
         if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
-            return false;
+            return (self.is_locally_consistent(), self.is_deterministic());
         }
-        true
+
+        return (ConsistencyResult::Success, DeterminismResult::Success);
     }
 
     fn is_deterministic(&self) -> DeterminismResult {

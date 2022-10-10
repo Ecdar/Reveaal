@@ -13,11 +13,14 @@ pub enum ConsistencyFailure {
     NoInitialState,
     EmptyInitialState,
     NotConsistentFrom(LocationID),
+    Empty,
 }
 pub enum DeterminismResult {
     Success,
     Failure(LocationID),
+    Empty,
 }
+
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
@@ -81,6 +84,7 @@ fn is_deterministic_helper(
 
                 match is_deterministic_helper(new_state, passed_list, system) {
                     DeterminismResult::Success => {}
+                    DeterminismResult::Empty => {}
                     DeterminismResult::Failure(_) => {
                         return DeterminismResult::Failure(state.get_location().id.clone());
                     }

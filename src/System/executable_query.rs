@@ -7,14 +7,14 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
-use super::local_consistency::{DeterminismResult, ConsistencyResult};
+use super::local_consistency::{DeterminismResult, ConsistencyResult, ConsistencyFailure};
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
 pub enum QueryResult {
     Refinement(RefinementResult),
     GetComponent(Component),
-    Consistency(bool),
+    Consistency(ConsistencyResult),
     Determinism(DeterminismResult),
     Error(String),
 }
@@ -33,11 +33,12 @@ impl QueryResult {
             QueryResult::Refinement(RefinementResult::Success) => satisfied(query_str),
             QueryResult::Refinement(RefinementResult::Failure(_)) => not_satisfied(query_str),
 
-            QueryResult::Consistency(true) => satisfied(query_str),
-            QueryResult::Consistency(false) => not_satisfied(query_str),
+            QueryResult::Consistency(ConsistencyResult::Success) => satisfied(query_str),
+            QueryResult::Consistency(ConsistencyResult::Failure(_)) => not_satisfied(query_str),
 
             QueryResult::Determinism(DeterminismResult::Success) => satisfied(query_str),
             QueryResult::Determinism(DeterminismResult::Failure(_)) => not_satisfied(query_str),
+            QueryResult::Determinism(DeterminismResult::Empty) => not_satisfied(query_str),
 
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)
@@ -106,10 +107,10 @@ impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
             Ok(system) => system.precheck_sys_rep(),
-            Err(_) => false,
+            Err(_) => (ConsistencyResult::Failure(ConsistencyFailure::Empty), DeterminismResult::Empty),
         };
         
-        QueryResult::Consistency(res)
+        QueryResult::Consistency(res.0)
     }
 }
 

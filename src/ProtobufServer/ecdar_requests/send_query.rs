@@ -91,9 +91,15 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }),
         })),
         QueryResult::Consistency(is_consistent) => {
-            Some(ProtobufResult::Consistency(ConsistencyResult {
-                success: *is_consistent,
-            }))
+            if let System::local_consistency::ConsistencyResult::Failure(_) = *is_consistent{
+                Some(ProtobufResult::Consistency(ConsistencyResult {
+                    success: false,
+                }))
+            }else{
+                Some(ProtobufResult::Consistency(ConsistencyResult {
+                    success: true,
+                }))
+            }
         }
         QueryResult::Determinism(is_deterministic) => {
             if let System::local_consistency::DeterminismResult::Failure(_) = *is_deterministic {

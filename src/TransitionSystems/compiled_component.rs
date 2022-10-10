@@ -171,18 +171,20 @@ impl TransitionSystem for CompiledComponent {
         unimplemented!()
     }
 
-    fn precheck_sys_rep(&self) -> bool {
 
-        if let DeterminismResult::Failure(_) = self.is_deterministic(){
-            warn!("Not deterministic");
-            return false;
-        }
+    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
 
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent()   {
+        if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not consistent");
-            return false;
+            return (self.is_locally_consistent(), self.is_deterministic());
         }
-        true
+
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
+            warn!("Not consistent");
+            return (self.is_locally_consistent(), self.is_deterministic());
+        }
+
+        return (ConsistencyResult::Success, DeterminismResult::Success);
     }
 
     fn is_deterministic(&self) -> DeterminismResult {

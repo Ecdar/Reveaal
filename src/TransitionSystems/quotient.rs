@@ -5,12 +5,12 @@ use log::{debug, warn};
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::System::local_consistency::{ConsistencyResult,DeterminismResult};
+use crate::System::local_consistency::{ConsistencyResult,DeterminismResult, ConsistencyFailure};
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr, LocationID};
 use std::collections::hash_set::HashSet;
 
 use super::CompositionType;
@@ -48,11 +48,11 @@ impl Quotient {
             ));
         }
 
-        if !T.precheck_sys_rep() {
+        if let (ConsistencyResult::Failure(_),DeterminismResult::Failure(_)) = T.precheck_sys_rep() {
             return Err("T (left) must be least consistent for quotient".to_string());
         }
 
-        if !S.precheck_sys_rep() {
+        if let (ConsistencyResult::Failure(_),DeterminismResult::Failure(_)) = S.precheck_sys_rep() {
             return Err("S (right) must be least consistent for quotient".to_string());
         }
 
@@ -376,19 +376,19 @@ impl TransitionSystem for Quotient {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> bool {
+    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
 
         if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not consistent");
-            return false;
+            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
         }
 
         if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
-            return false;
+            return (self.is_locally_consistent(), DeterminismResult::Empty);
         }
 
-        true
+        return (ConsistencyResult::Success, DeterminismResult::Success);
     }
 
     fn is_deterministic(&self) -> DeterminismResult {

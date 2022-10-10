@@ -5,6 +5,9 @@ use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
+//use crate::ProtobufServer::services::query_response::{ConsistencyResult, DeterminismResult};
+//use crate::ProtobufServer::services::query_response::{DeterminismResult, ConsistencyResult};
+use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 
@@ -560,10 +563,14 @@ fn check_preconditions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
 ) -> PreconditionsResult {
-    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
-        info!("Preconditions failed");
-        //TODO: Change this failure enum
+    if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys2.precheck_sys_rep(){
         return PreconditionsResult::OtherFailure;
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys2.precheck_sys_rep(){
+        return PreconditionsResult::OtherFailure;
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys1.precheck_sys_rep(){
+        return  PreconditionsResult::OtherFailure;
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys1.precheck_sys_rep(){
+        return  PreconditionsResult::OtherFailure;
     }
     let s_outputs = sys1.get_output_actions();
     let t_outputs = sys2.get_output_actions();
