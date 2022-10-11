@@ -4,19 +4,29 @@ use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::services::component::Rep;
-use crate::ProtobufServer::services::query_response::Result as ProtobufResult;
-use crate::ProtobufServer::services::query_response::{
+use crate::ProtobufServer::services::query_response::{self};
+use crate::ProtobufServer::services::query_response::query_ok::Result as ProtobufResult;
+use crate::ProtobufServer::services::query_response::query_ok::{
     ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
 };
-use crate::ProtobufServer::services::state_tuple::LocationTuple;
-use crate::ProtobufServer::services::zone::Disjunction;
-use crate::ProtobufServer::services::zone::disjunction::conjunction::Constraint;
-use crate::ProtobufServer::services::zone::disjunction::conjunction::constraint::ComponentClock;
-use crate::ProtobufServer::services::zone::disjunction::{conjunction, Conjunction};
-use crate::ProtobufServer::services::{Component, QueryRequest as ProtobufQuery, QueryResponse, StateTuple, Zone, SpecificComponent};
+use crate::ProtobufServer::services::{
+    LocationTuple as ProtobufLocationTuple,
+    Constraint as ProtobufConstraint,
+    Component as ProtobufComponent, 
+    QueryRequest as ProtobufQuery, 
+    QueryResponse as ProtobufQueryResponse,
+    StateTuple as ProtobufStateTuple,
+    ComponentClock as ProtobufComponentClock,
+    Conjunction as ProtobufConjunction,
+    Disjunction as ProtobufDisjunction,
+    Zone as ProtobufZone, 
+    SpecificComponent as ProtobufSpecificComponent
+};
+use crate::ProtobufServer::services::state_tuple::LocationTuple as ProtobufLocationString;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep;
 use crate::System::refine::RefinementFailure;
+use edbm::util::constraints::Disjunction;
 use log::{info, trace};
 use tonic::{Request, Response, Status};
 
@@ -26,10 +36,9 @@ impl ConcreteEcdarBackend {
     pub async fn handle_send_query(
         &self,
         request: AssertUnwindSafe<Request<ProtobufQuery>>,
-    ) -> Result<Response<QueryResponse>, Status> {
+    ) -> Result<Response<ProtobufQueryResponse>, Status> {
         trace!("Received query: {:?}", request);
         let query_request = request.0.into_inner();
-
         let query = parse_query(&query_request)?;
 
         let components = self.get_components_lock()?;
@@ -53,11 +62,15 @@ impl ConcreteEcdarBackend {
             };
         let result = executable_query.execute();
 
-        let reply = QueryResponse {
-            query_id: query_request.query_id,
-            result: convert_ecdar_result(&result),
+        let reply = ProtobufQueryResponse {
+            response: Some(query_response::Response::QueryOk({
+                query_response::QueryOk {
+                     query_id: query_request.query_id, 
+                     result: convert_ecdar_result(&result),
+                    }
+            })),
         };
-
+        
         Ok(Response::new(reply))
     }
 }
@@ -81,6 +94,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 success: true,
                 relation: vec![],
                 state: None,
+                reason: String::new(),
             }))
         }
         QueryResult::Refinement(crate::System::refine::RefinementResult::Failure(failure)) => {
@@ -88,7 +102,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             convert_refinement_failure(failure)
         }
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
-            component: Some(Component {
+            component: Some(ProtobufComponent {
                 rep: Some(Rep::Json(component_to_json(comp))),
             }),
         })),
@@ -96,12 +110,14 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             Some(ProtobufResult::Consistency(ConsistencyResult {
                 success: *is_consistent,
                 state: todo!(),
+                reason: todo!(),
             }))
         }
         QueryResult::Determinism(is_deterministic) => {
             Some(ProtobufResult::Determinism(DeterminismResult {
                 success: *is_deterministic,
                 state: todo!(),
+                reason: todo!(),
             }))
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
@@ -119,6 +135,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
             success: false,
             relation: vec![],
             state: None,
+            reason: failure.to_string(),
         })),
         RefinementFailure::CutsDelaySolutions(state_pair) |
         RefinementFailure::InitialState(state_pair) |
@@ -127,30 +144,31 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
         Some(ProtobufResult::Refinement(RefinementResult {
             success: false,
             relation: vec![],
-            state: Some(StateTuple {
-                location: Some(LocationTuple{
+            state: Some(ProtobufStateTuple {
+                location: Some(ProtobufLocationString{
                     name: state_pair.to_string(),
                 }),
                 federation: make_proto_zone(state_pair.take_zone().minimal_constraints()),
             }),
+            reason: failure.to_string(),
         })),
         RefinementFailure::Other => todo!(),
     }
 }
 
-fn make_proto_zone(disjunction: edbm::util::constraints::Disjunction) -> Vec<Zone> {
-    let mut zone:Vec<Zone> = vec![];
-    let mut conjunctions:Vec<Conjunction> = vec![];
+fn make_proto_zone(disjunction: Disjunction) -> Vec<ProtobufZone> {
+    let mut zone:Vec<ProtobufZone> = vec![];
+    let mut conjunctions:Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter(){
-        let mut constraints:Vec<Constraint> = vec![];
+        let mut constraints:Vec<ProtobufConstraint> = vec![];
         for constraint in conjunction.constraints.iter(){
-            constraints.push(Constraint {
-                x: Some(ComponentClock {
-                    //TODO: Add this when we support component index
+            constraints.push(ProtobufConstraint {
+                x: Some(ProtobufComponentClock {
+                    //TODO: I dont know how to get this info :)
                     specific_component: None, 
                     clock_name: constraint.i.to_string(),
                 }),
-                y: Some(ComponentClock {
+                y: Some(ProtobufComponentClock {
                     specific_component: None,
                     clock_name: constraint.j.to_string(),
                 }),
@@ -158,12 +176,12 @@ fn make_proto_zone(disjunction: edbm::util::constraints::Disjunction) -> Vec<Zon
                 c: constraint.ineq().bound(),
             });
         }
-        conjunctions.push(Conjunction{
+        conjunctions.push(ProtobufConjunction{
             constraints: constraints,
         })
     }
-    zone.push(Zone {
-        disjunction: Some(Disjunction{ conjunctions: conjunctions }),
+    zone.push(ProtobufZone {
+        disjunction: Some(ProtobufDisjunction{ conjunctions: conjunctions }),
     });
     return zone;
 }
