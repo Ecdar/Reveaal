@@ -7,6 +7,7 @@ use crate::ModelObjects::component::Transition;
 use crate::ModelObjects::statepair::StatePair;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
+use std::fmt;
 
 #[allow(clippy::large_enum_variant)] //TODO: consider boxing the large fields to reduce the total size of the enum
 pub enum RefinementResult {
@@ -43,16 +44,11 @@ pub enum StatePairResult {
     CutsDelaySolutions,
 }
 
-/* impl StatePairResult {
-    fn into(&self) -> RefinementResult {
-        match self {
-            StatePairResult::Valid => RefinementResult::Success,
-            StatePairResult::EmptyTransition2s => RefinementResult::Failure(RefinementFailure::EmptyTransition2s),
-            StatePairResult::NotEmptyResult => todo!(),
-            StatePairResult::CutsDelaySolutions => todo!(),
-        }
+impl fmt::Display for RefinementFailure {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
-} */
+}
 
 fn common_actions(
     sys1: &TransitionSystemPtr,

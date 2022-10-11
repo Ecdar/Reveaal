@@ -71,7 +71,7 @@ impl ConcreteEcdarBackend {
                 result: convert_ecdar_result(&result),
             })),
         };
-
+        
         Ok(Response::new(reply))
     }
 }
@@ -179,6 +179,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
             success: false,
             relation: vec![],
             state: None,
+            reason: failure.to_string(),
         })),
         RefinementFailure::CutsDelaySolutions(state_pair) |
         RefinementFailure::InitialState(state_pair) |
@@ -187,30 +188,31 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
         Some(ProtobufResult::Refinement(RefinementResult {
             success: false,
             relation: vec![],
-            state: Some(StateTuple {
-                location: Some(LocationTuple{
+            state: Some(ProtobufStateTuple {
+                location: Some(ProtobufLocationString{
                     name: state_pair.to_string(),
                 }),
                 federation: make_proto_zone(state_pair.take_zone().minimal_constraints()),
             }),
+            reason: failure.to_string(),
         })),
         RefinementFailure::Other => todo!(),
     }
 }
 
-fn make_proto_zone(disjunction: edbm::util::constraints::Disjunction) -> Vec<Zone> {
-    let mut zone:Vec<Zone> = vec![];
-    let mut conjunctions:Vec<Conjunction> = vec![];
+fn make_proto_zone(disjunction: Disjunction) -> Vec<ProtobufZone> {
+    let mut zone:Vec<ProtobufZone> = vec![];
+    let mut conjunctions:Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter(){
-        let mut constraints:Vec<Constraint> = vec![];
+        let mut constraints:Vec<ProtobufConstraint> = vec![];
         for constraint in conjunction.constraints.iter(){
-            constraints.push(Constraint {
-                x: Some(ComponentClock {
-                    //TODO: Add this when we support component index
+            constraints.push(ProtobufConstraint {
+                x: Some(ProtobufComponentClock {
+                    //TODO: I dont know how to get this info :)
                     specific_component: None, 
                     clock_name: constraint.i.to_string(),
                 }),
-                y: Some(ComponentClock {
+                y: Some(ProtobufComponentClock {
                     specific_component: None,
                     clock_name: constraint.j.to_string(),
                 }),
@@ -218,12 +220,12 @@ fn make_proto_zone(disjunction: edbm::util::constraints::Disjunction) -> Vec<Zon
                 c: constraint.ineq().bound(),
             });
         }
-        conjunctions.push(Conjunction{
+        conjunctions.push(ProtobufConjunction{
             constraints: constraints,
         })
     }
-    zone.push(Zone {
-        disjunction: Some(Disjunction{ conjunctions: conjunctions }),
+    zone.push(ProtobufZone {
+        disjunction: Some(ProtobufDisjunction{ conjunctions: conjunctions }),
     });
     return zone;
 }
