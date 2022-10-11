@@ -25,6 +25,8 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
         panic!("Trying to prune transitions system which is not least consistent");
     }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = ts.precheck_sys_rep() {
         panic!("Trying to prune transitions system which is not least consistent");
+    }else if let (ConsistencyResult::Success, DeterminismResult::Failure(_)) = ts.precheck_sys_rep(){
+        panic!("Trying to prune transitions system which is not least consistent");
     }
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();

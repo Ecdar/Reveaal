@@ -106,11 +106,10 @@ pub struct ConsistencyExecutor {
 impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
-            Ok(system) => system.precheck_sys_rep(),
-            Err(_) => (ConsistencyResult::Failure(ConsistencyFailure::Empty), DeterminismResult::Empty),
+            Ok(system) => system.precheck_sys_rep().0,
+            Err(_) => ConsistencyResult::Failure(ConsistencyFailure::Empty),
         };
-        
-        QueryResult::Consistency(res.0)
+        QueryResult::Consistency(res)
     }
 }
 

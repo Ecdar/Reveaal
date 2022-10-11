@@ -7,7 +7,7 @@ use edbm::{
 };
 use log::warn;
 
-use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::{ConsistencyResult, DeterminismResult}};
+use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::{ConsistencyResult, DeterminismResult, ConsistencyFailure}};
 
 use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
 
@@ -81,12 +81,12 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
         if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not consistent");
-            return (self.is_locally_consistent(), self.is_deterministic());
+            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
         }
 
         if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
-            return (self.is_locally_consistent(), self.is_deterministic());
+            return (self.is_locally_consistent(), DeterminismResult::Empty);
         }
 
         return (ConsistencyResult::Success, DeterminismResult::Success);
