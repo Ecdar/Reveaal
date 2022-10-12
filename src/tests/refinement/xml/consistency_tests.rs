@@ -39,7 +39,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G3");
 
         if let QueryResult::Consistency(is_consistent) =&result {
-            assert!(helper(result));
+            assert!(!helper(result));
         } else {
             panic!("Not consistency check");
         }
@@ -50,7 +50,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G4");
 
         if let QueryResult::Consistency(is_consistent) =&result {
-            assert!(helper(result));
+            assert!(!helper(result));
         } else {
             panic!("Not consistency check");
         }
@@ -61,7 +61,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G5");
 
         if let QueryResult::Consistency(is_consistent) =&result {
-            assert!(helper(result));
+            assert!(!helper(result));
         } else {
             panic!("Not consistency check");
         }
@@ -83,7 +83,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G7");
 
         if let QueryResult::Consistency(is_consistent) =&result {
-            assert!(helper(result));
+            assert!(!helper(result));
         } else {
             panic!("Not consistency check");
         }
