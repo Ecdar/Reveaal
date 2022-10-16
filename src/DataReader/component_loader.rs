@@ -6,6 +6,27 @@ use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
 use std::collections::HashMap;
+use std::sync::{RwLock, Arc};
+
+
+/// A struct used for caching the models sent with queries.
+#[derive(Debug, Default, Clone)]
+pub struct ModelCache {
+    Cache: Arc<RwLock<HashMap<String, Arc<ComponentContainer>>>>,
+}
+
+impl ModelCache {
+    pub fn get_model(&self, containerHash: &str) -> Arc<ComponentContainer> {
+        match self.Cache.read().unwrap().get(containerHash) {
+            Some(model) => model.clone(),
+            None => panic!("The component container with '{}' could not be retrieved from the cache", containerHash) 
+        }
+    }
+
+    pub fn insert_model(&mut self, containerHash: String, container: ComponentContainer) {
+        self.Cache.write().unwrap().entry(containerHash).or_insert(Arc::new(container));
+    }
+}
 
 pub trait ComponentLoader {
     fn get_component(&mut self, component_name: &str) -> &Component;
