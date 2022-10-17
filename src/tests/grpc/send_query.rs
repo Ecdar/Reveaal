@@ -2,8 +2,11 @@
 mod refinements {
     use crate::ProtobufServer::services::component::Rep;
     use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
-    use crate::ProtobufServer::services::query_response;
+    use crate::ProtobufServer::services::query_response::query_ok;
+    use crate::ProtobufServer::services::query_response::Response;
     use crate::ProtobufServer::services::Component;
+    use crate::ProtobufServer::services::ComponentsInfo;
+    use crate::ProtobufServer::services::QueryRequest;
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
 
@@ -12,115 +15,76 @@ mod refinements {
 
     #[tokio::test]
     async fn send_self_refinement_query() {
-        // let backend = ConcreteEcdarBackend::default();
-        // let json =
-        //     std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
-        // let update_request = Request::new(ComponentsUpdateRequest {
-        //     components: vec![Component {
-        //         rep: Some(Rep::Json(json)),
-        //     }],
-        //     etag: 0,
-        // });
+        let backend = ConcreteEcdarBackend::default();
+        let query_request = create_query_request("refinement: Machine <= Machine");
 
-        // let update_response = backend.update_components(update_request).await;
-        // assert!(update_response.is_ok());
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
 
-        // let query = String::from("refinement: Machine <= Machine");
-        // let query_request = Request::new(Query {
-        //     id: 0,
-        //     query,
-        //     ignored_input_outputs: None,
-        // });
+        let query_result = query_response.unwrap().into_inner();
 
-        // let query_response = backend.send_query(query_request).await;
-        // assert!(query_response.is_ok());
-
-        // let query_result = query_response.unwrap().into_inner();
-
-        // if let Some(result) = query_result.result {
-        //     match result {
-        //         query_response::Result::Refinement(refine) => assert!(refine.success),
-        //         _ => panic!(),
-        //     }
-        // } else {
-        //     panic!();
-        // }
-        assert!(false)
+        if let Response::QueryOk(query_ok) = query_result.response.unwrap() {
+            let result = query_ok.result.unwrap();
+            match result {
+                query_ok::Result::Refinement(refine) => assert!(refine.success),
+                _ => panic!(),
+            }
+        }
     }
 
     #[tokio::test]
     async fn send_consistency_query() {
-        // let backend = ConcreteEcdarBackend::default();
-        // let json =
-        //     std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
-        // let update_request = Request::new(ComponentsUpdateRequest {
-        //     components: vec![Component {
-        //         rep: Some(Rep::Json(json)),
-        //     }],
-        //     etag: 0,
-        // });
+        let backend = ConcreteEcdarBackend::default();
+        let query_request = create_query_request("consistency: Machine");
 
-        // let update_response = backend.update_components(update_request).await;
-        // assert!(update_response.is_ok());
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
 
-        // let query = String::from("consistency: Machine");
-        // let query_request = Request::new(Query {
-        //     id: 0,
-        //     query,
-        //     ignored_input_outputs: None,
-        // });
+        let query_result = query_response.unwrap().into_inner();
 
-        // let query_response = backend.send_query(query_request).await;
-        // assert!(query_response.is_ok());
-
-        // let query_result = query_response.unwrap().into_inner();
-
-        // if let Some(result) = query_result.result {
-        //     match result {
-        //         query_response::Result::Consistency(consistent) => assert!(consistent.success),
-        //         _ => panic!(),
-        //     }
-        // } else {
-        //     panic!();
-        // }
-        assert!(false)
+        if let Response::QueryOk(query_ok) = query_result.response.unwrap() {
+            let result = query_ok.result.unwrap();
+            match result {
+                query_ok::Result::Consistency(consistent) => assert!(consistent.success),
+                _ => panic!(),
+            }
+        }
     }
 
     #[tokio::test]
     async fn send_determinism_query() {
-        // let backend = ConcreteEcdarBackend::default();
-        // let json =
-        //     std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
-        // let update_request = Request::new(ComponentsUpdateRequest {
-        //     components: vec![Component {
-        //         rep: Some(Rep::Json(json)),
-        //     }],
-        //     etag: 0,
-        // });
+        let backend = ConcreteEcdarBackend::default();
+        let query_request = create_query_request("determinism: Machine");
 
-        // let update_response = backend.update_components(update_request).await;
-        // assert!(update_response.is_ok());
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
 
-        // let query = String::from("determinism: Machine");
-        // let query_request = Request::new(Query {
-        //     id: 0,
-        //     query,
-        //     ignored_input_outputs: None,
-        // });
+        let query_result = query_response.unwrap().into_inner();
 
-        // let query_response = backend.send_query(query_request).await;
-        // assert!(query_response.is_ok());
+        if let Response::QueryOk(query_ok) = query_result.response.unwrap() {
+            let result = query_ok.result.unwrap();
+            match result {
+                query_ok::Result::Determinism(determinism) => assert!(determinism.success),
+                _ => panic!(),
+            }
+        }
+    }
 
-        // let query_result = query_response.unwrap().into_inner();
+    fn create_query_request(query: &str) -> Request<QueryRequest> {
+        let json =
+            std::fs::read_to_string(format!("{}/Components/Machine.json", ECDAR_UNI)).unwrap();
 
-        // if let Some(result) = query_result.result {
-        //     match result {
-        //         query_response::Result::Determinism(determinsm) => assert!(determinsm.success),
-        //         _ => panic!(),
-        //     }
-        // } else {
-        //     panic!();
-        // }
-        assert!(false)
+        Request::new(QueryRequest {
+            user_id: 0,
+            query_id: 0,
+            query: String::from(query),
+            components_info: Some(ComponentsInfo {
+                components: vec![Component {
+                    rep: Some(Rep::Json(json)),
+                }],
+                components_hash: 0,
+            }),
+            ignored_input_outputs: None,
+        })
     }
 }
