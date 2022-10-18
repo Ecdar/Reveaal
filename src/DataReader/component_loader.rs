@@ -6,8 +6,7 @@ use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::System::input_enabler;
 use std::collections::HashMap;
-use std::sync::{RwLock, Arc};
-
+use std::sync::{Arc, RwLock};
 
 /// A struct used for caching the models.
 #[derive(Default, Clone)]
@@ -18,25 +17,28 @@ pub struct ModelCache {
 
 impl ModelCache {
     /// A Method that returns the model from the cache.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `components_hash` - A hash of the components
     pub fn get_model(&self, components_hash: u32) -> Option<Arc<ComponentContainer>> {
         match self.cache.read().unwrap().get(&components_hash) {
             Some(model) => Some(Arc::clone(model)),
-            None => None
+            None => None,
         }
     }
 
     /// A method that inserts a new model into the cache.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `components_hash` - A hash of the components
     /// * `container` - The `ComponentContainer` (aka Model) to be cached.
     pub fn insert_model(&mut self, components_hash: u32, container: ComponentContainer) {
-        self.cache.write().unwrap().insert(components_hash, Arc::new(container));
+        self.cache
+            .write()
+            .unwrap()
+            .insert(components_hash, Arc::new(container));
     }
 }
 
