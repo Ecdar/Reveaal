@@ -9,22 +9,34 @@ use std::collections::HashMap;
 use std::sync::{RwLock, Arc};
 
 
-/// A struct used for caching the models sent with queries.
-#[derive(Debug, Default, Clone)]
+/// A struct used for caching the models.
+#[derive(Default, Clone)]
 pub struct ModelCache {
-    Cache: Arc<RwLock<HashMap<String, Arc<ComponentContainer>>>>,
+    // TODO: A concurrent hashmap may be faster to use and cause less prone to locking, but is not part of the standard library.
+    cache: Arc<RwLock<HashMap<u32, Arc<ComponentContainer>>>>,
 }
 
 impl ModelCache {
-    pub fn get_model(&self, containerHash: &str) -> Arc<ComponentContainer> {
-        match self.Cache.read().unwrap().get(containerHash) {
-            Some(model) => model.clone(),
-            None => panic!("The component container with '{}' could not be retrieved from the cache", containerHash) 
+    /// A Method that returns the model from the cache.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `components_hash` - A hash of the components
+    pub fn get_model(&self, components_hash: u32) -> Option<Arc<ComponentContainer>> {
+        match self.cache.read().unwrap().get(&components_hash) {
+            Some(model) => Some(Arc::clone(model)),
+            None => None
         }
     }
 
-    pub fn insert_model(&mut self, containerHash: String, container: ComponentContainer) {
-        self.Cache.write().unwrap().entry(containerHash).or_insert(Arc::new(container));
+    /// A method that inserts a new model into the cache.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `components_hash` - A hash of the components
+    /// * `container` - The `ComponentContainer` (aka Model) to be cached.
+    pub fn insert_model(&mut self, components_hash: u32, container: ComponentContainer) {
+        self.cache.write().unwrap().insert(components_hash, Arc::new(container));
     }
 }
 
