@@ -8,11 +8,13 @@ use crate::System::input_enabler;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+type ComponentsMap = HashMap<String, Component>;
+
 /// A struct used for caching the models.
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct ModelCache {
     // TODO: A concurrent hashmap may be faster to use and cause less prone to locking, but is not part of the standard library.
-    cache: Arc<RwLock<HashMap<u32, Arc<ComponentContainer>>>>,
+    cache: Arc<RwLock<HashMap<u32, Arc<ComponentsMap>>>>,
 }
 
 impl ModelCache {
@@ -21,11 +23,12 @@ impl ModelCache {
     /// # Arguments
     ///
     /// * `components_hash` - A hash of the components
-    pub fn get_model(&self, components_hash: u32) -> Option<Arc<ComponentContainer>> {
-        match self.cache.read().unwrap().get(&components_hash) {
-            Some(model) => Some(Arc::clone(model)),
-            None => None,
-        }
+    pub fn get_model(&self, components_hash: u32) -> Option<ComponentContainer> {
+        self.cache
+            .read()
+            .unwrap()
+            .get(&components_hash)
+            .map(|model| ComponentContainer::new(Arc::clone(model)))
     }
 
     /// A method that inserts a new model into the cache.
@@ -33,12 +36,18 @@ impl ModelCache {
     /// # Arguments
     ///
     /// * `components_hash` - A hash of the components
-    /// * `container` - The `ComponentContainer` (aka Model) to be cached.
-    pub fn insert_model(&mut self, components_hash: u32, container: ComponentContainer) {
+    /// * `container_components` - The `ComponentContainer's` loaded components (aka Model) to be cached.
+    pub fn insert_model(
+        &mut self,
+        components_hash: u32,
+        container_components: Arc<ComponentsMap>,
+    ) -> ComponentContainer {
         self.cache
             .write()
             .unwrap()
-            .insert(components_hash, Arc::new(container));
+            .insert(components_hash, Arc::clone(&container_components));
+
+        ComponentContainer::new(container_components)
     }
 }
 
@@ -49,7 +58,7 @@ pub trait ComponentLoader {
 
 #[derive(Debug, Default, Clone)]
 pub struct ComponentContainer {
-    pub loaded_components: HashMap<String, Component>,
+    pub loaded_components: Arc<ComponentsMap>,
 }
 
 impl ComponentLoader for ComponentContainer {
@@ -66,7 +75,7 @@ impl ComponentLoader for ComponentContainer {
 }
 
 impl ComponentContainer {
-    pub fn new(map: HashMap<String, Component>) -> Self {
+    pub fn new(map: Arc<ComponentsMap>) -> Self {
         ComponentContainer {
             loaded_components: map,
         }
@@ -82,7 +91,7 @@ pub trait ProjectLoader: ComponentLoader {
 
 pub struct JsonProjectLoader {
     project_path: String,
-    loaded_components: HashMap<String, Component>,
+    loaded_components: ComponentsMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
 }
@@ -162,7 +171,7 @@ impl JsonProjectLoader {
 
 pub struct XmlProjectLoader {
     project_path: String,
-    loaded_components: HashMap<String, Component>,
+    loaded_components: ComponentsMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
 }
