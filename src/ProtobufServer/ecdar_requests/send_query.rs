@@ -138,6 +138,11 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             success: *refines,
             reason: "".to_string(),
         })),
+
+        QueryResult::Reachability(_, _) => {
+            unimplemented!("Not implemented, but should be implemented");
+        }
+
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
             component: Some(ProtobufComponent {
                 rep: Some(Rep::Json(component_to_json(comp))),
