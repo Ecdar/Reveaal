@@ -1,26 +1,35 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::thread;
-use std::thread::{JoinHandle, sleep};
-use std::time::Duration;
-use crossbeam_channel::{Receiver, Sender, unbounded};
+use std::thread::{JoinHandle, self};
+use crossbeam_channel::{Sender, Receiver, unbounded};
 
+use crate::ProtobufServer::services::{
+    Component as ProtobufComponent, QueryRequest, QueryResponse,
+};
 
-struct Context {
-    query: String,
-    components: Arc<HashMap<String, i64>>,
-}
+use crate::ProtobufServer::ConcreteEcdarBackend;
 
 struct ThreadPool {
-    sender: Option<Sender<Context>>,
+    sender: Option<Sender<QueryRequest>>,
     threads: Vec<JoinHandle<()>>,
-    components : Arc<HashMap<String, i64>>,
 }
 
-impl ThreadPool {
+/// use code from send_query to execute the query
     
-}
+impl ThreadPool {
+    fn new(num_threads: u32) -> Self {
+        let (sender, receiver) : (Sender<QueryRequest>, Receiver<QueryRequest>) = unbounded();
 
+        let threads = (0..num_threads).map(|_| {
+            let thread_receiver = receiver.clone();
+            thread::spawn(move || {
+                for query_request in thread_receiver {
+                    //ConcreteEcdarBackend::handle_send_query();
+                }
+            })
+        }).collect();
+
+        ThreadPool { sender: Some(sender), threads }
+    }
+}
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
