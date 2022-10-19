@@ -136,8 +136,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
     match query_result {
         QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
             success: *refines,
-            relation: vec![],
-            state: None, // TODO: this is a placeholder value
+            reason: "".to_string()
         })),
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
             component: Some(ProtobufComponent {
@@ -147,13 +146,13 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         QueryResult::Consistency(is_consistent) => {
             Some(ProtobufResult::Consistency(ConsistencyResult {
                 success: *is_consistent,
-                state: None, // TODO: this is a placeholder value
+                reason: "".to_string()
             }))
         }
         QueryResult::Determinism(is_deterministic) => {
             Some(ProtobufResult::Determinism(DeterminismResult {
                 success: *is_deterministic,
-                state: None, // TODO: this is a placeholder value
+                reason: "".to_string()
             }))
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
