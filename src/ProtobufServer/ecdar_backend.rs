@@ -40,7 +40,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         _request: Request<()>,
     ) -> Result<Response<UserTokenResponse>, Status> {
-        panic!("not implemented")
+        unimplemented!();
     }
 
     async fn send_query(
@@ -55,13 +55,13 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         _request: Request<SimulationStartRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        panic!("not implemented")
+        unimplemented!();
     }
 
     async fn take_simulation_step(
         &self,
         _request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        panic!("not implemented")
+        unimplemented!();
     }
 }
