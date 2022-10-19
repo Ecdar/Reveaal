@@ -38,7 +38,7 @@ where
 impl EcdarBackend for ConcreteEcdarBackend {
     async fn get_user_token(
         &self,
-        request: Request<()>,
+        _request: Request<()>,
     ) -> Result<Response<UserTokenResponse>, Status> {
         panic!("not implemented")
     }
@@ -53,14 +53,14 @@ impl EcdarBackend for ConcreteEcdarBackend {
 
     async fn start_simulation(
         &self,
-        request: Request<SimulationStartRequest>,
+        _request: Request<SimulationStartRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
         panic!("not implemented")
     }
 
     async fn take_simulation_step(
         &self,
-        request: Request<SimulationStepRequest>,
+        _request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
         panic!("not implemented")
     }
