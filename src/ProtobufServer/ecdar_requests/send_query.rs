@@ -137,6 +137,8 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
             success: *refines,
             reason: "".to_string(),
+            relation: vec![],
+            state: None,
         })),
 
         QueryResult::Reachability(_, _) => {
@@ -152,12 +154,14 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             Some(ProtobufResult::Consistency(ConsistencyResult {
                 success: *is_consistent,
                 reason: "".to_string(),
+                state: None,
             }))
         }
         QueryResult::Determinism(is_deterministic) => {
             Some(ProtobufResult::Determinism(DeterminismResult {
                 success: *is_deterministic,
                 reason: "".to_string(),
+                state: None,
             }))
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
