@@ -22,12 +22,12 @@ impl ThreadPool {
             let thread_receiver = receiver.clone();
             thread::spawn(move || {
                 for query_request in thread_receiver {
-                    //ConcreteEcdarBackend::handle_send_query();
+                    ConcreteEcdarBackend::handle_send_query(query_request);
                 }
             })
         }).collect();
 
-        ThreadPool { sender: Some(sender), threads }
+        ThreadPool { sender: Some(sender), threads}
     }
 }
 

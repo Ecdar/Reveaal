@@ -26,12 +26,10 @@ use tonic::{Request, Response, Status};
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
 impl ConcreteEcdarBackend {
-    pub async fn handle_send_query(
-        &self,
-        request: AssertUnwindSafe<Request<QueryRequest>>,
+    pub fn handle_send_query(
+        query_request: QueryRequest,
     ) -> Result<Response<QueryResponse>, Status> {
-        trace!("Received query: {:?}", request);
-        let query_request = request.0.into_inner();
+        trace!("Received query: {:?}", query_request);
         let components_info = query_request.components_info.as_ref().unwrap();
         let proto_components = &components_info.components;
         let query = parse_query(&query_request)?;

@@ -47,8 +47,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        let request = std::panic::AssertUnwindSafe(request);
-        catch_unwind(self.handle_send_query(request)).await
+        ConcreteEcdarBackend::handle_send_query(request.into_inner())
     }
 
     async fn start_simulation(
