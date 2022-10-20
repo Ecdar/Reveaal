@@ -52,7 +52,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
         let res = self.thread_pool.enqueue(request.into_inner()).await;
-        res.map(|response| Response::new(response))
+        res.map(Response::new)
     }
 
     async fn start_simulation(

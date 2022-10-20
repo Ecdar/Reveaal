@@ -33,7 +33,7 @@ impl Future for ThreadPoolFuture {
         *waker = Some(cx.waker().clone());
         let result = self.result.lock().unwrap();
         let result = result.clone();
-        result.map_or(Poll::Pending, |value| Poll::Ready(value))
+        result.map_or(Poll::Pending, Poll::Ready)
     }
 }
 
@@ -42,10 +42,7 @@ impl ThreadPoolFuture {
         *self.result.lock().unwrap() = Some(query_response);
         let waker = self.waker.lock().unwrap();
 
-        match waker.as_ref() {
-            Some(waker) => waker.wake_by_ref(),
-            None => (),
-        }
+        if let Some(waker) = waker.as_ref() {waker.wake_by_ref() };
     }
 }
 
@@ -80,7 +77,7 @@ impl ThreadPool {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),
-            query_request,
+            query_request
         };
         self.sender.as_ref().unwrap().send(context).unwrap();
         future
