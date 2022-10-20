@@ -80,7 +80,7 @@ impl ThreadPool {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),
-            query_request
+            query_request,
         };
         self.sender.as_ref().unwrap().send(context).unwrap();
         future
