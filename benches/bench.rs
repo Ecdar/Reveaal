@@ -74,7 +74,7 @@ fn send_query_same_components(c: &mut Criterion) {
             let backend = ConcreteEcdarBackend::default();
             let mut responses = vec![];
             for _ in 0..64 {
-                let request = create_query_request("determinism: Machine");
+                let request = create_query_request("determinism: Machine", 0);
                 responses.push(backend.send_query(request));
             }
 
@@ -85,7 +85,25 @@ fn send_query_same_components(c: &mut Criterion) {
     });
 }
 
-fn create_query_request(query: &str) -> Request<QueryRequest> {
+fn send_query_different_components(c: &mut Criterion) {
+    c.bench_function("send_query_different_components", |b| {
+        b.to_async(FuturesExecutor).iter(|| async {
+            let backend = ConcreteEcdarBackend::default();
+            let mut responses = vec![];
+
+            for hashvalue in 0..64 {
+                let request = create_query_request("determinism: Machine", hashvalue);
+                responses.push(backend.send_query(request));
+            }
+
+            for response in responses {
+                _ = black_box(response.await);
+            }
+        });
+    });
+}
+
+fn create_query_request(query: &str, hash: u32) -> Request<QueryRequest> {
     let json = std::fs::read_to_string(format!("{}/Components/Machine.json", PATH)).unwrap();
 
     Request::new(QueryRequest {
@@ -96,7 +114,7 @@ fn create_query_request(query: &str) -> Request<QueryRequest> {
             components: vec![Component {
                 rep: Some(Rep::Json(json)),
             }],
-            components_hash: 0,
+            components_hash: hash,
         }),
         ignored_input_outputs: None,
     })
@@ -107,7 +125,8 @@ criterion_group!(
     self_refinement,
     refinement,
     not_refinement,
-    send_query_same_components
+    send_query_same_components,
+    send_query_different_components
 );
 
 criterion_main!(benches);
