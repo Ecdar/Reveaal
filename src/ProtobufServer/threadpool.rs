@@ -42,7 +42,9 @@ impl ThreadPoolFuture {
         *self.result.lock().unwrap() = Some(query_response);
         let waker = self.waker.lock().unwrap();
 
-        if let Some(waker) = waker.as_ref() {waker.wake_by_ref() };
+        if let Some(waker) = waker.as_ref() {
+            waker.wake_by_ref()
+        };
     }
 }
 
@@ -77,7 +79,7 @@ impl ThreadPool {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),
-            query_request
+            query_request,
         };
         self.sender.as_ref().unwrap().send(context).unwrap();
         future

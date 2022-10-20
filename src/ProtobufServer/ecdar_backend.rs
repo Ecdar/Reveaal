@@ -51,7 +51,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        let res = self.thread_pool.enqueue(request.into_inner()).await;
+        let res = catch_unwind(self.thread_pool.enqueue(request.into_inner())).await;
         res.map(Response::new)
     }
 
