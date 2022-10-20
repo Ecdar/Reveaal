@@ -1,10 +1,9 @@
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures::Future;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
-use tonic::{Response, Status};
+use tonic::Status;
 
 use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
 
@@ -55,8 +54,6 @@ struct Context {
     query_request: QueryRequest,
 }
 
-/// use code from send_query to execute the query
-
 impl ThreadPool {
     pub fn new(num_threads: u32) -> Self {
         let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
@@ -85,7 +82,7 @@ impl ThreadPool {
             future: future.clone(),
             query_request
         };
-        self.sender.as_ref().unwrap().send(context);
+        self.sender.as_ref().unwrap().send(context).unwrap();
         future
     }
 }

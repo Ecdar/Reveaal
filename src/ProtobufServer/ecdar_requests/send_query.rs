@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::panic::AssertUnwindSafe;
 
 use crate::component::Component;
 use crate::xml_parser::parse_xml_from_str;
@@ -21,7 +20,7 @@ use crate::ProtobufServer::services::{
 use crate::System::executable_query::QueryResult;
 use crate::System::{extract_system_rep, input_enabler};
 use log::trace;
-use tonic::{Request, Response, Status};
+use tonic::Status;
 
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
