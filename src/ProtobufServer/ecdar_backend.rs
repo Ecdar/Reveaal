@@ -51,8 +51,8 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        //self.thread_pool
-        ConcreteEcdarBackend::handle_send_query(request.into_inner())
+        let res = self.thread_pool.enqueue(request.into_inner()).await;
+        res.map(|response| Response::new(response))
     }
 
     async fn start_simulation(

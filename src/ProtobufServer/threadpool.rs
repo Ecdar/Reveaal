@@ -1,5 +1,6 @@
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures::Future;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
@@ -32,10 +33,8 @@ impl Future for ThreadPoolFuture {
         let mut waker = self.waker.lock().unwrap();
         *waker = Some(cx.waker().clone());
         let result = self.result.lock().unwrap();
-        match *result {
-            Some(value) => Poll::Ready(value),
-            None => Poll::Pending,
-        }
+        let result = result.clone();
+        result.map_or(Poll::Pending, |value| Poll::Ready(value))
     }
 }
 
@@ -43,8 +42,9 @@ impl ThreadPoolFuture {
     fn complete(&mut self, query_response: ThreadPoolResponse) {
         *self.result.lock().unwrap() = Some(query_response);
         let waker = self.waker.lock().unwrap();
-        match *waker {
-            Some(waker) => waker.wake(),
+
+        match waker.as_ref() {
+            Some(waker) => waker.wake_by_ref(),
             None => (),
         }
     }
@@ -65,7 +65,7 @@ impl ThreadPool {
             .map(|_| {
                 let thread_receiver = receiver.clone();
                 thread::spawn(move || {
-                    for context in thread_receiver {
+                    for mut context in thread_receiver {
                         let query_response =
                             ConcreteEcdarBackend::handle_send_query(context.query_request);
                         context.future.complete(query_response);
@@ -78,6 +78,15 @@ impl ThreadPool {
             sender: Some(sender),
             threads,
         }
+    }
+    pub fn enqueue(&self, query_request: QueryRequest) -> ThreadPoolFuture {
+        let future = ThreadPoolFuture::default();
+        let context = Context {
+            future: future.clone(),
+            query_request
+        };
+        self.sender.as_ref().unwrap().send(context);
+        future
     }
 }
 
