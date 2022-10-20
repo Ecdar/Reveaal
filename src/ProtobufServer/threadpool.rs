@@ -11,12 +11,13 @@ use crate::ProtobufServer::ConcreteEcdarBackend;
 
 type ThreadPoolResponse = Result<QueryResponse, Status>;
 
-struct ThreadPool {
+#[derive(Debug)]
+pub struct ThreadPool {
     sender: Option<Sender<Context>>,
     threads: Vec<JoinHandle<()>>,
 }
 #[derive(Default, Debug, Clone)]
-struct ThreadPoolFuture {
+pub struct ThreadPoolFuture {
     result: Arc<Mutex<Option<ThreadPoolResponse>>>,
     waker: Arc<Mutex<Option<Waker>>>,
 }
@@ -57,7 +58,7 @@ struct Context {
 /// use code from send_query to execute the query
 
 impl ThreadPool {
-    fn new(num_threads: u32) -> Self {
+    pub fn new(num_threads: u32) -> Self {
         let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
 
         let threads = (0..num_threads)
@@ -77,6 +78,12 @@ impl ThreadPool {
             sender: Some(sender),
             threads,
         }
+    }
+}
+
+impl Default for ThreadPool {
+    fn default() -> Self {
+        Self::new(16)
     }
 }
 
