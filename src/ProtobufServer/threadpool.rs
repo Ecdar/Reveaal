@@ -1,10 +1,10 @@
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures::Future;
+use num_cpus;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
 use tonic::Status;
-use num_cpus;
 
 use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
 
@@ -17,6 +17,7 @@ pub struct ThreadPool {
     sender: Option<Sender<Context>>,
     threads: Vec<JoinHandle<()>>,
 }
+
 #[derive(Default, Debug, Clone)]
 pub struct ThreadPoolFuture {
     result: Arc<Mutex<Option<ThreadPoolResponse>>>,
@@ -54,6 +55,8 @@ struct Context {
     query_request: QueryRequest,
 }
 
+/// Enqueues QueryRequest
+/// Returns a future with a QueryResponse
 impl ThreadPool {
     pub fn new(num_threads: usize) -> Self {
         let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
