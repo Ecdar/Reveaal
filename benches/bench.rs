@@ -69,12 +69,13 @@ fn not_refinement(c: &mut Criterion) {
 }
 
 fn send_query_same_components(c: &mut Criterion) {
+    let json = std::fs::read_to_string(format!("{}/Components/Machine.json", PATH)).unwrap();
     c.bench_function("send_query_same_components", |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             let backend = ConcreteEcdarBackend::default();
             let mut responses = vec![];
             for _ in 0..64 {
-                let request = create_query_request("determinism: Machine", 0);
+                let request = create_query_request(&json, "determinism: Machine", 0);
                 responses.push(backend.send_query(request));
             }
 
@@ -86,13 +87,14 @@ fn send_query_same_components(c: &mut Criterion) {
 }
 
 fn send_query_different_components(c: &mut Criterion) {
+    let json = std::fs::read_to_string(format!("{}/Components/Machine.json", PATH)).unwrap();
     c.bench_function("send_query_different_components", |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             let backend = ConcreteEcdarBackend::default();
             let mut responses = vec![];
 
             for hashvalue in 0..64 {
-                let request = create_query_request("determinism: Machine", hashvalue);
+                let request = create_query_request(&json, "determinism: Machine", hashvalue);
                 responses.push(backend.send_query(request));
             }
 
@@ -103,16 +105,14 @@ fn send_query_different_components(c: &mut Criterion) {
     });
 }
 
-fn create_query_request(query: &str, hash: u32) -> Request<QueryRequest> {
-    let json = std::fs::read_to_string(format!("{}/Components/Machine.json", PATH)).unwrap();
-
+fn create_query_request(json: &String, query: &str, hash: u32) -> Request<QueryRequest> {
     Request::new(QueryRequest {
         user_id: 0,
         query_id: 0,
         query: String::from(query),
         components_info: Some(ComponentsInfo {
             components: vec![Component {
-                rep: Some(Rep::Json(json)),
+                rep: Some(Rep::Json(json.clone())),
             }],
             components_hash: hash,
         }),
