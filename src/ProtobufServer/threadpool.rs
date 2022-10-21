@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
 use tonic::Status;
+use num_cpus;
 
 use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
 
@@ -54,7 +55,7 @@ struct Context {
 }
 
 impl ThreadPool {
-    pub fn new(num_threads: u32) -> Self {
+    pub fn new(num_threads: usize) -> Self {
         let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
 
         let threads = (0..num_threads)
@@ -88,7 +89,7 @@ impl ThreadPool {
 
 impl Default for ThreadPool {
     fn default() -> Self {
-        Self::new(16)
+        Self::new(num_cpus::get())
     }
 }
 
