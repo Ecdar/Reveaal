@@ -77,8 +77,8 @@ impl ComposedTransitionSystem for Conjunction {
         Transition::combinations(&left, &right, CompositionType::Conjunction)
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        true // By definition from the Conjunction::new()
+    fn is_locally_consistent(&self) -> ConsistencyResult {
+        ConsistencyResult::Success // By definition from the Conjunction::new()
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {

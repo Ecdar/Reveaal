@@ -162,18 +162,26 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }),
         })),
         QueryResult::Consistency(is_consistent) => {
-            Some(ProtobufResult::Consistency(ConsistencyResult {
-                success: *is_consistent,
-                reason: "".to_string(),
-                state: None,
-            }))
+            if let System::local_consistency::ConsistencyResult::Failure(_) = *is_consistent{
+                Some(ProtobufResult::Consistency(ConsistencyResult {
+                    success: false,
+                }))
+            }else{
+                Some(ProtobufResult::Consistency(ConsistencyResult {
+                    success: true,
+                }))
+            }
         }
         QueryResult::Determinism(is_deterministic) => {
-            Some(ProtobufResult::Determinism(DeterminismResult {
-                success: *is_deterministic,
-                reason: "".to_string(),
-                state: None,
-            }))
+            if let System::local_consistency::DeterminismResult::Failure(_) = *is_deterministic {
+                Some(ProtobufResult::Determinism(DeterminismResult {
+                    success: false,
+                }))
+            }else{
+                Some(ProtobufResult::Determinism(DeterminismResult {
+                    success: true,
+                }))
+            }
         }
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }

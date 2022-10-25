@@ -6,8 +6,7 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
 
-use crate::System::local_consistency::DeterminismResult;
-use crate::System::local_consistency::{self, ConsistencyResult};
+use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult, ConsistencyFailure};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
@@ -171,32 +170,31 @@ impl TransitionSystem for CompiledComponent {
         unimplemented!()
     }
 
-    fn precheck_sys_rep(&self) -> bool {
-        if !self.is_deterministic() {
+    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
+
+        if let DeterminismResult::Failure(_) = self.is_deterministic(){
             warn!("Not deterministic");
-            return false;
+            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
         }
 
-        if !self.is_locally_consistent() {
+
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent()   {
             warn!("Not consistent");
-            return false;
+            return (self.is_locally_consistent(), DeterminismResult::Empty);
         }
-        true
+        (ConsistencyResult::Success, DeterminismResult::Success)
     }
 
-    fn is_deterministic(&self) -> bool {
-        match local_consistency::is_deterministic(self) {
-            DeterminismResult::Success => true,
-            DeterminismResult::Failure(_) => false,
-        }
+    fn is_deterministic(&self) -> DeterminismResult {
+        local_consistency::is_deterministic(self)
     }
 
-    //TODO - Convertion to T/F should be moved
-    fn is_locally_consistent(&self) -> bool {
-        match local_consistency::is_least_consistent(self) {
-            ConsistencyResult::Success => true,
-            ConsistencyResult::Failure(_) => false,
-        }
+    fn is_locally_consistent(&self) -> ConsistencyResult {
+//        match local_consistency::is_least_consistent(self) {
+//            ConsistencyResult::Success => true,
+//            ConsistencyResult::Failure(_) => false,
+//        }
+        local_consistency::is_least_consistent(self)
     }
 
     fn get_dim(&self) -> ClockIndex {

@@ -5,6 +5,9 @@ use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
+//use crate::ProtobufServer::services::query_response::{ConsistencyResult, DeterminismResult};
+//use crate::ProtobufServer::services::query_response::{DeterminismResult, ConsistencyResult};
+use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 use std::fmt;
@@ -34,6 +37,8 @@ pub enum PreconditionsResult {
     NotDisjointAndNotSubset,
     NotDisjoint,
     NotSubset,
+    NotConsistentFrom(ConsistencyResult),
+    NotDeterministicFrom(DeterminismResult),
     OtherFailure,
 }
 
@@ -122,6 +127,14 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
         PreconditionsResult::OtherFailure => {
             //TODO: Change this
             warn!("Refinement failed - Preconditions not met");
+            return RefinementResult::Failure(RefinementFailure::Other);
+        }
+        PreconditionsResult::NotConsistentFrom(_) => {
+            warn!("Refinement failed - inconsistent");
+            return RefinementResult::Failure(RefinementFailure::Other);
+        }
+        PreconditionsResult::NotDeterministicFrom(_) => {
+            warn!("Refinement failed - Not deterministic");
             return RefinementResult::Failure(RefinementFailure::Other);
         }
     }
@@ -556,10 +569,14 @@ fn check_preconditions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
 ) -> PreconditionsResult {
-    if !(sys2.precheck_sys_rep() && sys1.precheck_sys_rep()) {
-        info!("Preconditions failed");
-        //TODO: Change this failure enum
-        return PreconditionsResult::OtherFailure;
+    if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys2.precheck_sys_rep(){
+        return PreconditionsResult::NotConsistentFrom(sys2.precheck_sys_rep().0);
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys2.precheck_sys_rep(){
+        return PreconditionsResult::NotDeterministicFrom(sys2.precheck_sys_rep().1);
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys1.precheck_sys_rep(){
+        return PreconditionsResult::NotConsistentFrom(sys1.precheck_sys_rep().0);
+    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys1.precheck_sys_rep(){
+        return PreconditionsResult::NotDeterministicFrom(sys1.precheck_sys_rep().1);
     }
     let s_outputs = sys1.get_output_actions();
     let t_outputs = sys2.get_output_actions();

@@ -1,3 +1,5 @@
+
+
 #[cfg(test)]
 pub mod util {
     use crate::DataReader::component_loader::JsonProjectLoader;
@@ -9,6 +11,7 @@ pub mod util {
     use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
+    use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
@@ -53,10 +56,10 @@ pub mod util {
 
         let base_precheck = base_system.precheck_sys_rep();
         let new_precheck = new_comp.precheck_sys_rep();
-        assert_eq!(base_precheck, new_precheck);
+        assert_eq!(helper(&base_precheck), helper(&new_precheck));
 
         //Only do refinement check if both pass precheck
-        if base_precheck && new_precheck {
+        if helper(&base_precheck) && helper(&new_precheck) {
             assert!(if let RefinementResult::Success =
                 refine::check_refinement(new_comp.clone(), base_system.clone())
             {
@@ -73,4 +76,11 @@ pub mod util {
             });
         }
     }
+    fn helper(a :&(ConsistencyResult,DeterminismResult)) -> bool{
+        if let (ConsistencyResult::Success, DeterminismResult::Success) = a{
+            return true;
+        }
+        return false;
+    }
 }
+
