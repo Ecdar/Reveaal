@@ -326,8 +326,8 @@ fn log_refinement_check_failure(
     } else {
         String::from("Output")
     };
-use crate::System::extract_system_rep;
-info!("Refinement check failed for {} {:?}", action_type, action);
+    use crate::System::extract_system_rep;
+    info!("Refinement check failed for {} {:?}", action_type, action);
     if log_enabled!(Level::Debug) {
         debug!("Transitions1:");
         for t in transitions1 {
@@ -576,7 +576,7 @@ fn check_preconditions(
     debug!("S i:{s_inputs:?} o:{s_outputs:?}");
     debug!("T i:{t_inputs:?} o:{t_outputs:?}");
 
-    if !(disjoint && subset) {
+    if !disjoint && !subset {
         PreconditionsResult::NotDisjointAndNotSubset
     } else if !subset {
         PreconditionsResult::NotSubset

@@ -8,6 +8,7 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
+use super::refine::RefinementFailure;
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
@@ -32,7 +33,9 @@ impl QueryResult {
     pub fn print_result(&self, query_str: &str) {
         match self {
             QueryResult::Refinement(RefinementResult::Success) => satisfied(query_str),
-            QueryResult::Refinement(RefinementResult::Failure(_)) => not_satisfied(query_str),
+            QueryResult::Refinement(RefinementResult::Failure(failure)) => {
+                println!("{} -- Property is NOT satisfied\nGot failure: {}", query_str, failure);
+            },
 
             QueryResult::Reachability(true, _) => satisfied(query_str),
             QueryResult::Reachability(false, _) => not_satisfied(query_str),

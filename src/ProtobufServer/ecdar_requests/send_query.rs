@@ -16,10 +16,16 @@ use crate::ProtobufServer::services::query_response::query_ok::{
 use crate::ProtobufServer::services::query_response::QueryOk;
 use crate::ProtobufServer::services::query_response::Response as QueryOkOrErrorResponse;
 use crate::ProtobufServer::services::{
-    Component as ProtobufComponent, QueryRequest, QueryResponse,
+    Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
+    Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
+    Disjunction as ProtobufDisjunction, Federation, Location, LocationTuple, QueryRequest,
+    QueryResponse, SpecificComponent, State,
 };
 use crate::System::executable_query::QueryResult;
+use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
+use crate::TransitionSystems;
+use edbm::util::constraints::Disjunction;
 use log::{info, trace};
 use tonic::{Request, Response, Status};
 
@@ -71,7 +77,7 @@ impl ConcreteEcdarBackend {
                 result: convert_ecdar_result(&result),
             })),
         };
-        
+
         Ok(Response::new(reply))
     }
 }
@@ -134,12 +140,17 @@ fn create_component_container(components: Vec<Component>) -> ComponentContainer 
 
 fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
     match query_result {
-        QueryResult::Refinement(refines) => Some(ProtobufResult::Refinement(RefinementResult {
-            success: *refines,
-            reason: "".to_string(),
-            relation: vec![],
-            state: None,
-        })),
+        QueryResult::Refinement(refines) => match refines {
+            refine::RefinementResult::Success => {
+                Some(ProtobufResult::Refinement(RefinementResult {
+                    success: true,
+                    reason: "".to_string(),
+                    relation: vec![],
+                    state: None,
+                }))
+            }
+            refine::RefinementResult::Failure(failure) => convert_refinement_failure(failure),
+        },
 
         QueryResult::Reachability(_, _) => {
             unimplemented!("Not implemented, but should be implemented");
@@ -170,46 +181,66 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
 
 fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufResult> {
     match failure {
-        RefinementFailure::NotDisjointAndNotSubset |
-        RefinementFailure::NotDisjoint |
-        RefinementFailure::NotSubset |
-        RefinementFailure::EmptySpecification |
-        RefinementFailure::EmptyImplementation =>             
-        Some(ProtobufResult::Refinement(RefinementResult {
-            success: false,
-            relation: vec![],
-            state: None,
-            reason: failure.to_string(),
-        })),
-        RefinementFailure::CutsDelaySolutions(state_pair) |
-        RefinementFailure::InitialState(state_pair) |
-        RefinementFailure::EmptyTransition2s(state_pair) |
-        RefinementFailure::NotEmptyResult(state_pair) =>
-        Some(ProtobufResult::Refinement(RefinementResult {
-            success: false,
-            relation: vec![],
-            state: Some(ProtobufStateTuple {
-                location: Some(ProtobufLocationString{
-                    name: state_pair.to_string(),
+        RefinementFailure::NotDisjointAndNotSubset
+        | RefinementFailure::NotDisjoint
+        | RefinementFailure::NotSubset
+        | RefinementFailure::EmptySpecification
+        | RefinementFailure::EmptyImplementation => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: false,
+                relation: vec![],
+                state: None,
+                reason: failure.to_string(),
+            }))
+        }
+        RefinementFailure::CutsDelaySolutions(state_pair)
+        | RefinementFailure::InitialState(state_pair)
+        | RefinementFailure::EmptyTransition2s(state_pair)
+        | RefinementFailure::NotEmptyResult(state_pair) => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: false,
+                relation: vec![],
+                state: Some(State {
+                    federation: make_proto_zone(state_pair.ref_zone().minimal_constraints()),
+                    location_tuple: Some(LocationTuple {
+                        locations: make_location_vec(
+                            state_pair.get_locations1(),
+                            state_pair.get_locations2(),
+                        ),
+                    }),
                 }),
-                federation: make_proto_zone(state_pair.take_zone().minimal_constraints()),
-            }),
-            reason: failure.to_string(),
-        })),
+                reason: failure.to_string(),
+            }))
+        }
         RefinementFailure::Other => todo!(),
     }
 }
 
-fn make_proto_zone(disjunction: Disjunction) -> Vec<ProtobufZone> {
-    let mut zone:Vec<ProtobufZone> = vec![];
-    let mut conjunctions:Vec<ProtobufConjunction> = vec![];
-    for conjunction in disjunction.conjunctions.iter(){
-        let mut constraints:Vec<ProtobufConstraint> = vec![];
-        for constraint in conjunction.constraints.iter(){
+fn make_location_vec(
+    locations1: &TransitionSystems::LocationTuple,
+    locations2: &TransitionSystems::LocationTuple,
+) -> Vec<Location> {
+    let mut loc_vec: Vec<Location> = vec![];
+    loc_vec.push(Location {
+        id: locations1.id.to_string(),
+        specific_component: None,
+    });
+    loc_vec.push(Location {
+        id: locations2.id.to_string(),
+        specific_component: None,
+    });
+    loc_vec
+}
+
+fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
+    let mut conjunctions: Vec<ProtobufConjunction> = vec![];
+    for conjunction in disjunction.conjunctions.iter() {
+        let mut constraints: Vec<ProtobufConstraint> = vec![];
+        for constraint in conjunction.constraints.iter() {
             constraints.push(ProtobufConstraint {
                 x: Some(ProtobufComponentClock {
                     //TODO: I dont know how to get this info :)
-                    specific_component: None, 
+                    specific_component: None,
                     clock_name: constraint.i.to_string(),
                 }),
                 y: Some(ProtobufComponentClock {
@@ -220,12 +251,13 @@ fn make_proto_zone(disjunction: Disjunction) -> Vec<ProtobufZone> {
                 c: constraint.ineq().bound(),
             });
         }
-        conjunctions.push(ProtobufConjunction{
+        conjunctions.push(ProtobufConjunction {
             constraints: constraints,
         })
     }
-    zone.push(ProtobufZone {
-        disjunction: Some(ProtobufDisjunction{ conjunctions: conjunctions }),
-    });
-    return zone;
+    Some(Federation {
+        disjunction: Some(ProtobufDisjunction {
+            conjunctions: conjunctions,
+        }),
+    })
 }
