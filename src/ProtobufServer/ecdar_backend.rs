@@ -1,31 +1,15 @@
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
-use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
+use crate::ProtobufServer::services::{
+    QueryRequest, QueryResponse, SimulationStartRequest, SimulationStepRequest,
+    SimulationStepResponse, UserTokenResponse,
+};
 use futures::FutureExt;
-use std::cell::RefCell;
 use std::panic::UnwindSafe;
-use std::sync::{Mutex, MutexGuard};
 use tonic::{Request, Response, Status};
 
-use crate::DataReader::component_loader::ComponentContainer;
-
-use super::services::{UserTokenResponse, SimulationStartRequest, SimulationStepRequest, SimulationStepResponse};
-
 #[derive(Debug, Default)]
-pub struct ConcreteEcdarBackend {
-    pub components: Mutex<RefCell<ComponentContainer>>,
-}
-
-impl ConcreteEcdarBackend {
-    pub fn get_components_lock(
-        &self,
-    ) -> Result<MutexGuard<RefCell<ComponentContainer>>, tonic::Status> {
-        match self.components.lock() {
-            Ok(mutex_guard) => Ok(mutex_guard),
-            Err(err) => Ok(err.into_inner()),
-        }
-    }
-}
+pub struct ConcreteEcdarBackend {}
 
 async fn catch_unwind<T, O>(future: T) -> Result<O, Status>
 where
@@ -52,20 +36,32 @@ where
 
 #[tonic::async_trait]
 impl EcdarBackend for ConcreteEcdarBackend {
-    async fn send_query(&self, request: Request<QueryRequest>) -> Result<Response<QueryResponse>, Status> {
+    async fn get_user_token(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<UserTokenResponse>, Status> {
+        unimplemented!();
+    }
+
+    async fn send_query(
+        &self,
+        request: Request<QueryRequest>,
+    ) -> Result<Response<QueryResponse>, Status> {
         let request = std::panic::AssertUnwindSafe(request);
         catch_unwind(self.handle_send_query(request)).await
     }
 
-    async fn get_user_token(&self, request: Request<()>) -> Result<Response<UserTokenResponse>, Status> {
-        todo!()
+    async fn start_simulation(
+        &self,
+        _request: Request<SimulationStartRequest>,
+    ) -> Result<Response<SimulationStepResponse>, Status> {
+        unimplemented!();
     }
 
-    async fn start_simulation(&self, request: Request<SimulationStartRequest>) -> Result<Response<SimulationStepResponse>, Status> {
-        todo!()
-    }
-
-    async fn take_simulation_step(&self, request: Request<SimulationStepRequest>) -> Result<Response<SimulationStepResponse>, Status> {
-        todo!()
+    async fn take_simulation_step(
+        &self,
+        _request: Request<SimulationStepRequest>,
+    ) -> Result<Response<SimulationStepResponse>, Status> {
+        unimplemented!();
     }
 }
