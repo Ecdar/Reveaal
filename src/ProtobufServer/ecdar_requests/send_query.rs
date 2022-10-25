@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::panic::AssertUnwindSafe;
 
+use crate::System;
 use crate::component::Component;
 use crate::xml_parser::parse_xml_from_str;
 use crate::DataReader::component_loader::ComponentContainer;
@@ -165,13 +166,13 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             if let System::local_consistency::ConsistencyResult::Failure(_) = *is_consistent{
                 Some(ProtobufResult::Consistency(ConsistencyResult {
                     success: false,
-                    reason: *is_consistent.to_string(),
+                    reason: (*is_consistent.to_string().to_owned()).to_string(),
                     state: None,
                 }))
             }else{
                 Some(ProtobufResult::Consistency(ConsistencyResult {
                     success: true,
-                    reason: *is_consistent.to_string(),
+                    reason: (*is_consistent.to_string().to_owned()).to_string(),
                     state: None,
                 }))
             }
@@ -180,13 +181,13 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             if let System::local_consistency::DeterminismResult::Failure(_) = *is_deterministic {
                 Some(ProtobufResult::Determinism(DeterminismResult {
                     success: false,
-                    reason: *is_deterministic.to_string(),
+                    reason: (*is_deterministic.to_string().to_owned()).to_string(),
                     state: None,
                 }))
             }else{
                 Some(ProtobufResult::Determinism(DeterminismResult {
                     success: true,
-                    reason: *is_deterministic.to_string(),
+                    reason: (*is_deterministic.to_string().to_owned()).to_string(),
                     state: None,
                 }))
             }
@@ -194,6 +195,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }
 }
+
 
 fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufResult> {
     match failure {

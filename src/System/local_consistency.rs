@@ -1,3 +1,5 @@
+use std::fmt;
+
 use edbm::zones::OwnedFederation;
 use log::warn;
 
@@ -9,11 +11,30 @@ pub enum ConsistencyResult {
     Failure(ConsistencyFailure),
 }
 
+impl fmt::Display for ConsistencyResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConsistencyResult::Success => write!(f, "Succes"),
+            ConsistencyResult::Failure(ConsistencyFailure) => write!(f,"failure"),
+        }
+    }
+}
 pub enum ConsistencyFailure {
     NoInitialState,
     EmptyInitialState,
     NotConsistentFrom(LocationID),
     Empty,
+}
+
+impl fmt::Display for ConsistencyFailure {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConsistencyFailure::NoInitialState => write!(f, "No Initial State"),
+            ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
+            ConsistencyFailure::NotConsistentFrom(_) => write!(f, "Not Consistent From:"),
+            ConsistencyFailure::Empty => write!(f, "Empty"),
+        }
+    }
 }
 pub enum DeterminismResult {
     Success,
@@ -21,6 +42,15 @@ pub enum DeterminismResult {
     Empty,
 }
 
+impl fmt::Display for DeterminismResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            DeterminismResult::Empty => write!(f, "Empty"),
+            DeterminismResult::Failure(_) => write!(f, "Failure"),
+            DeterminismResult::Success => write!(f, "Succes"),
+        }
+    }
+}
 
 //Local consistency check WITH pruning
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
