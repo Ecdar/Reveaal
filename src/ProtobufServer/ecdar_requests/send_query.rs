@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::panic::AssertUnwindSafe;
 
-use crate::ProtobufServer::services::query_response::QueryOk;
 use crate::component::Component;
 use crate::xml_parser::parse_xml_from_str;
 use crate::DataReader::component_loader::ComponentContainer;
@@ -14,16 +13,16 @@ use crate::ProtobufServer::services::query_response::query_ok::Result as Protobu
 use crate::ProtobufServer::services::query_response::query_ok::{
     ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
 };
-use crate::ProtobufServer::services::{
-    LocationTuple as ProtobufLocationTuple,
-    Constraint as ProtobufConstraint,
-    Conjunction as ProtobufConjunction,
-    Component as ProtobufComponent,
-    ComponentClock as ProtobufComponentClock,
-    Disjunction as ProtobufDisjunction, Federation, Location, LocationTuple, QueryRequest,
-    QueryResponse, SpecificComponent, State,
-};
+use crate::ProtobufServer::services::query_response::QueryOk;
 use crate::ProtobufServer::services::query_response::Response as QueryOkOrErrorResponse;
+use crate::ProtobufServer::services::{
+    Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
+    Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
+    Disjunction as ProtobufDisjunction, Federation, Location,
+    LocationTuple as ProtobufLocationTuple, LocationTuple, QueryRequest, QueryResponse,
+    SpecificComponent, State,
+};
+use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::executable_query::QueryResult;
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
@@ -31,7 +30,6 @@ use crate::TransitionSystems;
 use edbm::util::constraints::Disjunction;
 use log::{info, trace};
 use tonic::{Request, Response, Status};
-use crate::ProtobufServer::ConcreteEcdarBackend;
 
 impl ConcreteEcdarBackend {
     pub async fn handle_send_query(
@@ -79,7 +77,7 @@ impl ConcreteEcdarBackend {
                 result: convert_ecdar_result(&result),
             })),
         };
-        
+
         Ok(Response::new(reply))
     }
 }
