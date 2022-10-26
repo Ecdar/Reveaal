@@ -15,7 +15,7 @@ use tonic::Request;
 
 use criterion::async_executor::FuturesExecutor;
 use futures::stream::FuturesUnordered;
-use futures::{StreamExt};
+use futures::StreamExt;
 
 static PATH: &str = "samples/json/EcdarUniversity";
 
@@ -79,7 +79,7 @@ fn send_expensive_query_same_components(c: &mut Criterion) {
     c.bench_function("send_expensive_query_same_components", |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             let backend = ConcreteEcdarBackend::default();
-            let responses = (0..512)
+            let responses = (0..64)
                 .map(|_| {
                     let request = create_query_request(
                         &json,

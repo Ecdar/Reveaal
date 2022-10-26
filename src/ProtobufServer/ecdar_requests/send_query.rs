@@ -26,7 +26,10 @@ use tonic::Status;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
 impl ConcreteEcdarBackend {
-    pub fn handle_send_query(query_request: QueryRequest, mut model_cache: ModelCache,) -> Result<QueryResponse, Status> {
+    pub fn handle_send_query(
+        query_request: QueryRequest,
+        mut model_cache: ModelCache,
+    ) -> Result<QueryResponse, Status> {
         trace!("Received query: {:?}", query_request);
         let components_info = query_request.components_info.as_ref().unwrap();
         let proto_components = &components_info.components;

@@ -69,8 +69,10 @@ impl ThreadPool {
                 let thread_cache = cache.clone();
                 thread::spawn(move || {
                     for mut context in thread_receiver {
-                        let query_response =
-                            ConcreteEcdarBackend::handle_send_query(context.query_request, thread_cache.clone());
+                        let query_response = ConcreteEcdarBackend::handle_send_query(
+                            context.query_request,
+                            thread_cache.clone(),
+                        );
                         context.future.complete(query_response);
                     }
                 })
