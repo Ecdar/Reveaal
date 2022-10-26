@@ -13,52 +13,19 @@ use crate::ProtobufServer::ConcreteEcdarBackend;
 
 type ThreadPoolResponse = Result<QueryResponse, Status>;
 
+/// A construct that uses a fixed amount of threads to do work in parallel.
 #[derive(Debug)]
 pub struct ThreadPool {
     sender: Option<Sender<Context>>,
     threads: Vec<JoinHandle<()>>,
 }
 
-#[derive(Default, Debug, Clone)]
-pub struct ThreadPoolFuture {
-    result: Arc<Mutex<Option<ThreadPoolResponse>>>,
-    waker: Arc<Mutex<Option<Waker>>>,
-}
-
-impl Future for ThreadPoolFuture {
-    type Output = ThreadPoolResponse;
-
-    fn poll(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
-        let mut waker = self.waker.lock().unwrap();
-        *waker = Some(cx.waker().clone());
-        let result = self.result.lock().unwrap();
-        let result = result.clone();
-        result.map_or(Poll::Pending, Poll::Ready)
-    }
-}
-
-impl ThreadPoolFuture {
-    fn complete(&mut self, query_response: ThreadPoolResponse) {
-        *self.result.lock().unwrap() = Some(query_response);
-        let waker = self.waker.lock().unwrap();
-
-        if let Some(waker) = waker.as_ref() {
-            waker.wake_by_ref()
-        };
-    }
-}
-
-struct Context {
-    future: ThreadPoolFuture,
-    query_request: QueryRequest,
-}
-
-/// Enqueues QueryRequest
-/// Returns a future with a QueryResponse
 impl ThreadPool {
+    /// Create a new thread pool.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_threads` - The amount of threads in the thread pool.
     pub fn new(num_threads: usize) -> Self {
         let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
         let cache = ModelCache::default();
@@ -84,6 +51,12 @@ impl ThreadPool {
             threads,
         }
     }
+
+    /// Enqueue a query request. Returns a future that can be awaited to get a `QueryResponse`.
+    ///
+    /// # Arguments
+    ///
+    /// * `query_request` - the query request to enqueue.
     pub fn enqueue(&self, query_request: QueryRequest) -> ThreadPoolFuture {
         let future = ThreadPoolFuture::default();
         let context = Context {
@@ -113,4 +86,40 @@ impl Drop for ThreadPool {
             }
         }
     }
+}
+
+/// A future that can be completed from another thread.
+/// It returns a `QueryResponse`.
+#[derive(Default, Debug, Clone)]
+pub struct ThreadPoolFuture {
+    result: Arc<Mutex<Option<ThreadPoolResponse>>>,
+    waker: Arc<Mutex<Option<Waker>>>,
+}
+
+impl ThreadPoolFuture {
+    fn complete(&mut self, query_response: ThreadPoolResponse) {
+        *self.result.lock().unwrap() = Some(query_response);
+        let waker = self.waker.lock().unwrap();
+
+        if let Some(waker) = waker.as_ref() {
+            waker.wake_by_ref()
+        };
+    }
+}
+
+impl Future for ThreadPoolFuture {
+    type Output = ThreadPoolResponse;
+
+    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        let mut waker = self.waker.lock().unwrap();
+        *waker = Some(cx.waker().clone());
+        let result = self.result.lock().unwrap();
+        let result = result.clone();
+        result.map_or(Poll::Pending, Poll::Ready)
+    }
+}
+
+struct Context {
+    future: ThreadPoolFuture,
+    query_request: QueryRequest,
 }
