@@ -85,7 +85,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
         if let DeterminismResult::Failure(location) = self.is_deterministic() {
-            warn!("Not consistent");
+            warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location);
         }
 

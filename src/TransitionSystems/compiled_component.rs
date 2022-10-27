@@ -189,10 +189,6 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
-        //        match local_consistency::is_least_consistent(self) {
-        //            ConsistencyResult::Success => true,
-        //            ConsistencyResult::Failure(_) => false,
-        //        }
         local_consistency::is_least_consistent(self)
     }
 
