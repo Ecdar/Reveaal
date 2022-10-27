@@ -108,12 +108,12 @@ impl ComposedTransitionSystem for Composition {
     fn is_locally_consistent(&self) -> ConsistencyResult {
         if let ConsistencyResult::Success = self.left.is_locally_consistent() {
             if let ConsistencyResult::Success = self.right.is_locally_consistent() {
-                return ConsistencyResult::Success;
+                ConsistencyResult::Success
             } else {
-                return self.right.is_locally_consistent();
+                self.right.is_locally_consistent()
             }
         } else {
-            return self.left.is_locally_consistent();
+            self.left.is_locally_consistent()
         }
     }
 

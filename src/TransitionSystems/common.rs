@@ -93,20 +93,19 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             warn!("Not consistent");
             return PrecheckResult::NotConsistent(failure);
         }
-
-        return PrecheckResult::Success;
+        PrecheckResult::Success
     }
 
     fn is_deterministic(&self) -> DeterminismResult {
         let (left, right) = self.get_children();
         if let DeterminismResult::Success = left.is_deterministic() {
             if let DeterminismResult::Success = right.is_deterministic() {
-                return DeterminismResult::Success;
+                DeterminismResult::Success
             } else {
-                return right.is_deterministic();
+                right.is_deterministic()
             }
         } else {
-            return left.is_deterministic();
+            left.is_deterministic()
         }
     }
 

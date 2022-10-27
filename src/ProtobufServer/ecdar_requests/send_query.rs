@@ -286,15 +286,16 @@ fn make_location_vec(
     locations1: &TransitionSystems::LocationTuple,
     locations2: &TransitionSystems::LocationTuple,
 ) -> Vec<Location> {
-    let mut loc_vec: Vec<Location> = vec![];
-    loc_vec.push(Location {
-        id: locations1.id.to_string(),
-        specific_component: None,
-    });
-    loc_vec.push(Location {
-        id: locations2.id.to_string(),
-        specific_component: None,
-    });
+    let loc_vec: Vec<Location> = vec![
+        Location {
+            id: locations1.id.to_string(),
+            specific_component: None,
+        },
+        Location {
+            id: locations2.id.to_string(),
+            specific_component: None,
+        },
+    ];
     loc_vec
 }
 
@@ -317,14 +318,10 @@ fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
                 c: constraint.ineq().bound(),
             });
         }
-        conjunctions.push(ProtobufConjunction {
-            constraints: constraints,
-        })
+        conjunctions.push(ProtobufConjunction { constraints })
     }
     Some(Federation {
-        disjunction: Some(ProtobufDisjunction {
-            conjunctions: conjunctions,
-        }),
+        disjunction: Some(ProtobufDisjunction { conjunctions }),
     })
 }
 

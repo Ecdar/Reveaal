@@ -392,30 +392,30 @@ impl TransitionSystem for Quotient {
             warn!("Not consistent");
             return PrecheckResult::NotConsistent(failure);
         }
-        return PrecheckResult::Success;
+        PrecheckResult::Success
     }
 
     fn is_deterministic(&self) -> DeterminismResult {
         if let DeterminismResult::Success = self.T.is_deterministic() {
             if let DeterminismResult::Success = self.S.is_deterministic() {
-                return DeterminismResult::Success;
+                DeterminismResult::Success
             } else {
-                return self.S.is_deterministic();
+                self.S.is_deterministic()
             }
         } else {
-            return self.T.is_deterministic();
+            self.T.is_deterministic()
         }
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
         if let ConsistencyResult::Success = self.T.is_locally_consistent() {
             if let ConsistencyResult::Success = self.S.is_locally_consistent() {
-                return ConsistencyResult::Success;
+                ConsistencyResult::Success
             } else {
-                return self.S.is_locally_consistent();
+                self.S.is_locally_consistent()
             }
         } else {
-            return self.T.is_locally_consistent();
+            self.T.is_locally_consistent()
         }
     }
 

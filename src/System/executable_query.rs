@@ -22,14 +22,6 @@ pub enum QueryResult {
     Error(String),
 }
 
-/* pub enum QueryResult {
-    Refinement(RefinementResult),
-    GetComponent(Component),
-    Consistency(ConsistencyResult),
-    Determinism(DeterminismResult),
-    Error(String),
-} */
-
 impl QueryResult {
     pub fn print_result(&self, query_str: &str) {
         match self {
