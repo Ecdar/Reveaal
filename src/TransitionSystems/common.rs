@@ -7,9 +7,15 @@ use edbm::{
 };
 use log::warn;
 
-use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::{ConsistencyResult, DeterminismResult, ConsistencyFailure}};
+use crate::{
+    ModelObjects::component::{Declarations, State, Transition},
+    System::local_consistency::{ConsistencyResult, DeterminismResult},
+};
 
-use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
+use super::{
+    transition_system::PrecheckResult, CompositionType, LocationTuple, TransitionSystem,
+    TransitionSystemPtr,
+};
 
 pub trait ComposedTransitionSystem: DynClone {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
@@ -77,30 +83,29 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-
-        if let DeterminismResult::Failure(_) = self.is_deterministic() {
+    fn precheck_sys_rep(&self) -> PrecheckResult {
+        if let DeterminismResult::Failure(location) = self.is_deterministic() {
             warn!("Not consistent");
-            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
+            return PrecheckResult::NotDeterministic(location);
         }
 
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
             warn!("Not consistent");
-            return (self.is_locally_consistent(), DeterminismResult::Empty);
+            return PrecheckResult::NotConsistent(failure);
         }
 
-        return (ConsistencyResult::Success, DeterminismResult::Success);
+        return PrecheckResult::Success;
     }
 
     fn is_deterministic(&self) -> DeterminismResult {
         let (left, right) = self.get_children();
-        if let DeterminismResult::Success = left.is_deterministic(){
-            if let DeterminismResult::Success = right.is_deterministic(){
+        if let DeterminismResult::Success = left.is_deterministic() {
+            if let DeterminismResult::Success = right.is_deterministic() {
                 return DeterminismResult::Success;
-            }else{
+            } else {
                 return right.is_deterministic();
             }
-        }else{
+        } else {
             return left.is_deterministic();
         }
     }

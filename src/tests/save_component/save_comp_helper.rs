@@ -1,5 +1,3 @@
-
-
 #[cfg(test)]
 pub mod util {
     use crate::DataReader::component_loader::JsonProjectLoader;
@@ -11,7 +9,7 @@ pub mod util {
     use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
-    use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
+    use crate::TransitionSystems::transition_system::PrecheckResult;
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
@@ -76,11 +74,11 @@ pub mod util {
             });
         }
     }
-    fn helper(a :&(ConsistencyResult,DeterminismResult)) -> bool{
-        if let (ConsistencyResult::Success, DeterminismResult::Success) = a{
+
+    fn helper(a: &PrecheckResult) -> bool {
+        if let PrecheckResult::Success = a {
             return true;
         }
-        return false;
+        false
     }
 }
-

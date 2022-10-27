@@ -15,15 +15,17 @@ impl fmt::Display for ConsistencyResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConsistencyResult::Success => write!(f, "Succes"),
-            ConsistencyResult::Failure(ConsistencyFailure) => write!(f,"failure"),
+            ConsistencyResult::Failure(_) => write!(f, "failure"),
         }
     }
 }
+
+#[derive(Debug)]
 pub enum ConsistencyFailure {
     NoInitialState,
     EmptyInitialState,
     NotConsistentFrom(LocationID),
-    Empty,
+    NotDeterministicFrom(LocationID),
 }
 
 impl fmt::Display for ConsistencyFailure {
@@ -31,23 +33,27 @@ impl fmt::Display for ConsistencyFailure {
         match self {
             ConsistencyFailure::NoInitialState => write!(f, "No Initial State"),
             ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
-            ConsistencyFailure::NotConsistentFrom(_) => write!(f, "Not Consistent From:"),
-            ConsistencyFailure::Empty => write!(f, "Empty"),
+            ConsistencyFailure::NotConsistentFrom(location) => {
+                write!(f, "Not Consistent From {}", location)
+            }
+            ConsistencyFailure::NotDeterministicFrom(location) => {
+                write!(f, "Not Deterministic From {}", location)
+            }
         }
     }
 }
 pub enum DeterminismResult {
     Success,
     Failure(LocationID),
-    Empty,
 }
 
 impl fmt::Display for DeterminismResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DeterminismResult::Empty => write!(f, "Empty"),
-            DeterminismResult::Failure(_) => write!(f, "Failure"),
-            DeterminismResult::Success => write!(f, "Succes"),
+            DeterminismResult::Success => write!(f, "Success"),
+            DeterminismResult::Failure(location) => {
+                write!(f, "Not Deterministic From {}", location)
+            }
         }
     }
 }
@@ -114,7 +120,6 @@ fn is_deterministic_helper(
 
                 match is_deterministic_helper(new_state, passed_list, system) {
                     DeterminismResult::Success => {}
-                    DeterminismResult::Empty => {}
                     DeterminismResult::Failure(_) => {
                         return DeterminismResult::Failure(state.get_location().id.clone());
                     }
@@ -167,14 +172,12 @@ pub fn consistency_least_helper(
                 new_state.extrapolate_max_bounds(system);
                 match consistency_least_helper(new_state, passed_list, system) {
                     ConsistencyResult::Success => (),
-                    ConsistencyResult::Failure(_) => {
+                    ConsistencyResult::Failure(failure) => {
                         warn!(
                             "Input \"{input}\" not consistent from {}",
                             state.get_location().id
                         );
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
+                        return ConsistencyResult::Failure(failure);
                     }
                 }
             }
@@ -195,7 +198,9 @@ pub fn consistency_least_helper(
                     ConsistencyResult::Success => {
                         return ConsistencyResult::Success;
                     }
-                    ConsistencyResult::Failure(_) => (),
+                    ConsistencyResult::Failure(failure) => {
+                        return ConsistencyResult::Failure(failure);
+                    }
                 }
             }
         }
