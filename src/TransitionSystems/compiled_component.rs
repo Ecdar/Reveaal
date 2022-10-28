@@ -1,7 +1,6 @@
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-//use crate::ProtobufServer::services::query_response::DeterminismResult;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;

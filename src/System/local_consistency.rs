@@ -118,11 +118,8 @@ fn is_deterministic_helper(
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
 
-                match is_deterministic_helper(new_state, passed_list, system) {
-                    DeterminismResult::Success => {}
-                    DeterminismResult::Failure(_) => {
-                        return DeterminismResult::Failure(state.get_location().id.clone());
-                    }
+                if let DeterminismResult::Failure(location) = is_deterministic_helper(new_state, passed_list, system) {
+                    return DeterminismResult::Failure(location);
                 }
             }
         }
@@ -170,15 +167,12 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                match consistency_least_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => (),
-                    ConsistencyResult::Failure(failure) => {
-                        warn!(
-                            "Input \"{input}\" not consistent from {}",
-                            state.get_location().id
-                        );
-                        return ConsistencyResult::Failure(failure);
-                    }
+                if let ConsistencyResult::Failure(failure) = consistency_least_helper(new_state, passed_list, system) {
+                    warn!(
+                        "Input \"{input}\" not consistent from {}",
+                        state.get_location().id
+                    );
+                    return ConsistencyResult::Failure(failure);
                 }
             }
         }
@@ -193,20 +187,13 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-
-                match consistency_least_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => {
-                        return ConsistencyResult::Success;
-                    }
-                    ConsistencyResult::Failure(failure) => {
-                        return ConsistencyResult::Failure(failure);
-                    }
-                }
+                if let ConsistencyResult::Success = consistency_least_helper(new_state, passed_list, system) {
+                    return ConsistencyResult::Success;
+                } 
             }
         }
     }
     warn!("No saving outputs from {}", state.get_location().id);
-    //TODO - Why you no work
     ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
         state.get_location().id.clone(),
     ))
@@ -231,14 +218,10 @@ fn consistency_fully_helper(
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
-
-                match consistency_fully_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => (),
-                    ConsistencyResult::Failure(_) => {
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
-                    }
+                if let ConsistencyResult::Failure(failure) = consistency_fully_helper(new_state, passed_list, system) {
+                    return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
+                        state.get_location().id.clone(),
+                    ));
                 }
             }
         }
@@ -255,13 +238,9 @@ fn consistency_fully_helper(
                 }
 
                 output_existed = true;
-                match consistency_fully_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Failure(_) => {
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
-                    }
-                    ConsistencyResult::Success => (),
+
+                if let ConsistencyResult::Failure(failure) = consistency_fully_helper(new_state, passed_list, system) {
+                    return ConsistencyResult::Failure(failure);
                 }
             }
         }
