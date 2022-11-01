@@ -6,9 +6,9 @@ mod test {
 
     static PATH: &str = "samples/xml/ConsTests.xml";
 
-    fn is_deterministic_converter(result: DeterminismResult) -> bool{
+    fn is_deterministic_converter(result: DeterminismResult) -> bool {
         if let DeterminismResult::Success = result {
-            return true
+            return true;
         }
         false
     }

@@ -15,7 +15,7 @@ impl fmt::Display for ConsistencyResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConsistencyResult::Success => write!(f, "Succes"),
-            ConsistencyResult::Failure(ConsistencyFailure) => write!(f,"failure"),
+            ConsistencyResult::Failure(ConsistencyFailure) => write!(f, "failure"),
         }
     }
 }

@@ -8,7 +8,7 @@ use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
-use super::local_consistency::{DeterminismResult, ConsistencyResult, ConsistencyFailure};
+use super::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
 use super::refine::RefinementFailure;
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;

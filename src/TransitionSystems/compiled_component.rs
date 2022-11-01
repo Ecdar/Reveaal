@@ -6,7 +6,9 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
 
-use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult, ConsistencyFailure};
+use crate::System::local_consistency::{
+    self, ConsistencyFailure, ConsistencyResult, DeterminismResult,
+};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
@@ -171,14 +173,15 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-
-        if let DeterminismResult::Failure(_) = self.is_deterministic(){
+        if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not deterministic");
-            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
+            return (
+                ConsistencyResult::Failure(ConsistencyFailure::Empty),
+                self.is_deterministic(),
+            );
         }
 
-
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent()   {
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
             return (self.is_locally_consistent(), DeterminismResult::Empty);
         }
@@ -190,10 +193,10 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
-//        match local_consistency::is_least_consistent(self) {
-//            ConsistencyResult::Success => true,
-//            ConsistencyResult::Failure(_) => false,
-//        }
+        //        match local_consistency::is_least_consistent(self) {
+        //            ConsistencyResult::Success => true,
+        //            ConsistencyResult::Failure(_) => false,
+        //        }
         local_consistency::is_least_consistent(self)
     }
 

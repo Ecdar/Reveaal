@@ -1,6 +1,9 @@
 use super::{CompositionType, LocationTuple};
-use crate::{ModelObjects::component::{Declarations, State, Transition},
-System::local_consistency::DeterminismResult, System::local_consistency::ConsistencyResult};
+use crate::{
+    ModelObjects::component::{Declarations, State, Transition},
+    System::local_consistency::ConsistencyResult,
+    System::local_consistency::DeterminismResult,
+};
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;

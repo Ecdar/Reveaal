@@ -23,9 +23,12 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
 
     if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = ts.precheck_sys_rep() {
         panic!("Trying to prune transitions system which is not least consistent");
-    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = ts.precheck_sys_rep() {
+    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = ts.precheck_sys_rep()
+    {
         panic!("Trying to prune transitions system which is not least consistent");
-    }else if let (ConsistencyResult::Success, DeterminismResult::Failure(_)) = ts.precheck_sys_rep(){
+    } else if let (ConsistencyResult::Success, DeterminismResult::Failure(_)) =
+        ts.precheck_sys_rep()
+    {
         panic!("Trying to prune transitions system which is not least consistent");
     }
 

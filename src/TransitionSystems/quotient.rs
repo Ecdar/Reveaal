@@ -5,12 +5,12 @@ use log::{debug, warn};
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::System::local_consistency::{ConsistencyResult,DeterminismResult, ConsistencyFailure};
+use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr, LocationID};
+use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 use super::CompositionType;
@@ -48,11 +48,13 @@ impl Quotient {
             ));
         }
 
-        if let (ConsistencyResult::Failure(_),DeterminismResult::Failure(_)) = T.precheck_sys_rep() {
+        if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = T.precheck_sys_rep()
+        {
             return Err("T (left) must be least consistent for quotient".to_string());
         }
 
-        if let (ConsistencyResult::Failure(_),DeterminismResult::Failure(_)) = S.precheck_sys_rep() {
+        if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = S.precheck_sys_rep()
+        {
             return Err("S (right) must be least consistent for quotient".to_string());
         }
 
@@ -377,13 +379,11 @@ impl TransitionSystem for Quotient {
     }
 
     fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-
-        if let DeterminismResult::Failure(_) = self.is_deterministic(){
+        if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not deterministic");
         }
 
-
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent()   {
+        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
             warn!("Not consistent");
         }
         (self.is_locally_consistent(), self.is_deterministic())
@@ -391,24 +391,24 @@ impl TransitionSystem for Quotient {
 
     fn is_deterministic(&self) -> DeterminismResult {
         if let DeterminismResult::Success = self.T.is_deterministic() {
-            if let DeterminismResult::Success = self.S.is_deterministic()  {
-                return DeterminismResult::Success;                
-            }else{
+            if let DeterminismResult::Success = self.S.is_deterministic() {
+                return DeterminismResult::Success;
+            } else {
                 return self.S.is_deterministic();
             }
-        }else{
+        } else {
             return self.T.is_deterministic();
         }
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
         if let ConsistencyResult::Success = self.T.is_locally_consistent() {
-            if let ConsistencyResult::Success = self.S.is_locally_consistent()  {
-                return ConsistencyResult::Success;                
-            }else{
+            if let ConsistencyResult::Success = self.S.is_locally_consistent() {
+                return ConsistencyResult::Success;
+            } else {
                 return self.S.is_locally_consistent();
             }
-        }else{
+        } else {
             return self.T.is_locally_consistent();
         }
     }

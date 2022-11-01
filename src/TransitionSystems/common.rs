@@ -7,7 +7,10 @@ use edbm::{
 };
 use log::warn;
 
-use crate::{ModelObjects::component::{Declarations, State, Transition}, System::local_consistency::{ConsistencyResult, DeterminismResult, ConsistencyFailure}};
+use crate::{
+    ModelObjects::component::{Declarations, State, Transition},
+    System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult},
+};
 
 use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
 
@@ -78,10 +81,12 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     }
 
     fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-
         if let DeterminismResult::Failure(_) = self.is_deterministic() {
             warn!("Not consistent");
-            return (ConsistencyResult::Failure(ConsistencyFailure::Empty), self.is_deterministic());
+            return (
+                ConsistencyResult::Failure(ConsistencyFailure::Empty),
+                self.is_deterministic(),
+            );
         }
 
         if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
@@ -94,13 +99,13 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn is_deterministic(&self) -> DeterminismResult {
         let (left, right) = self.get_children();
-        if let DeterminismResult::Success = left.is_deterministic(){
-            if let DeterminismResult::Success = right.is_deterministic(){
+        if let DeterminismResult::Success = left.is_deterministic() {
+            if let DeterminismResult::Success = right.is_deterministic() {
                 return DeterminismResult::Success;
-            }else{
+            } else {
                 return right.is_deterministic();
             }
-        }else{
+        } else {
             return left.is_deterministic();
         }
     }

@@ -569,13 +569,20 @@ fn check_preconditions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
 ) -> PreconditionsResult {
-    if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys2.precheck_sys_rep(){
+    if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys2.precheck_sys_rep()
+    {
         return PreconditionsResult::NotConsistentFrom(sys2.precheck_sys_rep().0);
-    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys2.precheck_sys_rep(){
+    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) =
+        sys2.precheck_sys_rep()
+    {
         return PreconditionsResult::NotDeterministicFrom(sys2.precheck_sys_rep().1);
-    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) = sys1.precheck_sys_rep(){
+    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) =
+        sys1.precheck_sys_rep()
+    {
         return PreconditionsResult::NotConsistentFrom(sys1.precheck_sys_rep().0);
-    }else if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys1.precheck_sys_rep(){
+    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) =
+        sys1.precheck_sys_rep()
+    {
         return PreconditionsResult::NotDeterministicFrom(sys1.precheck_sys_rep().1);
     }
     let s_outputs = sys1.get_output_actions();

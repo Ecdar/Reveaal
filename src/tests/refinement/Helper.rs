@@ -1,10 +1,15 @@
+use std::cell::Ref;
+use std::result;
+
+use generic_array::typenum::True;
+
 use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
-use crate::System::refine::RefinementResult;
+use crate::System::refine::{RefinementFailure, RefinementResult};
 
 fn try_setup_logging() {
     #[cfg(feature = "logging")]
@@ -59,4 +64,20 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let query = create_executable_query(&q, &mut *comp_loader).unwrap();
 
     query.execute()
+}
+
+pub fn check_refinement_failure(PATH: &str, QUERY: &str, EXPECTEDFAIL: RefinementFailure)-> bool{
+    if let QueryResult::Refinement(RefinementResult::Failure(EXPECTEDFAIL)) = json_run_query(PATH, QUERY){
+        true
+    } else{
+        false
+    }
+}
+
+pub fn check_determinism_failure(PATH: &str, QUERY: &str, EXPECTEDFAIL: RefinementFailure)-> bool{
+    if let QueryResult::Refinement(RefinementResult::Failure(EXPECTEDFAIL)) = json_run_query(PATH, QUERY){
+        true
+    } else{
+        false
+    }
 }
