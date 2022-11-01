@@ -1,6 +1,7 @@
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures::Future;
 use num_cpus;
+use tonic::codegen::http::status;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
@@ -10,8 +11,6 @@ use crate::DataReader::component_loader::ModelCache;
 use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
 use crate::ProtobufServer::enum_function_return_type::ReturnType;
 use crate::ProtobufServer::ConcreteEcdarBackend;
-
-type ThreadPoolResponse = Result<QueryResponse, Status>;
 
 /// A construct that uses a fixed amount of threads to do work in parallel.
 #[derive(Debug)]
@@ -36,13 +35,13 @@ impl ThreadPool {
                 let thread_cache = cache.clone();
                 thread::spawn(move || {
 
-                    // for mut context in thread_receiver {
+                    for mut context in thread_receiver {
                     //     let query_response = ConcreteEcdarBackend::handle_send_query(
                     //         context.query_request,
                     //         thread_cache.clone(),
                     //     );
-                    //     context.future.complete(query_response);
-                    // }
+                        context.future.complete((context.function)());
+                    }
                         
                 })
             })
@@ -94,13 +93,13 @@ impl Drop for ThreadPool {
 /// It returns a `QueryResponse`.
 #[derive(Default, Debug, Clone)]
 pub struct ThreadPoolFuture {
-    result: Arc<Mutex<Option<ThreadPoolResponse>>>,
+    result: Arc<Mutex<Option<ReturnType>>>,
     waker: Arc<Mutex<Option<Waker>>>,
 }
 
 impl ThreadPoolFuture {
-    fn complete(&mut self, query_response: ThreadPoolResponse) {
-        *self.result.lock().unwrap() = Some(query_response);
+    fn complete(&mut self, return_type: ReturnType) {
+        *self.result.lock().unwrap() = Some(return_type);
         let waker = self.waker.lock().unwrap();
 
         if let Some(waker) = waker.as_ref() {
@@ -110,7 +109,7 @@ impl ThreadPoolFuture {
 }
 
 impl Future for ThreadPoolFuture {
-    type Output = ThreadPoolResponse;
+    type Output = ReturnType;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let mut waker = self.waker.lock().unwrap();
