@@ -1,18 +1,16 @@
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-//use crate::ProtobufServer::services::query_response::DeterminismResult;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
 
-use crate::System::local_consistency::{
-    self, ConsistencyFailure, ConsistencyResult, DeterminismResult,
-};
+use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
+use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 
 type Action = String;
@@ -172,20 +170,17 @@ impl TransitionSystem for CompiledComponent {
         unimplemented!()
     }
 
-    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-        if let DeterminismResult::Failure(_) = self.is_deterministic() {
+    fn precheck_sys_rep(&self) -> PrecheckResult {
+        if let DeterminismResult::Failure(location) = self.is_deterministic() {
             warn!("Not deterministic");
-            return (
-                ConsistencyResult::Failure(ConsistencyFailure::Empty),
-                self.is_deterministic(),
-            );
+            return PrecheckResult::NotDeterministic(location);
         }
 
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
             warn!("Not consistent");
-            return (self.is_locally_consistent(), DeterminismResult::Empty);
+            return PrecheckResult::NotConsistent(failure);
         }
-        (ConsistencyResult::Success, DeterminismResult::Success)
+        PrecheckResult::Success
     }
 
     fn is_deterministic(&self) -> DeterminismResult {
@@ -193,10 +188,6 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
-        //        match local_consistency::is_least_consistent(self) {
-        //            ConsistencyResult::Success => true,
-        //            ConsistencyResult::Failure(_) => false,
-        //        }
         local_consistency::is_least_consistent(self)
     }
 

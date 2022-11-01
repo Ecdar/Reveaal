@@ -5,12 +5,13 @@ use log::{debug, warn};
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
+use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
+use crate::TransitionSystems::transition_system::PrecheckResult;
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 use super::CompositionType;
@@ -48,14 +49,17 @@ impl Quotient {
             ));
         }
 
-        if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = T.precheck_sys_rep()
-        {
-            return Err("T (left) must be least consistent for quotient".to_string());
+        match T.precheck_sys_rep() {
+            PrecheckResult::Success => {}
+            _ => {
+                return Err("T (left) must be least consistent for quotient".to_string());
+            }
         }
-
-        if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = S.precheck_sys_rep()
-        {
-            return Err("S (right) must be least consistent for quotient".to_string());
+        match S.precheck_sys_rep() {
+            PrecheckResult::Success => {}
+            _ => {
+                return Err("T (left) must be least consistent for quotient".to_string());
+            }
         }
 
         let universal_location = Location {
@@ -378,38 +382,40 @@ impl TransitionSystem for Quotient {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> (ConsistencyResult, DeterminismResult) {
-        if let DeterminismResult::Failure(_) = self.is_deterministic() {
+    fn precheck_sys_rep(&self) -> PrecheckResult {
+        if let DeterminismResult::Failure(location) = self.is_deterministic() {
             warn!("Not deterministic");
+            return PrecheckResult::NotDeterministic(location);
         }
 
-        if let ConsistencyResult::Failure(_) = self.is_locally_consistent() {
+        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
             warn!("Not consistent");
+            return PrecheckResult::NotConsistent(failure);
         }
-        (self.is_locally_consistent(), self.is_deterministic())
+        PrecheckResult::Success
     }
 
     fn is_deterministic(&self) -> DeterminismResult {
         if let DeterminismResult::Success = self.T.is_deterministic() {
             if let DeterminismResult::Success = self.S.is_deterministic() {
-                return DeterminismResult::Success;
+                DeterminismResult::Success
             } else {
-                return self.S.is_deterministic();
+                self.S.is_deterministic()
             }
         } else {
-            return self.T.is_deterministic();
+            self.T.is_deterministic()
         }
     }
 
     fn is_locally_consistent(&self) -> ConsistencyResult {
         if let ConsistencyResult::Success = self.T.is_locally_consistent() {
             if let ConsistencyResult::Success = self.S.is_locally_consistent() {
-                return ConsistencyResult::Success;
+                ConsistencyResult::Success
             } else {
-                return self.S.is_locally_consistent();
+                self.S.is_locally_consistent()
             }
         } else {
-            return self.T.is_locally_consistent();
+            self.T.is_locally_consistent()
         }
     }
 

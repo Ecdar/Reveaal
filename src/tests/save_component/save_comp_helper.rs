@@ -10,6 +10,7 @@ pub mod util {
     use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
+    use crate::TransitionSystems::transition_system::PrecheckResult;
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
@@ -17,7 +18,9 @@ pub mod util {
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
-        let query = parse_queries::parse_to_expression_tree(str_query.as_str()).remove(0);
+        let query = parse_queries::parse_to_expression_tree(str_query.as_str())
+            .unwrap()
+            .remove(0);
 
         let mut dim: ClockIndex = 0;
         let (base_system, new_system) = if let QueryExpression::GetComponent(expr) = &query {
@@ -74,10 +77,11 @@ pub mod util {
             });
         }
     }
-    fn helper(a: &(ConsistencyResult, DeterminismResult)) -> bool {
-        if let (ConsistencyResult::Success, DeterminismResult::Success) = a {
+
+    fn helper(a: &PrecheckResult) -> bool {
+        if let PrecheckResult::Success = a {
             return true;
         }
-        return false;
+        false
     }
 }

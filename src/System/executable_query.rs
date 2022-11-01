@@ -5,11 +5,11 @@ use crate::ModelObjects::component::Component;
 use crate::ModelObjects::component::State;
 use crate::System::refine;
 use crate::System::save_component::combine_components;
+use crate::TransitionSystems::transition_system::PrecheckResult;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::extract_system_rep::SystemRecipe;
 use super::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
-use super::refine::RefinementFailure;
 use super::refine::RefinementResult;
 use super::save_component::PruningStrategy;
 
@@ -21,14 +21,6 @@ pub enum QueryResult {
     Determinism(DeterminismResult),
     Error(String),
 }
-
-/* pub enum QueryResult {
-    Refinement(RefinementResult),
-    GetComponent(Component),
-    Consistency(ConsistencyResult),
-    Determinism(DeterminismResult),
-    Error(String),
-} */
 
 impl QueryResult {
     pub fn print_result(&self, query_str: &str) {
@@ -49,7 +41,6 @@ impl QueryResult {
 
             QueryResult::Determinism(DeterminismResult::Success) => satisfied(query_str),
             QueryResult::Determinism(DeterminismResult::Failure(_)) => not_satisfied(query_str),
-            QueryResult::Determinism(DeterminismResult::Empty) => not_satisfied(query_str),
 
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)
@@ -101,11 +92,8 @@ pub struct ReachabilityExecutor {
     // e_state is the end state, where we want to see whether end state is reachable from start state
     pub end_state: State,
 }
-
 impl ExecutableQuery for ReachabilityExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        let (sys, s_state, e_state) = (self.transition_system, self.start_state, self.end_state);
-
         unimplemented!();
     }
 }
@@ -137,10 +125,18 @@ pub struct ConsistencyExecutor {
 impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let res = match self.recipe.compile(self.dim) {
-            Ok(system) => system.precheck_sys_rep().0,
-            Err(_) => ConsistencyResult::Failure(ConsistencyFailure::Empty),
+            Ok(system) => match system.precheck_sys_rep() {
+                PrecheckResult::Success => QueryResult::Consistency(ConsistencyResult::Success),
+                PrecheckResult::NotDeterministic(location) => QueryResult::Consistency(
+                    ConsistencyResult::Failure(ConsistencyFailure::NotDeterministicFrom(location)),
+                ),
+                PrecheckResult::NotConsistent(failure) => {
+                    QueryResult::Consistency(ConsistencyResult::Failure(failure))
+                }
+            },
+            Err(error) => QueryResult::Error(error),
         };
-        QueryResult::Consistency(res)
+        res
     }
 }
 

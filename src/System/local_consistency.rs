@@ -15,15 +15,17 @@ impl fmt::Display for ConsistencyResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConsistencyResult::Success => write!(f, "Succes"),
-            ConsistencyResult::Failure(ConsistencyFailure) => write!(f, "failure"),
+            ConsistencyResult::Failure(_) => write!(f, "failure"),
         }
     }
 }
+
+#[derive(Debug)]
 pub enum ConsistencyFailure {
     NoInitialState,
     EmptyInitialState,
     NotConsistentFrom(LocationID),
-    Empty,
+    NotDeterministicFrom(LocationID),
 }
 
 impl fmt::Display for ConsistencyFailure {
@@ -31,23 +33,27 @@ impl fmt::Display for ConsistencyFailure {
         match self {
             ConsistencyFailure::NoInitialState => write!(f, "No Initial State"),
             ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
-            ConsistencyFailure::NotConsistentFrom(_) => write!(f, "Not Consistent From:"),
-            ConsistencyFailure::Empty => write!(f, "Empty"),
+            ConsistencyFailure::NotConsistentFrom(location) => {
+                write!(f, "Not Consistent From {}", location)
+            }
+            ConsistencyFailure::NotDeterministicFrom(location) => {
+                write!(f, "Not Deterministic From {}", location)
+            }
         }
     }
 }
 pub enum DeterminismResult {
     Success,
     Failure(LocationID),
-    Empty,
 }
 
 impl fmt::Display for DeterminismResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DeterminismResult::Empty => write!(f, "Empty"),
-            DeterminismResult::Failure(_) => write!(f, "Failure"),
-            DeterminismResult::Success => write!(f, "Succes"),
+            DeterminismResult::Success => write!(f, "Success"),
+            DeterminismResult::Failure(location) => {
+                write!(f, "Not Deterministic From {}", location)
+            }
         }
     }
 }
@@ -112,12 +118,10 @@ fn is_deterministic_helper(
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
 
-                match is_deterministic_helper(new_state, passed_list, system) {
-                    DeterminismResult::Success => {}
-                    DeterminismResult::Empty => {}
-                    DeterminismResult::Failure(_) => {
-                        return DeterminismResult::Failure(state.get_location().id.clone());
-                    }
+                if let DeterminismResult::Failure(location) =
+                    is_deterministic_helper(new_state, passed_list, system)
+                {
+                    return DeterminismResult::Failure(location);
                 }
             }
         }
@@ -165,17 +169,14 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                match consistency_least_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => (),
-                    ConsistencyResult::Failure(_) => {
-                        warn!(
-                            "Input \"{input}\" not consistent from {}",
-                            state.get_location().id
-                        );
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
-                    }
+                if let ConsistencyResult::Failure(failure) =
+                    consistency_least_helper(new_state, passed_list, system)
+                {
+                    warn!(
+                        "Input \"{input}\" not consistent from {}",
+                        state.get_location().id
+                    );
+                    return ConsistencyResult::Failure(failure);
                 }
             }
         }
@@ -190,18 +191,15 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-
-                match consistency_least_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => {
-                        return ConsistencyResult::Success;
-                    }
-                    ConsistencyResult::Failure(_) => (),
+                if let ConsistencyResult::Success =
+                    consistency_least_helper(new_state, passed_list, system)
+                {
+                    return ConsistencyResult::Success;
                 }
             }
         }
     }
     warn!("No saving outputs from {}", state.get_location().id);
-    //TODO - Why you no work
     ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
         state.get_location().id.clone(),
     ))
@@ -226,14 +224,12 @@ fn consistency_fully_helper(
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
-
-                match consistency_fully_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Success => (),
-                    ConsistencyResult::Failure(_) => {
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
-                    }
+                if let ConsistencyResult::Failure(failure) =
+                    consistency_fully_helper(new_state, passed_list, system)
+                {
+                    return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
+                        state.get_location().id.clone(),
+                    ));
                 }
             }
         }
@@ -250,13 +246,11 @@ fn consistency_fully_helper(
                 }
 
                 output_existed = true;
-                match consistency_fully_helper(new_state, passed_list, system) {
-                    ConsistencyResult::Failure(_) => {
-                        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                            state.get_location().id.clone(),
-                        ));
-                    }
-                    ConsistencyResult::Success => (),
+
+                if let ConsistencyResult::Failure(failure) =
+                    consistency_fully_helper(new_state, passed_list, system)
+                {
+                    return ConsistencyResult::Failure(failure);
                 }
             }
         }

@@ -5,10 +5,9 @@ use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
-//use crate::ProtobufServer::services::query_response::{ConsistencyResult, DeterminismResult};
-//use crate::ProtobufServer::services::query_response::{DeterminismResult, ConsistencyResult};
-use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::System::local_consistency::ConsistencyFailure;
+use crate::TransitionSystems::transition_system::PrecheckResult;
+use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 use std::fmt;
 
@@ -22,36 +21,42 @@ pub enum RefinementResult {
 pub enum RefinementFailure {
     NotDisjointAndNotSubset,
     NotDisjoint,
-    NotSubset,                     //TODO: Add state that fails
-    CutsDelaySolutions(StatePair), //TODO: StatePair or something else?
+    NotSubset,
+    CutsDelaySolutions(StatePair),
     InitialState(StatePair),
     EmptySpecification,
     EmptyImplementation,
     EmptyTransition2s(StatePair),
     NotEmptyResult(StatePair),
-    Other, //TODO: More types of failures?
+    ConsistencyFailure(Option<LocationID>),
+    DeterminismFailure(Option<LocationID>),
 }
-
-pub enum PreconditionsResult {
-    Success,
-    NotDisjointAndNotSubset,
-    NotDisjoint,
-    NotSubset,
-    NotConsistentFrom(ConsistencyResult),
-    NotDeterministicFrom(DeterminismResult),
-    OtherFailure,
-}
-
 pub enum StatePairResult {
     Valid,
-    EmptyTransition2s, //TODO: Better name? Based on description in comment
-    NotEmptyResult,    //TODO: Better name? Based on description in comment
+    EmptyTransition2s,
+    NotEmptyResult,
     CutsDelaySolutions,
 }
 
 impl fmt::Display for RefinementFailure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            RefinementFailure::NotDisjointAndNotSubset => write!(f, "Not Disjoint and Not Subset"),
+            RefinementFailure::NotDisjoint => write!(f, "Not Disjoint"),
+            RefinementFailure::NotSubset => write!(f, "Not Subset"),
+            RefinementFailure::CutsDelaySolutions(_) => write!(f, "Cuts Delay Solutions"),
+            RefinementFailure::InitialState(_) => write!(f, "Error in Initial State"),
+            RefinementFailure::EmptySpecification => write!(f, "Empty Specification"),
+            RefinementFailure::EmptyImplementation => write!(f, "Empty Implementation"),
+            RefinementFailure::EmptyTransition2s(_) => write!(f, "Empty Transition2s"),
+            RefinementFailure::NotEmptyResult(_) => write!(f, "Not Empty Result on State Pair"),
+            RefinementFailure::ConsistencyFailure(location) => {
+                write!(f, "Not Consistent From {}", location.as_ref().unwrap())
+            }
+            RefinementFailure::DeterminismFailure(location) => {
+                write!(f, "Not Deterministic From {}", location.as_ref().unwrap())
+            }
+        }
     }
 }
 
@@ -109,34 +114,9 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
     debug!("Dimensions: {}", dimensions);
 
     //Firstly we check the preconditions
-    match check_preconditions(&sys1, &sys2) {
-        //TODO: Match on the returned value from check_preconditions
-        PreconditionsResult::Success => (),
-        PreconditionsResult::NotDisjointAndNotSubset => {
-            warn!("Refinement failed - Systems are not disjoint and not subset");
-            return RefinementResult::Failure(RefinementFailure::NotDisjointAndNotSubset);
-        }
-        PreconditionsResult::NotDisjoint => {
-            warn!("Refinement failed - Systems not disjoint");
-            return RefinementResult::Failure(RefinementFailure::NotDisjoint);
-        }
-        PreconditionsResult::NotSubset => {
-            warn!("Refinement failed - Systems are not subset");
-            return RefinementResult::Failure(RefinementFailure::NotSubset);
-        }
-        PreconditionsResult::OtherFailure => {
-            //TODO: Change this
-            warn!("Refinement failed - Preconditions not met");
-            return RefinementResult::Failure(RefinementFailure::Other);
-        }
-        PreconditionsResult::NotConsistentFrom(_) => {
-            warn!("Refinement failed - inconsistent");
-            return RefinementResult::Failure(RefinementFailure::Other);
-        }
-        PreconditionsResult::NotDeterministicFrom(_) => {
-            warn!("Refinement failed - Not deterministic");
-            return RefinementResult::Failure(RefinementFailure::Other);
-        }
+    if let RefinementResult::Failure(failure) = check_preconditions(&sys1, &sys2) {
+        warn!("Refinement failed with failure: {}", failure);
+        return RefinementResult::Failure(failure);
     }
 
     // Common inputs and outputs
@@ -565,26 +545,54 @@ fn prepare_init_state(
     !initial_pair.ref_zone().is_empty()
 }
 
-fn check_preconditions(
-    sys1: &TransitionSystemPtr,
-    sys2: &TransitionSystemPtr,
-) -> PreconditionsResult {
-    if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) = sys2.precheck_sys_rep()
-    {
-        return PreconditionsResult::NotConsistentFrom(sys2.precheck_sys_rep().0);
-    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) =
-        sys2.precheck_sys_rep()
-    {
-        return PreconditionsResult::NotDeterministicFrom(sys2.precheck_sys_rep().1);
-    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Empty) =
-        sys1.precheck_sys_rep()
-    {
-        return PreconditionsResult::NotConsistentFrom(sys1.precheck_sys_rep().0);
-    } else if let (ConsistencyResult::Failure(_), DeterminismResult::Failure(_)) =
-        sys1.precheck_sys_rep()
-    {
-        return PreconditionsResult::NotDeterministicFrom(sys1.precheck_sys_rep().1);
+fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -> RefinementResult {
+    match sys1.precheck_sys_rep() {
+        PrecheckResult::Success => {}
+        PrecheckResult::NotDeterministic(location) => {
+            warn!("Refinement failed - sys1 is not deterministic");
+            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(Some(
+                location,
+            )));
+        }
+        PrecheckResult::NotConsistent(failure) => {
+            warn!("Refinement failed - sys1 is inconsistent");
+            match failure {
+                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None))
+                }
+                ConsistencyFailure::NotConsistentFrom(location)
+                | ConsistencyFailure::NotDeterministicFrom(location) => {
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(Some(
+                        location,
+                    )))
+                }
+            }
+        }
     }
+    match sys2.precheck_sys_rep() {
+        PrecheckResult::Success => {}
+        PrecheckResult::NotDeterministic(location) => {
+            warn!("Refinement failed - sys2 is not deterministic");
+            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(Some(
+                location,
+            )));
+        }
+        PrecheckResult::NotConsistent(failure) => {
+            warn!("Refinement failed - sys2 is inconsistent");
+            match failure {
+                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None))
+                }
+                ConsistencyFailure::NotConsistentFrom(location)
+                | ConsistencyFailure::NotDeterministicFrom(location) => {
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(Some(
+                        location,
+                    )))
+                }
+            }
+        }
+    }
+
     let s_outputs = sys1.get_output_actions();
     let t_outputs = sys2.get_output_actions();
 
@@ -600,12 +608,15 @@ fn check_preconditions(
     debug!("T i:{t_inputs:?} o:{t_outputs:?}");
 
     if !disjoint && !subset {
-        PreconditionsResult::NotDisjointAndNotSubset
+        warn!("Refinement failed - Systems are not disjoint and not subset");
+        RefinementResult::Failure(RefinementFailure::NotDisjointAndNotSubset)
     } else if !subset {
-        PreconditionsResult::NotSubset
+        warn!("Refinement failed - Systems are not subset");
+        RefinementResult::Failure(RefinementFailure::NotSubset)
     } else if !disjoint {
-        PreconditionsResult::NotDisjoint
+        warn!("Refinement failed - Systems not disjoint");
+        RefinementResult::Failure(RefinementFailure::NotDisjoint)
     } else {
-        PreconditionsResult::Success
+        RefinementResult::Success
     }
 }

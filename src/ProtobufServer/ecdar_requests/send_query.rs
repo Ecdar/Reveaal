@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::panic::AssertUnwindSafe;
+use std::sync::Arc;
 
 use crate::component::Component;
 use crate::xml_parser::parse_xml_from_str;
-use crate::DataReader::component_loader::ComponentContainer;
+use crate::DataReader::component_loader::ModelCache;
 use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
@@ -11,48 +11,54 @@ use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::query_ok::Result as ProtobufResult;
 use crate::ProtobufServer::services::query_response::query_ok::{
-    ComponentResult, ConsistencyResult, DeterminismResult, RefinementResult,
+    ComponentResult, ConsistencyResult as ProtobufConsistencyResult,
+    DeterminismResult as ProtobufDeterminismResult, RefinementResult,
 };
 use crate::ProtobufServer::services::query_response::QueryOk;
 use crate::ProtobufServer::services::query_response::Response as QueryOkOrErrorResponse;
 use crate::ProtobufServer::services::{
     Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
     Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
-    Disjunction as ProtobufDisjunction, Federation, Location,
-    LocationTuple as ProtobufLocationTuple, LocationTuple, QueryRequest, QueryResponse,
-    SpecificComponent, State,
+    Disjunction as ProtobufDisjunction, Federation, Location, LocationTuple, QueryRequest,
+    QueryResponse, State,
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System;
 use crate::System::executable_query::QueryResult;
+use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
-use crate::TransitionSystems;
+use crate::TransitionSystems::{self, LocationID};
 use edbm::util::constraints::Disjunction;
-use log::{info, trace};
-use tonic::{Request, Response, Status};
+use log::trace;
+use tonic::Status;
 
 impl ConcreteEcdarBackend {
-    pub async fn handle_send_query(
-        &self,
-        request: AssertUnwindSafe<Request<QueryRequest>>,
-    ) -> Result<Response<QueryResponse>, Status> {
-        trace!("Received query: {:?}", request);
-        let query_request = request.0.into_inner();
+    pub fn handle_send_query(
+        query_request: QueryRequest,
+        mut model_cache: ModelCache,
+    ) -> Result<QueryResponse, Status> {
+        trace!("Received query: {:?}", query_request);
         let components_info = query_request.components_info.as_ref().unwrap();
         let proto_components = &components_info.components;
         let query = parse_query(&query_request)?;
 
-        let mut parsed_components = vec![];
+        let mut component_container = match model_cache.get_model(components_info.components_hash) {
+            Some(model) => model,
+            None => {
+                let mut parsed_components = vec![];
 
-        for proto_component in proto_components {
-            let components = parse_components_if_some(proto_component)?;
-            for component in components {
-                parsed_components.push(component);
+                for proto_component in proto_components {
+                    let components = parse_components_if_some(proto_component)?;
+                    for component in components {
+                        parsed_components.push(component);
+                    }
+                }
+
+                let components = create_components(parsed_components);
+                model_cache.insert_model(components_info.components_hash, Arc::new(components))
             }
-        }
-
-        let mut component_container = create_component_container(parsed_components);
+        };
 
         if query_request.ignored_input_outputs.is_some() {
             return Err(Status::unimplemented(
@@ -79,7 +85,7 @@ impl ConcreteEcdarBackend {
             })),
         };
 
-        Ok(Response::new(reply))
+        Ok(reply)
     }
 }
 
@@ -122,7 +128,7 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
     comps
 }
 
-fn create_component_container(components: Vec<Component>) -> ComponentContainer {
+fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
         trace!("Adding comp {} to container", component.get_name());
@@ -136,7 +142,7 @@ fn create_component_container(components: Vec<Component>) -> ComponentContainer 
         input_enabler::make_input_enabled(&mut component, &inputs);
         comp_hashmap.insert(component.get_name().to_string(), component);
     }
-    ComponentContainer::new(comp_hashmap)
+    comp_hashmap
 }
 
 fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
@@ -162,36 +168,64 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 rep: Some(Rep::Json(component_to_json(comp))),
             }),
         })),
-        QueryResult::Consistency(is_consistent) => {
-            if let System::local_consistency::ConsistencyResult::Failure(_) = *is_consistent {
-                Some(ProtobufResult::Consistency(ConsistencyResult {
-                    success: false,
-                    reason: (*is_consistent.to_string().to_owned()).to_string(),
-                    state: None,
-                }))
-            } else {
-                Some(ProtobufResult::Consistency(ConsistencyResult {
+        QueryResult::Consistency(is_consistent) => match is_consistent {
+            ConsistencyResult::Success => {
+                Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
                     success: true,
-                    reason: (*is_consistent.to_string().to_owned()).to_string(),
+                    reason: "".to_string(),
                     state: None,
                 }))
             }
-        }
-        QueryResult::Determinism(is_deterministic) => {
-            if let System::local_consistency::DeterminismResult::Failure(_) = *is_deterministic {
-                Some(ProtobufResult::Determinism(DeterminismResult {
-                    success: false,
-                    reason: (*is_deterministic.to_string().to_owned()).to_string(),
-                    state: None,
-                }))
-            } else {
-                Some(ProtobufResult::Determinism(DeterminismResult {
+            ConsistencyResult::Failure(failure) => match failure {
+                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                    Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
+                        success: false,
+                        reason: failure.to_string(),
+                        state: None,
+                    }))
+                }
+                ConsistencyFailure::NotConsistentFrom(location_id)
+                | ConsistencyFailure::NotDeterministicFrom(location_id) => {
+                    Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
+                        success: false,
+                        reason: failure.to_string(),
+                        state: Some(State {
+                            location_tuple: Some(LocationTuple {
+                                locations: vec![Location {
+                                    id: location_id.to_string(),
+                                    specific_component: None,
+                                }],
+                            }),
+                            federation: None,
+                        }),
+                    }))
+                }
+            },
+        },
+        QueryResult::Determinism(is_deterministic) => match is_deterministic {
+            DeterminismResult::Success => {
+                Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
                     success: true,
-                    reason: (*is_deterministic.to_string().to_owned()).to_string(),
+                    reason: "".to_string(),
                     state: None,
                 }))
             }
-        }
+            DeterminismResult::Failure(location_id) => {
+                Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
+                    success: false,
+                    reason: "Not deterministic From Location".to_string(),
+                    state: Some(State {
+                        location_tuple: Some(LocationTuple {
+                            locations: vec![Location {
+                                id: location_id.to_string(),
+                                specific_component: None,
+                            }],
+                        }),
+                        federation: None,
+                    }),
+                }))
+            }
+        },
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }
 }
@@ -229,7 +263,23 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                 reason: failure.to_string(),
             }))
         }
-        RefinementFailure::Other => todo!(),
+        RefinementFailure::ConsistencyFailure(location_id)
+        | RefinementFailure::DeterminismFailure(location_id) => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: false,
+                reason: failure.to_string(),
+                state: Some(State {
+                    location_tuple: Some(LocationTuple {
+                        locations: vec![Location {
+                            id: value_in_location(location_id),
+                            specific_component: None,
+                        }],
+                    }),
+                    federation: None,
+                }),
+                relation: vec![],
+            }))
+        }
     }
 }
 
@@ -237,15 +287,16 @@ fn make_location_vec(
     locations1: &TransitionSystems::LocationTuple,
     locations2: &TransitionSystems::LocationTuple,
 ) -> Vec<Location> {
-    let mut loc_vec: Vec<Location> = vec![];
-    loc_vec.push(Location {
-        id: locations1.id.to_string(),
-        specific_component: None,
-    });
-    loc_vec.push(Location {
-        id: locations2.id.to_string(),
-        specific_component: None,
-    });
+    let loc_vec: Vec<Location> = vec![
+        Location {
+            id: locations1.id.to_string(),
+            specific_component: None,
+        },
+        Location {
+            id: locations2.id.to_string(),
+            specific_component: None,
+        },
+    ];
     loc_vec
 }
 
@@ -268,13 +319,16 @@ fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
                 c: constraint.ineq().bound(),
             });
         }
-        conjunctions.push(ProtobufConjunction {
-            constraints: constraints,
-        })
+        conjunctions.push(ProtobufConjunction { constraints })
     }
     Some(Federation {
-        disjunction: Some(ProtobufDisjunction {
-            conjunctions: conjunctions,
-        }),
+        disjunction: Some(ProtobufDisjunction { conjunctions }),
     })
+}
+
+fn value_in_location(maybe_location: &Option<LocationID>) -> String {
+    match maybe_location {
+        Some(location_id) => location_id.to_string(),
+        None => "".to_string(),
+    }
 }
