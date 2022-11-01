@@ -57,11 +57,11 @@ impl ThreadPool {
     /// # Arguments
     ///
     /// * `query_request` - the query request to enqueue.
-    pub fn enqueue(&self, query_request: QueryRequest) -> ThreadPoolFuture {
+    pub fn enqueue(&self, function: fn()->ReturnType) -> ThreadPoolFuture {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),
-            query_request,
+            function,
         };
         self.sender.as_ref().unwrap().send(context).unwrap();
         future
@@ -121,5 +121,5 @@ impl Future for ThreadPoolFuture {
 
 struct Context {
     future: ThreadPoolFuture,
-    query_request: QueryRequest,
+    function: fn() -> ReturnType,
 }
