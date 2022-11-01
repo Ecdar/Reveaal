@@ -176,7 +176,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 }))
             }
             ConsistencyResult::Failure(failure) => match failure {
-                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
                     Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
                         success: false,
                         reason: failure.to_string(),

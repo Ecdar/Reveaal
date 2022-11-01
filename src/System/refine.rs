@@ -11,12 +11,16 @@ use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
 use std::fmt;
 
+/// The result of a refinement check. [RefinementFailure] specifies the failure.
 #[allow(clippy::large_enum_variant)] //TODO: consider boxing the large fields to reduce the total size of the enum
 pub enum RefinementResult {
     Success,
     Failure(RefinementFailure),
 }
 
+/// The failure of a refinement check. Variants with [StatePair] include the
+/// state that caused the failure. Variants with [LocationID] include the
+/// locations that caused failure.
 #[derive(Debug)]
 pub enum RefinementFailure {
     NotDisjointAndNotSubset,
@@ -31,7 +35,7 @@ pub enum RefinementFailure {
     ConsistencyFailure(Option<LocationID>),
     DeterminismFailure(Option<LocationID>),
 }
-pub enum StatePairResult {
+enum StatePairResult {
     Valid,
     EmptyTransition2s,
     NotEmptyResult,
@@ -108,6 +112,7 @@ impl<'a> RefinementContext<'a> {
     }
 }
 
+/// Checks if sys1 refines sys2
 pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) -> RefinementResult {
     let mut context = RefinementContext::new(&sys1, &sys2);
     let dimensions = sys1.get_dim();
@@ -388,7 +393,6 @@ fn has_valid_state_pairs(
 
     match res {
         BuildResult::Success => StatePairResult::Valid,
-        //TODO: Should we do something with this?
         BuildResult::Failure => StatePairResult::CutsDelaySolutions,
     }
 }
@@ -557,7 +561,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
         PrecheckResult::NotConsistent(failure) => {
             warn!("Refinement failed - sys1 is inconsistent");
             match failure {
-                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
                     return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None))
                 }
                 ConsistencyFailure::NotConsistentFrom(location)
@@ -580,7 +584,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
         PrecheckResult::NotConsistent(failure) => {
             warn!("Refinement failed - sys2 is inconsistent");
             match failure {
-                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
                     return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None))
                 }
                 ConsistencyFailure::NotConsistentFrom(location)
