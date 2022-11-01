@@ -1,4 +1,4 @@
-enum ReturnType{
+pub enum ReturnType{
     QueryRequest,
     ThreadPoolFuture,
 }

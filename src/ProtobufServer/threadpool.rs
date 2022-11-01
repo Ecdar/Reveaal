@@ -8,7 +8,7 @@ use tonic::Status;
 
 use crate::DataReader::component_loader::ModelCache;
 use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
-
+use crate::ProtobufServer::enum_function_return_type::ReturnType;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
 type ThreadPoolResponse = Result<QueryResponse, Status>;
@@ -35,13 +35,15 @@ impl ThreadPool {
                 let thread_receiver = receiver.clone();
                 let thread_cache = cache.clone();
                 thread::spawn(move || {
-                    for mut context in thread_receiver {
-                        let query_response = ConcreteEcdarBackend::handle_send_query(
-                            context.query_request,
-                            thread_cache.clone(),
-                        );
-                        context.future.complete(query_response);
-                    }
+
+                    // for mut context in thread_receiver {
+                    //     let query_response = ConcreteEcdarBackend::handle_send_query(
+                    //         context.query_request,
+                    //         thread_cache.clone(),
+                    //     );
+                    //     context.future.complete(query_response);
+                    // }
+                        
                 })
             })
             .collect();
