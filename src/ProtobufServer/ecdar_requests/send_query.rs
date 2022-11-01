@@ -306,7 +306,6 @@ fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
         for constraint in conjunction.constraints.iter() {
             constraints.push(ProtobufConstraint {
                 x: Some(ProtobufComponentClock {
-                    //TODO: I dont know how to get this info :)
                     specific_component: None,
                     clock_name: constraint.i.to_string(),
                 }),
