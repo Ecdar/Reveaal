@@ -1,5 +1,6 @@
 mod ecdar_backend;
 mod ecdar_requests;
+mod enum_function_return_type;
 mod server;
 mod threadpool;
 
