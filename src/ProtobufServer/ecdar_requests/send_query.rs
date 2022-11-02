@@ -282,7 +282,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
     }
 }
 
-/// CAREFUL: sets specific_component to non
+/// CAREFUL: sets specific_component to None
 fn make_location_vec(
     locations1: &TransitionSystems::LocationTuple,
     locations2: &TransitionSystems::LocationTuple,
@@ -300,7 +300,7 @@ fn make_location_vec(
     loc_vec
 }
 
-/// CAREFUL: sets specific_component to non for constrain variable
+/// CAREFUL: sets specific_component to None for constrain variable
 fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
     let mut conjunctions: Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter() {
