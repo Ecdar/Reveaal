@@ -300,7 +300,7 @@ fn make_location_vec(
     loc_vec
 }
 
-/// CAREFUL: sets specific_component to None for constrain variable
+/// CAREFUL: sets specific_component to None for ComponentClocks
 fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
     let mut conjunctions: Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter() {
