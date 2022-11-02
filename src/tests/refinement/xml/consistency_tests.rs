@@ -6,7 +6,7 @@ mod test {
 
     static PATH: &str = "samples/xml/ConsTests.xml";
 
-    fn helper(a: QueryResult) -> bool {
+    fn convert_to_bool(a: QueryResult) -> bool {
         if let QueryResult::Consistency(ConsistencyResult::Success) = a {
             return true;
         }
@@ -18,7 +18,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G1");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -28,7 +28,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G2");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -39,7 +39,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G3");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -50,7 +50,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G4");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -61,7 +61,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G5");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -72,7 +72,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G6");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -83,7 +83,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G7");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -94,7 +94,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G8");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -105,7 +105,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G9");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -116,7 +116,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G10");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -127,7 +127,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G11");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -138,7 +138,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G12");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -149,7 +149,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G13");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -160,7 +160,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G14");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -171,7 +171,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G15");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -182,7 +182,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G16");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -193,7 +193,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G17");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -204,7 +204,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G18");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -215,7 +215,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G19");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(!helper(result));
+            assert!(!convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -226,7 +226,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G20");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
@@ -237,7 +237,7 @@ mod test {
         let result = xml_run_query(PATH, "consistency: G21");
 
         if let QueryResult::Consistency(_) = &result {
-            assert!(helper(result));
+            assert!(convert_to_bool(result));
         } else {
             panic!("Not consistency check");
         }
