@@ -79,7 +79,18 @@ pub fn check_refinement_failure(PATH: &str, QUERY: &str, EXPECTEDFAIL: Refinemen
 }
 
 pub fn check_determinism_failure(PATH: &str, QUERY: &str, EXPECTEDFAIL: RefinementFailure)-> bool{
-    if let QueryResult::Refinement(RefinementResult::Failure(EXPECTEDFAIL)) = json_run_query(PATH, QUERY){
+    let temp = json_run_query(PATH, QUERY);
+    if let QueryResult::Determinism(EXPECTEDFAIL) = temp {
+        true
+    } else{
+        false
+    }
+}
+
+pub fn check_query_failure(PATH: &str, QUERY: &str, EXPECTEDFAIL: QueryResult)-> bool{
+    let temp = json_run_query(PATH, QUERY);
+    
+    if let EXPECTEDFAIL = temp {
         true
     } else{
         false

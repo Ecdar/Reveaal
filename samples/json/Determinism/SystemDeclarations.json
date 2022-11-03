@@ -1,4 +1,4 @@
 {
   "name": "System Declarations",
-  "declarations": "system NonDeterminismCom;\n"
+  "declarations": "system NonDeterminismCom, Component2;\n"
 }
