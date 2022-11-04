@@ -1,5 +1,5 @@
 {
-  "name": "Component2",
+  "name": "Component4",
   "declarations": "",
   "locations": [
     {
@@ -8,9 +8,9 @@
       "invariant": "",
       "type": "INITIAL",
       "urgency": "NORMAL",
-      "x": 165.0,
-      "y": 290.0,
-      "color": "4",
+      "x": 225.0,
+      "y": 300.0,
+      "color": "1",
       "nicknameX": 30.0,
       "nicknameY": -10.0,
       "invariantX": 30.0,
@@ -22,23 +22,9 @@
       "invariant": "",
       "type": "NORMAL",
       "urgency": "NORMAL",
-      "x": 270.00001,
-      "y": 231.33333333333331,
-      "color": "4",
-      "nicknameX": 30.0,
-      "nicknameY": -10.0,
-      "invariantX": 30.0,
-      "invariantY": 10.0
-    },
-    {
-      "id": "L2",
-      "nickname": "",
-      "invariant": "",
-      "type": "NORMAL",
-      "urgency": "NORMAL",
-      "x": 270.00001,
-      "y": 309.5833333333333,
-      "color": "4",
+      "x": 400.00001,
+      "y": 360.0,
+      "color": "1",
       "nicknameX": 30.0,
       "nicknameY": -10.0,
       "invariantX": 30.0,
@@ -50,38 +36,17 @@
       "id": "E0",
       "group": "",
       "sourceLocation": "L0",
-      "targetLocation": "L2",
-      "status": "INPUT",
-      "select": "",
-      "guard": "",
-      "update": "",
-      "sync": "1",
-      "isLocked": false,
-      "nails": [
-        {
-          "x": 186.0,
-          "y": 311.91666666666663,
-          "propertyType": "SYNCHRONIZATION",
-          "propertyX": 10.0,
-          "propertyY": 0.0
-        }
-      ]
-    },
-    {
-      "id": "E1",
-      "group": "",
-      "sourceLocation": "L0",
       "targetLocation": "L1",
       "status": "INPUT",
       "select": "",
       "guard": "",
       "update": "",
-      "sync": "2",
+      "sync": "blue",
       "isLocked": false,
       "nails": [
         {
-          "x": 188.33333333333331,
-          "y": 254.24999999999997,
+          "x": 310.0,
+          "y": 330.0,
           "propertyType": "SYNCHRONIZATION",
           "propertyX": 10.0,
           "propertyY": 0.0
@@ -94,6 +59,6 @@
   "y": 43.0,
   "width": 450.0,
   "height": 600.0,
-  "color": "4",
+  "color": "1",
   "includeInPeriodicCheck": true
 }

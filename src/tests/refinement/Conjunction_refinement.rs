@@ -3,13 +3,7 @@ mod test {
     use crate::ProtobufServer::services::query_response::query_ok::RefinementResult;
     use crate::System::executable_query::QueryResult;
     use crate::{
-        tests::refinement::Helper::json_refinement_check, 
-        ModelObjects::statepair::StatePair,
-        tests::refinement::Helper::check_refinement_failure
-    };
-    use crate::{
-        tests::refinement::Helper::json_run_query, System::refine::RefinementFailure,
-        System::refine::RefinementResult as RefinementResultFromRefine,
+        tests::refinement::Helper::json_refinement_check, ModelObjects::statepair::StatePair,
     };
 
     static PATH: &str = "samples/json/Conjunction";
@@ -69,24 +63,6 @@ mod test {
             PATH,
             "refinement: Test1 && Test2 && Test4 <= Test5"
         ));
-    }
-
-    #[test]
-    fn T1ConjT2ConjT4RefinesT5Test1() {
-        if let QueryResult::Refinement(RefinementResultFromRefine::Failure(
-            RefinementFailure::NotDisjoint,
-        )) = json_run_query(PATH, "refinement: Test1 && Test2")
-        {
-            assert!(true);
-        } else {
-            assert!(false);
-        }
-    }
-
-    #[test]
-    fn tet(){
-        assert!(check_refinement_failure(PATH, "refinement: Test1 && Test2", RefinementFailure::NotDisjoint));
-
     }
 
     #[test]
