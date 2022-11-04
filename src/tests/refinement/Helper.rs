@@ -4,7 +4,7 @@ use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
-use crate::System::refine::{RefinementResult};
+use crate::System::refine::RefinementResult;
 
 fn try_setup_logging() {
     #[cfg(feature = "logging")]
