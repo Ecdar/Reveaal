@@ -75,6 +75,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         Some(LocationTuple::compose(&l, &r, self.get_composition_type()))
     }
 
+    /// Returns the declarations of both children.
     fn get_decls(&self) -> Vec<&Declarations> {
         let (left, right) = self.get_children();
 
@@ -152,5 +153,12 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn get_composition_type(&self) -> CompositionType {
         self.get_composition_type()
+    }
+
+    fn get_all_transitions(&self) -> Vec<&Transition> {
+        let (left, right) = self.get_children();
+        let mut transitions = (*left).get_all_transitions().clone();
+        transitions.extend((*right).get_all_transitions().clone());
+        transitions
     }
 }

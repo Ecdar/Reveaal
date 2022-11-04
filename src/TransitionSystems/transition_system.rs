@@ -7,6 +7,7 @@ use crate::{
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
+use crate::component::RedundantClock;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
@@ -81,6 +82,23 @@ pub trait TransitionSystem: DynClone {
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;
+
+    /// Returns all transitions in the transition system.
+    fn get_all_transitions(&self) -> Vec<&Transition>;
+
+    fn reduce_clocks(&mut self, redundant_clocks: &Vec<RedundantClock>){
+
+    }
+
+    fn replace_clock(&mut self){
+
+    }
+
+    fn remove_clock(&mut self){
+
+    }
+
+
 }
 
 clone_trait_object!(TransitionSystem);
