@@ -27,10 +27,8 @@ impl QueryResult {
         match self {
             QueryResult::Refinement(RefinementResult::Success) => satisfied(query_str),
             QueryResult::Refinement(RefinementResult::Failure(failure)) => {
-                println!(
-                    "{} -- Property is NOT satisfied\nGot failure: {}",
-                    query_str, failure
-                );
+                not_satisfied(query_str);
+                println!("\nGot failure: {}", failure);
             }
 
             QueryResult::Reachability(true, _) => satisfied(query_str),

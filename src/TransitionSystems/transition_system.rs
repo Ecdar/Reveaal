@@ -10,6 +10,7 @@ use std::collections::hash_set::HashSet;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
+/// Precheck can fail because of either consistency or determinism.
 pub enum PrecheckResult {
     Success,
     NotDeterministic(LocationID),

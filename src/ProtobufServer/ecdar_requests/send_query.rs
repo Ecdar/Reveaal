@@ -177,7 +177,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 }))
             }
             ConsistencyResult::Failure(failure) => match failure {
-                ConsistencyFailure::NoInitialState | ConsistencyFailure::EmptyInitialState => {
+                ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
                     Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
                         success: false,
                         reason: failure.to_string(),
@@ -283,6 +283,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
     }
 }
 
+/// CAREFUL: sets specific_component to None
 fn make_location_vec(
     locations1: &TransitionSystems::LocationTuple,
     locations2: &TransitionSystems::LocationTuple,
@@ -300,6 +301,7 @@ fn make_location_vec(
     loc_vec
 }
 
+/// CAREFUL: sets specific_component to None for ComponentClocks
 fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
     let mut conjunctions: Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter() {
@@ -307,7 +309,6 @@ fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
         for constraint in conjunction.constraints.iter() {
             constraints.push(ProtobufConstraint {
                 x: Some(ProtobufComponentClock {
-                    //TODO: I dont know how to get this info :)
                     specific_component: None,
                     clock_name: constraint.i.to_string(),
                 }),

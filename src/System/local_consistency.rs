@@ -6,6 +6,8 @@ use log::warn;
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::{LocationID, TransitionSystem};
 
+/// The result of a consistency check.
+/// If there was a failure, [ConsistencyFailure] will specify the failure.
 pub enum ConsistencyResult {
     Success,
     Failure(ConsistencyFailure),
@@ -19,10 +21,11 @@ impl fmt::Display for ConsistencyResult {
         }
     }
 }
-
+/// The failure of a consistency check.
+/// Variants with [LocationID] are specific locations that cause the failure.
 #[derive(Debug)]
 pub enum ConsistencyFailure {
-    NoInitialState,
+    NoInitialLocation,
     EmptyInitialState,
     NotConsistentFrom(LocationID),
     NotDeterministicFrom(LocationID),
@@ -31,7 +34,7 @@ pub enum ConsistencyFailure {
 impl fmt::Display for ConsistencyFailure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ConsistencyFailure::NoInitialState => write!(f, "No Initial State"),
+            ConsistencyFailure::NoInitialLocation => write!(f, "No Initial State"),
             ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
             ConsistencyFailure::NotConsistentFrom(location) => {
                 write!(f, "Not Consistent From {}", location)
@@ -42,6 +45,9 @@ impl fmt::Display for ConsistencyFailure {
         }
     }
 }
+
+/// The result of a determinism check.
+/// Failure includes the [LocationID].
 pub enum DeterminismResult {
     Success,
     Failure(LocationID),
@@ -58,10 +64,10 @@ impl fmt::Display for DeterminismResult {
     }
 }
 
-//Local consistency check WITH pruning
+///Local consistency check WITH pruning.
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location() == None {
-        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialState);
+        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialLocation);
         //TODO: figure out whether we want empty TS to be consistent
     }
 
@@ -76,6 +82,7 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     consistency_least_helper(state, &mut passed, system)
 }
 
+///Checks if a [TransitionSystem] is deterministic.
 pub fn is_deterministic(system: &dyn TransitionSystem) -> DeterminismResult {
     if system.get_initial_location() == None {
         return DeterminismResult::Success;
@@ -133,7 +140,7 @@ fn is_deterministic_helper(
 #[allow(dead_code)]
 pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location() == None {
-        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialState);
+        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialLocation);
     }
 
     let mut passed = vec![];
@@ -227,9 +234,7 @@ fn consistency_fully_helper(
                 if let ConsistencyResult::Failure(failure) =
                     consistency_fully_helper(new_state, passed_list, system)
                 {
-                    return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                        state.get_location().id.clone(),
-                    ));
+                    return ConsistencyResult::Failure(failure);
                 }
             }
         }
