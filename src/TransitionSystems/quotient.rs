@@ -436,6 +436,10 @@ impl TransitionSystem for Quotient {
     fn get_dim(&self) -> ClockIndex {
         self.dim
     }
+
+    fn get_all_transitions(&self) -> Vec<&Transition> {
+        todo!()
+    }
 }
 
 fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {

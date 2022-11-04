@@ -83,6 +83,23 @@ pub trait TransitionSystem: DynClone {
 
     fn get_composition_type(&self) -> CompositionType;
 
+    /// Returns all transitions in the transition system.
+    fn get_all_transitions(&self) -> Vec<&Transition>;
+
+    fn reduce_clocks(&mut self, redundant_clocks: &Vec<RedundantClock>){
+
+    }
+
+    fn replace_clock(&mut self){
+
+    }
+
+    fn remove_clock(&mut self){
+
+    }
+
+
+
     fn find_redundant_clocks(&self) -> Vec<RedundantClock>{
         let mut out: Vec<RedundantClock> = vec![];
 
@@ -92,6 +109,5 @@ pub trait TransitionSystem: DynClone {
         out
     }
 }
-
 
 clone_trait_object!(TransitionSystem);
