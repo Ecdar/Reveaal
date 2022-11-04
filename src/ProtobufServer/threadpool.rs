@@ -1,14 +1,12 @@
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures::Future;
 use num_cpus;
-use tonic::codegen::http::status;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
-use tonic::Status;
 
 use crate::DataReader::component_loader::ModelCache;
-use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
+use crate::ProtobufServer::services::QueryRequest;
 use crate::ProtobufServer::enum_function_return_type::ReturnType;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
@@ -17,6 +15,7 @@ use crate::ProtobufServer::ConcreteEcdarBackend;
 pub struct ThreadPool {
     sender: Option<Sender<Context>>,
     threads: Vec<JoinHandle<()>>,
+    cache: ModelCache,
 }
 
 impl ThreadPool {
@@ -32,17 +31,11 @@ impl ThreadPool {
         let threads = (0..num_threads)
             .map(|_| {
                 let thread_receiver = receiver.clone();
-                let thread_cache = cache.clone();
                 thread::spawn(move || {
-
                     for mut context in thread_receiver {
-                    //     let query_response = ConcreteEcdarBackend::handle_send_query(
-                    //         context.query_request,
-                    //         thread_cache.clone(),
-                    //     );
+                  
                         context.future.complete((context.function)());
                     }
-                        
                 })
             })
             .collect();
@@ -50,7 +43,19 @@ impl ThreadPool {
         ThreadPool {
             sender: Some(sender),
             threads,
+            cache
         }
+    }
+
+    pub fn enqueue_query(&self, query_request: QueryRequest) -> ThreadPoolFuture{
+        let cache = self.cache.clone();
+        self.enqueue(move || {
+            let query_response = ConcreteEcdarBackend::handle_send_query(
+                query_request,
+                cache,
+            );
+            ReturnType::QueryResponse(query_response)
+        })
     }
 
     /// Enqueue a query request. Returns a future that can be awaited to get a `QueryResponse`.
@@ -58,11 +63,11 @@ impl ThreadPool {
     /// # Arguments
     ///
     /// * `query_request` - the query request to enqueue.
-    pub fn enqueue(&self, function: fn()->ReturnType) -> ThreadPoolFuture {
+    pub fn enqueue<F : (FnOnce() -> ReturnType) + Send + 'static>(&self, function: F) -> ThreadPoolFuture {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),
-            function,
+            function: Box::new(function),
         };
         self.sender.as_ref().unwrap().send(context).unwrap();
         future
@@ -122,5 +127,5 @@ impl Future for ThreadPoolFuture {
 
 struct Context {
     future: ThreadPoolFuture,
-    function: fn() -> ReturnType,
+    function: Box<dyn FnOnce() -> ReturnType + Send + 'static>,
 }
