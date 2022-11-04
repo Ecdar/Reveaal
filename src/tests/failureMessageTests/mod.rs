@@ -1,4 +1,4 @@
-pub mod Consistency_test;
-pub mod Determinism_test;
-pub mod Refinement_enum_returns_correct_error_test;
+pub mod consistency_test;
+pub mod determinism_test;
+pub mod refinement_enum_returns_correct_error_test;
 //pub mod tests::refinement::Helper;
