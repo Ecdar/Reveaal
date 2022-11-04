@@ -1,15 +1,10 @@
-use std::cell::Ref;
-use std::result;
-
-use generic_array::typenum::True;
-
 use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
-use crate::System::refine::{RefinementFailure, RefinementResult};
+use crate::System::refine::{RefinementResult};
 
 fn try_setup_logging() {
     #[cfg(feature = "logging")]

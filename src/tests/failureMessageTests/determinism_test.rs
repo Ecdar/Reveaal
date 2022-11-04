@@ -11,9 +11,9 @@ mod test {
 
     #[test]
     fn determinism_failure_test() {
+        let temp = json_run_query(PATH, "determinism: NonDeterminismCom"); 
         assert!(
-            if let QueryResult::Determinism(DeterminismResult::Failure(LocationID::Simple(_))) =
-                json_run_query(PATH, "determinism: NonDeterminismCom")
+            if let QueryResult::Determinism(DeterminismResult::Failure(LocationID::Simple(_))) = temp
             {
                 true
             } else {
@@ -24,13 +24,13 @@ mod test {
 
     #[test]
     fn determinism_failure_in_refinemnet_test() {
-        assert!(if let QueryResult::Refinement(RefinementResult::Failure(
-            RefinementFailure::DeterminismFailure(Some(_)),
-        )) = json_run_query(PATH, "refinement: NonDeterminismCom <= Component2")
-        {
-            true
-        } else {
-            false
-        });
+        let temp  = json_run_query(PATH, "refinement: NonDeterminismCom <= Component2");
+        assert!(if let QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::DeterminismFailure(Some(_)),)) = temp
+            {
+                true
+            } else {
+                false
+            }
+        );
     }
 }

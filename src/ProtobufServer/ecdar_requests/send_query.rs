@@ -23,7 +23,6 @@ use crate::ProtobufServer::services::{
     QueryResponse, State,
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
-use crate::System;
 use crate::System::executable_query::QueryResult;
 use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
 use crate::System::refine::{self, RefinementFailure};
