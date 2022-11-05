@@ -10,7 +10,7 @@ mod test {
     static PATH: &str = "samples/json/ConsistencyTest";
 
     #[test]
-    fn not_consist_test() {
+    fn not_consistent_test() {
         let temp = json_run_query(PATH, "consistency: notConsistent");
 
         assert!(if let QueryResult::Consistency(ConsistencyResult::Failure(
