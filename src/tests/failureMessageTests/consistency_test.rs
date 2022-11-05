@@ -13,13 +13,11 @@ mod test {
     fn not_consist_test() {
         let temp = json_run_query(PATH, "consistency: notConsistent");
 
-        assert!(if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotConsistentFrom(_),
-        )) = temp
-        {
-            true
-        } else {
-            false
-        });
+        assert!(
+            if let QueryResult::Consistency(ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(_),)) = temp
+                true
+            else
+                false
+        );
     }
 }
