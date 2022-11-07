@@ -4,16 +4,19 @@ use num_cpus;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
+use tonic::Status;
 
 use crate::DataReader::component_loader::ModelCache;
-use crate::ProtobufServer::enum_function_return_type::ReturnType;
-use crate::ProtobufServer::services::QueryRequest;
+use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
 use crate::ProtobufServer::ConcreteEcdarBackend;
+
+type ThreadPoolFunction = Box<dyn FnOnce() + Send + 'static>;
+type EnqueueableFunction<T> = Box<dyn FnOnce() -> T + Send + 'static>;
 
 /// A construct that uses a fixed amount of threads to do work in parallel.
 #[derive(Debug)]
 pub struct ThreadPool {
-    sender: Option<Sender<Context>>,
+    sender: Option<Sender<ThreadPoolFunction>>,
     threads: Vec<JoinHandle<()>>,
     cache: ModelCache,
 }
@@ -25,15 +28,16 @@ impl ThreadPool {
     ///
     /// * `num_threads` - The amount of threads in the thread pool.
     pub fn new(num_threads: usize) -> Self {
-        let (sender, receiver): (Sender<Context>, Receiver<Context>) = unbounded();
+        let (sender, receiver): (Sender<ThreadPoolFunction>, Receiver<ThreadPoolFunction>) =
+            unbounded();
         let cache = ModelCache::default();
 
         let threads = (0..num_threads)
             .map(|_| {
                 let thread_receiver = receiver.clone();
                 thread::spawn(move || {
-                    for mut context in thread_receiver {
-                        context.future.complete((context.function)());
+                    for func in thread_receiver {
+                        func();
                     }
                 })
             })
@@ -46,30 +50,35 @@ impl ThreadPool {
         }
     }
 
-    pub fn enqueue_query(&self, query_request: QueryRequest) -> ThreadPoolFuture {
+    pub fn enqueue_query(
+        &self,
+        query_request: QueryRequest,
+    ) -> ThreadPoolFuture<Result<QueryResponse, Status>> {
         let cache = self.cache.clone();
-        self.enqueue(move || {
-            let query_response = ConcreteEcdarBackend::handle_send_query(query_request, cache);
-            ReturnType::QueryResponse(query_response)
-        })
+        self.enqueue(Box::new(move || {
+            ConcreteEcdarBackend::handle_send_query(query_request, cache)
+        }))
     }
 
-    /// Enqueue a query request. Returns a future that can be awaited to get a `QueryResponse`.
+    /// Enqueue a function.
+    /// The function will be executed on the threadpool and the returned value from the function
+    /// will be available in the future this function returns.
     ///
     /// # Arguments
     ///
-    /// * `query_request` - the query request to enqueue.
-    pub fn enqueue<F: (FnOnce() -> ReturnType) + Send + 'static>(
+    /// * `function` - The function to execute on the threadpool.
+    pub fn enqueue<T: Clone + Send + 'static>(
         &self,
-        function: F,
-    ) -> ThreadPoolFuture {
-        let future = ThreadPoolFuture::default();
-        let context = Context {
-            future: future.clone(),
-            function: Box::new(function),
-        };
-        self.sender.as_ref().unwrap().send(context).unwrap();
-        future
+        function: EnqueueableFunction<T>,
+    ) -> ThreadPoolFuture<T> {
+        let mut thread_future = ThreadPoolFuture::default();
+        let return_future = thread_future.clone();
+        self.sender
+            .as_ref()
+            .unwrap()
+            .send(Box::new(move || thread_future.complete(function())))
+            .unwrap();
+        return_future
     }
 }
 
@@ -93,16 +102,15 @@ impl Drop for ThreadPool {
     }
 }
 
-/// A future that can be completed from another thread.
-/// It returns a `QueryResponse`.
-#[derive(Default, Debug, Clone)]
-pub struct ThreadPoolFuture {
-    result: Arc<Mutex<Option<ReturnType>>>,
+/// A generic future that can be completed from another thread.
+#[derive(Clone, Debug)]
+pub struct ThreadPoolFuture<T: Send + Clone> {
+    result: Arc<Mutex<Option<T>>>,
     waker: Arc<Mutex<Option<Waker>>>,
 }
 
-impl ThreadPoolFuture {
-    fn complete(&mut self, return_type: ReturnType) {
+impl<T: Send + Clone> ThreadPoolFuture<T> {
+    fn complete(&mut self, return_type: T) {
         *self.result.lock().unwrap() = Some(return_type);
         let waker = self.waker.lock().unwrap();
 
@@ -112,8 +120,8 @@ impl ThreadPoolFuture {
     }
 }
 
-impl Future for ThreadPoolFuture {
-    type Output = ReturnType;
+impl<T: Send + Clone> Future for ThreadPoolFuture<T> {
+    type Output = T;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let mut waker = self.waker.lock().unwrap();
@@ -124,7 +132,11 @@ impl Future for ThreadPoolFuture {
     }
 }
 
-struct Context {
-    future: ThreadPoolFuture,
-    function: Box<dyn FnOnce() -> ReturnType + Send + 'static>,
+impl<T: Send + Clone> Default for ThreadPoolFuture<T> {
+    fn default() -> Self {
+        ThreadPoolFuture {
+            result: Arc::new(Mutex::new(None)),
+            waker: Arc::new(Mutex::new(None)),
+        }
+    }
 }

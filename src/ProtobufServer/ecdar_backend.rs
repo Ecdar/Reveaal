@@ -1,4 +1,3 @@
-use crate::ProtobufServer::enum_function_return_type::ReturnType;
 use crate::ProtobufServer::services::ecdar_backend_server::EcdarBackend;
 
 use crate::ProtobufServer::services::{
@@ -52,11 +51,8 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        let res = self.thread_pool.enqueue_query(request.into_inner()).await;
-
-        match res {
-            ReturnType::QueryResponse(t) => t.map(Response::new),
-        }
+        let response = self.thread_pool.enqueue_query(request.into_inner()).await;
+        response.map(Response::new)
     }
 
     async fn start_simulation(
