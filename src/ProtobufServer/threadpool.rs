@@ -4,11 +4,6 @@ use num_cpus;
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
-use tonic::Status;
-
-use crate::DataReader::component_loader::ModelCache;
-use crate::ProtobufServer::services::{QueryRequest, QueryResponse};
-use crate::ProtobufServer::ConcreteEcdarBackend;
 
 type ThreadPoolFunction = Box<dyn FnOnce() + Send + 'static>;
 type EnqueueableFunction<T> = Box<dyn FnOnce() -> T + Send + 'static>;
@@ -18,7 +13,6 @@ type EnqueueableFunction<T> = Box<dyn FnOnce() -> T + Send + 'static>;
 pub struct ThreadPool {
     sender: Option<Sender<ThreadPoolFunction>>,
     threads: Vec<JoinHandle<()>>,
-    cache: ModelCache,
 }
 
 impl ThreadPool {
@@ -30,7 +24,6 @@ impl ThreadPool {
     pub fn new(num_threads: usize) -> Self {
         let (sender, receiver): (Sender<ThreadPoolFunction>, Receiver<ThreadPoolFunction>) =
             unbounded();
-        let cache = ModelCache::default();
 
         let threads = (0..num_threads)
             .map(|_| {
@@ -46,18 +39,7 @@ impl ThreadPool {
         ThreadPool {
             sender: Some(sender),
             threads,
-            cache,
         }
-    }
-
-    pub fn enqueue_query(
-        &self,
-        query_request: QueryRequest,
-    ) -> ThreadPoolFuture<Result<QueryResponse, Status>> {
-        let cache = self.cache.clone();
-        self.enqueue(Box::new(move || {
-            ConcreteEcdarBackend::handle_send_query(query_request, cache)
-        }))
     }
 
     /// Enqueue a function.
