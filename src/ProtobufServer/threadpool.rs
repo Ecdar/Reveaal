@@ -49,7 +49,7 @@ impl ThreadPool {
     /// # Arguments
     ///
     /// * `function` - The function to execute on the threadpool.
-    pub fn enqueue<T: Clone + Send + 'static>(
+    pub fn enqueue<T: Send + 'static>(
         &self,
         function: EnqueueableFunction<T>,
     ) -> ThreadPoolFuture<T> {
@@ -85,13 +85,13 @@ impl Drop for ThreadPool {
 }
 
 /// A generic future that can be completed from another thread.
-#[derive(Clone, Debug)]
-pub struct ThreadPoolFuture<T: Send + Clone> {
+#[derive(Debug)]
+pub struct ThreadPoolFuture<T: Send> {
     result: Arc<Mutex<Option<T>>>,
     waker: Arc<Mutex<Option<Waker>>>,
 }
 
-impl<T: Send + Clone> ThreadPoolFuture<T> {
+impl<T: Send> ThreadPoolFuture<T> {
     fn complete(&mut self, return_type: T) {
         *self.result.lock().unwrap() = Some(return_type);
         let waker = self.waker.lock().unwrap();
@@ -102,23 +102,32 @@ impl<T: Send + Clone> ThreadPoolFuture<T> {
     }
 }
 
-impl<T: Send + Clone> Future for ThreadPoolFuture<T> {
+impl<T: Send> Future for ThreadPoolFuture<T> {
     type Output = T;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let mut waker = self.waker.lock().unwrap();
         *waker = Some(cx.waker().clone());
-        let result = self.result.lock().unwrap();
-        let result = result.clone();
+        let mut result = self.result.lock().unwrap();
+        let result = result.take();
         result.map_or(Poll::Pending, Poll::Ready)
     }
 }
 
-impl<T: Send + Clone> Default for ThreadPoolFuture<T> {
+impl<T: Send> Default for ThreadPoolFuture<T> {
     fn default() -> Self {
         ThreadPoolFuture {
             result: Arc::new(Mutex::new(None)),
             waker: Arc::new(Mutex::new(None)),
+        }
+    }
+}
+
+impl<T: Send> Clone for ThreadPoolFuture<T> {
+    fn clone(&self) -> Self {
+        ThreadPoolFuture {
+            result: Arc::clone(&self.result),
+            waker: Arc::clone(&self.waker),
         }
     }
 }
