@@ -5,7 +5,6 @@ pub mod util {
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
-    use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
     use crate::System::refine;
     use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;

@@ -1,10 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::ProtobufServer::services::query_response::query_ok::RefinementResult;
-    use crate::System::executable_query::QueryResult;
-    use crate::{
-        tests::refinement::Helper::json_refinement_check, ModelObjects::statepair::StatePair,
-    };
+    use crate::tests::refinement::Helper::json_refinement_check;
 
     static PATH: &str = "samples/json/Conjunction";
 
