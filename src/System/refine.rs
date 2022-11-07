@@ -55,10 +55,20 @@ impl fmt::Display for RefinementFailure {
             RefinementFailure::EmptyTransition2s(_) => write!(f, "Empty Transition2s"),
             RefinementFailure::NotEmptyResult(_) => write!(f, "Not Empty Result on State Pair"),
             RefinementFailure::ConsistencyFailure(location, action) => {
-                write!(f, "Not Consistent From {} failing action {}", location.as_ref().unwrap(), action.as_ref().unwrap())
+                write!(
+                    f,
+                    "Not Consistent From {} failing action {}",
+                    location.as_ref().unwrap(),
+                    action.as_ref().unwrap()
+                )
             }
-            RefinementFailure::DeterminismFailure(location, action ) => {
-                write!(f, "Not Deterministic From {}", location.as_ref().unwrap())
+            RefinementFailure::DeterminismFailure(location, action) => {
+                write!(
+                    f,
+                    "Not Deterministic From {} failing action {}",
+                    location.as_ref().unwrap(),
+                    action.as_ref().unwrap()
+                )
             }
         }
     }
@@ -554,18 +564,24 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
         PrecheckResult::Success => {}
         PrecheckResult::NotDeterministic(location, action) => {
             warn!("Refinement failed - sys1 is not deterministic");
-            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(Some(location), Some(action)));
+            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(
+                Some(location),
+                Some(action),
+            ));
         }
         PrecheckResult::NotConsistent(failure) => {
             warn!("Refinement failed - sys1 is inconsistent");
             match failure {
                 ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
-                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None, None))
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(
+                        None, None,
+                    ))
                 }
                 ConsistencyFailure::NotConsistentFrom(location, action)
                 | ConsistencyFailure::NotDeterministicFrom(location, action) => {
-                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(Some(
-                        location), Some(action),
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(
+                        Some(location),
+                        Some(action),
                     ))
                 }
             }
@@ -575,18 +591,24 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
         PrecheckResult::Success => {}
         PrecheckResult::NotDeterministic(location, action) => {
             warn!("Refinement failed - sys2 is not deterministic");
-            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(Some(location), Some(action)));
+            return RefinementResult::Failure(RefinementFailure::DeterminismFailure(
+                Some(location),
+                Some(action),
+            ));
         }
         PrecheckResult::NotConsistent(failure) => {
             warn!("Refinement failed - sys2 is inconsistent");
             match failure {
                 ConsistencyFailure::NoInitialLocation | ConsistencyFailure::EmptyInitialState => {
-                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(None, None))
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(
+                        None, None,
+                    ))
                 }
                 ConsistencyFailure::NotConsistentFrom(location, action)
                 | ConsistencyFailure::NotDeterministicFrom(location, action) => {
-                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(Some(
-                        location), Some(action),
+                    return RefinementResult::Failure(RefinementFailure::ConsistencyFailure(
+                        Some(location),
+                        Some(action),
                     ))
                 }
             }

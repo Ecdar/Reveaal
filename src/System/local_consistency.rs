@@ -37,10 +37,18 @@ impl fmt::Display for ConsistencyFailure {
             ConsistencyFailure::NoInitialLocation => write!(f, "No Initial State"),
             ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
             ConsistencyFailure::NotConsistentFrom(location, action) => {
-                write!(f, "Not Consistent From {} Failing action {}", location, action)
+                write!(
+                    f,
+                    "Not Consistent From {} Failing action {}",
+                    location, action
+                )
             }
             ConsistencyFailure::NotDeterministicFrom(location, action) => {
-                write!(f, "Not Deterministic From {} Failing action {}", location, action)
+                write!(
+                    f,
+                    "Not Deterministic From {} Failing action {}",
+                    location, action
+                )
             }
         }
     }
@@ -50,15 +58,19 @@ impl fmt::Display for ConsistencyFailure {
 /// Failure includes the [LocationID].
 pub enum DeterminismResult {
     Success,
-    Failure(LocationID, String), 
-} 
+    Failure(LocationID, String),
+}
 
 impl fmt::Display for DeterminismResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             DeterminismResult::Success => write!(f, "Success"),
             DeterminismResult::Failure(location, action) => {
-                write!(f, "Not Deterministic From {} failing action {}", location, action)
+                write!(
+                    f,
+                    "Not Deterministic From {} failing action {}",
+                    location, action
+                )
             }
         }
     }
@@ -189,7 +201,7 @@ pub fn consistency_least_helper(
                     );
                     return ConsistencyResult::Failure(failure);
                 }
-            } else{
+            } else {
                 failing_action = input.clone();
             }
         }
@@ -214,7 +226,6 @@ pub fn consistency_least_helper(
             }
         }
     }
-    warn!("failing action {}", failing_action);
     warn!("No saving outputs from {}", state.get_location().id);
     ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
         state.get_location().id.clone(),
@@ -248,7 +259,7 @@ fn consistency_fully_helper(
                 {
                     return ConsistencyResult::Failure(failure);
                 }
-            } else{
+            } else {
                 failing_action = input.clone();
             }
         }
@@ -271,12 +282,11 @@ fn consistency_fully_helper(
                 {
                     return ConsistencyResult::Failure(failure);
                 }
-            } else{
+            } else {
                 failing_action = output.clone();
             }
         }
     }
-    warn!("failing action {}", failing_action);
     if output_existed {
         ConsistencyResult::Success
     } else {

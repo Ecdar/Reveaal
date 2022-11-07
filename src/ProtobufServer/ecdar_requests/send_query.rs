@@ -342,8 +342,8 @@ fn value_in_location(maybe_location: &Option<LocationID>) -> String {
     }
 }
 
-fn value_in_action(maybe_action: &Option<String>) -> String{
-    match maybe_action{
+fn value_in_action(maybe_action: &Option<String>) -> String {
+    match maybe_action {
         Some(action) => action.to_string(),
         None => "".to_string(),
     }

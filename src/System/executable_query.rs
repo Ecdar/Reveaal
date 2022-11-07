@@ -125,9 +125,11 @@ impl ExecutableQuery for ConsistencyExecutor {
         let res = match self.recipe.compile(self.dim) {
             Ok(system) => match system.precheck_sys_rep() {
                 PrecheckResult::Success => QueryResult::Consistency(ConsistencyResult::Success),
-                PrecheckResult::NotDeterministic(location, action) => QueryResult::Consistency(
-                    ConsistencyResult::Failure(ConsistencyFailure::NotDeterministicFrom(location, action)),
-                ),
+                PrecheckResult::NotDeterministic(location, action) => {
+                    QueryResult::Consistency(ConsistencyResult::Failure(
+                        ConsistencyFailure::NotDeterministicFrom(location, action),
+                    ))
+                }
                 PrecheckResult::NotConsistent(failure) => {
                     QueryResult::Consistency(ConsistencyResult::Failure(failure))
                 }
