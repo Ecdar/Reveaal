@@ -37,6 +37,7 @@ pub mod test{
 
         combinedComponent.reduce_clocks(&redundantClocks);
 
-        assert_correct_edges_and_locations(combinedComponent, );
+
+        assert_correct_edges_and_locations(combinedComponent, )
     }
 }
