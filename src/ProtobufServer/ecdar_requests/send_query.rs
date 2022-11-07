@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::component::Component;
+use crate::logging::get_messages;
 use crate::xml_parser::parse_xml_from_str;
 use crate::DataReader::component_loader::ModelCache;
 use crate::DataReader::json_reader::json_to_component;
@@ -9,6 +10,7 @@ use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::services::component::Rep;
+use crate::ProtobufServer::services::query_request::Settings;
 use crate::ProtobufServer::services::query_response::query_ok::Result as ProtobufResult;
 use crate::ProtobufServer::services::query_response::query_ok::{
     ComponentResult, ConsistencyResult as ProtobufConsistencyResult,
@@ -32,6 +34,10 @@ use edbm::util::constraints::Disjunction;
 use log::trace;
 use tonic::Status;
 
+const DEFAULT_SETTINGS: Settings = Settings {
+    reduce_clocks: true,
+};
+
 impl ConcreteEcdarBackend {
     pub fn handle_send_query(
         query_request: QueryRequest,
@@ -45,6 +51,7 @@ impl ConcreteEcdarBackend {
         let mut component_container = match model_cache.get_model(components_info.components_hash) {
             Some(model) => model,
             None => {
+                /*
                 let mut parsed_components = vec![];
 
                 for proto_component in proto_components {
@@ -53,8 +60,16 @@ impl ConcreteEcdarBackend {
                         parsed_components.push(component);
                     }
                 }
-
-                let components = create_components(parsed_components);
+                 */
+                let parsed_components: Vec<Component> = proto_components
+                    .iter()
+                    .flat_map(parse_components_if_some)
+                    .flatten()
+                    .collect::<Vec<Component>>();
+                let components = create_components(
+                    parsed_components,
+                    query_request.settings.unwrap_or(DEFAULT_SETTINGS),
+                );
                 model_cache.insert_model(components_info.components_hash, Arc::new(components))
             }
         };
@@ -80,6 +95,7 @@ impl ConcreteEcdarBackend {
         let reply = QueryResponse {
             response: Some(QueryOkOrErrorResponse::QueryOk(QueryOk {
                 query_id: query_request.query_id,
+                info: get_messages(),
                 result: convert_ecdar_result(&result),
             })),
         };
@@ -127,10 +143,13 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
     comps
 }
 
-fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
+fn create_components(components: Vec<Component>, settings: Settings) -> HashMap<String, Component> {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
         trace!("Adding comp {} to container", component.get_name());
+        if settings.reduce_clocks {
+            component.reduce_clocks(component.find_redundant_clocks())
+        }
 
         component.create_edge_io_split();
         let inputs: Vec<_> = component
