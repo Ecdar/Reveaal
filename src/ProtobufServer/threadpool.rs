@@ -6,8 +6,8 @@ use std::task::{Poll, Waker};
 use std::thread::{self, JoinHandle};
 
 use crate::DataReader::component_loader::ModelCache;
-use crate::ProtobufServer::services::QueryRequest;
 use crate::ProtobufServer::enum_function_return_type::ReturnType;
+use crate::ProtobufServer::services::QueryRequest;
 use crate::ProtobufServer::ConcreteEcdarBackend;
 
 /// A construct that uses a fixed amount of threads to do work in parallel.
@@ -33,7 +33,6 @@ impl ThreadPool {
                 let thread_receiver = receiver.clone();
                 thread::spawn(move || {
                     for mut context in thread_receiver {
-                  
                         context.future.complete((context.function)());
                     }
                 })
@@ -43,17 +42,14 @@ impl ThreadPool {
         ThreadPool {
             sender: Some(sender),
             threads,
-            cache
+            cache,
         }
     }
 
-    pub fn enqueue_query(&self, query_request: QueryRequest) -> ThreadPoolFuture{
+    pub fn enqueue_query(&self, query_request: QueryRequest) -> ThreadPoolFuture {
         let cache = self.cache.clone();
         self.enqueue(move || {
-            let query_response = ConcreteEcdarBackend::handle_send_query(
-                query_request,
-                cache,
-            );
+            let query_response = ConcreteEcdarBackend::handle_send_query(query_request, cache);
             ReturnType::QueryResponse(query_response)
         })
     }
@@ -63,7 +59,10 @@ impl ThreadPool {
     /// # Arguments
     ///
     /// * `query_request` - the query request to enqueue.
-    pub fn enqueue<F : (FnOnce() -> ReturnType) + Send + 'static>(&self, function: F) -> ThreadPoolFuture {
+    pub fn enqueue<F: (FnOnce() -> ReturnType) + Send + 'static>(
+        &self,
+        function: F,
+    ) -> ThreadPoolFuture {
         let future = ThreadPoolFuture::default();
         let context = Context {
             future: future.clone(),

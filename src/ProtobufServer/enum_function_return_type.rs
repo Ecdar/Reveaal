@@ -1,8 +1,8 @@
 use tonic::Status;
 
-use crate::ProtobufServer::services::{QueryResponse,};
+use crate::ProtobufServer::services::QueryResponse;
 
 #[derive(Debug, Clone)]
-pub enum ReturnType{
+pub enum ReturnType {
     QueryResponse(Result<QueryResponse, Status>),
 }

@@ -1,8 +1,8 @@
 mod ecdar_backend;
 mod ecdar_requests;
+mod enum_function_return_type;
 mod server;
 mod threadpool;
-mod enum_function_return_type;
 
 pub mod services {
     tonic::include_proto!("ecdar_proto_buf");
