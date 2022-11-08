@@ -28,11 +28,11 @@ impl SimpleID {
     }
 
     #[allow(dead_code)] // TODO for further use in Simulation
-    fn component_id(&self) -> Option<&String> {
+    pub fn component_id(&self) -> Option<&String> {
         self.component_id.as_ref()
     }
 
-    fn location_id(&self) -> &str {
+    pub fn location_id(&self) -> &str {
         self.location_id.as_ref()
     }
 }
