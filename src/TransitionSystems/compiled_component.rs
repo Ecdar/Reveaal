@@ -194,4 +194,30 @@ impl TransitionSystem for CompiledComponent {
     fn get_dim(&self) -> ClockIndex {
         self.dim
     }
+
+    fn get_all_transitions(&self) -> Vec<&Transition> {
+        let mut transitions = vec![];
+        for (_, actions_and_transitions) in self.location_edges.iter() {
+            actions_and_transitions.iter().for_each(|x| transitions.push(&x.1));
+        }
+        transitions
+    }
+
+    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
+        match self.location_edges.get(&location){
+            None => None,
+            Some(actions_and_transitions) => match actions_and_transitions.get(transition_index) {
+                None => None,
+                Some(tuple) => Some(&tuple.1)
+            }
+        }
+    }
+
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
+        todo!()
+    }
+
+    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
+        todo!()
+    }
 }

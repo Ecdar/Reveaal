@@ -638,6 +638,7 @@ pub struct Transition {
     pub target_locations: LocationTuple,
     pub updates: Vec<CompiledUpdate>,
 }
+
 impl Transition {
     pub fn new(target_locations: &LocationTuple, dim: ClockIndex) -> Transition {
         Transition {
@@ -730,6 +731,10 @@ impl Transition {
         }
 
         fed
+    }
+
+    pub fn remove_clock(&self, clock_index: &usize) {
+        todo!()
     }
 
     // TODO: will we ever need this method?
@@ -1052,5 +1057,19 @@ impl Declarations {
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
+    }
+
+    /// Combines two [`Declarations`].
+    pub fn combine(a: &Declarations, b:&Declarations) -> Declarations{
+        Declarations{
+            ints: a.ints.clone().into_iter().chain(b.ints.clone()).collect(),
+            clocks: a.clocks.clone().into_iter().chain(b.clocks.clone()).collect(),
+        }
+    }
+
+    /// Extends `self` with `ints` and `clocks` of `other`.
+    pub fn extend(&mut self, other: &Declarations){
+        self.ints.extend(other.ints.clone());
+        self.clocks.extend(other.clocks.clone());
     }
 }
