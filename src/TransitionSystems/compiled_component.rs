@@ -202,4 +202,22 @@ impl TransitionSystem for CompiledComponent {
         }
         transitions
     }
+
+    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
+        match self.location_edges.get(&location){
+            None => None,
+            Some(actions_and_transitions) => match actions_and_transitions.get(transition_index) {
+                None => None,
+                Some(tuple) => Some(&tuple.1)
+            }
+        }
+    }
+
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
+        todo!()
+    }
+
+    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
+        todo!()
+    }
 }

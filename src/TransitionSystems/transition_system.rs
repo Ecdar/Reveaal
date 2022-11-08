@@ -7,7 +7,8 @@ use crate::{
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
-use crate::component::RedundantClock;
+use std::collections::HashMap;
+use crate::component::{ClockReductionReason, RedundantClock};
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 
@@ -86,18 +87,27 @@ pub trait TransitionSystem: DynClone {
     /// Returns all transitions in the transition system.
     fn get_all_transitions(&self) -> Vec<&Transition>;
 
-    fn reduce_clocks(&mut self, redundant_clocks: &Vec<RedundantClock>){
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>>;
+
+    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
+
+    fn reduce_clocks(&mut self, redundant_clocks: &Vec<ClockReductionContext>){
 
     }
 
-    fn replace_clock(&mut self){
+    fn replace_clock(&mut self, old_clock: &ClockReductionContext, new_clock: &String){
+        // Replace old clock in transitions.
+
+        // Replace old clock in invariants.
 
     }
 
-    fn remove_clock(&mut self){
+    fn remove_clock(&mut self, clock_updates: HashMap<usize, (LocationID, usize)>){
 
     }
 
+
+    fn get_transition(&self, location: LocationID, transition_index: usize)->Option<&Transition>;
 
 
     fn find_redundant_clocks(&self) -> Vec<RedundantClock>{
@@ -108,6 +118,19 @@ pub trait TransitionSystem: DynClone {
 
         out
     }
+}
+
+pub struct ClockReductionContext {
+    /// Name of the redundant clock.
+    clock: String,
+    /// Indices of the transitions where this clock is present. Transitions are indexed by the
+    /// [`LocationID`] of the location they originate in and the index in the `location_edges`
+    /// `HashMap`.
+    transition_indexes: Vec<(LocationID, usize)>,
+    /// The locations with invariants that contain this clock.
+    locations: LocationID,
+    /// Reason for why the clock is declared redundant.
+    reason: ClockReductionReason,
 }
 
 clone_trait_object!(TransitionSystem);

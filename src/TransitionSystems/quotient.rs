@@ -11,8 +11,9 @@ use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
+use std::collections::HashMap;
 
 use super::CompositionType;
 
@@ -438,6 +439,18 @@ impl TransitionSystem for Quotient {
     }
 
     fn get_all_transitions(&self) -> Vec<&Transition> {
+        todo!()
+    }
+
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
+        todo!()
+    }
+
+    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
+        todo!()
+    }
+
+    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
         todo!()
     }
 }

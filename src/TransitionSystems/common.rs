@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::{
@@ -11,6 +11,7 @@ use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::{ConsistencyResult, DeterminismResult},
 };
+use crate::TransitionSystems::LocationID;
 
 use super::{
     transition_system::PrecheckResult, CompositionType, LocationTuple, TransitionSystem,
@@ -160,5 +161,28 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         let mut transitions = (*left).get_all_transitions().clone();
         transitions.extend((*right).get_all_transitions().clone());
         transitions
+    }
+
+    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
+        let children = self.get_children();
+
+        let mut transition = children.0.get_transition(location.clone(), transition_index);
+
+        transition = match transition {
+            None => {children.1.get_transition(location.clone(), transition_index)}
+            Some(_) => {
+                panic!("A transition was found to belong to two transition systems")
+            }
+        };
+
+        return transition;
+    }
+
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
+        todo!()
+    }
+
+    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
+        todo!()
     }
 }
