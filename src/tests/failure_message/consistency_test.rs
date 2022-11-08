@@ -4,7 +4,7 @@ mod test {
     use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult};
     use crate::{tests::refinement::Helper::json_run_query, System::executable_query::QueryResult};
 
-    static PATH: &str = "samples/json/ConsistencyTest";
+    const PATH: &str = "samples/json/ConsistencyTest";
 
     #[test]
     fn not_consistent_test() {

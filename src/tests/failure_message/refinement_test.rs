@@ -4,7 +4,7 @@ mod test {
     use crate::System::refine::{RefinementFailure, RefinementResult};
     use crate::{tests::refinement::Helper::json_run_query, System::executable_query::QueryResult};
 
-    static PATH: &str = "samples/json/RefinementTests";
+    const PATH: &str = "samples/json/RefinementTests";
 
     #[test]
     fn not_empty_result_test() {

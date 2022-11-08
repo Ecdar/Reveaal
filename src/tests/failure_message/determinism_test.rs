@@ -7,7 +7,7 @@ mod test {
         System::local_consistency::DeterminismResult,
     };
 
-    static PATH: &str = "samples/json/Determinism";
+    const PATH: &str = "samples/json/Determinism";
 
     #[test]
     fn determinism_failure_test() {
