@@ -8,9 +8,12 @@ use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use crate::component::{ClockReductionReason, RedundantClock};
+use crate::component::{ClockReductionReason, Edge, RedundantClock};
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
+pub type Action = String;
+pub type EdgeTuple = (Action, Transition);
+pub type EdgeIndex = (LocationID, usize);
 
 /// Precheck can fail because of either consistency or determinism.
 pub enum PrecheckResult {
@@ -87,7 +90,7 @@ pub trait TransitionSystem: DynClone {
     /// Returns all transitions in the transition system.
     fn get_all_transitions(&self) -> Vec<&Transition>;
 
-    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>>;
+    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<EdgeIndex>>;
 
     fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
 
@@ -102,13 +105,14 @@ pub trait TransitionSystem: DynClone {
 
     }
 
-    fn remove_clock(&mut self, clock_updates: HashMap<usize, (LocationID, usize)>){
+    fn remove_clock(&mut self, clock_updates: HashMap<usize, EdgeIndex>){
 
     }
 
 
     fn get_transition(&self, location: LocationID, transition_index: usize)->Option<&Transition>;
 
+    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple>;
 
     fn find_redundant_clocks(&self) -> Vec<RedundantClock>{
         let mut out: Vec<RedundantClock> = vec![];

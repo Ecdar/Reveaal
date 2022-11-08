@@ -831,6 +831,12 @@ impl fmt::Display for Transition {
     }
 }
 
+impl PartialEq for Transition {
+    fn eq(&self, other: &Transition) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {

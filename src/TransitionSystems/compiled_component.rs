@@ -9,11 +9,12 @@ use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResul
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use crate::TransitionSystems::transition_system::EdgeTuple;
 
 use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 
-type Action = String;
+pub type Action = String;
 
 #[derive(Clone)]
 struct ComponentInfo {
@@ -211,6 +212,17 @@ impl TransitionSystem for CompiledComponent {
                 Some(tuple) => Some(&tuple.1)
             }
         }
+    }
+
+    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
+        for (_, edges) in &self.location_edges{
+            for edge in edges{
+                if edge.1 == *transition{
+                    return Some(edge);
+                }
+            }
+        }
+        None
     }
 
     fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
