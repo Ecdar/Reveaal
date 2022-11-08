@@ -1,6 +1,6 @@
 pub mod ClockReduction;
 pub mod ModelObjects;
-pub mod failureMessageTests;
+pub mod failure_message;
 pub mod grpc;
 pub mod reachability;
 pub mod refinement;
