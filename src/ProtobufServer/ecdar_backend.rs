@@ -19,6 +19,16 @@ pub struct ConcreteEcdarBackend {
     num: AtomicI32,
 }
 
+impl ConcreteEcdarBackend {
+    pub fn new(thread_count: usize, cache_size: usize) -> Self {
+        ConcreteEcdarBackend {
+            thread_pool: ThreadPool::new(thread_count),
+            model_cache: ModelCache::new(cache_size),
+            num: AtomicI32::new(1),
+        }
+    }
+}
+
 async fn catch_unwind<T, O>(future: T) -> Result<O, Status>
 where
     T: UnwindSafe + futures::Future<Output = Result<O, Status>>,
