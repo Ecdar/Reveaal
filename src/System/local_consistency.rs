@@ -27,7 +27,7 @@ impl fmt::Display for ConsistencyResult {
 pub enum ConsistencyFailure {
     NoInitialLocation,
     EmptyInitialState,
-    NotConsistentFrom(LocationID, String), // TODO maybe Option is wrong.
+    NotConsistentFrom(LocationID, String),
     NotDeterministicFrom(LocationID, String),
 }
 
@@ -181,7 +181,7 @@ pub fn consistency_least_helper(
     if state.decorated_locations.is_inconsistent() {
         return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
             state.get_location().id.clone(),
-            failing_action, // TODO FIX.
+            failing_action,
         ));
     }
 
