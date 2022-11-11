@@ -7,37 +7,13 @@ pub enum LocationID {
     Conjunction(Box<LocationID>, Box<LocationID>),
     Composition(Box<LocationID>, Box<LocationID>),
     Quotient(Box<LocationID>, Box<LocationID>),
+    /// Represents the potentially complete identifier of a location
     Simple {
         location_id: String,
         component_id: Option<String>,
     },
     /// Used for representing a partial state and it is generated when a location's name is set as `_`
     AnyLocation(),
-}
-
-/// Represents the potentially complete identifier of a location
-#[derive(Debug, Clone, Eq, Hash, PartialEq)]
-pub struct SimpleID {
-    location_id: String,
-    component_id: Option<String>,
-}
-
-impl SimpleID {
-    pub fn new(location_id: String, component_id: Option<String>) -> Self {
-        Self {
-            location_id,
-            component_id,
-        }
-    }
-
-    #[allow(dead_code)] // TODO for further use in Simulation
-    pub fn component_id(&self) -> Option<&String> {
-        self.component_id.as_ref()
-    }
-
-    pub fn location_id(&self) -> &str {
-        self.location_id.as_ref()
-    }
 }
 
 impl LocationID {
