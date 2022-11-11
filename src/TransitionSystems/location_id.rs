@@ -141,7 +141,7 @@ impl Display for LocationID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LocationID::Conjunction(left, right) => {
-                match &*(*left) {
+                match **left {
                     LocationID::Conjunction(_, _) => write!(f, "{}", (*left))?,
                     LocationID::Simple {
                         location_id: _,
@@ -150,7 +150,7 @@ impl Display for LocationID {
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "&&")?;
-                match &*(*right) {
+                match **right {
                     LocationID::Conjunction(_, _) => write!(f, "{}", (*right))?,
                     LocationID::Simple {
                         location_id: _,
@@ -160,7 +160,7 @@ impl Display for LocationID {
                 };
             }
             LocationID::Composition(left, right) => {
-                match &*(*left) {
+                match **left {
                     LocationID::Composition(_, _) => write!(f, "{}", (*left))?,
                     LocationID::Simple {
                         location_id: _,
@@ -169,7 +169,7 @@ impl Display for LocationID {
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "||")?;
-                match &*(*right) {
+                match **right {
                     LocationID::Composition(_, _) => write!(f, "{}", (*right))?,
                     LocationID::Simple {
                         location_id: _,
@@ -179,7 +179,7 @@ impl Display for LocationID {
                 };
             }
             LocationID::Quotient(left, right) => {
-                match &*(*left) {
+                match **left {
                     LocationID::Simple {
                         location_id: _,
                         component_id: _,
@@ -187,7 +187,7 @@ impl Display for LocationID {
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "\\\\")?;
-                match &*(*right) {
+                match **right {
                     LocationID::Simple {
                         location_id: _,
                         component_id: _,
