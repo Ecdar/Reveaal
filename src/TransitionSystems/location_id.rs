@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Formatter}};
+use std::fmt::{Display, Formatter};
 
 use crate::ModelObjects::representations::QueryExpression;
 
@@ -7,7 +7,10 @@ pub enum LocationID {
     Conjunction(Box<LocationID>, Box<LocationID>),
     Composition(Box<LocationID>, Box<LocationID>),
     Quotient(Box<LocationID>, Box<LocationID>),
-    Simple {location_id: String, component_id: Option<String>},
+    Simple {
+        location_id: String,
+        component_id: Option<String>,
+    },
     /// Used for representing a partial state and it is generated when a location's name is set as `_`
     AnyLocation(),
 }
@@ -87,13 +90,31 @@ impl LocationID {
                 self_left.compare_partial_locations(other_left)
                     && self_right.compare_partial_locations(other_right)
             }
-            (LocationID::AnyLocation(), LocationID::Simple { location_id: _, component_id: _ })
-            | (LocationID::Simple { location_id: _, component_id: _ }, LocationID::AnyLocation()) 
-            => true,
+            (
+                LocationID::AnyLocation(),
+                LocationID::Simple {
+                    location_id: _,
+                    component_id: _,
+                },
+            )
+            | (
+                LocationID::Simple {
+                    location_id: _,
+                    component_id: _,
+                },
+                LocationID::AnyLocation(),
+            ) => true,
             (LocationID::AnyLocation(), LocationID::AnyLocation()) => true,
-            (LocationID::Simple { location_id: location_id_1, component_id: component_id_1}, 
-                LocationID::Simple { location_id: location_id_2, component_id: component_id_2 }) 
-                => location_id_1 == location_id_2 && component_id_1 == component_id_2,
+            (
+                LocationID::Simple {
+                    location_id: location_id_1,
+                    component_id: component_id_1,
+                },
+                LocationID::Simple {
+                    location_id: location_id_2,
+                    component_id: component_id_2,
+                },
+            ) => location_id_1 == location_id_2 && component_id_1 == component_id_2,
             (_, _) => false,
         }
     }
@@ -106,7 +127,10 @@ impl LocationID {
             | LocationID::Quotient(left, right) => {
                 left.is_partial_location() || right.is_partial_location()
             }
-            LocationID::Simple { location_id: _, component_id: _ } => false,
+            LocationID::Simple {
+                location_id: _,
+                component_id: _,
+            } => false,
             LocationID::AnyLocation() => true,
         }
     }
@@ -125,7 +149,10 @@ impl From<QueryExpression> for LocationID {
                 LocationID::Quotient(Box::new((*left).into()), Box::new((*right).into()))
             }
             QueryExpression::Parentheses(inner) => (*inner).into(),
-            QueryExpression::VarName(name) => LocationID::Simple { location_id: name, component_id: None },
+            QueryExpression::VarName(name) => LocationID::Simple {
+                location_id: name,
+                component_id: None,
+            },
             _ => panic!(
                 "Cannot convert queryexpression with {:?} to LocationID",
                 item
@@ -140,41 +167,62 @@ impl Display for LocationID {
             LocationID::Conjunction(left, right) => {
                 match &*(*left) {
                     LocationID::Conjunction(_, _) => write!(f, "{}", (*left))?,
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*left))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*left))?,
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "&&")?;
                 match &*(*right) {
                     LocationID::Conjunction(_, _) => write!(f, "{}", (*right))?,
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*right))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*right))?,
                     _ => write!(f, "({})", (*right))?,
                 };
             }
             LocationID::Composition(left, right) => {
                 match &*(*left) {
                     LocationID::Composition(_, _) => write!(f, "{}", (*left))?,
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*left))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*left))?,
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "||")?;
                 match &*(*right) {
                     LocationID::Composition(_, _) => write!(f, "{}", (*right))?,
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*right))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*right))?,
                     _ => write!(f, "({})", (*right))?,
                 };
             }
             LocationID::Quotient(left, right) => {
                 match &*(*left) {
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*left))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*left))?,
                     _ => write!(f, "({})", (*left))?,
                 };
                 write!(f, "\\\\")?;
                 match &*(*right) {
-                    LocationID::Simple { location_id: _, component_id: _ } => write!(f, "{}", (*right))?,
+                    LocationID::Simple {
+                        location_id: _,
+                        component_id: _,
+                    } => write!(f, "{}", (*right))?,
                     _ => write!(f, "({})", (*right))?,
                 };
             }
-            LocationID::Simple { location_id, component_id: _ } => write!(f, "{}", location_id)?,
+            LocationID::Simple {
+                location_id,
+                component_id: _,
+            } => write!(f, "{}", location_id)?,
             LocationID::AnyLocation() => write!(f, "_")?,
         }
         Ok(())

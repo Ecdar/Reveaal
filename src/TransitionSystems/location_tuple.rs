@@ -44,7 +44,10 @@ impl LocationTuple {
             None
         };
         LocationTuple {
-            id: LocationID::Simple { location_id: location.get_id().clone(), component_id },
+            id: LocationID::Simple {
+                location_id: location.get_id().clone(),
+                component_id,
+            },
             invariant,
             loc_type: location.get_location_type().clone(),
             left: None,
