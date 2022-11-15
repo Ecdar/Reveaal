@@ -94,7 +94,7 @@ pub trait TransitionSystem: DynClone {
 
     fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
 
-    fn reduce_clocks(&mut self, redundant_clocks: &Vec<ClockReductionContext>){
+    fn reduce_clocks(&mut self, clock_indexes_to_replace: Vec<(ClockIndex,Vec<HashSet<ClockIndex>>)>){
 
     }
 
