@@ -44,18 +44,18 @@ impl ConcreteEcdarBackend {
     async fn handleRequest<RequestT, ResponseT>(
         &self,
         request: Request<RequestT>,
-        handler: impl FnOnce(RequestT, ModelCache) -> Result<ResponseT, Status> + Send + 'static,
+        handler: impl Fn(RequestT, ModelCache) -> Result<ResponseT, Status> + Send + 'static,
     ) -> Result<Response<ResponseT>, Status>
-    where 
+    where
         ResponseT: Send + 'static,
         RequestT: Send + 'static,
     {
         let cache = self.model_cache.clone();
-        let res =
-            catch_unwind(self.thread_pool.enqueue(move || {
-                handler(request.into_inner(), cache)
-            }))
-            .await;
+        let res = catch_unwind(
+            self.thread_pool
+                .enqueue(move || handler(request.into_inner(), cache)),
+        )
+        .await;
         res.map(Response::new)
     }
 }
@@ -73,7 +73,8 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        self.handleRequest(request, ConcreteEcdarBackend::handle_send_query).await
+        self.handleRequest(request, ConcreteEcdarBackend::handle_send_query)
+            .await
     }
 
     async fn start_simulation(
