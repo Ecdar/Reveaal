@@ -53,7 +53,7 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<Quer
     let folder_path = matches.value_of("folder").unwrap_or("");
     let query = matches.value_of("query").unwrap_or("");
     let settings = Settings {
-        reduce_clocks: matches.value_of("").map(|v| {
+        reduce_clocks_level: matches.value_of("").map(|v| {
             i32::from_str(v).unwrap_or_else(|e| panic!("Argument {} could not be parsed", e))
         }),
     };

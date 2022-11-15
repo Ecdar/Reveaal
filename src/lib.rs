@@ -23,7 +23,7 @@ pub use System::executable_query::QueryResult;
 
 pub const DEFAULT_SETTINGS: ProtobufServer::services::query_request::Settings =
     ProtobufServer::services::query_request::Settings {
-        reduce_clocks: Some(-1),
+        reduce_clocks_level: Some(-1),
     };
 
 #[macro_use]
