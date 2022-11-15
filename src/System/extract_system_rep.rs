@@ -20,8 +20,6 @@ use log::debug;
 use simple_error::bail;
 use std::error::Error;
 
-type Heights = (usize, usize);
-
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
 pub fn create_executable_query<'a>(
@@ -41,11 +39,11 @@ pub fn create_executable_query<'a>(
                 let mut compiled_right = right.compile(dim)?;
                 if let Some(x) = component_loader.get_settings().reduce_clocks_level {
                     let heights = if x < 0 {
-                        Some((x, height))
+                        Some((x as usize, height))
                     } else {
                         None
                     };
-                    // TODO: Reduce clocks
+                    compiled_left.reduce_clocks(heights.clone()); compiled_right.reduce_clocks(heights);
                 }
                 Ok(Box::new(RefinementExecutor {
                 sys1: compiled_left,
@@ -170,6 +168,14 @@ impl SystemRecipe {
             SystemRecipe::Component(_) => 1,
         }
     }
+    pub fn count_component(&self) -> usize {
+        match self {
+            SystemRecipe::Composition(left, right) |
+            SystemRecipe::Conjunction(left, right) |
+            SystemRecipe::Quotient(left, right, _) => left.count_component() + right.count_component(),
+            SystemRecipe::Component(_) => 1,
+        }
+    }
 }
 
 pub fn get_system_recipe(
@@ -226,7 +232,7 @@ fn validate_reachability_input(
     state: &QueryExpression,
 ) -> Result<(), String> {
     if let QueryExpression::State(loc_names, _) = state {
-        if loc_names.len() != count_component(machine) {
+        if loc_names.len() != machine.count_component() {
             return Err(
                 "The number of automata does not match the number of locations".to_string(),
             );
@@ -239,13 +245,4 @@ fn validate_reachability_input(
     }
 
     Ok(())
-}
-
-fn count_component(system: &SystemRecipe) -> usize {
-    match system {
-        SystemRecipe::Composition(left, right) => count_component(left) + count_component(right),
-        SystemRecipe::Conjunction(left, right) => count_component(left) + count_component(right),
-        SystemRecipe::Quotient(left, right, _) => count_component(left) + count_component(right),
-        SystemRecipe::Component(_) => 1,
-    }
 }

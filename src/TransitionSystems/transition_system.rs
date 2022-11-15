@@ -9,6 +9,7 @@ use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
+pub type Heights = (usize, usize);
 
 /// Precheck can fail because of either consistency or determinism.
 pub enum PrecheckResult {
@@ -81,6 +82,10 @@ pub trait TransitionSystem: DynClone {
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;
+
+    fn reduce_clocks(&mut self, heights: Option<Heights>) {
+        todo!()
+    }
 }
 
 clone_trait_object!(TransitionSystem);
