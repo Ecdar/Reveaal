@@ -21,7 +21,7 @@ use crate::ProtobufServer::services::{
     Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
     Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
     Disjunction as ProtobufDisjunction, Federation, Location, LocationTuple, QueryRequest,
-    QueryResponse, State, SpecificComponent,
+    QueryResponse, SpecificComponent, State,
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::executable_query::QueryResult;
@@ -216,7 +216,8 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                                     specific_component: Some(SpecificComponent {
                                         component_name: location_id.get_component_id().unwrap(),
                                         component_index: 0,
-                                })}],
+                                    }),
+                                }],
                             }),
                             federation: None,
                         }),
@@ -245,7 +246,8 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                                 specific_component: Some(SpecificComponent {
                                     component_name: location_id.get_component_id().unwrap(),
                                     component_index: 0,
-                            })}],
+                                }),
+                            }],
                         }),
                         federation: None,
                     }),
