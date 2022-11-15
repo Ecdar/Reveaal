@@ -18,7 +18,7 @@ pub type EdgeIndex = (LocationID, usize);
 /// Precheck can fail because of either consistency or determinism.
 pub enum PrecheckResult {
     Success,
-    NotDeterministic(LocationID),
+    NotDeterministic(LocationID, String),
     NotConsistent(ConsistencyFailure),
 }
 
