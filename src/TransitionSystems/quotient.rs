@@ -6,7 +6,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::transition_system::PrecheckResult;
+use crate::TransitionSystems::transition_system::{EdgeTuple, PrecheckResult};
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
