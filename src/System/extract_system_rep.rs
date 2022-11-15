@@ -7,6 +7,7 @@ use crate::System::executable_query::{
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::System::extract_state::get_state;
+use std::cmp::max;
 
 use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -17,7 +18,6 @@ use crate::System::pruning;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
-
 use std::error::Error;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
@@ -34,9 +34,20 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
+                let height = max(left.height(), right.height()) + 1;
+                let mut compiled_left = left.compile(dim)?;
+                let mut compiled_right = right.compile(dim)?;
+                if let Some(x) = component_loader.get_settings().reduce_clocks_level {
+                    let heights = if x < 0 {
+                        Some((x as usize, height))
+                    } else {
+                        None
+                    };
+                    compiled_left.reduce_clocks(heights.clone()); compiled_right.reduce_clocks(heights);
+                }
                 Ok(Box::new(RefinementExecutor {
-                sys1: left.compile(dim)?,
-                sys2: right.compile(dim)?,
+                sys1: compiled_left,
+                sys2: compiled_right,
             }))},
             QueryExpression::Reachability(automata, start, end) => {
                 let machine = get_system_recipe(automata, component_loader, &mut dim, &mut None);
@@ -149,6 +160,22 @@ impl SystemRecipe {
             },
         }
     }
+    pub fn height(&self) -> usize {
+        match self {
+            SystemRecipe::Composition(l, r)
+            | SystemRecipe::Conjunction(l, r)
+            | SystemRecipe::Quotient(l, r, _) => max(l.height(), r.height()),
+            SystemRecipe::Component(_) => 1,
+        }
+    }
+    pub fn count_component(&self) -> usize {
+        match self {
+            SystemRecipe::Composition(left, right) |
+            SystemRecipe::Conjunction(left, right) |
+            SystemRecipe::Quotient(left, right, _) => left.count_component() + right.count_component(),
+            SystemRecipe::Component(_) => 1,
+        }
+    }
 }
 
 pub fn get_system_recipe(
@@ -205,7 +232,7 @@ fn validate_reachability_input(
     state: &QueryExpression,
 ) -> Result<(), String> {
     if let QueryExpression::State(loc_names, _) = state {
-        if loc_names.len() != count_component(machine) {
+        if loc_names.len() != machine.count_component() {
             return Err(
                 "The number of automata does not match the number of locations".to_string(),
             );
@@ -218,13 +245,4 @@ fn validate_reachability_input(
     }
 
     Ok(())
-}
-
-fn count_component(system: &SystemRecipe) -> usize {
-    match system {
-        SystemRecipe::Composition(left, right) => count_component(left) + count_component(right),
-        SystemRecipe::Conjunction(left, right) => count_component(left) + count_component(right),
-        SystemRecipe::Quotient(left, right, _) => count_component(left) + count_component(right),
-        SystemRecipe::Component(_) => 1,
-    }
 }

@@ -25,6 +25,10 @@ pub const DEFAULT_SETTINGS: ProtobufServer::services::query_request::Settings =
     ProtobufServer::services::query_request::Settings {
         reduce_clocks_level: Some(-1),
     };
+pub const TEST_SETTINGS: ProtobufServer::services::query_request::Settings =
+    ProtobufServer::services::query_request::Settings {
+        reduce_clocks_level: None,
+    };
 
 #[macro_use]
 extern crate pest_derive;

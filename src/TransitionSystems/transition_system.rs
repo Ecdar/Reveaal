@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use crate::component::{ClockReductionReason, Edge, RedundantClock};
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
+pub type Heights = (usize, usize);
 pub type Action = String;
 pub type EdgeTuple = (Action, Transition);
 pub type EdgeIndex = (LocationID, usize);
@@ -94,7 +95,7 @@ pub trait TransitionSystem: DynClone {
 
     fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
 
-    fn reduce_clocks(&mut self, clock_indexes_to_replace: Vec<(ClockIndex,Vec<HashSet<ClockIndex>>)>){
+    fn reduce_clocks(&mut self, clock_indexes_to_replace: Vec<(ClockIndex,Vec<HashSet<ClockIndex>>)>, Option<Heights>){
 
     }
 

@@ -9,6 +9,7 @@ mod refinements {
     use crate::ProtobufServer::services::QueryRequest;
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
+    use crate::TEST_SETTINGS;
 
     //static CONJUN: &str = "samples/xml/conjun.xml";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
@@ -85,7 +86,7 @@ mod refinements {
                 components_hash: 0,
             }),
             ignored_input_outputs: None,
-            settings: None,
+            settings: Some(TEST_SETTINGS),
         })
     }
 }
