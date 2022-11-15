@@ -287,10 +287,6 @@ impl Component {
         }
     }
 
-    /// Used to find redundant clocks - checks for unused and duplicates clocks.
-
-    /// Returns [`Vec<RedundantClock>`] with all found redundant clock.
-    /// If no redundant clocks are found the vector will be empty
     pub(crate) fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
         let mut out: Vec<RedundantClock> = vec![];
         let mut seen_clocks: HashMap<String, Box<[Vec<usize>; 2]>> =

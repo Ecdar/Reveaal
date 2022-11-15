@@ -170,9 +170,11 @@ impl SystemRecipe {
     }
     pub fn count_component(&self) -> usize {
         match self {
-            SystemRecipe::Composition(left, right) |
-            SystemRecipe::Conjunction(left, right) |
-            SystemRecipe::Quotient(left, right, _) => left.count_component() + right.count_component(),
+            SystemRecipe::Composition(left, right)
+            | SystemRecipe::Conjunction(left, right)
+            | SystemRecipe::Quotient(left, right, _) => {
+                left.count_component() + right.count_component()
+            }
             SystemRecipe::Component(_) => 1,
         }
     }
