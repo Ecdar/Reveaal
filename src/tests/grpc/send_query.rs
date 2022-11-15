@@ -8,8 +8,8 @@ mod refinements {
     use crate::ProtobufServer::services::ComponentsInfo;
     use crate::ProtobufServer::services::QueryRequest;
     use crate::ProtobufServer::ConcreteEcdarBackend;
-    use tonic::Request;
     use crate::TEST_SETTINGS;
+    use tonic::Request;
 
     //static CONJUN: &str = "samples/xml/conjun.xml";
     static ECDAR_UNI: &str = "samples/json/EcdarUniversity";

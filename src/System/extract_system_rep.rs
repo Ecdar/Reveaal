@@ -43,7 +43,8 @@ pub fn create_executable_query<'a>(
                     } else {
                         None
                     };
-                    compiled_left.reduce_clocks(heights.clone()); compiled_right.reduce_clocks(heights);
+                    compiled_left.reduce_clocks(vec![],heights.clone());
+                    compiled_right.reduce_clocks(vec![],heights);
                 }
                 Ok(Box::new(RefinementExecutor {
                 sys1: compiled_left,
@@ -170,9 +171,11 @@ impl SystemRecipe {
     }
     pub fn count_component(&self) -> usize {
         match self {
-            SystemRecipe::Composition(left, right) |
-            SystemRecipe::Conjunction(left, right) |
-            SystemRecipe::Quotient(left, right, _) => left.count_component() + right.count_component(),
+            SystemRecipe::Composition(left, right)
+            | SystemRecipe::Conjunction(left, right)
+            | SystemRecipe::Quotient(left, right, _) => {
+                left.count_component() + right.count_component()
+            }
             SystemRecipe::Component(_) => 1,
         }
     }

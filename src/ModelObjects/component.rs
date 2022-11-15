@@ -256,7 +256,7 @@ impl Component {
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
     }
-
+/*
     /// Function for reducing the clocks found on the component.
     /// Unused clocks and "duplicate" clocks (clocks that are never reset)
     /// and then remove them.
@@ -287,10 +287,6 @@ impl Component {
         }
     }
 
-    /// Used to find redundant clocks - checks for unused and duplicates clocks.
-
-    /// Returns [`Vec<RedundantClock>`] with all found redundant clock.
-    /// If no redundant clocks are found the vector will be empty
     pub(crate) fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
         let mut out: Vec<RedundantClock> = vec![];
         let mut seen_clocks: HashMap<String, Box<[Vec<usize>; 2]>> =
@@ -435,80 +431,8 @@ impl Component {
             upd.expression.replace_varname(&clock.clock, other_clock);
         }
     }
+*/
 }
-
-///Enum to hold the reason for why a clock is declared redundant.
-#[derive(Debug)]
-pub enum ClockReductionReason {
-    ///Which clock is it a duplicate of.
-    Duplicate(String),
-    ///If a clock is not used by a guard or invariant it is unused.
-    Unused,
-}
-
-///Datastructure to hold the found redundant clocks, where they are used and their reason for being redundant.
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct RedundantClock {
-    ///Name of the redundant clock.
-    pub(crate) clock: String,
-    ///Indices of which edges the clock are being used on.
-    pub(crate) edge_indices: Vec<usize>,
-    ///Indices of which locations the clock are being used in.
-    pub(crate) location_indices: Vec<usize>,
-    ///Reason for why the clock is declared redundant.
-    pub(crate) reason: ClockReductionReason,
-    /// Which updates clock occurs in. Key is index of edge and Value is the index for the update
-    pub(crate) updates: HashMap<usize, usize>,
-}
-
-impl RedundantClock {
-    ///Creates a new [`RedundantClock`]
-    #[allow(unused)]
-    fn new(
-        clock: String,
-        edge_indices: Vec<usize>,
-        location_indices: Vec<usize>,
-        reason: ClockReductionReason,
-        updates: HashMap<usize, usize>,
-    ) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices,
-            location_indices,
-            reason,
-            updates,
-        }
-    }
-
-    ///Shorthand function to create a duplicated [`RedundantClock`]
-    fn duplicate(
-        clock: String,
-        edge_indices: Vec<usize>,
-        location_indices: Vec<usize>,
-        duplicate: String,
-    ) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices,
-            location_indices,
-            reason: ClockReductionReason::Duplicate(duplicate),
-            updates: HashMap::new(),
-        }
-    }
-
-    ///Shorthand function to create a unused [`RedundantClock`]
-    fn unused(clock: String) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices: vec![],
-            location_indices: vec![],
-            reason: ClockReductionReason::Unused,
-            updates: HashMap::new(),
-        }
-    }
-}
-
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
     for c in channels {
         if c.name == channel {
