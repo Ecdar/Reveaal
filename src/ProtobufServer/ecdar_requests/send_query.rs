@@ -368,13 +368,12 @@ fn value_in_location(maybe_location: &Option<LocationID>) -> String {
 }
 
 fn value_in_component(maybe_location: &Option<LocationID>) -> Option<SpecificComponent> {
-    match maybe_location {
-        Some(location_id) => Some(SpecificComponent {
+    maybe_location
+        .as_ref()
+        .map(|location_id| SpecificComponent {
             component_name: location_id.get_component_id().unwrap(),
             component_index: 0,
-        }),
-        None => None,
-    }
+        })
 }
 
 fn value_in_action(maybe_action: &Option<String>) -> String {
