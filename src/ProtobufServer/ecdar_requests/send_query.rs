@@ -31,6 +31,7 @@ use crate::System::{extract_system_rep, input_enabler};
 use crate::TransitionSystems::{self, LocationID};
 use edbm::util::constraints::Disjunction;
 use log::trace;
+use serde::de::value;
 use tonic::Status;
 
 const DEFAULT_SETTINGS: Settings = Settings {
@@ -303,7 +304,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                     location_tuple: Some(LocationTuple {
                         locations: vec![Location {
                             id: value_in_location(location_id),
-                            specific_component: None,
+                            specific_component: value_in_component(location_id),
                         }],
                     }),
                     federation: None,
@@ -363,6 +364,16 @@ fn value_in_location(maybe_location: &Option<LocationID>) -> String {
     match maybe_location {
         Some(location_id) => location_id.to_string(),
         None => "".to_string(),
+    }
+}
+
+fn value_in_component(maybe_location: &Option<LocationID>) -> Option<SpecificComponent> {
+    match maybe_location {
+        Some(location_id) => Some(SpecificComponent {
+            component_name: location_id.get_component_id().unwrap(),
+            component_index: 0,
+        }),
+        None => None,
     }
 }
 
