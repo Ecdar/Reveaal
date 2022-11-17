@@ -8,49 +8,83 @@ mod test {
         local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult},
         refine::{RefinementFailure, RefinementResult},
     };
+    use crate::TransitionSystems::LocationID;
 
     const PATH: &str = "samples/json/Actions";
 
     #[test]
     fn determinism_test() {
         let expected_action = String::from("1");
-        if let QueryResult::Determinism(DeterminismResult::Failure(_, actual_action)) =
-            json_run_query(PATH, "determinism: NonDeterministic1")
+        let expected_location = LocationID::Simple {
+            location_id: (String::from("L1")),
+            component_id: Some(String::from("NonDeterminismCom")),
+        };
+        if let QueryResult::Determinism(DeterminismResult::Failure(
+            actual_location,
+            actual_action,
+        )) = json_run_query(PATH, "determinism: NonDeterministic1")
         {
-            assert_eq!(expected_action, actual_action);
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location, actual_action)
+            );
         }
     }
 
     #[test]
     fn not_consistent_from_test() {
         let expected_action = String::from("");
+        let expected_location = LocationID::Simple {
+            location_id: (String::from("L17")),
+            component_id: Some(String::from("notConsistent")),
+        };
         if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotConsistentFrom(_, actual_action),
+            ConsistencyFailure::NotConsistentFrom(actual_location, actual_action),
         )) = json_run_query(PATH, "consistency: NonConsistent")
         {
-            assert_eq!(expected_action, actual_action);
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location, actual_action)
+            );
         }
     }
 
     #[test]
     fn refinement_determinism_test() {
         let expected_action = String::from("1");
+        let expected_location = LocationID::Simple {
+            location_id: (String::from("L1")),
+            component_id: Some(String::from("NonDeterminismCom")),
+        };
         if let QueryResult::Refinement(RefinementResult::Failure(
-            RefinementFailure::DeterminismFailure(_, actual_action),
-        )) = json_run_query(PATH, "refinement: NonDeterministic2 <= NonDeterministic2")
+            RefinementFailure::DeterminismFailure(actual_location, actual_action),
+        )) = json_run_query(PATH, "refinement: NonDeterministic1 <= NonDeterministic2")
         {
-            assert_eq!(expected_action, actual_action.unwrap());
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location.unwrap(), actual_action.unwrap())
+            );
+        } else {
+            print!("oh god oh fuck")
         }
     }
 
     #[test]
     fn refinement_consistency_test() {
         let expected_action = String::from("");
+        let expected_location = LocationID::Simple {
+            location_id: (String::from("L17")),
+            component_id: Some(String::from("notConsistent")),
+        };
+
         if let QueryResult::Refinement(RefinementResult::Failure(
-            RefinementFailure::ConsistencyFailure(_, actual_action),
+            RefinementFailure::ConsistencyFailure(actual_location, actual_action),
         )) = json_run_query(PATH, "refinement: NonConsistent <= CorrectComponent")
         {
-            assert_eq!(expected_action, actual_action.unwrap());
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location.unwrap(), actual_action.unwrap())
+            );
         }
     }
 }
