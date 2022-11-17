@@ -111,7 +111,7 @@ impl LocationID {
         }
     }
 
-    /// This function is used to get the component_id of from a [`LocationID::Simple`] returns a clone.
+    ///Gets the component_id of from a [`LocationID::Simple`] returns a clone.
     pub fn get_component_id(&self) -> Option<String> {
         if let LocationID::Simple {
             location_id: _,
