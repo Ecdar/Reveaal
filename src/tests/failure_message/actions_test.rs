@@ -28,6 +28,8 @@ mod test {
                 (expected_location, expected_action),
                 (actual_location, actual_action)
             );
+        } else{
+            panic!("Models in saples/action have been changed, REVERT!");
         }
     }
 
@@ -46,6 +48,8 @@ mod test {
                 (expected_location, expected_action),
                 (actual_location, actual_action)
             );
+        } else{
+            panic!("Models in saples/action have been changed, REVERT!");
         }
     }
 
@@ -65,7 +69,7 @@ mod test {
                 (actual_location.unwrap(), actual_action.unwrap())
             );
         } else {
-            print!("oh god oh fuck")
+            panic!("Models in saples/action have been changed, REVERT!");
         }
     }
 
@@ -85,6 +89,8 @@ mod test {
                 (expected_location, expected_action),
                 (actual_location.unwrap(), actual_action.unwrap())
             );
+        } else{
+            panic!("Models in saples/action have been changed, REVERT!");
         }
     }
 }
