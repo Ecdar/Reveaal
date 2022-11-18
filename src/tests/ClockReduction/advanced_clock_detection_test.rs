@@ -1,3 +1,4 @@
+/*
 #[cfg(test)]
 pub mod test {
     use crate::component::Component;
@@ -49,3 +50,4 @@ pub mod test {
         assert_correct_edges_and_locations(combinedComponent);
     }
 }
+ */

@@ -469,10 +469,6 @@ impl TransitionSystem for Quotient {
     fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
         todo!()
     }
-
-    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
-        todo!()
-    }
 }
 
 fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {

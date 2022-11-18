@@ -7,7 +7,6 @@ use edbm::{
 };
 use log::warn;
 
-use crate::TransitionSystems::transition_system::EdgeTuple;
 use crate::TransitionSystems::LocationID;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
@@ -191,13 +190,5 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
         todo!()
-    }
-
-    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
-        let children = self.get_children();
-        match children.0.find_transition(transition) {
-            None => children.1.find_transition(transition),
-            Some(edge) => Some(edge),
-        }
     }
 }

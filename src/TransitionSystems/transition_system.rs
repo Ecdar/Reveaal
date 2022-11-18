@@ -9,6 +9,7 @@ use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use log::info;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -123,9 +124,12 @@ pub trait TransitionSystem: DynClone {
         height: Heights,
     ) {
         if height.tree > height.target {
-            let (mut left, mut right) = self.get_children();
-            left.reduce_clocks(clock_indexes_to_replace.clone(), height.level_down());
-            right.reduce_clocks(clock_indexes_to_replace, height.level_down());
+            let (mut left, right) = self.get_children();
+            left.clone()
+                .reduce_clocks(clock_indexes_to_replace.clone(), height.level_down());
+            right
+                .clone()
+                .reduce_clocks(clock_indexes_to_replace, height.level_down());
             return;
         }
 
@@ -169,8 +173,6 @@ pub trait TransitionSystem: DynClone {
 
     fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition>;
 
-    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple>;
-
     fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
         //TODO do
         vec![]
@@ -193,12 +195,28 @@ pub struct ClockReductionContext {
 clone_trait_object!(TransitionSystem);
 
 ///Enum to hold the reason for why a clock is declared redundant.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ClockReductionReason {
     ///Which clock is it a duplicate of.
     Duplicate(String),
     ///If a clock is not used by a guard or invariant it is unused.
     Unused,
+}
+
+impl ClockReductionReason {
+    pub(crate) fn is_duplicate(&self) -> bool {
+        match self {
+            ClockReductionReason::Duplicate(_) => true,
+            ClockReductionReason::Unused => false,
+        }
+    }
+
+    pub(crate) fn is_unused(&self) -> bool {
+        match self {
+            ClockReductionReason::Duplicate(_) => false,
+            ClockReductionReason::Unused => true,
+        }
+    }
 }
 
 ///Datastructure to hold the found redundant clocks, where they are used and their reason for being redundant.

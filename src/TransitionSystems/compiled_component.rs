@@ -6,7 +6,6 @@ use edbm::util::constraints::ClockIndex;
 use log::warn;
 
 use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::transition_system::EdgeTuple;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
@@ -250,18 +249,6 @@ impl TransitionSystem for CompiledComponent {
             },
         }
     }
-
-    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
-        for (_, edges) in &self.location_edges {
-            for edge in edges {
-                if edge.1 == *transition {
-                    return Some(edge);
-                }
-            }
-        }
-        None
-    }
-
     fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
         todo!()
     }
