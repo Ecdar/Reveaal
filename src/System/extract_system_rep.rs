@@ -15,7 +15,9 @@ use crate::TransitionSystems::{
 };
 
 use crate::component::State;
+use crate::ProtobufServer::services::query_request::settings::ReduceClocksLevel;
 use crate::System::pruning;
+use crate::TransitionSystems::transition_system::Heights;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
@@ -41,14 +43,20 @@ pub fn create_executable_query<'a>(
                 let height = max(left.height(), right.height()) + 1;
                 let mut compiled_left = left.compile(dim, &clock_replacement)?;
                 let mut compiled_right = right.compile(dim, &clock_replacement)?;
-                if let Some(x) = component_loader.get_settings().reduce_clocks_level {
-                    let heights = if x < 0 {
-                        Some((x as usize, height))
-                    } else {
-                        None
+                if let Some(x) = &component_loader.get_settings().reduce_clocks_level {
+                    match x {
+                        ReduceClocksLevel::Level(y) if *y >= 0 => {
+                            let heights = Heights::new(height, (*y) as usize);
+                            compiled_left.reduce_clocks(vec![],heights);
+                            compiled_right.reduce_clocks(vec![],heights);
+                        },
+                        ReduceClocksLevel::All(true) =>{
+                            let heights = Heights::new(height, height);
+                            compiled_left.reduce_clocks(vec![],heights);
+                            compiled_right.reduce_clocks(vec![],heights);
+                        },
+                        _ => (),
                     };
-                    compiled_left.reduce_clocks(vec![],heights.clone());
-                    compiled_right.reduce_clocks(vec![],heights);
                 }
                 Ok(Box::new(RefinementExecutor {
                 sys1: compiled_left,

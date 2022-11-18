@@ -1,5 +1,4 @@
 use super::{CompositionType, LocationID, LocationTuple};
-use crate::component::Edge;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
@@ -12,7 +11,6 @@ use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
-pub type Heights = (usize, usize);
 pub type Action = String;
 pub type EdgeTuple = (Action, Transition);
 pub type EdgeIndex = (LocationID, usize);
@@ -22,6 +20,29 @@ pub enum PrecheckResult {
     Success,
     NotDeterministic(LocationID, String),
     NotConsistent(ConsistencyFailure),
+}
+
+#[derive(Clone, Copy)]
+/// Struct for determining the level for clock reduction
+pub struct Heights {
+    /// The level in the tree
+    pub(crate) tree: usize,
+    /// The level to reduce
+    pub(crate) target: usize,
+}
+
+impl Heights {
+    pub fn new(tree: usize, target: usize) -> Heights {
+        Heights { tree, target }
+    }
+
+    /// Function to "go down" a level in the tree
+    pub fn level_down(&self) -> Heights {
+        Heights {
+            tree: self.tree,
+            ..*self
+        }
+    }
 }
 
 pub trait TransitionSystem: DynClone {
@@ -99,8 +120,15 @@ pub trait TransitionSystem: DynClone {
     fn reduce_clocks(
         &mut self,
         clock_indexes_to_replace: Vec<(ClockIndex, Vec<HashSet<ClockIndex>>)>,
-        height: Option<Heights>,
+        height: Heights,
     ) {
+        if height.tree > height.target {
+            let (mut left, mut right) = self.get_children();
+            left.reduce_clocks(clock_indexes_to_replace.clone(), height.level_down());
+            right.reduce_clocks(clock_indexes_to_replace, height.level_down());
+            return;
+        }
+
         for clock in self.find_redundant_clocks() {
             match &clock.reason {
                 ClockReductionReason::Duplicate(global) => {

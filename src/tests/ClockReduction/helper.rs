@@ -1,6 +1,9 @@
 #[cfg(test)]
 pub mod test {
-    use crate::component::{ClockReductionReason, Component, RedundantClock};
+    use crate::component::Component;
+    use crate::TransitionSystems::transition_system::{
+        ClockReductionReason, RedundantClock, TransitionSystemPtr,
+    };
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
 
@@ -15,7 +18,10 @@ pub mod test {
     }
 
     /// Asserts that component contains given locations.
-    fn assert_locations_in_component(component: &Component, expected_locations: &HashSet<String>) {
+    fn assert_locations_in_component(
+        component: &TransitionSystemPtr,
+        expected_locations: &HashSet<String>,
+    ) {
         let mut actual_locations: HashSet<String> = HashSet::new();
 
         for location in &component.locations {

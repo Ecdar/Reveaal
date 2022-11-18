@@ -11,7 +11,9 @@ use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationID, LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    LocationID, LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 

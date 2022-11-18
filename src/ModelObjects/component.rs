@@ -11,8 +11,8 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::{LocationTuple, TransitionID};
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionID};
 use edbm::zones::OwnedFederation;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
