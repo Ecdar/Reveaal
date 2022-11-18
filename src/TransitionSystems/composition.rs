@@ -22,6 +22,15 @@ pub struct Composition {
     dim: ClockIndex,
 }
 
+pub enum CompositionResult{
+    Success,
+    Failure(CompositionFailure)
+}
+
+pub enum CompositionFailure {
+    OutputsNotDisjoint(Composition)
+}
+
 impl Composition {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(

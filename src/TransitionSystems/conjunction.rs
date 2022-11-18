@@ -18,6 +18,16 @@ pub struct Conjunction {
     dim: ClockIndex,
 }
 
+pub enum ConjunctionResult  {
+    Success,
+    Failure(ConjunctionFailure)
+}
+
+pub enum ConjunctionFailure { 
+    InputsNotDisJointFromOutputs(Conjunction),
+    EmptyConjunctionAfterPruning
+}
+
 impl Conjunction {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(

@@ -33,6 +33,11 @@ pub struct CompiledComponent {
     dim: ClockIndex,
 }
 
+pub enum ComponentResult {
+    Success,
+    Failure(Box<CompiledComponent>)
+}
+
 impl CompiledComponent {
     pub fn compile_with_actions(
         component: Component,

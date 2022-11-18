@@ -31,6 +31,17 @@ pub struct Quotient {
     dim: ClockIndex,
 }
 
+pub enum QuotientResult{
+    Success,
+    Failure(QuotientFailure)
+}
+
+pub enum QuotientFailure{
+    PrecheckFaild(TransitionSystemPtr),
+    ActionIONotDisJoint(TransitionSystemPtr, TransitionSystemPtr)
+
+}
+
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
 static UNIVERSAL_LOC_NAME: &str = "Universal";
 impl Quotient {

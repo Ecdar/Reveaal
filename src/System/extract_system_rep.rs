@@ -9,7 +9,8 @@ use crate::System::executable_query::{
 use crate::System::extract_state::get_state;
 
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
+    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr, 
+    ComponentResult,  QuotientResult, CompositionResult, ConjunctionResult
 };
 
 use crate::component::State;
@@ -19,6 +20,13 @@ use log::debug;
 use simple_error::bail;
 
 use std::error::Error;
+
+enum SystemRecipeResult {
+    Composition(CompositionResult),
+    Conjunction(ConjunctionResult),
+    Quotient(QuotientResult),
+    Component(ComponentResult)
+}
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
