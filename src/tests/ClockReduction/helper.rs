@@ -1,10 +1,9 @@
 #[cfg(test)]
 pub mod test {
-    use crate::component::{Component, Declarations};
     use crate::TransitionSystems::transition_system::{
         ClockReductionReason, RedundantClock, TransitionSystemPtr,
     };
-    use crate::TransitionSystems::CompiledComponent;
+    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
@@ -24,8 +23,8 @@ pub mod test {
         component: Box<CompiledComponent>,
         expected_locations: &HashSet<String>,
     ) {
-        let mut actual_locations: HashSet<String> = HashSet::new();
-        /*
+        /*let mut actual_locations: HashSet<String> = HashSet::new();
+
                for location in &component.locations {
                    let mut clocks_in_invariants = HashSet::new();
                    if let Some(invariant) = &location.invariant {
@@ -53,8 +52,7 @@ pub mod test {
         component: Box<CompiledComponent>,
         expected_edges: &HashSet<String>,
     ) {
-        let mut actual_edges: HashSet<String> = HashSet::new();
-        /* TODO
+        /* TODO let mut actual_edges: HashSet<String> = HashSet::new();
                for edge in &component.edges {
                    let mut clocks_in_guards_and_updates = HashSet::new();
                    if let Some(guard) = &edge.guard {
@@ -164,7 +162,7 @@ pub mod test {
 
     /// Asserts that the specific clocks occur in the correct locations and edges
     pub(crate) fn assert_correct_edges_and_locations(
-        component: &TransitionSystemPtr,
+        component: &Box<CompiledComponent>,
         expected_redundant_clocks: Vec<String>,
         global_clock: (String, ClockIndex),
     ) {

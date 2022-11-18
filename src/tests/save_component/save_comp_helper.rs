@@ -11,7 +11,6 @@ pub mod util {
     use crate::System::save_component::PruningStrategy;
     use crate::TransitionSystems::transition_system::PrecheckResult;
     use edbm::util::constraints::ClockIndex;
-    use std::collections::HashMap;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let project_loader =

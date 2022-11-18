@@ -9,7 +9,6 @@ use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use log::info;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use std::ops::Deref;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -124,7 +123,7 @@ pub trait TransitionSystem: DynClone {
         height: Heights,
     ) {
         if height.tree > height.target {
-            let (mut left, right) = self.get_children();
+            let (left, right) = self.get_children();
             left.clone()
                 .reduce_clocks(clock_indexes_to_replace.clone(), height.level_down());
             right
@@ -201,22 +200,6 @@ pub enum ClockReductionReason {
     Duplicate(String),
     ///If a clock is not used by a guard or invariant it is unused.
     Unused,
-}
-
-impl ClockReductionReason {
-    pub(crate) fn is_duplicate(&self) -> bool {
-        match self {
-            ClockReductionReason::Duplicate(_) => true,
-            ClockReductionReason::Unused => false,
-        }
-    }
-
-    pub(crate) fn is_unused(&self) -> bool {
-        match self {
-            ClockReductionReason::Duplicate(_) => false,
-            ClockReductionReason::Unused => true,
-        }
-    }
 }
 
 ///Datastructure to hold the found redundant clocks, where they are used and their reason for being redundant.

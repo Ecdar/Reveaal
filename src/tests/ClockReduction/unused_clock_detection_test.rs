@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod unused_clocks_tests {
     use crate::component::Component;
-    use crate::tests::ClockReduction::helper::test::assert_clock_reason;
     use crate::DataReader::json_reader::read_json_component;
     use std::collections::HashSet;
 

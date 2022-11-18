@@ -53,5 +53,7 @@ pub mod test {
         expected_edges.insert("z".to_string(), HashSet::from(["L4->L2".to_string()]));
 
         //assert_correct_edges_and_locations(&component, expected_locations, expected_edges);
+        assert_correct_edges_and_locations(&component, vec![], ("".to_string(), 0));
+        //TODO
     }
 }
