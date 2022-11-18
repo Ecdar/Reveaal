@@ -11,12 +11,11 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::LocationTuple;
+use crate::TransitionSystems::{LocationTuple, TransitionID};
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use edbm::zones::OwnedFederation;
-use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
@@ -256,6 +255,18 @@ impl Component {
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
     }
+
+    /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
+    pub fn remake_edge_ids(&mut self) {
+        // Give all edges a name
+        for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
+            edge.id = format!("E{}", index);
+        }
+
+        // Remake the input and output edges
+        self.create_edge_io_split();
+    }
+
 /*
     /// Function for reducing the clocks found on the component.
     /// Unused clocks and "duplicate" clocks (clocks that are never reset)
@@ -560,17 +571,21 @@ pub enum SyncType {
     Output,
 }
 
-//Represents a single transition from taking edges in multiple components
+/// Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition {
+    /// The ID of the transition, based on the edges it is created from.
+    pub id: TransitionID,
     pub guard_zone: OwnedFederation,
     pub target_locations: LocationTuple,
     pub updates: Vec<CompiledUpdate>,
 }
 
 impl Transition {
+    /// Create a new transition not based on an edge with no identifier
     pub fn new(target_locations: &LocationTuple, dim: ClockIndex) -> Transition {
         Transition {
+            id: TransitionID::None,
             guard_zone: OwnedFederation::universe(dim),
             target_locations: target_locations.clone(),
             updates: vec![],
@@ -638,6 +653,17 @@ impl Transition {
                 updates.append(&mut r.updates.clone());
 
                 out.push(Transition {
+                    id: match comp {
+                        CompositionType::Conjunction => TransitionID::Conjunction(
+                            Box::new(l.id.clone()),
+                            Box::new(r.id.clone()),
+                        ),
+                        CompositionType::Composition => TransitionID::Composition(
+                            Box::new(l.id.clone()),
+                            Box::new(r.id.clone()),
+                        ),
+                        _ => unreachable!("Invalid composition type {:?}", comp),
+                    },
                     guard_zone,
                     target_locations,
                     updates,
@@ -665,10 +691,6 @@ impl Transition {
         }
 
         fed
-    }
-
-    pub fn remove_clock(&self, clock_index: &usize) {
-        todo!()
     }
 
     // TODO: will we ever need this method?
@@ -762,12 +784,6 @@ impl fmt::Display for Transition {
                 .join(", ")
         ))?;
         Ok(())
-    }
-}
-
-impl PartialEq for Transition {
-    fn eq(&self, other: &Transition) -> bool {
-        std::ptr::eq(self, other)
     }
 }
 
@@ -997,19 +1013,5 @@ impl Declarations {
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
-    }
-
-    /// Combines two [`Declarations`].
-    pub fn combine(a: &Declarations, b:&Declarations) -> Declarations{
-        Declarations{
-            ints: a.ints.clone().into_iter().chain(b.ints.clone()).collect(),
-            clocks: a.clocks.clone().into_iter().chain(b.clocks.clone()).collect(),
-        }
-    }
-
-    /// Extends `self` with `ints` and `clocks` of `other`.
-    pub fn extend(&mut self, other: &Declarations){
-        self.ints.extend(other.ints.clone());
-        self.clocks.extend(other.clocks.clone());
     }
 }
