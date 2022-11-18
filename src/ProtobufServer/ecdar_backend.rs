@@ -41,7 +41,7 @@ where
 }
 
 impl ConcreteEcdarBackend {
-    async fn handleRequest<RequestT, ResponseT>(
+    async fn handle_request<RequestT, ResponseT>(
         &self,
         request: Request<RequestT>,
         handler: impl Fn(RequestT, ModelCache) -> Result<ResponseT, Status> + Send + 'static,
@@ -73,7 +73,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        self.handleRequest(request, ConcreteEcdarBackend::handle_send_query)
+        self.handle_request(request, ConcreteEcdarBackend::handle_send_query)
             .await
     }
 
