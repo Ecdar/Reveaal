@@ -4,24 +4,34 @@ pub mod test {
         assert_clock_reason, assert_correct_edges_and_locations,
     };
     use crate::DataReader::json_reader::read_json_component;
+    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
+    use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
 
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
+    const DIM: ClockIndex = 5; // TODO: Dim
 
-    /* TODO
     #[test]
     fn test_three_synced_clocks() {
-        let component = read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
-
+        let component = CompiledComponent::compile(
+            read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
+            DIM,
+            &None,
+        )
+        .unwrap();
         let redundant_clocks = component.find_redundant_clocks();
 
         assert_clock_reason(&redundant_clocks, 2, HashSet::from(["x", "y", "z"]), false);
     }
-     */
 
     #[test]
     fn test_three_synced_clocks_correct_location_target() {
-        let component = read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
+        let component = CompiledComponent::compile(
+            read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
+            DIM,
+            &None,
+        )
+        .unwrap();
 
         let mut expected_locations: HashMap<String, HashSet<String>> = HashMap::new();
 

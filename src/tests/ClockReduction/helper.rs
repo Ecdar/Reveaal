@@ -4,23 +4,24 @@ pub mod test {
     use crate::TransitionSystems::transition_system::{
         ClockReductionReason, RedundantClock, TransitionSystemPtr,
     };
+    use crate::TransitionSystems::CompiledComponent;
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
 
     /// Asserts that component contains given locations and edges.
     pub fn assert_locations_and_edges_in_component(
-        component: &TransitionSystemPtr,
+        component: Box<CompiledComponent>,
         expected_locations: &HashSet<String>,
         expected_edges: &HashSet<String>,
     ) {
-        assert_locations_in_component(component, expected_locations);
+        assert_locations_in_component(component.clone(), expected_locations);
         assert_edges_in_component(component, expected_edges);
     }
 
     /// Asserts that component contains given locations.
     fn assert_locations_in_component(
-        component: &TransitionSystemPtr,
+        component: Box<CompiledComponent>,
         expected_locations: &HashSet<String>,
     ) {
         let mut actual_locations: HashSet<String> = HashSet::new();
@@ -49,7 +50,7 @@ pub mod test {
 
     /// Asserts that component contains given locations.
     pub(crate) fn assert_edges_in_component(
-        component: &TransitionSystemPtr,
+        component: Box<CompiledComponent>,
         expected_edges: &HashSet<String>,
     ) {
         let mut actual_edges: HashSet<String> = HashSet::new();
@@ -104,7 +105,7 @@ pub mod test {
 
     /// Assert that a redundant clock is redundant for the correct reason
     pub fn assert_clock_reason(
-        redundant_clocks: &Vec<RedundantClock>,
+        redundant_clocks: &Vec<RedundantClock>, //TODO: Fix type
         expected_amount_to_reduce: u32,
         expected_reducible_clocks: HashSet<&str>,
         unused_allowed: bool,
@@ -164,8 +165,6 @@ pub mod test {
     /// Asserts that the specific clocks occur in the correct locations and edges
     pub(crate) fn assert_correct_edges_and_locations(
         component: &TransitionSystemPtr,
-        expected_locations: HashMap<String, HashSet<String>>,
-        expected_edges: HashMap<String, HashSet<String>>,
         expected_redundant_clocks: Vec<String>,
         global_clock: (String, ClockIndex),
     ) {
@@ -193,13 +192,7 @@ pub mod test {
             assert_eq!(*clocks.get(clock.as_str()).unwrap(), global_clock.1);
         }
 
-        for (clock, new_clock) in redundant_clocks.iter().filter_map(|c| match &c.reason {
-            ClockReductionReason::Duplicate(x) => Some((&c.clock, x)),
-            ClockReductionReason::Unused => None,
-        }) {
-            assert_eq!(*new_clock, *global_clock.0);
-            assert_eq!(*clocks.get(clock.as_str()).unwrap(), global_clock.1);
-        }
+        // TODO: Unused?
 
         /*
         for redundancy in redundant_clocks {

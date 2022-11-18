@@ -136,7 +136,7 @@ impl Component {
 
     pub fn get_input_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
-        for edge in self.input_edges.as_ref().unwrap() {
+        for edge in self.input_edges.as_ref().unwrap_or(&vec![]) {
             if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
@@ -151,7 +151,7 @@ impl Component {
 
     pub fn get_output_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
-        for edge in self.output_edges.as_ref().unwrap() {
+        for edge in self.output_edges.as_ref().unwrap_or(&vec![]) {
             if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
