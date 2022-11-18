@@ -613,6 +613,8 @@ impl fmt::Display for Transition {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
+    /// Uniquely identifies the edge within its component
+    pub id: String,
     #[serde(rename = "sourceLocation")]
     pub source_location: String,
     #[serde(rename = "targetLocation")]
