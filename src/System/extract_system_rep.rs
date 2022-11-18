@@ -30,8 +30,8 @@ pub fn create_executable_query<'a>(
     let mut dim: ClockIndex = 0;
 
     if let Some(query) = full_query.get_query() {
-        let mut clock: HashMap<String, ClockIndex> = HashMap::new();
-        clock.insert("y".to_owned(),1);
+        //let mut clock: HashMap<String, ClockIndex> = HashMap::new();
+        //clock.insert("y".to_owned(), 1);
         let clock_replacement: Option<HashMap<String, ClockIndex>> = Some(clock);
         match query {
             QueryExpression::Refinement(left_side, right_side) => {
@@ -147,24 +147,34 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex, clock_replacement: &Option<HashMap<String, ClockIndex>>) -> Result<TransitionSystemPtr, String> {
+    pub fn compile(
+        self,
+        dim: ClockIndex,
+        clock_replacement: &Option<HashMap<String, ClockIndex>>,
+    ) -> Result<TransitionSystemPtr, String> {
         match self {
-            SystemRecipe::Composition(left, right) => {
-                Composition::new(left.compile(dim, clock_replacement)?, right.compile(dim, clock_replacement)?, dim + 1)
-            }
-            SystemRecipe::Conjunction(left, right) => {
-                Conjunction::new(left.compile(dim, clock_replacement)?, right.compile(dim, clock_replacement)?, dim + 1)
-            }
+            SystemRecipe::Composition(left, right) => Composition::new(
+                left.compile(dim, clock_replacement)?,
+                right.compile(dim, clock_replacement)?,
+                dim + 1,
+            ),
+            SystemRecipe::Conjunction(left, right) => Conjunction::new(
+                left.compile(dim, clock_replacement)?,
+                right.compile(dim, clock_replacement)?,
+                dim + 1,
+            ),
             SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
                 left.compile(dim, clock_replacement)?,
                 right.compile(dim, clock_replacement)?,
                 clock_index,
                 dim + 1,
             ),
-            SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim + 1, clock_replacement) {
-                Ok(comp) => Ok(comp),
-                Err(err) => Err(err),
-            },
+            SystemRecipe::Component(comp) => {
+                match CompiledComponent::compile(*comp, dim + 1, clock_replacement) {
+                    Ok(comp) => Ok(comp),
+                    Err(err) => Err(err),
+                }
+            }
         }
     }
     pub fn height(&self) -> usize {
@@ -255,4 +265,3 @@ fn validate_reachability_input(
 
     Ok(())
 }
-

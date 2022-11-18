@@ -1,4 +1,5 @@
 use super::{CompositionType, LocationID, LocationTuple};
+use crate::component::Edge;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
@@ -6,10 +7,9 @@ use crate::{
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
+use log::info;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use log::info;
-use crate::component::Edge;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Heights = (usize, usize);
@@ -96,7 +96,11 @@ pub trait TransitionSystem: DynClone {
 
     fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
 
-    fn reduce_clocks(&mut self, clock_indexes_to_replace: Vec<(ClockIndex,Vec<HashSet<ClockIndex>>)>, height: Option<Heights>){
+    fn reduce_clocks(
+        &mut self,
+        clock_indexes_to_replace: Vec<(ClockIndex, Vec<HashSet<ClockIndex>>)>,
+        height: Option<Heights>,
+    ) {
         for clock in self.find_redundant_clocks() {
             match &clock.reason {
                 ClockReductionReason::Duplicate(global) => {
@@ -112,7 +116,9 @@ pub trait TransitionSystem: DynClone {
             }
 
             let clock_val = *self
-                .get_decls().iter().find_map(|x| x.clocks.get(clock.clock.as_str()))
+                .get_decls()
+                .iter()
+                .find_map(|x| x.clocks.get(clock.clock.as_str()))
                 .unwrap_or_else(|| panic!("Clock {} is not in the declarations", clock.clock));
             /* TODO: replace in decls
             self.declarations
@@ -125,23 +131,19 @@ pub trait TransitionSystem: DynClone {
         }
     }
 
-    fn replace_clock(&mut self, old_clock: &ClockReductionContext, new_clock: &String){
+    fn replace_clock(&mut self, old_clock: &ClockReductionContext, new_clock: &String) {
         // Replace old clock in transitions.
 
         // Replace old clock in invariants.
-
     }
 
-    fn remove_clock(&mut self, clock_updates: HashMap<usize, EdgeIndex>){
+    fn remove_clock(&mut self, clock_updates: HashMap<usize, EdgeIndex>) {}
 
-    }
-
-
-    fn get_transition(&self, location: LocationID, transition_index: usize)->Option<&Transition>;
+    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition>;
 
     fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple>;
 
-    fn find_redundant_clocks(&self) -> Vec<RedundantClock>{
+    fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
         //TODO do
         vec![]
     }
@@ -161,7 +163,6 @@ pub struct ClockReductionContext {
 }
 
 clone_trait_object!(TransitionSystem);
-
 
 ///Enum to hold the reason for why a clock is declared redundant.
 #[derive(Debug)]
