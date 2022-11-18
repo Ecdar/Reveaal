@@ -30,7 +30,7 @@ pub fn create_executable_query<'a>(
     let mut dim: ClockIndex = 0;
 
     if let Some(query) = full_query.get_query() {
-        //let mut clock: HashMap<String, ClockIndex> = HashMap::new();
+        let mut clock: HashMap<String, ClockIndex> = HashMap::new();
         //clock.insert("y".to_owned(), 1);
         let clock_replacement: Option<HashMap<String, ClockIndex>> = Some(clock);
         match query {
