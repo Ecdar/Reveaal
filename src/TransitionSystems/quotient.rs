@@ -11,7 +11,9 @@ use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::hash_set::HashSet;
 
 use super::CompositionType;
@@ -226,6 +228,10 @@ impl TransitionSystem for Quotient {
                     updates.append(&mut s_transition.updates.clone());
 
                     transitions.push(Transition {
+                        id: TransitionID::Quotient(
+                            vec![t_transition.id.clone()],
+                            vec![s_transition.id.clone()],
+                        ),
                         guard_zone,
                         target_locations,
                         updates,
@@ -243,6 +249,7 @@ impl TransitionSystem for Quotient {
                 let target_locations = merge(loc_t, &s_transition.target_locations);
                 let updates = s_transition.updates.clone();
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(Vec::new(), vec![s_transition.id.clone()]),
                     guard_zone,
                     target_locations,
                     updates,
@@ -263,6 +270,7 @@ impl TransitionSystem for Quotient {
             let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
+                id: TransitionID::Quotient(Vec::new(), s.iter().map(|t| t.id.clone()).collect()),
                 guard_zone: (!inv_l_s) + (!g_s),
                 target_locations: universal_location,
                 updates: vec![],
@@ -272,6 +280,7 @@ impl TransitionSystem for Quotient {
             let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
+                id: TransitionID::None,
                 guard_zone: !inv_l_s,
                 target_locations: universal_location,
                 updates: vec![],
@@ -300,6 +309,10 @@ impl TransitionSystem for Quotient {
                 }];
 
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(
+                        t.iter().map(|t| t.id.clone()).collect(),
+                        vec![s_transition.id.clone()],
+                    ),
                     guard_zone,
                     target_locations: inconsistent_location.clone(),
                     updates,
@@ -319,6 +332,7 @@ impl TransitionSystem for Quotient {
             }];
 
             transitions.push(Transition {
+                id: TransitionID::None,
                 guard_zone,
                 target_locations: inconsistent_location,
                 updates,
@@ -335,6 +349,7 @@ impl TransitionSystem for Quotient {
                 let updates = t_transition.updates.clone();
 
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(vec![t_transition.id.clone()], Vec::new()),
                     guard_zone,
                     target_locations,
                     updates,
