@@ -19,7 +19,6 @@ pub enum PrecheckResult {
 
 pub trait TransitionSystem: DynClone {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
-
     fn get_dim(&self) -> ClockIndex;
 
     fn next_transitions_if_available(
@@ -50,6 +49,18 @@ pub trait TransitionSystem: DynClone {
 
     fn inputs_contain(&self, action: &str) -> bool {
         self.get_input_actions().contains(action)
+    }
+
+    fn is_disjoint_ts(&self, other: &TransitionSystemPtr) -> (String, bool) {
+        let mut disjoint = true;
+        let mut reason = String::new();
+        for action in self.get_input_actions() {
+            if other.get_output_actions().contains(&action) {
+                disjoint = false;
+                reason.push_str(&format!("{}, ", action));
+            }
+        }
+        (reason, disjoint)
     }
 
     fn get_output_actions(&self) -> HashSet<String>;
