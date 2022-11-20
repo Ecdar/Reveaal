@@ -33,13 +33,13 @@ pub struct Quotient {
     dim: ClockIndex,
 }
 
-pub enum QuotientResult{
+pub enum QuotientResult {
     Success,
-    Failure(QuotientFailure)
+    Failure(QuotientFailure),
 }
 
-pub enum QuotientFailure{
-    ActionIONotDisJoint(HashSet<String>)
+pub enum QuotientFailure {
+    ActionIONotDisJoint(HashSet<String>),
 }
 
 pub fn is_disjoint_ts(a: &HashSet<String>, b: &HashSet<String>) -> HashSet<String> {
@@ -49,7 +49,7 @@ pub fn is_disjoint_ts(a: &HashSet<String>, b: &HashSet<String>) -> HashSet<Strin
             result.insert(x.clone());
         }
     }
-    result 
+    result
 }
 
 pub fn string_hashset_to_string(a: &HashSet<String>) -> String {
@@ -61,7 +61,6 @@ pub fn string_hashset_to_string(a: &HashSet<String>) -> String {
     result
 }
 
-
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
 static UNIVERSAL_LOC_NAME: &str = "Universal";
 impl Quotient {
@@ -72,9 +71,11 @@ impl Quotient {
         new_clock_index: ClockIndex,
         dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
-        if !S.get_output_actions().is_disjoint(&T.get_input_actions()) { 
-            let wrong_io_actions = string_hashset_to_string(
-                &is_disjoint_ts(&S.get_output_actions(), &T.get_input_actions()));
+        if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
+            let wrong_io_actions = string_hashset_to_string(&is_disjoint_ts(
+                &S.get_output_actions(),
+                &T.get_input_actions(),
+            ));
             return Err(format!(
                 "s_out and t_in not disjoint in quotient! following IO actions: {:?}",
                 wrong_io_actions
