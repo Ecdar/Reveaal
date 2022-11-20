@@ -34,7 +34,7 @@ pub struct CompiledComponent {
 
 pub enum ComponentResult {
     Success,
-    Failure(Box<CompiledComponent>)
+    Failure(Box<CompiledComponent>),
 }
 
 impl CompiledComponent {

@@ -18,14 +18,14 @@ pub struct Conjunction {
     dim: ClockIndex,
 }
 
-pub enum ConjunctionResult  {
+pub enum ConjunctionResult {
     Success,
-    Failure(ConjunctionFailure)
+    Failure(ConjunctionFailure),
 }
 
-pub enum ConjunctionFailure { 
+pub enum ConjunctionFailure {
     InputsNotDisJointFromOutputs(Conjunction),
-    EmptyConjunctionAfterPruning
+    EmptyConjunctionAfterPruning,
 }
 
 impl Conjunction {

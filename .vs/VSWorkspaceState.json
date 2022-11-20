@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\ProtobufServer",
+    "\\src\\ProtobufServer\\ecdar_requests",
+    "\\src\\tests",
+    "\\src\\tests\\grpc"
+  ],
+  "PreviewInSolutionExplorer": false
+}

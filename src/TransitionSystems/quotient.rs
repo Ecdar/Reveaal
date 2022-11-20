@@ -39,10 +39,28 @@ pub enum QuotientResult{
 }
 
 pub enum QuotientFailure{
-    PrecheckFaild(TransitionSystemPtr),
-    ActionIONotDisJoint(TransitionSystemPtr, TransitionSystemPtr)
-
+    ActionIONotDisJoint(HashSet<String>)
 }
+
+pub fn is_disjoint_ts(a: &HashSet<String>, b: &HashSet<String>) -> HashSet<String> {
+    let mut result = HashSet::new();
+    for x in a {
+        if b.contains(x) {
+            result.insert(x.clone());
+        }
+    }
+    result 
+}
+
+pub fn string_hashset_to_string(a: &HashSet<String>) -> String {
+    let mut result = String::new();
+    for x in a {
+        result.push_str(x);
+        result.push_str(", ");
+    }
+    result
+}
+
 
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
 static UNIVERSAL_LOC_NAME: &str = "Universal";
@@ -54,11 +72,12 @@ impl Quotient {
         new_clock_index: ClockIndex,
         dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
-        if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
+        if !S.get_output_actions().is_disjoint(&T.get_input_actions()) { 
+            let wrong_io_actions = string_hashset_to_string(
+                &is_disjoint_ts(&S.get_output_actions(), &T.get_input_actions()));
             return Err(format!(
-                "s_out and t_in not disjoint in quotient! s_out: {:?} t_in {:?}",
-                S.get_output_actions(),
-                T.get_input_actions()
+                "s_out and t_in not disjoint in quotient! following IO actions: {:?}",
+                wrong_io_actions
             ));
         }
 

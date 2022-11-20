@@ -21,13 +21,13 @@ pub struct Composition {
     dim: ClockIndex,
 }
 
-pub enum CompositionResult{
+pub enum CompositionResult {
     Success,
-    Failure(CompositionFailure)
+    Failure(CompositionFailure),
 }
 
 pub enum CompositionFailure {
-    OutputsNotDisjoint(Composition)
+    OutputsNotDisjoint(Composition),
 }
 
 impl Composition {
