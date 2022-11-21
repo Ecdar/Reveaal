@@ -11,12 +11,11 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::LocationTuple;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
+use crate::TransitionSystems::{LocationTuple, TransitionID};
 use edbm::zones::OwnedFederation;
-use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 
 /// The basic struct used to represent components read from either Json or xml
@@ -137,7 +136,7 @@ impl Component {
 
     pub fn get_input_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
-        for edge in self.input_edges.as_ref().unwrap() {
+        for edge in self.input_edges.as_ref().unwrap_or(&vec![]) {
             if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
@@ -152,7 +151,7 @@ impl Component {
 
     pub fn get_output_actions(&self) -> Vec<Channel> {
         let mut actions = vec![];
-        for edge in self.output_edges.as_ref().unwrap() {
+        for edge in self.output_edges.as_ref().unwrap_or(&vec![]) {
             if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
@@ -256,182 +255,17 @@ impl Component {
         self.output_edges = Some(o_edges);
         self.input_edges = Some(i_edges);
     }
-/*
-    /// Function for reducing the clocks found on the component.
-    /// Unused clocks and "duplicate" clocks (clocks that are never reset)
-    /// and then remove them.
-    pub fn reduce_clocks(&mut self, redundant_clocks: Vec<RedundantClock>) {
-        for clock in redundant_clocks {
-            match &clock.reason {
-                ClockReductionReason::Duplicate(global) => {
-                    self.replace_clock(&clock, global);
-                    info!("Replaced Clock {} with {global}", clock.clock); // Should be changed in the future to be the information logger
-                }
-                ClockReductionReason::Unused => {
-                    self.remove_clock(&clock.updates);
-                    info!("Removed Clock {}", clock.clock);
-                }
-            }
 
-            let clock_val = *self
-                .declarations
-                .clocks
-                .get(clock.clock.as_str())
-                .unwrap_or_else(|| panic!("Clock {} is not in the declarations", clock.clock));
-            self.declarations
-                .clocks
-                .values_mut()
-                .filter(|val| **val > clock_val)
-                .for_each(|val| *val -= 1);
-            self.declarations.clocks.remove(clock.clock.as_str());
+    /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
+    pub fn remake_edge_ids(&mut self) {
+        // Give all edges a name
+        for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
+            edge.id = format!("E{}", index);
         }
+
+        // Remake the input and output edges
+        self.create_edge_io_split();
     }
-
-    pub(crate) fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
-        let mut out: Vec<RedundantClock> = vec![];
-        let mut seen_clocks: HashMap<String, Box<[Vec<usize>; 2]>> =
-            self.clocks_in_edges_and_locations(&mut out);
-        let seen_updates: HashMap<String, HashMap<usize, usize>> = self.clocks_in_updates(&mut out);
-
-        let mut global: Option<String> = None;
-        for (clock, places) in seen_clocks
-            .iter_mut()
-            .filter(|(x, _)| !seen_updates.contains_key(x.as_str()))
-        {
-            if let Some(global_clock) = &global {
-                out.push(RedundantClock::duplicate(
-                    clock.to_string(),
-                    places[0].clone(),
-                    places[1].clone(),
-                    global_clock.clone(),
-                ));
-            } else {
-                global = Some(clock.to_string());
-            }
-        }
-        out
-    }
-
-    /// This function loop loops over the edges and locations that have guards and invariants, and returns said clocks
-    fn clocks_in_edges_and_locations(
-        &self,
-        seen: &mut Vec<RedundantClock>,
-    ) -> HashMap<String, Box<[Vec<usize>; 2]>> {
-        let clocks: HashSet<String> = self.declarations.get_clocks().keys().cloned().collect();
-        let mut out: HashMap<String, Box<[Vec<usize>; 2]>> = HashMap::new();
-
-        // `index` is the index in either `self.edges` or `self.locations`
-        // `expr` is the guard or invariant itself
-        // `which` determines if it is an edge or location, used for saving the indices correctly (0 = edge, 1 = location)
-        for (index, expr, which) in self
-            .edges
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.guard.is_some())
-            .map(|(i, e)| (i, e.guard.as_ref().unwrap(), 0))
-            .chain(
-                self.locations
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, x)| x.invariant.is_some())
-                    .map(|(i, l)| (i, l.invariant.as_ref().unwrap(), 1)),
-            )
-        {
-            // Here we find all varnames in the expression so we can save where it is used
-            for name in expr.get_varnames() {
-                if clocks.contains(name) {
-                    if let Some(clock_indices) = out.get_mut(name) {
-                        // Either we have seen the clock, and just add the index in the correct vec (edge or location)
-                        // We know that `which` will be valid because we set it in the loop above
-                        clock_indices.get_mut(which).unwrap().push(index);
-                    } else {
-                        // Or we have not seen the clock before, and have to input it in the HashMap
-                        // and then input the index correctly
-                        out.insert(name.to_string(), Box::new([vec![], vec![]]));
-                        out.get_mut(name)
-                            .unwrap()
-                            .get_mut(which)
-                            .unwrap()
-                            .push(index);
-                    }
-                }
-            }
-        }
-        for contain in clocks.iter().filter(|k| !out.contains_key(*k)) {
-            seen.push(RedundantClock::unused(contain.clone()));
-        }
-        out
-    }
-
-    /// This function loop loops over the updates in the component.
-    /// It saves the indices of already seen clocks (unused clocks that should be removed),
-    /// and returns all other clocks it finds
-    fn clocks_in_updates(
-        &self,
-        seen: &mut [RedundantClock],
-    ) -> HashMap<String, HashMap<usize, usize>> {
-        let mut out: HashMap<String, HashMap<usize, usize>> = HashMap::new();
-        for (i, updates) in self
-            .edges
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.update.is_some())
-            .map(|(i, y)| (i, y.update.as_ref().unwrap()))
-        {
-            for (j, upd) in updates.iter().enumerate() {
-                if let Some(c) = seen.iter_mut().find(|x| x.clock == upd.variable) {
-                    c.updates.insert(i, j);
-                } else {
-                    out.entry(upd.variable.clone())
-                        .or_insert_with(HashMap::new)
-                        .entry(i)
-                        .or_insert(j);
-                }
-            }
-        }
-        out
-    }
-
-    /// Removes unused clock
-
-    /// # Arguments
-    /// `clock_updates`: Hashmap where the keys are the indices for the `edges`, and the value is the index in `updates` on said edge
-    pub(crate) fn remove_clock(&mut self, clock_updates: &HashMap<usize, usize>) {
-        for (i, u) in clock_updates {
-            self.edges[*i]
-                .update
-                .as_mut()
-                .expect("No updates on the edge")
-                .remove(*u);
-        }
-    }
-
-    /// Replaces duplicate clock with a new
-    /// # Arguments
-    /// `clock`: [`RedundantClock`] representing the clock to be replaced
-    /// `other_clock`: The name of the clock to replace `clock`
-    pub(crate) fn replace_clock(&mut self, clock: &RedundantClock, other_clock: &String) {
-        for e in &clock.edge_indices {
-            self.edges[*e]
-                .guard
-                .as_mut()
-                .unwrap()
-                .replace_varname(&clock.clock, other_clock);
-        }
-        for l in &clock.location_indices {
-            self.locations[*l]
-                .invariant
-                .as_mut()
-                .unwrap()
-                .replace_varname(&clock.clock, other_clock);
-        }
-        for (i, u) in &clock.updates {
-            let mut upd = &mut self.edges[*i].update.as_mut().unwrap()[*u];
-            (*upd).variable = other_clock.clone();
-            upd.expression.replace_varname(&clock.clock, other_clock);
-        }
-    }
-*/
 }
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
     for c in channels {
@@ -560,17 +394,21 @@ pub enum SyncType {
     Output,
 }
 
-//Represents a single transition from taking edges in multiple components
+/// Represents a single transition from taking edges in multiple components
 #[derive(Debug, Clone)]
 pub struct Transition {
+    /// The ID of the transition, based on the edges it is created from.
+    pub id: TransitionID,
     pub guard_zone: OwnedFederation,
     pub target_locations: LocationTuple,
     pub updates: Vec<CompiledUpdate>,
 }
 
 impl Transition {
+    /// Create a new transition not based on an edge with no identifier
     pub fn new(target_locations: &LocationTuple, dim: ClockIndex) -> Transition {
         Transition {
+            id: TransitionID::None,
             guard_zone: OwnedFederation::universe(dim),
             target_locations: target_locations.clone(),
             updates: vec![],
@@ -599,6 +437,7 @@ impl Transition {
         }
 
         Transition {
+            id: TransitionID::Simple(edge.id.clone()),
             guard_zone: Transition::combine_edge_guards(&vec![(comp, edge)], dim),
             target_locations,
             updates: compiled_updates,
@@ -638,6 +477,17 @@ impl Transition {
                 updates.append(&mut r.updates.clone());
 
                 out.push(Transition {
+                    id: match comp {
+                        CompositionType::Conjunction => TransitionID::Conjunction(
+                            Box::new(l.id.clone()),
+                            Box::new(r.id.clone()),
+                        ),
+                        CompositionType::Composition => TransitionID::Composition(
+                            Box::new(l.id.clone()),
+                            Box::new(r.id.clone()),
+                        ),
+                        _ => unreachable!("Invalid composition type {:?}", comp),
+                    },
                     guard_zone,
                     target_locations,
                     updates,
@@ -665,10 +515,6 @@ impl Transition {
         }
 
         fed
-    }
-
-    pub fn remove_clock(&self, clock_index: &usize) {
-        todo!()
     }
 
     // TODO: will we ever need this method?
@@ -765,15 +611,11 @@ impl fmt::Display for Transition {
     }
 }
 
-impl PartialEq for Transition {
-    fn eq(&self, other: &Transition) -> bool {
-        std::ptr::eq(self, other)
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
+    /// Uniquely identifies the edge within its component
+    pub id: String,
     #[serde(rename = "sourceLocation")]
     pub source_location: String,
     #[serde(rename = "targetLocation")]
@@ -997,19 +839,5 @@ impl Declarations {
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
-    }
-
-    /// Combines two [`Declarations`].
-    pub fn combine(a: &Declarations, b:&Declarations) -> Declarations{
-        Declarations{
-            ints: a.ints.clone().into_iter().chain(b.ints.clone()).collect(),
-            clocks: a.clocks.clone().into_iter().chain(b.clocks.clone()).collect(),
-        }
-    }
-
-    /// Extends `self` with `ints` and `clocks` of `other`.
-    pub fn extend(&mut self, other: &Declarations){
-        self.ints.extend(other.ints.clone());
-        self.clocks.extend(other.clocks.clone());
     }
 }

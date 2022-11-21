@@ -92,7 +92,11 @@ impl CompiledComponent {
         }))
     }
 
-    pub fn compile(component: Component, dim: ClockIndex) -> Result<Box<Self>, String> {
+    pub fn compile(
+        mut component: Component,
+        dim: ClockIndex,
+        clock_replacement: &Option<HashMap<String, ClockIndex>>,
+    ) -> Result<Box<Self>, String> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()
@@ -103,6 +107,29 @@ impl CompiledComponent {
             .iter()
             .map(|c| c.name.clone())
             .collect();
+        match clock_replacement {
+            None => {}
+            Some(clock_replacements) => {
+                for (clock_to_be_replaced, replacement_index) in clock_replacements {
+                    if component
+                        .declarations
+                        .clocks
+                        .contains_key(clock_to_be_replaced)
+                    {
+                        let result = component
+                            .declarations
+                            .clocks
+                            .insert(clock_to_be_replaced.clone(), replacement_index.clone());
+                        println!(
+                            "clock {:?} which had index {:?} now has index {:?} instead.",
+                            clock_to_be_replaced,
+                            result.unwrap(),
+                            replacement_index
+                        )
+                    }
+                }
+            }
+        }
 
         Self::compile_with_actions(component, inputs, outputs, dim)
     }
@@ -205,26 +232,14 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
-        match self.location_edges.get(&location){
+        match self.location_edges.get(&location) {
             None => None,
             Some(actions_and_transitions) => match actions_and_transitions.get(transition_index) {
                 None => None,
-                Some(tuple) => Some(&tuple.1)
-            }
+                Some(tuple) => Some(&tuple.1),
+            },
         }
     }
-
-    fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
-        for (_, edges) in &self.location_edges{
-            for edge in edges{
-                if edge.1 == *transition{
-                    return Some(edge);
-                }
-            }
-        }
-        None
-    }
-
     fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
         todo!()
     }

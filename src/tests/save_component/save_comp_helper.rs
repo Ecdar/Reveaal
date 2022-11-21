@@ -13,7 +13,8 @@ pub mod util {
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
-        let project_loader = JsonProjectLoader::new(String::from(input_path), crate::TEST_SETTINGS);
+        let project_loader =
+            JsonProjectLoader::new(String::from(input_path), crate::tests::TEST_SETTINGS);
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
@@ -42,7 +43,7 @@ pub mod util {
             panic!("Failed to create system")
         };
 
-        let new_comp = new_system.compile(dim);
+        let new_comp = new_system.compile(dim, &None);
 
         if new_comp.is_err() {
             return;
@@ -50,9 +51,9 @@ pub mod util {
         let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::NoPruning);
 
         let new_comp = SystemRecipe::Component(Box::new(new_comp))
-            .compile(dim)
+            .compile(dim, &None)
             .unwrap();
-        let base_system = base_system.compile(dim).unwrap();
+        let base_system = base_system.compile(dim, &None).unwrap();
 
         let base_precheck = base_system.precheck_sys_rep();
         let new_precheck = new_comp.precheck_sys_rep();

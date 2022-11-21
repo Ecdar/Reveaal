@@ -1,5 +1,6 @@
 pub mod reachability_test_helper_functions {
     use edbm::util::constraints::ClockIndex;
+    use std::collections::HashMap;
 
     use crate::extract_system_rep::get_system_recipe;
     use crate::extract_system_rep::SystemRecipe;
@@ -60,15 +61,16 @@ pub mod reachability_test_helper_functions {
         folder_path: &str,
     ) -> (Box<SystemRecipe>, Box<dyn TransitionSystem>) {
         let mut comp_loader = if xml_parser::is_xml_project(folder_path) {
-            XmlProjectLoader::new(folder_path.to_string(), crate::TEST_SETTINGS)
+            XmlProjectLoader::new(folder_path.to_string(), crate::tests::TEST_SETTINGS)
         } else {
-            JsonProjectLoader::new(folder_path.to_string(), crate::TEST_SETTINGS)
+            JsonProjectLoader::new(folder_path.to_string(), crate::tests::TEST_SETTINGS)
         }
         .to_comp_loader();
         let mut dim: ClockIndex = 0;
         let mut quotient_index = None;
         let machine = get_system_recipe(&model, &mut (*comp_loader), &mut dim, &mut quotient_index);
-        let system = machine.clone().compile(dim).unwrap();
+        let clock_replacement: Option<HashMap<String, ClockIndex>> = None;
+        let system = machine.clone().compile(dim, &clock_replacement).unwrap();
         (machine, system)
     }
 }
