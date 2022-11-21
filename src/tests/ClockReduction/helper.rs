@@ -7,10 +7,11 @@ pub mod test {
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
+    use crate::component::Component;
 
     /// Asserts that component contains given locations and edges.
     pub fn assert_locations_and_edges_in_component(
-        component: Box<CompiledComponent>,
+        component: Component,
         expected_locations: &HashSet<String>,
         expected_edges: &HashSet<String>,
     ) {
@@ -20,10 +21,10 @@ pub mod test {
 
     /// Asserts that component contains given locations.
     fn assert_locations_in_component(
-        component: Box<CompiledComponent>,
+        component: Component,
         expected_locations: &HashSet<String>,
     ) {
-        /*let mut actual_locations: HashSet<String> = HashSet::new();
+        let mut actual_locations: HashSet<String> = HashSet::new();
 
                for location in &component.locations {
                    let mut clocks_in_invariants = HashSet::new();
@@ -44,15 +45,15 @@ pub mod test {
                    expected_locations,
                    actual_locations
                );
-        */
+
     }
 
     /// Asserts that component contains given locations.
     pub(crate) fn assert_edges_in_component(
-        component: Box<CompiledComponent>,
+        component: Component,
         expected_edges: &HashSet<String>,
     ) {
-        /* TODO let mut actual_edges: HashSet<String> = HashSet::new();
+        let mut actual_edges: HashSet<String> = HashSet::new();
                for edge in &component.edges {
                    let mut clocks_in_guards_and_updates = HashSet::new();
                    if let Some(guard) = &edge.guard {
@@ -87,7 +88,6 @@ pub mod test {
                    expected_edges,
                    actual_edges
                )
-        */
     }
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
@@ -154,7 +154,7 @@ pub mod test {
         assert_eq!(
             clocksReduced.len(),
             expected_amount_to_reduce as usize,
-            "Too many clocks were reduced, expected only {}, got {}",
+            "Too many clocks were reduced, expected {}, got {}",
             expected_amount_to_reduce,
             clocksReduced.len()
         );

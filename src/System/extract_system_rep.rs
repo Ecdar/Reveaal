@@ -178,7 +178,7 @@ impl SystemRecipe {
                 dim + 1,
             ),
             SystemRecipe::Component(comp) => {
-                match CompiledComponent::compile(*comp, dim + 1, clock_replacement) {
+                match CompiledComponent::compile(*comp, dim + 1) {
                     Ok(comp) => Ok(comp),
                     Err(err) => Err(err),
                 }

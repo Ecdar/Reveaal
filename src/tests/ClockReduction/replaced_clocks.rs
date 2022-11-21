@@ -1,10 +1,10 @@
-/* TODO
 #[cfg(test)]
 pub mod test {
     use crate::tests::ClockReduction::helper::test::assert_locations_and_edges_in_component;
     use crate::DataReader::json_reader::read_json_component;
     use std::collections::HashSet;
     use std::iter::FromIterator;
+    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
 
     /// If clocks are never reset, a global clock should be used.
     /// Checks that clocks are replaced with a global clock in these cases and that other clocks
@@ -16,8 +16,9 @@ pub mod test {
             "Component1",
         );
         let clocks = HashSet::from(["x", "y", "z"]);
-
-        let redundant_clocks = component.find_redundant_clocks();
+        let mut dim = component.declarations.clocks.len() + 1;
+        let transition_system = CompiledComponent::compile(component.clone(), dim).unwrap();
+        let redundant_clocks = transition_system.find_redundant_clocks();
         assert_eq!(
             redundant_clocks.len(),
             2,
@@ -53,9 +54,8 @@ pub mod test {
             "L2-->L3".to_string(),
         ]);
 
-        component.reduce_clocks(redundant_clocks);
+        component.reduce_clocks(redundant_clocks, &mut dim);
 
-        assert_locations_and_edges_in_component(&component, &expected_locations, &expected_edges);
+        assert_locations_and_edges_in_component(component.clone(), &expected_locations, &expected_edges);
     }
 }
- */

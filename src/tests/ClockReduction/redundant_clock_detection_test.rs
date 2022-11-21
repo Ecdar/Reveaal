@@ -16,7 +16,6 @@ pub mod test {
         let component = CompiledComponent::compile(
             read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
             DIM,
-            &None,
         )
         .unwrap();
         let redundant_clocks = component.find_redundant_clocks();
@@ -29,7 +28,6 @@ pub mod test {
         let component = CompiledComponent::compile(
             read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
             DIM,
-            &None,
         )
         .unwrap();
 

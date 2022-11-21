@@ -3,6 +3,8 @@ mod unused_clocks_tests {
     use crate::component::Component;
     use crate::DataReader::json_reader::read_json_component;
     use std::collections::HashSet;
+    use crate::tests::ClockReduction::helper::test::assert_clock_reason;
+    use crate::TransitionSystems::{CompiledComponent, TransitionSystem, TransitionSystemPtr};
 
     fn unused_clocks_with_cycles(component_name: &str, unused_clock: &str) {
         let component = read_json_component(
@@ -23,9 +25,9 @@ mod unused_clocks_tests {
     }
 
     fn unused_clocks_are_found(component: &Component, unused_clocks: HashSet<&str>) {
-        // TODO
-        //let redundant_clocks = component.find_redundant_clocks();
-        //assert_clock_reason(&redundant_clocks, 1, unused_clocks, true)
+        let transition_system = CompiledComponent::compile(component.clone(),component.declarations.clocks.len()+1).unwrap();
+        let redundant_clocks = transition_system.find_redundant_clocks();
+        assert_clock_reason(&redundant_clocks, 1, unused_clocks, true)
     }
 
     #[test]

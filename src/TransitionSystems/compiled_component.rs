@@ -93,7 +93,6 @@ impl CompiledComponent {
     pub fn compile(
         mut component: Component,
         dim: ClockIndex,
-        clock_replacement: &Option<HashMap<String, ClockIndex>>,
     ) -> Result<Box<Self>, String> {
         let inputs: HashSet<_> = component
             .get_input_actions()
@@ -105,29 +104,6 @@ impl CompiledComponent {
             .iter()
             .map(|c| c.name.clone())
             .collect();
-        match clock_replacement {
-            None => {}
-            Some(clock_replacements) => {
-                for (clock_to_be_replaced, replacement_index) in clock_replacements {
-                    if component
-                        .declarations
-                        .clocks
-                        .contains_key(clock_to_be_replaced)
-                    {
-                        let result = component
-                            .declarations
-                            .clocks
-                            .insert(clock_to_be_replaced.clone(), replacement_index.clone());
-                        println!(
-                            "clock {:?} which had index {:?} now has index {:?} instead.",
-                            clock_to_be_replaced,
-                            result.unwrap(),
-                            replacement_index
-                        )
-                    }
-                }
-            }
-        }
 
         Self::compile_with_actions(component, inputs, outputs, dim)
     }

@@ -9,21 +9,20 @@ pub mod clock_removal_tests {
     // Tests that the clocks that are never used in any guards are removed.
     #[test] // TODO: How removal?
     fn test_removal_unused_clocks() {
-        let mut component = CompiledComponent::compile(
+        let mut component =
             read_json_component(
                 "samples/json/ClockReductionTest/UnusedClockWithCycle",
-                "Component1",
-            ),
-            5,
-            &None,
-        )
-        .unwrap(); //TODO Dim
-        let redundant_clocks = component.find_redundant_clocks();
+                "Component1"
+            );
 
-        component.reduce_clocks(vec![], Heights::new(0, 0)); //TODO
+        let mut dim = component.declarations.clocks.len() + 1;
+        let transition_system = CompiledComponent::compile(component.clone(), dim).unwrap();
+        let redundant_clocks = transition_system.find_redundant_clocks();
+
+        component.reduce_clocks(redundant_clocks, &mut dim);
 
         assert_edges_in_component(
-            component,
+            component.clone(),
             &HashSet::from([
                 "L0-y->L1".to_string(),
                 "L1-y->L0".to_string(),
