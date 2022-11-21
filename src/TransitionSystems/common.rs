@@ -183,24 +183,25 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     }
 
     fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph){
-        let node: ClockAnalysisNode = ClockAnalysisNode{
+        let node: ClockAnalysisNode = ClockAnalysisNode {
             invariant_dependencies: vec![],
             id: location.id.to_owned()
-        };graph.nodes.push(node);
-        for action in actions.clone().iter(){
+        };
+
+        graph.nodes.push(node);
+
+        for action in actions.clone().iter() {
             let transitions = self.next_transitions_if_available(&location, action);
-            if !transitions.is_empty() {
-                for transition in transitions {
-                    let edge: ClockAnalysisEdge = ClockAnalysisEdge {
-                        from: location.id.to_owned(),
-                        to: transition.target_locations.id.clone(),
-                        guard_dependencies: vec![],
-                        updates: transition.updates,
-                        edge_type: action.to_string(),
-                    };
-                    graph.edges.push(edge);
-                    self.find_next_transition(&transition.target_locations, actions, graph);
-                }
+            for transition in transitions {
+                graph.edges.push(ClockAnalysisEdge {
+                    from: location.id.to_owned(),
+                    to: transition.target_locations.id.clone(),
+                    guard_dependencies: vec![],
+                    updates: transition.updates,
+                    edge_type: action.to_string(),
+                });
+
+                self.find_next_transition(&transition.target_locations, actions, graph);
             }
         }
     }
