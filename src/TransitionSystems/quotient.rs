@@ -6,6 +6,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
+use crate::TransitionSystems::composition::is_disjoint_action;
 use crate::TransitionSystems::transition_system::PrecheckResult;
 use edbm::util::bounds::Bounds;
 
@@ -16,7 +17,7 @@ use crate::TransitionSystems::{
 };
 use std::collections::hash_set::HashSet;
 
-use super::CompositionType;
+use super::{CompositionType, LocationID};
 
 #[derive(Clone)]
 pub struct Quotient {
@@ -34,12 +35,13 @@ pub struct Quotient {
 }
 
 pub enum QuotientResult {
-    Success,
+    Success(),
     Failure(QuotientFailure),
 }
 
 pub enum QuotientFailure {
-    ActionIONotDisJoint(HashSet<String>),
+    InputOutputNotDisJoint(String, LocationID, LocationID),
+    PrecheckFailure(PrecheckResult),
 }
 
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
@@ -52,11 +54,15 @@ impl Quotient {
         new_clock_index: ClockIndex,
         dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, String> {
-        if !S.is_disjoint_ts(&T).1 {
+        let Tid = T.get_initial_location().unwrap().id;
+        let Sid = S.get_initial_location().unwrap().id;
+        if is_disjoint_action(&S.get_input_actions(), &T.get_output_actions()).1 {
             let wrong_io_actions = S.is_disjoint_ts(&T).0;
             return Err(format!(
-                "s_out and t_in not disjoint in quotient! following IO actions: {:?}",
-                wrong_io_actions
+                "s_out and t_in not disjoint in quotient! following IO action: {:?} in components {:?} and {:?}",
+                wrong_io_actions, 
+                Tid.get_component_id().unwrap().to_string(),
+                Sid.get_component_id().unwrap().to_string(),
             ));
         }
 

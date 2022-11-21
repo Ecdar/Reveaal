@@ -21,6 +21,20 @@ pub struct Composition {
     dim: ClockIndex,
 }
 
+pub fn is_disjoint_action(left: &HashSet<String>, right: &HashSet<String>) -> (String, bool) {
+    let mut disjoint = true;
+    let mut reason = String::new();
+    for action in left {
+        if right.contains(action) {
+            disjoint = false;
+            reason.push_str(&format!("{}, ", action));
+            return (reason, disjoint);
+        }
+    }
+    (reason, disjoint)
+}
+
+
 pub enum CompositionResult {
     Success,
     Failure(CompositionFailure),
@@ -45,7 +59,7 @@ impl Composition {
         let right_out = right.get_output_actions();
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
-        if !left_out.is_disjoint(&right_out) {
+        if !is_disjoint_action(&left_out, &right_out).1 {
             return Err("Invalid parallel composition, outputs are not disjoint".to_string());
         }
 

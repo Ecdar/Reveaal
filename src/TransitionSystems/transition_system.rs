@@ -55,9 +55,10 @@ pub trait TransitionSystem: DynClone {
         let mut disjoint = true;
         let mut reason = String::new();
         for action in self.get_input_actions() {
-            if other.get_output_actions().contains(&action) {
+            if other.outputs_contain(&action) {
                 disjoint = false;
                 reason.push_str(&format!("{}, ", action));
+                return (reason, disjoint);
             }
         }
         (reason, disjoint)
