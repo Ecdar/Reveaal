@@ -19,6 +19,7 @@ use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
 use std::error::Error;
+use crate::TransitionSystems::transition_system::AnalyzeTransitionSystem;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -147,6 +148,7 @@ impl SystemRecipe {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
             }
             SystemRecipe::Conjunction(left, right) => {
+                AnalyzeTransitionSystem(Conjunction::new(left.clone().compile(dim)?, right.clone().compile(dim)?, dim + 1).unwrap());
                 Conjunction::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
             }
             SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(

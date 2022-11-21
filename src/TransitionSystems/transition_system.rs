@@ -7,9 +7,11 @@ use crate::{
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use log::info;
 use crate::component::Edge;
+use crate::EdgeEval::updater::CompiledUpdate;
+use std::iter::FromIterator;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Heights = (usize, usize);
@@ -40,6 +42,8 @@ pub trait TransitionSystem: DynClone {
             vec![]
         }
     }
+
+    fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph);
 
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
 
@@ -90,7 +94,7 @@ pub trait TransitionSystem: DynClone {
     fn get_composition_type(&self) -> CompositionType;
 
     /// Returns all transitions in the transition system.
-    fn get_all_transitions(&self) -> Vec<&Transition>;
+    fn get_analysis_graph(&self) -> ClockAnalysisGraph;
 
     fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<EdgeIndex>>;
 
@@ -158,6 +162,118 @@ pub struct ClockReductionContext {
     locations: LocationID,
     /// Reason for why the clock is declared redundant.
     reason: ClockReductionReason,
+}
+
+pub enum ClockReductionInstruction {
+    RemoveClock {
+        clock_index: ClockIndex,
+    },
+    ReplaceClocks {
+        clock_index: ClockIndex,
+        clock_indices: Vec<ClockIndex>,
+    }
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisNode {
+    pub invariant_dependencies: Vec<ClockIndex>,
+    pub id: LocationID,
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisEdge {
+    pub from: LocationID,
+    pub to: LocationID,
+    pub guard_dependencies: Vec<ClockIndex>,
+    pub updates: Vec<CompiledUpdate>,
+    pub edge_type: String,
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisGraph {
+    pub nodes: Vec<ClockAnalysisNode>,
+    pub edges: Vec<ClockAnalysisEdge>,
+    pub dim: ClockIndex
+}
+
+impl ClockAnalysisGraph {
+    pub fn empty() -> ClockAnalysisGraph {
+        ClockAnalysisGraph{
+            nodes: vec![],
+            edges: vec![],
+            dim: 0
+        }
+    }
+
+    pub fn find_clock_redundancies(&self) -> Vec<ClockReductionInstruction> {
+        let mut used_clocks = HashSet::new();
+
+        //First we find the used clocs
+        for edge in &self.edges {
+            for guard_dependency in &edge.guard_dependencies {
+                used_clocks.insert(guard_dependency.clone());
+            }
+        }
+
+        for node in &self.nodes {
+            for invariant_dependency in &node.invariant_dependencies {
+                used_clocks.insert(invariant_dependency.clone());
+            }
+        }
+
+        //Then we create a subset of used clocks that are not updated and decide a global clock which can replace them
+        let mut global_clock: ClockIndex = ClockIndex::MAX;
+        let mut non_updated_clocks = used_clocks.clone();
+
+        for edge in &self.edges {
+            for update in &edge.updates {
+                if update.clock_index < global_clock {
+                    global_clock = update.clock_index;
+                }
+                non_updated_clocks.remove(&update.clock_index);
+            }
+        }
+
+
+        //Then we instruct the caller to remove the unused clocks
+        let mut unused_clocks = (0..self.dim).collect::<HashSet<ClockIndex>>();
+        for used_clock in &used_clocks {
+            unused_clocks.remove(used_clock);
+        }
+
+        let mut rv: Vec<ClockReductionInstruction> = Vec::new();
+        for unused_clock in &unused_clocks {
+            rv.push(ClockReductionInstruction::RemoveClock {
+                clock_index: unused_clock.clone()
+            });
+        }
+
+        //Then we just have to instruct the caller to replace the non updated clocks with a single global clock
+        if non_updated_clocks.len() > 1 {
+            non_updated_clocks.remove(&global_clock);
+            rv.push(ClockReductionInstruction::ReplaceClocks {
+                clock_index: global_clock,
+                clock_indices: non_updated_clocks.into_iter().collect::<Vec<ClockIndex>>()
+            });
+        }
+
+        rv
+    }
+}
+
+pub fn AnalyzeTransitionSystem(transition_system: TransitionSystemPtr) {
+    let clock_decl = transition_system.get_decls();
+    let mut clocks : HashMap<String,ClockIndex> = HashMap::new();
+
+    // gets clocks used in the two components
+    for decl in clock_decl.iter(){
+        for (k,v) in decl.clocks.iter(){
+            clocks.insert(k.to_string(),*v);
+        }
+    }    print!("{:?}",clocks);
+
+    transition_system.get_analysis_graph();
+
 }
 
 clone_trait_object!(TransitionSystem);

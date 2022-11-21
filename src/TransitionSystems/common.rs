@@ -12,7 +12,7 @@ use crate::{
     System::local_consistency::{ConsistencyResult, DeterminismResult},
 };
 use crate::TransitionSystems::LocationID;
-use crate::TransitionSystems::transition_system::EdgeTuple;
+use crate::TransitionSystems::transition_system::{ClockAnalysisEdge, ClockAnalysisGraph, ClockAnalysisNode, EdgeTuple};
 
 use super::{
     transition_system::PrecheckResult, CompositionType, LocationTuple, TransitionSystem,
@@ -159,12 +159,52 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         self.get_composition_type()
     }
 
-    fn get_all_transitions(&self) -> Vec<&Transition> {
-        let (left, right) = self.get_children();
-        let mut transitions = (*left).get_all_transitions().clone();
-        transitions.extend((*right).get_all_transitions().clone());
-        transitions
+    fn get_analysis_graph(&self) -> ClockAnalysisGraph {
+        let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
+        let location = self.get_initial_location().unwrap();
+        let mut actions = self.get_actions();
+
+        self.find_next_transition(&location, &mut actions, &mut graph);
+
+        for edge in &graph.edges {
+            println!("\n******NEW EDGE*****");
+            println!("FROM: {:?}", edge.from);
+            println!("TO: {:?}", edge.to);
+            println!("UPDATES: {:?}", edge.updates);
+            println!("EDGE_TYPE: {:?}\n", edge.edge_type);
+        }
+
+        for node in &graph.nodes{
+            println!("\n******NEW NODE*****");
+            println!("ID: {:?}\n", node.id);
+        }
+
+        graph
     }
+
+    fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph){
+        let node: ClockAnalysisNode = ClockAnalysisNode{
+            invariant_dependencies: vec![],
+            id: location.id.to_owned()
+        };graph.nodes.push(node);
+        for action in actions.clone().iter(){
+            let transitions = self.next_transitions_if_available(&location, action);
+            if !transitions.is_empty() {
+                for transition in transitions {
+                    let edge: ClockAnalysisEdge = ClockAnalysisEdge {
+                        from: location.id.to_owned(),
+                        to: transition.target_locations.id.clone(),
+                        guard_dependencies: vec![],
+                        updates: transition.updates,
+                        edge_type: action.to_string(),
+                    };
+                    graph.edges.push(edge);
+                    self.find_next_transition(&transition.target_locations, actions, graph);
+                }
+            }
+        }
+    }
+
 
     fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
         let children = self.get_children();
@@ -197,3 +237,5 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         }
     }
 }
+
+pub type CockSize = ClockIndex;

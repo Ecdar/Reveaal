@@ -6,7 +6,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::transition_system::{EdgeTuple, PrecheckResult};
+use crate::TransitionSystems::transition_system::{ClockAnalysisGraph, EdgeTuple, PrecheckResult};
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
@@ -439,10 +439,6 @@ impl TransitionSystem for Quotient {
         self.dim
     }
 
-    fn get_all_transitions(&self) -> Vec<&Transition> {
-        todo!()
-    }
-
     fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<(LocationID, usize)>> {
         todo!()
     }
@@ -455,6 +451,14 @@ impl TransitionSystem for Quotient {
         todo!()
     }
     fn find_transition(&self, transition: &Transition) -> Option<&EdgeTuple> {
+        todo!()
+    }
+
+    fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph) {
+        todo!()
+    }
+
+    fn get_analysis_graph(&self) -> ClockAnalysisGraph {
         todo!()
     }
 }
