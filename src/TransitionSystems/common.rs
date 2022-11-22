@@ -187,12 +187,11 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             invariant_dependencies: vec![],
             id: location.id.to_owned()
         };
-
         graph.nodes.push(node);
-
         for action in actions.clone().iter() {
             let transitions = self.next_transitions_if_available(&location, action);
             for transition in transitions {
+                let trans = transition.clone();
                 graph.edges.push(ClockAnalysisEdge {
                     from: location.id.to_owned(),
                     to: transition.target_locations.id.clone(),
@@ -200,8 +199,9 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
                     updates: transition.updates,
                     edge_type: action.to_string(),
                 });
-
-                self.find_next_transition(&transition.target_locations, actions, graph);
+                if graph.nodes.iter().find( |x| x.id == trans.target_locations.id).is_none()  {
+                    self.find_next_transition(&transition.target_locations, actions, graph);
+                }
             }
         }
     }
