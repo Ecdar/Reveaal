@@ -1,4 +1,5 @@
 use super::{CompositionType, LocationID, LocationTuple};
+use crate::extract_system_rep::ClockReductionInstruction;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
@@ -8,7 +9,6 @@ use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use crate::extract_system_rep::ClockReductionInstruction;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;

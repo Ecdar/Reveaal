@@ -212,14 +212,19 @@ impl SystemRecipe {
                 .filter(move |r| r.is_in_range(&range))
                 .collect();
             let len = clocks.len();
-            let offset = if let Some(u) = adjust {
-                comp.decrement_dim(u, clocks.iter().flat_map(|r| r.get_indices()).collect());
-                u
-            } else {
-                0
+            let offset = match adjust {
+                Some(u) if u > 0 => {
+                    comp.decrement_dim(u, clocks.iter().flat_map(|r| r.get_indices()).collect());
+                    u
+                }
+                _ => 0,
             };
             comp.reduce_clocks(clocks);
-            adjust = Some(offset + len);
+            adjust = if offset + len > 0 {
+                Some(offset + len)
+            } else {
+                None
+            };
         }
         adjust.unwrap_or(0)
     }

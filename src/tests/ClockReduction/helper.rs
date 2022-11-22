@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod test {
+    use crate::extract_system_rep::ClockReductionInstruction;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
-    use crate::extract_system_rep::ClockReductionInstruction;
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -29,7 +29,8 @@ pub mod test {
         let mut clocksReduced: HashSet<String> = HashSet::new();
 
         for redundancy in redundant_clocks {
-            match &redundancy { //TODO
+            match &redundancy {
+                //TODO
                 ClockReductionInstruction::RemoveClock { .. } => {}
                 ClockReductionInstruction::ReplaceClocks { .. } => {}
             }
@@ -69,7 +70,10 @@ pub mod test {
 
         for (replaced_clocks, new_clock) in redundant_clocks.iter().filter_map(|c| match &c {
             ClockReductionInstruction::RemoveClock { .. } => None,
-            ClockReductionInstruction::ReplaceClocks { clock_indices, clock_index} => Some((clock_indices, clock_index))
+            ClockReductionInstruction::ReplaceClocks {
+                clock_indices,
+                clock_index,
+            } => Some((clock_indices, clock_index)),
         }) {
             assert_eq!(*new_clock, *clocks.get(&global_clock.0).unwrap());
             for c in replaced_clocks.iter() {
