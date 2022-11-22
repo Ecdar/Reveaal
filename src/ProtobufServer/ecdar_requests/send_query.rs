@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::format;
 use std::sync::Arc;
 
 use crate::component::Component;
@@ -288,6 +289,11 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }
         },
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
+        QueryResult::NotDisjoint(notDisjoint) => Some(ProtobufResult::Error(format!(
+            "{}{}",
+            notDisjoint.reason.clone(),
+            notDisjoint.left_name.as_ref().unwrap()
+        ))),
     }
 }
 

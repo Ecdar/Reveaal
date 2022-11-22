@@ -21,10 +21,26 @@ use simple_error::bail;
 use std::error::Error;
 
 pub struct SystemRecipeFailure {
-    reason: String,
-    left_name: Option<String>,
-    right_name: Option<String>,
-    actions: Vec<String>,
+    pub reason: String,
+    pub left_name: Option<String>,
+    pub right_name: Option<String>,
+    pub actions: Vec<String>,
+}
+impl std::fmt::Display for SystemRecipeFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SystemRecipeFailure: {}", self.reason)
+    }
+}
+
+impl std::fmt::Debug for SystemRecipeFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SystemRecipeFailure: {}", self.reason)
+    }
+}
+impl std::error::Error for SystemRecipeFailure {
+    fn description(&self) -> &str {
+        &self.reason
+    }
 }
 
 impl SystemRecipeFailure {
@@ -42,8 +58,8 @@ impl SystemRecipeFailure {
         right: TransitionSystemPtr,
         actions: Vec<String>,
     ) -> Self {
-        let left_name;
-        let right_name;
+        let mut left_name = None;
+        let mut right_name = None;
 
         if let Some(location) = left.get_initial_location() {
             left_name = location.id.get_component_id()
@@ -170,7 +186,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         match self {
             SystemRecipe::Composition(left, right) => {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)

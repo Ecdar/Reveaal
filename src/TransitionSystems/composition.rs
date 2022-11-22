@@ -28,7 +28,7 @@ impl Composition {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
         let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();
@@ -38,12 +38,12 @@ impl Composition {
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
         if let Err(actions) = left_out.is_disjoint_action(&right_out) {
-            return Err(SystemRecipeFailure::new(
+            return Err(Box::new(SystemRecipeFailure::new(
                 "Invalid parallel composition, outputs are not disjoint".to_string(),
                 left,
                 right,
                 actions,
-            ));
+            )));
         }
 
         // Act_i = Act1_i \ Act2_o ∪ Act2_i \ Act1_o

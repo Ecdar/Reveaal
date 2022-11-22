@@ -45,41 +45,41 @@ impl Quotient {
         S: TransitionSystemPtr,
         new_clock_index: ClockIndex,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let Tid = T.get_initial_location().unwrap().id;
         let Sid = S.get_initial_location().unwrap().id;
         if let Err(actions) = S
             .get_input_actions()
             .is_disjoint_action(&T.get_output_actions())
         {
-            return Err(SystemRecipeFailure::new(
+            return Err(Box::new(SystemRecipeFailure::new(
                 "s_out and t_in not disjoint in quotient!".to_string(),
                 T,
                 S,
                 actions,
-            ));
+            )));
         }
 
         match T.precheck_sys_rep() {
             PrecheckResult::Success => {}
             _ => {
-                return Err(SystemRecipeFailure::new(
+                return Err(Box::new(SystemRecipeFailure::new(
                     "T (left) must be least consistent for quotient".to_string(),
                     T,
                     S,
                     vec![],
-                ));
+                )));
             }
         }
         match S.precheck_sys_rep() {
             PrecheckResult::Success => {}
             _ => {
-                return Err(SystemRecipeFailure::new(
+                return Err(Box::new(SystemRecipeFailure::new(
                     "S (right) must be least consistent for quotient".to_string(),
                     T,
                     S,
                     vec![],
-                ));
+                )));
             }
         }
 

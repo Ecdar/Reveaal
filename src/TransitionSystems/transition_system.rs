@@ -51,19 +51,6 @@ pub trait TransitionSystem: DynClone {
         self.get_input_actions().contains(action)
     }
 
-    fn is_disjoint_ts(&self, other: &TransitionSystemPtr) -> (String, bool) {
-        let mut disjoint = true;
-        let mut reason = String::new();
-        for action in self.get_input_actions() {
-            if other.outputs_contain(&action) {
-                disjoint = false;
-                reason.push_str(&format!("{}, ", action));
-                return (reason, disjoint);
-            }
-        }
-        (reason, disjoint)
-    }
-
     fn get_output_actions(&self) -> HashSet<String>;
 
     fn outputs_contain(&self, action: &str) -> bool {
