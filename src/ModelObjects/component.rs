@@ -274,7 +274,6 @@ impl Component {
     /// Unused clocks and "duplicate" clocks (clocks that are never reset)
     /// and then remove them.
     pub fn reduce_clocks(&mut self, redundant_clocks: Vec<&ClockReductionInstruction>) {
-        let len = redundant_clocks.len();
         for clock in redundant_clocks {
             match clock {
                 ClockReductionInstruction::RemoveClock { clock_index } => {

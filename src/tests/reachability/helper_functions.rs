@@ -69,7 +69,6 @@ pub mod reachability_test_helper_functions {
         let mut dim: ClockIndex = 0;
         let mut quotient_index = None;
         let machine = get_system_recipe(&model, &mut (*comp_loader), &mut dim, &mut quotient_index);
-        let clock_replacement: Option<HashMap<String, ClockIndex>> = None;
         let system = machine.clone().compile(dim).unwrap();
         (machine, system)
     }

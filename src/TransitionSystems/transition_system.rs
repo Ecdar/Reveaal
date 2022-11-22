@@ -150,7 +150,6 @@ pub enum ClockReductionReason {
 
 ///Datastructure to hold the found redundant clocks, where they are used and their reason for being redundant.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct RedundantClock {
     ///Name of the redundant clock.
     pub(crate) clock: String,

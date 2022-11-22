@@ -20,6 +20,7 @@ use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
 use std::error::Error;
+use std::ops::Range;
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -40,14 +41,14 @@ pub fn create_executable_query<'a>(
                     match x { //TODO: Find dem clocks and parse
                         ReduceClocksLevel::Level(y) if *y >= 0 => {
                             //let heights = Heights::new(height, (*y) as usize);
-                            left.reduce_clocks(vec![]);
-                            right.reduce_clocks(vec![]);
+                            let clocks: Vec<ClockReductionInstruction> = vec![]; // Found clocks
+                            right.reduce_clocks(clocks.clone(), Some(left.reduce_clocks(clocks, None)));
                             //dim -= NUMBER OF CLOCKS
                         },
                         ReduceClocksLevel::All(true) =>{
                             //let heights = Heights::new(height, height);
-                            left.reduce_clocks(vec![]);
-                            right.reduce_clocks(vec![]);
+                            let clocks: Vec<ClockReductionInstruction> = vec![]; // Found clocks
+                            right.reduce_clocks(clocks.clone(), Some(left.reduce_clocks(clocks, None)));
                             //dim -= NUMBER OF CLOCKS
                         },
                         _ => (),
@@ -194,8 +195,12 @@ impl SystemRecipe {
     }
 
     ///Applies the clock-reduction
-    pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
-        let mut adjust: Option<usize> = None;
+    pub(crate) fn reduce_clocks(
+        &mut self,
+        clock_instruction: Vec<ClockReductionInstruction>,
+        offset: Option<usize>,
+    ) -> usize {
+        let mut adjust: Option<usize> = offset;
 
         for (range, comp) in self
             .get_components()
@@ -204,11 +209,11 @@ impl SystemRecipe {
         {
             let clocks: Vec<&ClockReductionInstruction> = clock_instruction
                 .iter()
-                .filter(|r| range.contains(&r.get_index()))
+                .filter(move |r| r.is_in_range(&range))
                 .collect();
             let len = clocks.len();
             let offset = if let Some(u) = adjust {
-                comp.decrement_dim(u, clocks.iter().map(|r| r.get_index()).collect());
+                comp.decrement_dim(u, clocks.iter().flat_map(|r| r.get_indices()).collect());
                 u
             } else {
                 0
@@ -216,6 +221,7 @@ impl SystemRecipe {
             comp.reduce_clocks(clocks);
             adjust = Some(offset + len);
         }
+        adjust.unwrap_or(0)
     }
 
     /// Gets all components in `SystemRecipe`
@@ -231,18 +237,9 @@ impl SystemRecipe {
             SystemRecipe::Component(c) => vec![c],
         }
     }
-
-    fn first_clock_index(&self) -> usize {
-        match self {
-            SystemRecipe::Composition(left, _)
-            | SystemRecipe::Conjunction(left, _)
-            | SystemRecipe::Quotient(left, _, _) => left.first_clock_index(),
-            SystemRecipe::Component(c) => c.get_first_clock_index(),
-        }
-    }
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub enum ClockReductionInstruction {
     RemoveClock {
         clock_index: ClockIndex,
@@ -254,10 +251,21 @@ pub enum ClockReductionInstruction {
 }
 
 impl ClockReductionInstruction {
-    pub(crate) fn get_index(&self) -> ClockIndex {
+    ///Checks the index/indices is within a given range
+    pub(crate) fn is_in_range(&self, range: &Range<usize>) -> bool {
         match self {
-            ClockReductionInstruction::RemoveClock { clock_index } => *clock_index,
-            ClockReductionInstruction::ReplaceClocks { clock_index, .. } => *clock_index,
+            ClockReductionInstruction::RemoveClock { clock_index } => range.contains(clock_index),
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => {
+                clock_indices.iter().any(|c| range.contains(c))
+            }
+        }
+    }
+
+    ///Gets the index/indices
+    fn get_indices(&self) -> Vec<usize> {
+        match self {
+            ClockReductionInstruction::RemoveClock { clock_index } => vec![*clock_index],
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.clone(),
         }
     }
 }
