@@ -43,7 +43,7 @@ pub mod util {
             panic!("Failed to create system")
         };
 
-        let new_comp = new_system.compile(dim, &None);
+        let new_comp = new_system.compile(dim);
 
         if new_comp.is_err() {
             return;
@@ -51,9 +51,9 @@ pub mod util {
         let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::NoPruning);
 
         let new_comp = SystemRecipe::Component(Box::new(new_comp))
-            .compile(dim, &None)
+            .compile(dim)
             .unwrap();
-        let base_system = base_system.compile(dim, &None).unwrap();
+        let base_system = base_system.compile(dim).unwrap();
 
         let base_precheck = base_system.precheck_sys_rep();
         let new_precheck = new_comp.precheck_sys_rep();

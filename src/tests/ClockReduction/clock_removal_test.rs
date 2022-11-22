@@ -18,7 +18,7 @@ pub mod clock_removal_tests {
         let transition_system = CompiledComponent::compile(component.clone(), dim).unwrap();
         let redundant_clocks = transition_system.find_redundant_clocks();
 
-        component.reduce_clocks(redundant_clocks, &mut dim);
+        component.reduce_clocks(redundant_clocks);
 
         assert_edges_in_component(
             component.clone(),

@@ -1,9 +1,7 @@
 #[cfg(test)]
 pub mod test {
+    use crate::TransitionSystems::transition_system::{ClockReductionReason, RedundantClock, TransitionSystemPtr};
     use crate::component::Component;
-    use crate::TransitionSystems::transition_system::{
-        ClockReductionReason, RedundantClock, TransitionSystemPtr,
-    };
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
@@ -156,6 +154,7 @@ pub mod test {
         );
     }
 
+    /* TODO: Fix
     /// Asserts that the specific clocks occur in the correct locations and edges
     pub(crate) fn assert_correct_edges_and_locations(
         component: &Box<CompiledComponent>,
@@ -185,7 +184,7 @@ pub mod test {
             assert_eq!(*new_clock, *global_clock.0);
             assert_eq!(*clocks.get(clock.as_str()).unwrap(), global_clock.1);
         }
-
+        */
         // TODO: Unused?
 
         /*
@@ -229,6 +228,6 @@ pub mod test {
                 found_edge_names,
             );
         }
-         */
     }
+        */
 }
