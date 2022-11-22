@@ -208,7 +208,7 @@ pub enum ClockReductionInstruction {
 
 #[derive(Debug)]
 pub struct ClockAnalysisNode {
-    pub invariant_dependencies: Vec<ClockIndex>,
+    pub invariant_dependencies: HashSet<ClockIndex>,
     pub id: LocationID,
 }
 
@@ -216,7 +216,7 @@ pub struct ClockAnalysisNode {
 pub struct ClockAnalysisEdge {
     pub from: LocationID,
     pub to: LocationID,
-    pub guard_dependencies: Vec<ClockIndex>,
+    pub guard_dependencies: HashSet<ClockIndex>,
     pub updates: Vec<CompiledUpdate>,
     pub edge_type: String,
 }
@@ -236,6 +236,7 @@ impl ClockAnalysisGraph {
             dim: 0
         }
     }
+    //TODO: Gør sådan 0 aldrig bliver reduceret
 
     pub fn find_clock_redundancies(&self) -> Vec<ClockReductionInstruction> {
         let mut used_clocks = HashSet::new();

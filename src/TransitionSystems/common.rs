@@ -6,6 +6,7 @@ use edbm::{
     zones::OwnedFederation,
 };
 use log::warn;
+use tonic::IntoRequest;
 
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
@@ -171,7 +172,8 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             println!("FROM: {:?}", edge.from);
             println!("TO: {:?}", edge.to);
             println!("UPDATES: {:?}", edge.updates);
-            println!("EDGE_TYPE: {:?}\n", edge.edge_type);
+            println!("EDGE_TYPE: {:?}", edge.edge_type);
+            println!("GUARDS: {:?}\n", edge.guard_dependencies);
         }
 
         for node in &graph.nodes{
@@ -184,7 +186,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph){
         let node: ClockAnalysisNode = ClockAnalysisNode {
-            invariant_dependencies: vec![],
+            invariant_dependencies: HashSet::new(),
             id: location.id.to_owned()
         };
 
@@ -193,15 +195,29 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         for action in actions.clone().iter() {
             let transitions = self.next_transitions_if_available(&location, action);
             for transition in transitions {
-                graph.edges.push(ClockAnalysisEdge {
+                let mut edge = ClockAnalysisEdge {
                     from: location.id.to_owned(),
                     to: transition.target_locations.id.clone(),
-                    guard_dependencies: vec![],
+                    guard_dependencies: HashSet::new(),
                     updates: transition.updates,
                     edge_type: action.to_string(),
-                });
+                };
 
+                println!("GUARDS:");
+                println!("{:?}", transition.id);
+                println!("{:?}", transition.guard_zone);
                 self.find_next_transition(&transition.target_locations, actions, graph);
+
+                let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
+
+                for conjunction in &conjunctions {
+                    for constraint in conjunction.iter() {
+                        edge.guard_dependencies.insert(constraint.i);
+                        edge.guard_dependencies.insert(constraint.j);
+                    }
+                }
+                graph.edges.push(edge);
+
             }
         }
     }
