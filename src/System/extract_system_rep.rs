@@ -40,13 +40,15 @@ pub fn create_executable_query<'a>(
                     match x { //TODO: Find dem clocks and parse
                         ReduceClocksLevel::Level(y) if *y >= 0 => {
                             //let heights = Heights::new(height, (*y) as usize);
-                            left.reduce_clocks(vec![], &mut dim);
-                            right.reduce_clocks(vec![], &mut dim);
+                            left.reduce_clocks(vec![]);
+                            right.reduce_clocks(vec![]);
+                            //dim -= NUMBER OF CLOCKS
                         },
                         ReduceClocksLevel::All(true) =>{
                             //let heights = Heights::new(height, height);
-                            left.reduce_clocks(vec![], &mut dim);
-                            right.reduce_clocks(vec![], &mut dim);
+                            left.reduce_clocks(vec![]);
+                            right.reduce_clocks(vec![]);
+                            //dim -= NUMBER OF CLOCKS
                         },
                         _ => (),
                     };
@@ -192,12 +194,7 @@ impl SystemRecipe {
     }
 
     ///Applies the clock-reduction
-    //#[allow(clippy::mutable_key_type)]
-    pub(crate) fn reduce_clocks(
-        &mut self,
-        clock_instruction: Vec<ClockReductionInstruction>,
-        dim: &mut ClockIndex,
-    ) {
+    pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
         let mut adjust: Option<usize> = None;
 
         for (range, comp) in self
@@ -205,19 +202,20 @@ impl SystemRecipe {
             .into_iter()
             .filter_map(move |c| Some((c.get_clock_range()?, c)))
         {
-            if let Some(u) = adjust {
-                comp.decrement_dim(u);
-            }
             let clocks: Vec<&ClockReductionInstruction> = clock_instruction
                 .iter()
                 .filter(|r| range.contains(&r.get_index()))
                 .collect();
             let len = clocks.len();
+            let offset = if let Some(u) = adjust {
+                comp.decrement_dim(u, clocks.iter().map(|r| r.get_index()).collect());
+                u
+            } else {
+                0
+            };
             comp.reduce_clocks(clocks);
-            adjust = Some(adjust.unwrap_or(0) + len);
+            adjust = Some(offset + len);
         }
-
-        *dim -= clock_instruction.len();
     }
 
     /// Gets all components in `SystemRecipe`
