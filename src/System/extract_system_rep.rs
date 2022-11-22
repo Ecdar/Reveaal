@@ -9,7 +9,7 @@ use crate::System::executable_query::{
 use crate::System::extract_state::get_state;
 
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, ConjunctionResult, Quotient, TransitionSystemPtr,
+    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
 use crate::component::State;
@@ -28,6 +28,18 @@ pub struct SystemRecipeFailure {
 }
 
 impl SystemRecipeFailure {
+    pub fn new_from_component(
+        reason: String,
+        component: Component,
+        actions: Vec<String>,
+    ) -> Self {
+        SystemRecipeFailure {
+            reason,
+            left_name: Some(component.get_name().to_string()),
+            right_name: None,
+            actions,
+        }
+    }
     pub fn new(
         reason: String,
         left: TransitionSystemPtr,
@@ -162,7 +174,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, String> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         match self {
             SystemRecipe::Composition(left, right) => {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)

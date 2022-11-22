@@ -11,7 +11,7 @@ pub mod transition_system;
 
 pub use compiled_component::CompiledComponent;
 pub use composition::Composition;
-pub use conjunction::{Conjunction, ConjunctionResult};
+pub use conjunction::{Conjunction};
 pub use location_id::LocationID;
 pub use location_tuple::{CompositionType, LocationTuple};
 pub use quotient::Quotient;
