@@ -71,7 +71,7 @@ impl Conjunction {
             dim,
         });
         if let ConsistencyResult::Failure(_) = local_consistency::is_least_consistent(ts.as_ref()) {
-            return Err("Conjunction is empty after pruning".to_string());
+            return Err(SystemRecipeFailure::new("Invalid conjunction, not least consistent".to_string(), left, right, vec![]));
         }
         Ok(ts)
     }
