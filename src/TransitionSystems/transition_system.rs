@@ -223,7 +223,7 @@ pub struct ClockAnalysisEdge {
 
 #[derive(Debug)]
 pub struct ClockAnalysisGraph {
-    pub nodes: Vec<ClockAnalysisNode>,
+    pub nodes: HashMap<LocationID, ClockAnalysisNode>,
     pub edges: Vec<ClockAnalysisEdge>,
     pub dim: ClockIndex
 }
@@ -231,7 +231,7 @@ pub struct ClockAnalysisGraph {
 impl ClockAnalysisGraph {
     pub fn empty() -> ClockAnalysisGraph {
         ClockAnalysisGraph{
-            nodes: vec![],
+            nodes: HashMap::new(),
             edges: vec![],
             dim: 0
         }
@@ -249,7 +249,7 @@ impl ClockAnalysisGraph {
         }
 
         for node in &self.nodes {
-            for invariant_dependency in &node.invariant_dependencies {
+            for invariant_dependency in &node.1.invariant_dependencies {
                 used_clocks.insert(invariant_dependency.clone());
             }
         }

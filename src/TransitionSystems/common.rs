@@ -160,6 +160,8 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         self.get_composition_type()
     }
 
+    ///Constructs a [CLockAnalysisGraph],
+    ///where nodes represents locations and Edges represent transitions
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
         let location = self.get_initial_location().unwrap();
@@ -167,32 +169,36 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
         self.find_next_transition(&location, &mut actions, &mut graph);
 
-        for edge in &graph.edges {
-            println!("\n******NEW EDGE*****");
-            println!("FROM: {:?}", edge.from);
-            println!("TO: {:?}", edge.to);
-            println!("UPDATES: {:?}", edge.updates);
-            println!("EDGE_TYPE: {:?}", edge.edge_type);
-            println!("GUARDS: {:?}\n", edge.guard_dependencies);
-        }
-
-        for node in &graph.nodes{
-            println!("\n******NEW NODE*****");
-            println!("ID: {:?}\n", node.id);
-        }
-
         graph
     }
 
+    ///Helper function to recursively travers all transitions in a transitions system
+    ///in order to find all transitions and location in the transition system, and
+    ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
     fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph){
-        let node: ClockAnalysisNode = ClockAnalysisNode {
+        //Constructs a node to represent this location and add it to the graph.
+        let mut node: ClockAnalysisNode = ClockAnalysisNode {
             invariant_dependencies: HashSet::new(),
             id: location.id.to_owned()
         };
-        graph.nodes.push(node);
+
+        //Finds clocks used in invariants in this location.
+        if let Some(invariant) = &location.invariant {
+            let conjunctions = invariant.minimal_constraints().conjunctions;
+            for conjunction in conjunctions {
+                for constraint in conjunction.iter() {
+                    node.invariant_dependencies.insert(constraint.i);
+                    node.invariant_dependencies.insert(constraint.j);
+                }
+            }
+        }
+        graph.nodes.insert(node.id.clone(), node);
+
+        //Constructs an edge to represent each transition from this graph and add it to the graph.
         for action in actions.clone().iter() {
             let transitions = self.next_transitions_if_available(&location, action);
             for transition in transitions {
+
                 let mut edge = ClockAnalysisEdge {
                     from: location.id.to_owned(),
                     to: transition.target_locations.id.clone(),
@@ -201,13 +207,8 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
                     edge_type: action.to_string(),
                 };
 
-                println!("GUARDS:");
-                println!("{:?}", transition.id);
-                println!("{:?}", transition.guard_zone);
-                self.find_next_transition(&transition.target_locations, actions, graph);
-
+                //Finds clocks used in guards in this transition.
                 let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
-
                 for conjunction in &conjunctions {
                     for constraint in conjunction.iter() {
                         edge.guard_dependencies.insert(constraint.i);
@@ -218,9 +219,9 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
                 graph.edges.push(edge);
 
-                //TODO: this should be doen with a hashmap instead
-                let trans = transition.clone();
-                if graph.nodes.iter().find( |x| x.id == trans.target_locations.id).is_none()  {
+                //Calls itself on the transitions target location if the location is not already in
+                //represented as a node in the graph.
+                if !graph.nodes.contains_key(&transition.target_locations.id) {
                     self.find_next_transition(&transition.target_locations, actions, graph);
                 }
             }
