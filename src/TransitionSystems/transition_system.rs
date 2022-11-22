@@ -9,9 +9,11 @@ use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use log::info;
 use std::collections::hash_set::HashSet;
 use std::collections::{BTreeSet, HashMap};
+use std::collections::hash_map::Entry;
 use crate::component::Edge;
 use crate::EdgeEval::updater::CompiledUpdate;
 use std::iter::FromIterator;
+use crate::ModelObjects::representations::Clock;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -196,13 +198,14 @@ pub struct ClockReductionContext {
     reason: ClockReductionReason,
 }
 
+#[derive(Debug)]
 pub enum ClockReductionInstruction {
     RemoveClock {
         clock_index: ClockIndex,
     },
     ReplaceClocks {
         clock_index: ClockIndex,
-        clock_indices: Vec<ClockIndex>,
+        clock_indices: HashSet<ClockIndex>,
     }
 }
 
@@ -236,9 +239,44 @@ impl ClockAnalysisGraph {
             dim: 0
         }
     }
-    //TODO: Gør sådan 0 aldrig bliver reduceret
 
     pub fn find_clock_redundancies(&self) -> Vec<ClockReductionInstruction> {
+        //First we find the used clocks
+        let used_clocks = self.find_used_clocks();
+
+        //Then we create a subset of used clocks that are not updated and decide a global clock which can replace them
+        let mut global_clock: ClockIndex = ClockIndex::MAX;
+        let mut non_updated_clocks = self.find_non_updated_clocks(&used_clocks, &mut global_clock);
+
+        //Then we instruct the caller to remove the unused clocks, we start at 1 since the 0 clock is not a real clock
+        let mut unused_clocks = (1..self.dim).collect::<HashSet<ClockIndex>>();
+        for used_clock in &non_updated_clocks {
+            unused_clocks.remove(&used_clock);
+        }
+
+        let mut rv: Vec<ClockReductionInstruction> = Vec::new();
+        for unused_clock in &unused_clocks {
+            rv.push(ClockReductionInstruction::RemoveClock {
+                clock_index: unused_clock.clone()
+            });
+        }
+
+        let mut equivalent_clock_groups = self.find_equal_clocks(&used_clocks);
+        println!("{:?}", equivalent_clock_groups);
+        for equivalent_clock_group in &mut equivalent_clock_groups {
+            let lowest_clock = equivalent_clock_group.iter().max().unwrap().clone();
+            equivalent_clock_group.remove(&lowest_clock);
+            rv.push(ClockReductionInstruction::ReplaceClocks {
+                clock_index: lowest_clock,
+                clock_indices: equivalent_clock_group.clone()
+            });
+        }
+
+
+        rv
+    }
+
+    fn find_used_clocks(&self) -> HashSet<ClockIndex> {
         let mut used_clocks = HashSet::new();
 
         //First we find the used clocs
@@ -254,43 +292,65 @@ impl ClockAnalysisGraph {
             }
         }
 
-        //Then we create a subset of used clocks that are not updated and decide a global clock which can replace them
-        let mut global_clock: ClockIndex = ClockIndex::MAX;
+        return used_clocks;
+    }
+
+    fn find_non_updated_clocks(&self, used_clocks: &HashSet<ClockIndex>, global_clock: &mut ClockIndex) -> HashSet<ClockIndex> {
+        *global_clock = ClockIndex::MAX;
         let mut non_updated_clocks = used_clocks.clone();
 
         for edge in &self.edges {
             for update in &edge.updates {
-                if update.clock_index < global_clock {
-                    global_clock = update.clock_index;
+                if update.clock_index < *global_clock {
+                    *global_clock = update.clock_index;
                 }
                 non_updated_clocks.remove(&update.clock_index);
             }
         }
 
+        return non_updated_clocks;
+    }
 
-        //Then we instruct the caller to remove the unused clocks
-        let mut unused_clocks = (0..self.dim).collect::<HashSet<ClockIndex>>();
-        for used_clock in &used_clocks {
-            unused_clocks.remove(used_clock);
+    fn find_equal_clocks(&self, used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>> {
+        if used_clocks.len() < 2 || self.edges.len() == 0 {
+            return Vec::new();
         }
+        let mut equivalent_clock_groups: Vec<HashSet<ClockIndex>> = Vec::new();
 
-        let mut rv: Vec<ClockReductionInstruction> = Vec::new();
-        for unused_clock in &unused_clocks {
-            rv.push(ClockReductionInstruction::RemoveClock {
-                clock_index: unused_clock.clone()
-            });
+        equivalent_clock_groups.push(used_clocks.clone());
+
+        for edge in &self.edges {
+            let mut locally_equivalent_clock_groups: HashMap<i32, HashSet<ClockIndex>> = HashMap::new();
+            for update in edge.updates.iter() {
+
+                let same_value_set: &mut HashSet<ClockIndex> =
+                    match locally_equivalent_clock_groups.entry(update.value) {
+                        Entry::Occupied(o) => o.into_mut(),
+                        Entry::Vacant(v) => v.insert(HashSet::new()),
+                    };
+                same_value_set.insert(update.clock_index);
+            }
+            let mut new_groups: Vec<HashSet<ClockIndex>> = Vec::new();
+            for equivalent_clock_group in &mut equivalent_clock_groups {
+                for locally_equivalent_clock_group in &locally_equivalent_clock_groups {
+                    let mut new_clock_group = HashSet::new();
+                    for locally_equivalent_clock in locally_equivalent_clock_group.1 {
+                        if equivalent_clock_group.contains(&locally_equivalent_clock) {
+                            new_clock_group.insert(*locally_equivalent_clock);
+                            equivalent_clock_group.remove(&locally_equivalent_clock);
+                        }
+                    }
+                    if new_clock_group.len() > 1 {
+                        new_groups.push(new_clock_group);
+                    }
+                }
+                if equivalent_clock_group.len() > 1 {
+                    new_groups.push(equivalent_clock_group.clone());
+                }
+            }
+            equivalent_clock_groups = new_groups;
         }
-
-        //Then we just have to instruct the caller to replace the non updated clocks with a single global clock
-        if non_updated_clocks.len() > 1 {
-            non_updated_clocks.remove(&global_clock);
-            rv.push(ClockReductionInstruction::ReplaceClocks {
-                clock_index: global_clock,
-                clock_indices: non_updated_clocks.into_iter().collect::<Vec<ClockIndex>>()
-            });
-        }
-
-        rv
+        equivalent_clock_groups
     }
 }
 

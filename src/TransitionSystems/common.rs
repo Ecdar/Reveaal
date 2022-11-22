@@ -218,13 +218,10 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
                 graph.edges.push(edge);
 
-                //TODO: this should be doen with a hashmap instead
-                let trans = transition.clone();
-                if graph.nodes.iter().find( |x| x.id == trans.target_locations.id).is_none()  {
-                    self.find_next_transition(&transition.target_locations, actions, graph);
-                }
+                self.find_next_transition(&transition.target_locations, actions, graph);
             }
         }
+        println!("{:?}", graph.find_clock_redundancies());
     }
 
 
