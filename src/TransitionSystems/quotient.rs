@@ -2,11 +2,12 @@ use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 use log::{debug, warn};
 
+use crate::extract_system_rep::SystemRecipeFailure;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::composition::is_disjoint_action;
+use crate::TransitionSystems::common::CollectionOperation;
 use crate::TransitionSystems::transition_system::PrecheckResult;
 use edbm::util::bounds::Bounds;
 
@@ -16,6 +17,7 @@ use crate::TransitionSystems::{
     LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
 };
 use std::collections::hash_set::HashSet;
+use std::vec;
 
 use super::{CompositionType, LocationID};
 
@@ -34,16 +36,6 @@ pub struct Quotient {
     dim: ClockIndex,
 }
 
-pub enum QuotientResult {
-    Success(),
-    Failure(QuotientFailure),
-}
-
-pub enum QuotientFailure {
-    InputOutputNotDisJoint(String, LocationID, LocationID),
-    PrecheckFailure(PrecheckResult),
-}
-
 static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
 static UNIVERSAL_LOC_NAME: &str = "Universal";
 impl Quotient {
@@ -53,29 +45,41 @@ impl Quotient {
         S: TransitionSystemPtr,
         new_clock_index: ClockIndex,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, String> {
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         let Tid = T.get_initial_location().unwrap().id;
         let Sid = S.get_initial_location().unwrap().id;
-        if is_disjoint_action(&S.get_input_actions(), &T.get_output_actions()).1 {
-            let wrong_io_actions = S.is_disjoint_ts(&T).0;
-            return Err(format!(
-                "s_out and t_in not disjoint in quotient! following IO action: {:?} in components {:?} and {:?}",
-                wrong_io_actions,
-                Tid.get_component_id().unwrap().to_string(),
-                Sid.get_component_id().unwrap().to_string(),
+        if let Err(actions) = S
+            .get_input_actions()
+            .is_disjoint_action(&T.get_output_actions())
+        {
+            return Err(SystemRecipeFailure::new(
+                "s_out and t_in not disjoint in quotient!".to_string(),
+                T,
+                S,
+                actions,
             ));
         }
 
         match T.precheck_sys_rep() {
             PrecheckResult::Success => {}
             _ => {
-                return Err("T (left) must be least consistent for quotient".to_string());
+                return Err(SystemRecipeFailure::new(
+                    "T (left) must be least consistent for quotient".to_string(),
+                    T,
+                    S,
+                    vec![],
+                ));
             }
         }
         match S.precheck_sys_rep() {
             PrecheckResult::Success => {}
             _ => {
-                return Err("T (left) must be least consistent for quotient".to_string());
+                return Err(SystemRecipeFailure::new(
+                    "S (right) must be least consistent for quotient".to_string(),
+                    T,
+                    S,
+                    vec![],
+                ));
             }
         }
 

@@ -1,5 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
+use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::Transition;
 use crate::System::local_consistency::{self, ConsistencyResult};
 use crate::TransitionSystems::{
@@ -20,12 +21,7 @@ pub struct Conjunction {
 
 pub enum ConjunctionResult {
     Success,
-    Failure(ConjunctionFailure),
-}
-
-pub enum ConjunctionFailure {
-    InputsNotDisJointFromOutputs(Conjunction),
-    EmptyConjunctionAfterPruning,
+    Failure(Option<Conjunction>),
 }
 
 impl Conjunction {
@@ -34,7 +30,7 @@ impl Conjunction {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, String> {
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
 

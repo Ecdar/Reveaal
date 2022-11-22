@@ -9,7 +9,6 @@ use log::warn;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
-use super::composition::is_disjoint_action;
 use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 

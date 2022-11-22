@@ -9,8 +9,8 @@ use crate::System::executable_query::{
 use crate::System::extract_state::get_state;
 
 use crate::TransitionSystems::{
-    CompiledComponent, ComponentResult, Composition, CompositionResult, Conjunction,
-    ConjunctionResult, Quotient, QuotientResult, TransitionSystemPtr,
+    CompiledComponent, ComponentResult, Composition, Conjunction, ConjunctionResult, Quotient,
+    QuotientResult, TransitionSystemPtr,
 };
 
 use crate::component::State;
@@ -21,11 +21,37 @@ use simple_error::bail;
 
 use std::error::Error;
 
-enum SystemRecipeResult {
-    Composition(CompositionResult),
-    Conjunction(ConjunctionResult),
-    Quotient(QuotientResult),
-    Component(ComponentResult),
+pub struct SystemRecipeFailure {
+    reason: String,
+    left_name: Option<String>,
+    right_name: Option<String>,
+    actions: Vec<String>,
+}
+
+impl SystemRecipeFailure {
+    pub fn new(
+        reason: String,
+        left: TransitionSystemPtr,
+        right: TransitionSystemPtr,
+        actions: Vec<String>,
+    ) -> Self {
+        let left_name;
+        let right_name;
+
+        if let Some(location) = left.get_initial_location() {
+            left_name = location.id.get_component_id()
+        }
+        if let Some(location) = right.get_initial_location() {
+            right_name = location.id.get_component_id()
+        }
+
+        SystemRecipeFailure {
+            reason,
+            left_name,
+            right_name,
+            actions,
+        }
+    }
 }
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
