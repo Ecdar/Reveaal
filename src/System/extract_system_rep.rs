@@ -28,11 +28,7 @@ pub struct SystemRecipeFailure {
 }
 
 impl SystemRecipeFailure {
-    pub fn new_from_component(
-        reason: String,
-        component: Component,
-        actions: Vec<String>,
-    ) -> Self {
+    pub fn new_from_component(reason: String, component: Component, actions: Vec<String>) -> Self {
         SystemRecipeFailure {
             reason,
             left_name: Some(component.get_name().to_string()),

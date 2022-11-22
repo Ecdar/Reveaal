@@ -1,9 +1,9 @@
+use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
 use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
-use crate::extract_system_rep::SystemRecipeFailure;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use log::warn;
@@ -49,9 +49,10 @@ impl CompiledComponent {
     ) -> Result<Box<Self>, SystemRecipeFailure> {
         if let Err(actions) = inputs.is_disjoint_action(&outputs) {
             return Err(SystemRecipeFailure::new_from_component(
-                "Input is not disjoint from output".to_string()
-            , component
-            , actions))
+                "Input is not disjoint from output".to_string(),
+                component,
+                actions,
+            ));
         }
 
         let locations: HashMap<LocationID, LocationTuple> = component
@@ -101,7 +102,10 @@ impl CompiledComponent {
         }))
     }
 
-    pub fn compile(component: Component, dim: ClockIndex) -> Result<Box<Self>, SystemRecipeFailure> {
+    pub fn compile(
+        component: Component,
+        dim: ClockIndex,
+    ) -> Result<Box<Self>, SystemRecipeFailure> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()
