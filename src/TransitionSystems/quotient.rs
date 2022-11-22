@@ -60,7 +60,7 @@ impl Quotient {
             let wrong_io_actions = S.is_disjoint_ts(&T).0;
             return Err(format!(
                 "s_out and t_in not disjoint in quotient! following IO action: {:?} in components {:?} and {:?}",
-                wrong_io_actions, 
+                wrong_io_actions,
                 Tid.get_component_id().unwrap().to_string(),
                 Sid.get_component_id().unwrap().to_string(),
             ));

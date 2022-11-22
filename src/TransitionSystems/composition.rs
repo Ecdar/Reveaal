@@ -34,7 +34,6 @@ pub fn is_disjoint_action(left: &HashSet<String>, right: &HashSet<String>) -> (S
     (reason, disjoint)
 }
 
-
 pub enum CompositionResult {
     Success,
     Failure(CompositionFailure),

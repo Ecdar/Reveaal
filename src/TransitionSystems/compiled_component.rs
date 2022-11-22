@@ -9,6 +9,7 @@ use log::warn;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
+use super::composition::is_disjoint_action;
 use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 
@@ -44,8 +45,13 @@ impl CompiledComponent {
         outputs: HashSet<String>,
         dim: ClockIndex,
     ) -> Result<Box<Self>, String> {
-        if !inputs.is_disjoint(&outputs) {
-            return Err("Inputs and outputs must be disjoint in component".to_string());
+        if is_disjoint_action(&inputs, &outputs).1 {
+            let action_not_disjoint = is_disjoint_action(&inputs, &outputs).0;
+            let component_name = component.get_name();
+            return Err(format!(
+                "Action {} is not disjoint in component {}",
+                action_not_disjoint, component_name
+            ));
         }
 
         let locations: HashMap<LocationID, LocationTuple> = component
