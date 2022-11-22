@@ -189,9 +189,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             invariant_dependencies: HashSet::new(),
             id: location.id.to_owned()
         };
-
         graph.nodes.push(node);
-
         for action in actions.clone().iter() {
             let transitions = self.next_transitions_if_available(&location, action);
             for transition in transitions {
@@ -216,8 +214,15 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
                         edge.guard_dependencies.insert(constraint.j);
                     }
                 }
+
+
                 graph.edges.push(edge);
 
+                //TODO: this should be doen with a hashmap instead
+                let trans = transition.clone();
+                if graph.nodes.iter().find( |x| x.id == trans.target_locations.id).is_none()  {
+                    self.find_next_transition(&transition.target_locations, actions, graph);
+                }
             }
         }
     }
