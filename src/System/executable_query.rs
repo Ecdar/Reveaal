@@ -1,5 +1,4 @@
 use edbm::util::constraints::ClockIndex;
-use std::collections::HashMap;
 
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;

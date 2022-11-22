@@ -1,6 +1,5 @@
 pub mod reachability_test_helper_functions {
     use edbm::util::constraints::ClockIndex;
-    use std::collections::HashMap;
 
     use crate::extract_system_rep::get_system_recipe;
     use crate::extract_system_rep::SystemRecipe;

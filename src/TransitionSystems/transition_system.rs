@@ -8,6 +8,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use crate::extract_system_rep::ClockReductionInstruction;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -118,94 +119,10 @@ pub trait TransitionSystem: DynClone {
 
     fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition>;
 
-    fn find_redundant_clocks(&self) -> Vec<RedundantClock> {
+    fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
         //TODO do
         vec![]
     }
 }
 
-pub struct ClockReductionContext {
-    /// Name of the redundant clock.
-    clock: String,
-    /// Indices of the transitions where this clock is present. Transitions are indexed by the
-    /// [`LocationID`] of the location they originate in and the index in the `location_edges`
-    /// `HashMap`.
-    transition_indexes: Vec<(LocationID, usize)>,
-    /// The locations with invariants that contain this clock.
-    locations: LocationID,
-    /// Reason for why the clock is declared redundant.
-    reason: ClockReductionReason,
-}
-
 clone_trait_object!(TransitionSystem);
-
-///Enum to hold the reason for why a clock is declared redundant.
-#[derive(Debug, PartialEq, Eq)]
-pub enum ClockReductionReason {
-    ///Which clock is it a duplicate of.
-    Duplicate(String),
-    ///If a clock is not used by a guard or invariant it is unused.
-    Unused,
-}
-
-///Datastructure to hold the found redundant clocks, where they are used and their reason for being redundant.
-#[derive(Debug)]
-pub struct RedundantClock {
-    ///Name of the redundant clock.
-    pub(crate) clock: String,
-    ///Indices of which edges the clock are being used on.
-    pub(crate) edge_indices: Vec<usize>,
-    ///Indices of which locations the clock are being used in.
-    pub(crate) location_indices: Vec<usize>,
-    ///Reason for why the clock is declared redundant.
-    pub(crate) reason: ClockReductionReason,
-    /// Which updates clock occurs in. Key is index of edge and Value is the index for the update
-    pub(crate) updates: HashMap<usize, usize>,
-}
-
-impl RedundantClock {
-    ///Creates a new [`RedundantClock`]
-    #[allow(unused)]
-    fn new(
-        clock: String,
-        edge_indices: Vec<usize>,
-        location_indices: Vec<usize>,
-        reason: ClockReductionReason,
-        updates: HashMap<usize, usize>,
-    ) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices,
-            location_indices,
-            reason,
-            updates,
-        }
-    }
-
-    ///Shorthand function to create a duplicated [`RedundantClock`]
-    fn duplicate(
-        clock: String,
-        edge_indices: Vec<usize>,
-        location_indices: Vec<usize>,
-        duplicate: String,
-    ) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices,
-            location_indices,
-            reason: ClockReductionReason::Duplicate(duplicate),
-            updates: HashMap::new(),
-        }
-    }
-
-    ///Shorthand function to create a unused [`RedundantClock`]
-    fn unused(clock: String) -> RedundantClock {
-        RedundantClock {
-            clock,
-            edge_indices: vec![],
-            location_indices: vec![],
-            reason: ClockReductionReason::Unused,
-            updates: HashMap::new(),
-        }
-    }
-}
