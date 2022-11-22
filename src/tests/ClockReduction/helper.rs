@@ -1,8 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use crate::TransitionSystems::transition_system::{
-        ClockReductionReason, RedundantClock, TransitionSystemPtr,
-    };
+    use crate::TransitionSystems::transition_system::{ClockReductionReason, RedundantClock};
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};

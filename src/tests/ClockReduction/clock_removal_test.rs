@@ -15,12 +15,11 @@ pub mod clock_removal_tests {
                 "Component1",
             ),
             5,
-            &None,
         )
         .unwrap(); //TODO Dim
         let redundant_clocks = component.find_redundant_clocks();
 
-        component.reduce_clocks(vec![], Heights::new(0, 0)); //TODO
+        //component.reduce_clocks(vec![], Heights::new(0, 0)); //TODO
 
         assert_edges_in_component(
             component,

@@ -124,7 +124,7 @@ pub struct ConsistencyExecutor {
 impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let clock_replacement: Option<HashMap<String, ClockIndex>> = None;
-        let res = match self.recipe.compile(self.dim, &clock_replacement) {
+        let res = match self.recipe.compile(self.dim) {
             Ok(system) => match system.precheck_sys_rep() {
                 PrecheckResult::Success => QueryResult::Consistency(ConsistencyResult::Success),
                 PrecheckResult::NotDeterministic(location, action) => {

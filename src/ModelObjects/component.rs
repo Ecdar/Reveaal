@@ -10,16 +10,19 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
+use crate::extract_system_rep::ClockReductionInstruction;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTuple, TransitionID};
 use edbm::zones::OwnedFederation;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Range;
 
 /// The basic struct used to represent components read from either Json or xml
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
 pub struct Component {
     pub name: String,
@@ -265,6 +268,81 @@ impl Component {
 
         // Remake the input and output edges
         self.create_edge_io_split();
+    }
+
+    /// Function for reducing the clocks found on the component.
+    /// Unused clocks and "duplicate" clocks (clocks that are never reset)
+    /// and then remove them.
+    pub fn reduce_clocks(&mut self, redundant_clocks: Vec<&ClockReductionInstruction>) {
+        let len = redundant_clocks.len();
+        for clock in redundant_clocks {
+            match clock {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    self.remove_clock(*clock_index)
+                }
+                ClockReductionInstruction::ReplaceClocks {
+                    clock_index,
+                    clock_indices,
+                } => self.replace_clock(*clock_index, clock_indices),
+            };
+        }
+        self.decrement_dim(len);
+    }
+
+    /// Removes unused clock
+    /// # Arguments
+    /// `index`: The index to be removed
+    pub(crate) fn remove_clock(&mut self, index: ClockIndex) {
+        let name = self
+            .declarations
+            .get_clock_name_by_name(index)
+            .expect("lol")
+            .to_owned(); //TODO: Msg
+        self.declarations.clocks.remove(&name);
+        self.declarations
+            .clocks
+            .values_mut()
+            .filter(|val| **val > index)
+            .for_each(|val| *val -= 1);
+        info!("Removed Clock '{}' has been removed", name); // Should be changed in the future to be the information logger
+    }
+
+    /// Replaces duplicate clock with a new
+    /// # Arguments
+    /// `global_index`: The index of the global clock\n
+    /// `indices` are the duplicate clocks that should be set to `global_index`
+    pub(crate) fn replace_clock(&mut self, global_index: ClockIndex, indices: &Vec<ClockIndex>) {
+        let global = self
+            .declarations
+            .get_clock_name_by_name(global_index)
+            .expect("lol")
+            .to_owned(); //TODO: Msg
+        for i in indices {
+            let name = self
+                .declarations
+                .get_clock_name_by_name(*i)
+                .expect("lol")
+                .to_owned(); //TODO: Msg
+
+            *(self.declarations.clocks.get_mut(&name).expect("lol")) = global_index; //TODO: Msg
+
+            info!("Replaced Clock {name} with {global}"); // Should be changed in the future to be the information logger
+        }
+    }
+
+    /// Decrements the indices of the clocks to decrement the DBM
+    pub(crate) fn decrement_dim(&mut self, decr: usize) {
+        for index in self.declarations.clocks.values_mut() {
+            *index -= decr;
+        }
+    }
+
+    pub(crate) fn get_first_clock_index(&self) -> ClockIndex {
+        *self.declarations.clocks.values().min().expect("lol") //TODO, handle
+    }
+
+    pub(crate) fn get_clock_range(&self) -> Option<Range<usize>> {
+        Some(*self.declarations.clocks.values().min()?..*self.declarations.clocks.values().max()?)
     }
 }
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
@@ -839,5 +917,12 @@ impl Declarations {
 
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
         self.get_clocks().get(name)
+    }
+
+    pub fn get_clock_name_by_name(&self, index: ClockIndex) -> Option<&String> {
+        self.clocks
+            .iter()
+            .find(|(_, v)| **v == index)
+            .map(|(k, _)| k)
     }
 }
