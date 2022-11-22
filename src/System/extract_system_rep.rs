@@ -177,12 +177,10 @@ impl SystemRecipe {
                 clock_index,
                 dim + 1,
             ),
-            SystemRecipe::Component(comp) => {
-                match CompiledComponent::compile(*comp, dim + 1) {
-                    Ok(comp) => Ok(comp),
-                    Err(err) => Err(err),
-                }
-            }
+            SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim + 1) {
+                Ok(comp) => Ok(comp),
+                Err(err) => Err(err),
+            },
         }
     }
     pub fn height(&self) -> usize {

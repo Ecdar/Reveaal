@@ -9,11 +9,10 @@ pub mod clock_removal_tests {
     // Tests that the clocks that are never used in any guards are removed.
     #[test] // TODO: How removal?
     fn test_removal_unused_clocks() {
-        let mut component =
-            read_json_component(
-                "samples/json/ClockReductionTest/UnusedClockWithCycle",
-                "Component1"
-            );
+        let mut component = read_json_component(
+            "samples/json/ClockReductionTest/UnusedClockWithCycle",
+            "Component1",
+        );
 
         let mut dim = component.declarations.clocks.len() + 1;
         let transition_system = CompiledComponent::compile(component.clone(), dim).unwrap();

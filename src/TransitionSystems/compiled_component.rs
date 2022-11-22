@@ -90,10 +90,7 @@ impl CompiledComponent {
         }))
     }
 
-    pub fn compile(
-        mut component: Component,
-        dim: ClockIndex,
-    ) -> Result<Box<Self>, String> {
+    pub fn compile(mut component: Component, dim: ClockIndex) -> Result<Box<Self>, String> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()

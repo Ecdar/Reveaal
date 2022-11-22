@@ -11,13 +11,13 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::representations::BoolExpression;
+use crate::TransitionSystems::transition_system::RedundantClock;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTuple, TransitionID};
 use edbm::zones::OwnedFederation;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use crate::TransitionSystems::transition_system::RedundantClock;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -268,9 +268,7 @@ impl Component {
         self.create_edge_io_split();
     }
 
-    pub(crate) fn reduce_clocks(&mut self, clocks: Vec<RedundantClock>, dim: &mut ClockIndex) {
-
-    }
+    pub(crate) fn reduce_clocks(&mut self, clocks: Vec<RedundantClock>, dim: &mut ClockIndex) {}
 }
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
     for c in channels {
