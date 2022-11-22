@@ -169,6 +169,6 @@ impl CollectionOperation for HashSet<String> {
         if !reason.is_empty() {
             return Err(reason);
         }
-        return Ok(true);
+        Ok(true)
     }
 }

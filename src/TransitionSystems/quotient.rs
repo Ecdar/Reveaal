@@ -19,7 +19,7 @@ use crate::TransitionSystems::{
 use std::collections::hash_set::HashSet;
 use std::vec;
 
-use super::{CompositionType, LocationID};
+use super::CompositionType;
 
 #[derive(Clone)]
 pub struct Quotient {
@@ -46,8 +46,6 @@ impl Quotient {
         new_clock_index: ClockIndex,
         dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
-        let Tid = T.get_initial_location().unwrap().id;
-        let Sid = S.get_initial_location().unwrap().id;
         if let Err(actions) = S
             .get_input_actions()
             .is_disjoint_action(&T.get_output_actions())
