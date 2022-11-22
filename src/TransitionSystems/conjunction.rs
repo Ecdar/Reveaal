@@ -8,7 +8,7 @@ use crate::TransitionSystems::{
 };
 use std::collections::hash_set::HashSet;
 
-use super::common::{ComposedTransitionSystem, CollectionOperation};
+use super::common::{CollectionOperation, ComposedTransitionSystem};
 
 #[derive(Clone)]
 pub struct Conjunction {
@@ -18,7 +18,6 @@ pub struct Conjunction {
     outputs: HashSet<String>,
     dim: ClockIndex,
 }
-
 
 impl Conjunction {
     #[allow(clippy::new_ret_no_self)]
@@ -32,23 +31,26 @@ impl Conjunction {
 
         let right_in = right.get_input_actions();
         let right_out = right.get_output_actions();
-        
+
         let mut is_disjoint = true;
         let mut actions = vec![];
 
-        if let Err(actions1) = left_in.is_disjoint_action(&right_out){
+        if let Err(actions1) = left_in.is_disjoint_action(&right_out) {
             is_disjoint = false;
             actions.extend(actions1);
         }
-        if let Err(actions2) = left_out.is_disjoint_action(&right_in){
+        if let Err(actions2) = left_out.is_disjoint_action(&right_in) {
             is_disjoint = false;
             actions.extend(actions2);
         }
 
-
         if !(is_disjoint) {
-            return Err(SystemRecipeFailure::new("Invalid conjunction, outputs and inputs are not disjoint".to_string()
-            , left, right, actions));
+            return Err(SystemRecipeFailure::new(
+                "Invalid conjunction, outputs and inputs are not disjoint".to_string(),
+                left,
+                right,
+                actions,
+            ));
         }
 
         let outputs = left
@@ -71,7 +73,12 @@ impl Conjunction {
             dim,
         });
         if let ConsistencyResult::Failure(_) = local_consistency::is_least_consistent(ts.as_ref()) {
-            return Err(SystemRecipeFailure::new("Invalid conjunction, not least consistent".to_string(), left, right, vec![]));
+            return Err(SystemRecipeFailure::new(
+                "Invalid conjunction, not least consistent".to_string(),
+                left,
+                right,
+                vec![],
+            ));
         }
         Ok(ts)
     }

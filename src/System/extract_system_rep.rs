@@ -9,8 +9,7 @@ use crate::System::executable_query::{
 use crate::System::extract_state::get_state;
 
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, ConjunctionResult, Quotient,
-    TransitionSystemPtr,
+    CompiledComponent, Composition, Conjunction, ConjunctionResult, Quotient, TransitionSystemPtr,
 };
 
 use crate::component::State;
