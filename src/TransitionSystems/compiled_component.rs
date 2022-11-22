@@ -9,6 +9,7 @@ use log::warn;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
+use super::common::CollectionOperation;
 use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 
@@ -32,9 +33,10 @@ pub struct CompiledComponent {
     dim: ClockIndex,
 }
 
-pub enum ComponentResult {
-    Success,
-    Failure(Box<CompiledComponent>),
+pub struct ComponentFailure {
+    component_name: String,
+    reason: String,
+    actions: Vec<String>,
 }
 
 impl CompiledComponent {
@@ -43,14 +45,13 @@ impl CompiledComponent {
         inputs: HashSet<String>,
         outputs: HashSet<String>,
         dim: ClockIndex,
-    ) -> Result<Box<Self>, String> {
-        if is_disjoint_action(&inputs, &outputs).1 {
-            let action_not_disjoint = is_disjoint_action(&inputs, &outputs).0;
-            let component_name = component.get_name();
-            return Err(format!(
-                "Action {} is not disjoint in component {}",
-                action_not_disjoint, component_name
-            ));
+    ) -> Result<Box<Self>, ComponentFailure> {
+        if let Err(actions) = inputs.is_disjoint_action(&outputs) {
+            return Err(ComponentFailure {
+                component_name: component.name,
+                reason: "Inputs and outputs are not disjoint".to_string(),
+                actions,
+            });
         }
 
         let locations: HashMap<LocationID, LocationTuple> = component
@@ -100,7 +101,7 @@ impl CompiledComponent {
         }))
     }
 
-    pub fn compile(component: Component, dim: ClockIndex) -> Result<Box<Self>, String> {
+    pub fn compile(component: Component, dim: ClockIndex) -> Result<Box<Self>, ComponentFailure> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()
