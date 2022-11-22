@@ -290,13 +290,18 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
         },
         QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
         QueryResult::NotDisjoint(notDisjoint) => {
-        println!("{}{}{:?}", notDisjoint.reason.clone(), notDisjoint.left_name.as_ref().unwrap(), notDisjoint.actions);  
-        Some(ProtobufResult::Error(format!(
-            "{}{}",
-            notDisjoint.reason.clone(),
-            notDisjoint.left_name.as_ref().unwrap()
-        )))
-    }
+            println!(
+                "{}{}{:?}",
+                notDisjoint.reason.clone(),
+                notDisjoint.left_name.as_ref().unwrap(),
+                notDisjoint.actions
+            );
+            Some(ProtobufResult::Error(format!(
+                "{}{}",
+                notDisjoint.reason.clone(),
+                notDisjoint.left_name.as_ref().unwrap()
+            )))
+        }
     }
 }
 
