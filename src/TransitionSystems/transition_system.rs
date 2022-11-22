@@ -261,7 +261,7 @@ impl ClockAnalysisGraph {
             });
         }
 
-        let mut equivalent_clock_groups = self.find_equal_clocks(&used_clocks);
+        let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
         for equivalent_clock_group in &mut equivalent_clock_groups {
             let lowest_clock = equivalent_clock_group.iter().min().unwrap().clone();
             equivalent_clock_group.remove(&lowest_clock);
@@ -309,7 +309,7 @@ impl ClockAnalysisGraph {
         return non_updated_clocks;
     }
 
-    fn find_equal_clocks(&self, used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>> {
+    fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>> {
         if used_clocks.len() < 2 || self.edges.len() == 0 {
             return Vec::new();
         }
