@@ -210,11 +210,10 @@ impl Display for LocationID {
             }
             LocationID::Simple {
                 location_id,
-                component_id: S,
-            } => match S {
-                Some(component_id) => write!(f, "{}.{}", location_id, component_id)?,
-                None => write!(f, "{}", location_id)?,
-            },
+                component_id: _,
+            } => {
+                write!(f, "{}", location_id)?;
+            }
             LocationID::AnyLocation() => write!(f, "_")?,
         }
         Ok(())
