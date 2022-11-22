@@ -291,6 +291,7 @@ impl Component {
     /// # Arguments
     /// `index`: The index to be removed
     pub(crate) fn remove_clock(&mut self, index: ClockIndex) {
+        // Removes from declarations, and updates the other
         let name = self
             .declarations
             .get_clock_name_by_index(index)
@@ -302,6 +303,23 @@ impl Component {
             .values_mut()
             .filter(|val| **val > index)
             .for_each(|val| *val -= 1);
+
+        // Yeets from updates
+        self.edges
+            .iter_mut()
+            .filter(|e| e.update.is_some())
+            .for_each(|e| {
+                if let Some((i, _)) = e
+                    .update
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .enumerate()
+                    .find(|(_, u)| u.variable == name)
+                {
+                    e.update.as_mut().unwrap().remove(i);
+                }
+            });
         info!("Removed Clock '{}' has been removed", name); // Should be changed in the future to be the information logger
     }
 

@@ -128,6 +128,5 @@ pub mod test {
             );
         }
          */
-        fn assert_locations_and_edges_in_component() {}
     }
 }
