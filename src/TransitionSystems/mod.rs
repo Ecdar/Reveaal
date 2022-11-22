@@ -9,11 +9,11 @@ mod quotient;
 mod transition_id;
 pub mod transition_system;
 
-pub use compiled_component::{CompiledComponent, ComponentResult};
-pub use composition::{Composition, CompositionResult};
+pub use compiled_component::{CompiledComponent};
+pub use composition::{Composition};
 pub use conjunction::{Conjunction, ConjunctionResult};
 pub use location_id::LocationID;
 pub use location_tuple::{CompositionType, LocationTuple};
-pub use quotient::{Quotient, QuotientResult};
+pub use quotient::{Quotient};
 pub use transition_id::TransitionID;
 pub use transition_system::{TransitionSystem, TransitionSystemPtr};
