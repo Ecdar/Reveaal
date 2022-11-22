@@ -226,7 +226,7 @@ pub struct ClockAnalysisEdge {
 
 #[derive(Debug)]
 pub struct ClockAnalysisGraph {
-    pub nodes: Vec<ClockAnalysisNode>,
+    pub nodes: HashMap<LocationID, ClockAnalysisNode>,
     pub edges: Vec<ClockAnalysisEdge>,
     pub dim: ClockIndex
 }
@@ -234,7 +234,7 @@ pub struct ClockAnalysisGraph {
 impl ClockAnalysisGraph {
     pub fn empty() -> ClockAnalysisGraph {
         ClockAnalysisGraph{
-            nodes: vec![],
+            nodes: HashMap::new(),
             edges: vec![],
             dim: 0
         }
@@ -262,16 +262,14 @@ impl ClockAnalysisGraph {
         }
 
         let mut equivalent_clock_groups = self.find_equal_clocks(&used_clocks);
-        println!("{:?}", equivalent_clock_groups);
         for equivalent_clock_group in &mut equivalent_clock_groups {
-            let lowest_clock = equivalent_clock_group.iter().max().unwrap().clone();
+            let lowest_clock = equivalent_clock_group.iter().min().unwrap().clone();
             equivalent_clock_group.remove(&lowest_clock);
             rv.push(ClockReductionInstruction::ReplaceClocks {
                 clock_index: lowest_clock,
                 clock_indices: equivalent_clock_group.clone()
             });
         }
-
 
         rv
     }
@@ -287,7 +285,7 @@ impl ClockAnalysisGraph {
         }
 
         for node in &self.nodes {
-            for invariant_dependency in &node.invariant_dependencies {
+            for invariant_dependency in &node.1.invariant_dependencies {
                 used_clocks.insert(invariant_dependency.clone());
             }
         }
