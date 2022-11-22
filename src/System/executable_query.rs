@@ -23,7 +23,7 @@ pub enum QueryResult {
     GetComponent(Component),
     Consistency(ConsistencyResult),
     Determinism(DeterminismResult),
-    NotDisjoint(Box<SystemRecipeFailure>),
+    NotDisjoint(SystemRecipeFailure),
     Error(String),
 }
 

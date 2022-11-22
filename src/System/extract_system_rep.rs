@@ -186,7 +186,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         match self {
             SystemRecipe::Composition(left, right) => {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)

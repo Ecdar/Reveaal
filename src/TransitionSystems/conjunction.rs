@@ -25,7 +25,7 @@ impl Conjunction {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
 
@@ -45,12 +45,12 @@ impl Conjunction {
         }
 
         if !(is_disjoint) {
-            return Err(Box::new(SystemRecipeFailure::new(
+            return Err(SystemRecipeFailure::new(
                 "Invalid conjunction, outputs and inputs are not disjoint".to_string(),
                 left,
                 right,
                 actions,
-            )));
+            ));
         }
 
         let outputs = left
@@ -73,12 +73,12 @@ impl Conjunction {
             dim,
         });
         if let ConsistencyResult::Failure(_) = local_consistency::is_least_consistent(ts.as_ref()) {
-            return Err(Box::new(SystemRecipeFailure::new(
+            return Err(SystemRecipeFailure::new(
                 "Invalid conjunction, not least consistent".to_string(),
                 left,
                 right,
                 vec![],
-            )));
+            ));
         }
         Ok(ts)
     }

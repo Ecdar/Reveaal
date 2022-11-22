@@ -40,13 +40,13 @@ impl CompiledComponent {
         inputs: HashSet<String>,
         outputs: HashSet<String>,
         dim: ClockIndex,
-    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
+    ) -> Result<Box<Self>, SystemRecipeFailure> {
         if let Err(actions) = inputs.is_disjoint_action(&outputs) {
-            return Err(Box::new(SystemRecipeFailure::new_from_component(
+            return Err(SystemRecipeFailure::new_from_component(
                 "Input is not disjoint from output".to_string(),
                 component,
                 actions,
-            )));
+            ));
         }
 
         let locations: HashMap<LocationID, LocationTuple> = component
@@ -99,7 +99,7 @@ impl CompiledComponent {
     pub fn compile(
         component: Component,
         dim: ClockIndex,
-    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
+    ) -> Result<Box<Self>, SystemRecipeFailure> {
         let inputs: HashSet<_> = component
             .get_input_actions()
             .iter()
