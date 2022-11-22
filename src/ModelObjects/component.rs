@@ -274,7 +274,6 @@ impl Component {
     /// Unused clocks and "duplicate" clocks (clocks that are never reset)
     /// and then remove them.
     pub fn reduce_clocks(&mut self, redundant_clocks: Vec<&ClockReductionInstruction>) {
-        let len = redundant_clocks.len();
         for clock in redundant_clocks {
             match clock {
                 ClockReductionInstruction::RemoveClock { clock_index } => {
@@ -286,7 +285,6 @@ impl Component {
                 } => self.replace_clock(*clock_index, clock_indices),
             };
         }
-        self.decrement_dim(len);
     }
 
     /// Removes unused clock
@@ -295,9 +293,9 @@ impl Component {
     pub(crate) fn remove_clock(&mut self, index: ClockIndex) {
         let name = self
             .declarations
-            .get_clock_name_by_name(index)
-            .expect("lol")
-            .to_owned(); //TODO: Msg
+            .get_clock_name_by_index(index)
+            .expect("Couldn't find clock with index")
+            .to_owned();
         self.declarations.clocks.remove(&name);
         self.declarations
             .clocks
@@ -314,25 +312,30 @@ impl Component {
     pub(crate) fn replace_clock(&mut self, global_index: ClockIndex, indices: &Vec<ClockIndex>) {
         let global = self
             .declarations
-            .get_clock_name_by_name(global_index)
-            .expect("lol")
-            .to_owned(); //TODO: Msg
+            .get_clock_name_by_index(global_index)
+            .expect("Couldn't find clock with index")
+            .to_owned();
         for i in indices {
             let name = self
                 .declarations
-                .get_clock_name_by_name(*i)
-                .expect("lol")
-                .to_owned(); //TODO: Msg
+                .get_clock_name_by_index(*i)
+                .expect("Couldn't find clock with index")
+                .to_owned();
 
-            *(self.declarations.clocks.get_mut(&name).expect("lol")) = global_index; //TODO: Msg
+            *(self.declarations.clocks.get_mut(&name).unwrap()) = global_index;
 
             info!("Replaced Clock {name} with {global}"); // Should be changed in the future to be the information logger
         }
     }
 
     /// Decrements the indices of the clocks to decrement the DBM
-    pub(crate) fn decrement_dim(&mut self, decr: usize) {
-        for index in self.declarations.clocks.values_mut() {
+    pub(crate) fn decrement_dim(&mut self, decr: usize, omit: Vec<ClockIndex>) {
+        for index in self
+            .declarations
+            .clocks
+            .values_mut()
+            .filter(|i| !omit.contains(i))
+        {
             *index -= decr;
         }
     }
@@ -919,7 +922,7 @@ impl Declarations {
         self.get_clocks().get(name)
     }
 
-    pub fn get_clock_name_by_name(&self, index: ClockIndex) -> Option<&String> {
+    pub fn get_clock_name_by_index(&self, index: ClockIndex) -> Option<&String> {
         self.clocks
             .iter()
             .find(|(_, v)| **v == index)

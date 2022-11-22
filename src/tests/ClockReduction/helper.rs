@@ -1,88 +1,12 @@
 #[cfg(test)]
 pub mod test {
-    use crate::TransitionSystems::transition_system::{ClockReductionReason, RedundantClock, TransitionSystemPtr};
     use crate::component::Component;
+    use crate::extract_system_rep::ClockReductionInstruction;
+    use crate::TransitionSystems::transition_system::TransitionSystemPtr;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
-
-    /// Asserts that component contains given locations and edges.
-    pub fn assert_locations_and_edges_in_component(
-        component: Component,
-        expected_locations: &HashSet<String>,
-        expected_edges: &HashSet<String>,
-    ) {
-        assert_locations_in_component(component.clone(), expected_locations);
-        assert_edges_in_component(component, expected_edges);
-    }
-
-    /// Asserts that component contains given locations.
-    fn assert_locations_in_component(component: Component, expected_locations: &HashSet<String>) {
-        let mut actual_locations: HashSet<String> = HashSet::new();
-
-        for location in &component.locations {
-            let mut clocks_in_invariants = HashSet::new();
-            if let Some(invariant) = &location.invariant {
-                invariant.get_varnames().iter().for_each(|clock| {
-                    clocks_in_invariants.insert((*clock).to_string());
-                });
-            }
-
-            let clock = sort_clocks_and_join(&clocks_in_invariants);
-
-            actual_locations.insert(format!("{}-{}", location.id.clone(), clock));
-        }
-        assert!(
-            expected_locations.is_subset(&actual_locations)
-                && expected_locations.len() == actual_locations.len(),
-            "Expected these locations {:?}, but got {:?}",
-            expected_locations,
-            actual_locations
-        );
-    }
-
-    /// Asserts that component contains given locations.
-    pub(crate) fn assert_edges_in_component(
-        component: Component,
-        expected_edges: &HashSet<String>,
-    ) {
-        let mut actual_edges: HashSet<String> = HashSet::new();
-        for edge in &component.edges {
-            let mut clocks_in_guards_and_updates = HashSet::new();
-            if let Some(guard) = &edge.guard {
-                guard.get_varnames().iter().for_each(|clock| {
-                    clocks_in_guards_and_updates.insert((*clock).to_string());
-                });
-            }
-            if let Some(updates) = &edge.update {
-                for update in updates {
-                    clocks_in_guards_and_updates.insert(update.variable.to_string());
-                }
-            }
-
-            let sorted_clocks = sort_clocks_and_join(&clocks_in_guards_and_updates);
-
-            let edge_id = format!(
-                "{}-{}->{}",
-                edge.source_location, sorted_clocks, edge.target_location
-            );
-
-            assert!(
-                !actual_edges.contains(&edge_id),
-                "Duplicate edge: {}",
-                edge_id
-            );
-
-            actual_edges.insert(edge_id);
-        }
-        assert!(
-            expected_edges.is_subset(&actual_edges) && expected_edges.len() == actual_edges.len(),
-            "Expected these edges {:?} but got {:?}",
-            expected_edges,
-            actual_edges
-        )
-    }
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -97,7 +21,7 @@ pub mod test {
 
     /// Assert that a redundant clock is redundant for the correct reason
     pub fn assert_clock_reason(
-        redundant_clocks: &Vec<RedundantClock>, //TODO: Fix type
+        redundant_clocks: &Vec<ClockReductionInstruction>, //TODO: Fix type
         expected_amount_to_reduce: u32,
         expected_reducible_clocks: HashSet<&str>,
         unused_allowed: bool,
@@ -107,42 +31,10 @@ pub mod test {
         let mut clocksReduced: HashSet<String> = HashSet::new();
 
         for redundancy in redundant_clocks {
-            match &redundancy.reason {
-                ClockReductionReason::Duplicate(replaced_by) => {
-                    if global_clock.is_empty() {
-                        global_clock = replaced_by.clone();
-                    }
-                    assert!(
-                        expected_reducible_clocks.contains(redundancy.clock.as_str()),
-                        "Clock ({}) was marked as duplicate unexpectedly",
-                        redundancy.clock
-                    );
-                    assert!(
-                        !clocksReduced.contains(&redundancy.clock),
-                        "Clock ({}) was marked as duplicate multiple times",
-                        redundancy.clock
-                    );
-                    assert_eq!(
-                        &global_clock, replaced_by,
-                        "Multiple clocks were chosen as global clock {} and {}",
-                        global_clock, replaced_by
-                    );
-                    clocksReduced.insert(redundancy.clock.clone());
-                }
-                ClockReductionReason::Unused => {
-                    assert!(unused_allowed, "Unexpected unused optimization");
-                    assert!(
-                        expected_reducible_clocks.contains(&redundancy.clock.as_str()),
-                        "Clock ({}) is not set as unused, but is not in expected",
-                        redundancy.clock.as_str()
-                    );
-                    assert!(
-                        !clocksReduced.contains(&redundancy.clock),
-                        "Clock {} has been removed multiple times",
-                        redundancy.clock
-                    );
-                    clocksReduced.insert(redundancy.clock.clone());
-                }
+            match &redundancy {
+                //TODO
+                ClockReductionInstruction::RemoveClock { .. } => {}
+                ClockReductionInstruction::ReplaceClocks { .. } => {}
             }
         }
         assert_eq!(
@@ -154,21 +46,22 @@ pub mod test {
         );
     }
 
-    /* TODO: Fix
     /// Asserts that the specific clocks occur in the correct locations and edges
     pub(crate) fn assert_correct_edges_and_locations(
         component: &Box<CompiledComponent>,
-        expected_redundant_clocks: Vec<String>,
+        expected_redundant_clocks: Vec<usize>,
         global_clock: (String, ClockIndex),
     ) {
         let redundant_clocks = component.find_redundant_clocks();
+        /*
         assert_eq!(
             expected_redundant_clocks,
             redundant_clocks
                 .iter()
-                .map(|x| x.clock.clone())
+                .map(|x| x.clone())
                 .collect::<Vec<_>>()
         );
+         */
         let clocks = component
             .get_decls()
             .iter()
@@ -177,14 +70,20 @@ pub mod test {
                 acc
             });
 
-        for (clock, new_clock) in redundant_clocks.iter().filter_map(|c| match &c.reason {
-            ClockReductionReason::Duplicate(x) => Some((&c.clock, x)),
-            ClockReductionReason::Unused => None,
+        for (replaced_clocks, new_clock) in redundant_clocks.iter().filter_map(|c| match &c {
+            ClockReductionInstruction::RemoveClock { .. } => None,
+            ClockReductionInstruction::ReplaceClocks {
+                clock_indices,
+                clock_index,
+            } => Some((clock_indices, clock_index)),
         }) {
-            assert_eq!(*new_clock, *global_clock.0);
-            assert_eq!(*clocks.get(clock.as_str()).unwrap(), global_clock.1);
+            assert_eq!(*new_clock, *clocks.get(&global_clock.0).unwrap());
+            for c in replaced_clocks.iter() {
+                assert_eq!(*c, global_clock.1);
+            }
+            //assert_eq!(*clocks.get(.as_str()).unwrap(), global_clock.1);
         }
-        */
+
         // TODO: Unused?
 
         /*
@@ -228,6 +127,7 @@ pub mod test {
                 found_edge_names,
             );
         }
+         */
+        fn assert_locations_and_edges_in_component() {}
     }
-        */
 }

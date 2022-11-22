@@ -29,7 +29,8 @@ mod unused_clocks_tests {
             CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
                 .unwrap();
         let redundant_clocks = transition_system.find_redundant_clocks();
-        assert_clock_reason(&redundant_clocks, 1, unused_clocks, true)
+        //TODO:We no longer have clock reasons
+        //assert_clock_reason(&redundant_clocks, 1, unused_clocks, true)
     }
 
     #[test]

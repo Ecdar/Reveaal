@@ -1,8 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use crate::tests::ClockReduction::helper::test::{
-        assert_clock_reason
-    };
+    use crate::tests::ClockReduction::helper::test::assert_clock_reason;
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
