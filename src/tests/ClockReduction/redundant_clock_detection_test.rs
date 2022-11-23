@@ -6,6 +6,7 @@ pub mod test {
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use test_case::test_case;
+    use crate::TransitionSystems::transition_system::Heights;
 
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
     const DIM: ClockIndex = 5; // TODO: Dim
@@ -20,7 +21,7 @@ pub mod test {
             DIM,
         )
         .unwrap();
-        let instructions = compiled_component.find_redundant_clocks();
+        let instructions = compiled_component.find_redundant_clocks(Heights::empty());
         let clock_index = component.declarations.get_clock_index_by_name(&expected_clock).unwrap();
 
         assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index);

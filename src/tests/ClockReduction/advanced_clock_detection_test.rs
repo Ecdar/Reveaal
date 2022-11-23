@@ -9,6 +9,7 @@ pub mod test {
     use crate::TransitionSystems::{CompiledComponent, TransitionSystemPtr};
     use std::collections::{HashMap, HashSet};
     use test_case::test_case;
+    use crate::TransitionSystems::transition_system::Heights;
 
     fn get_combined_component(path: &str, comp1: &str, comp2: &str) -> TransitionSystemPtr {
         let mut component1 = read_json_component(path, comp1);
@@ -23,6 +24,7 @@ pub mod test {
             .expect("https://www.youtube.com/watch?v=6AyLEBaxrFY")
     }
 
+    /*
     #[test_case("x".to_string() ; "Clock x should be duplicate")]
     fn test_advanced_clock_detection(expected_clock: String) {
         let mut transitionSystem = get_combined_component(
@@ -31,13 +33,12 @@ pub mod test {
             "Component2",
         );
 
-        let redundantClocks = transitionSystem.find_redundant_clocks();
+        let redundantClocks = transitionSystem.find_redundant_clocks(Heights::empty());
         let clock_index = get_clock_index_by_name(transitionSystem.get_decls(),&expected_clock).unwrap();
 
         assert_unused_clock_in_clock_reduction_instruction_vec(redundantClocks, *clock_index)
     }
 
-    /*
     fn test_advanced_clock_removal() {
         let mut combinedComponent = get_combined_component(
             "samples/json/ClockReduction/AdvancedClockReduction",

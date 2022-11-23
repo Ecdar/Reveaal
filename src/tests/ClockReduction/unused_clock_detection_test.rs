@@ -1,12 +1,9 @@
 #[cfg(test)]
 mod unused_clocks_tests {
-    use crate::component::Component;
-    use crate::extract_system_rep::ClockReductionInstruction;
     use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec};
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem, TransitionSystemPtr};
-    use edbm::util::constraints::ClockIndex;
-    use std::collections::HashSet;
+    use crate::TransitionSystems::transition_system::Heights;
 
     /// Loads the sample in `samples/json/ClockReductionTest/UnusedClockWithCycle` which contains
     /// unused clocks. It then tests that these clocks are located correctly.
@@ -25,7 +22,7 @@ mod unused_clocks_tests {
             .get_clock_index_by_name(unused_clock)
             .unwrap();
 
-        let instructions = compiled_component.find_redundant_clocks();
+        let instructions = compiled_component.find_redundant_clocks(Heights::empty());
 
         assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index)
     }
@@ -47,7 +44,7 @@ mod unused_clocks_tests {
             .get_clock_index_by_name(unused_clock)
             .unwrap();
 
-        let instructions = compiled_component.find_redundant_clocks();
+        let instructions = compiled_component.find_redundant_clocks(Heights::empty());
 
         assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index)
     }

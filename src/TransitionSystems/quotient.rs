@@ -1,21 +1,20 @@
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
-use log::{debug, warn};
+use log::debug;
 
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
 use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::transition_system::{EdgeIndex, PrecheckResult};
+use crate::TransitionSystems::transition_system::PrecheckResult;
 use edbm::util::bounds::Bounds;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
 use crate::TransitionSystems::{
-    LocationID, LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
+    LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
 };
 use std::collections::hash_set::HashSet;
-use std::collections::HashMap;
 
 use super::CompositionType;
 
@@ -399,19 +398,6 @@ impl TransitionSystem for Quotient {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(location, action) = self.is_deterministic() {
-            warn!("Not deterministic");
-            return PrecheckResult::NotDeterministic(location, action);
-        }
-
-        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
-            warn!("Not consistent");
-            return PrecheckResult::NotConsistent(failure);
-        }
-        PrecheckResult::Success
-    }
-
     fn is_deterministic(&self) -> DeterminismResult {
         if let DeterminismResult::Success = self.T.is_deterministic() {
             if let DeterminismResult::Success = self.S.is_deterministic() {
@@ -452,22 +438,6 @@ impl TransitionSystem for Quotient {
 
     fn get_dim(&self) -> ClockIndex {
         self.dim
-    }
-
-    fn get_all_transitions(&self) -> Vec<&Transition> {
-        todo!()
-    }
-
-    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<EdgeIndex>> {
-        todo!()
-    }
-
-    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID> {
-        todo!()
-    }
-
-    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition> {
-        todo!()
     }
 }
 

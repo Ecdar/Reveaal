@@ -1,8 +1,7 @@
 #[cfg(test)]
 pub mod test {
     use crate::component::{Component, Declarations};
-    use crate::extract_system_rep::ClockReductionInstruction;
-    use crate::TransitionSystems::transition_system::TransitionSystemPtr;
+    use crate::TransitionSystems::transition_system::{ClockReductionInstruction, TransitionSystemPtr};
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
@@ -21,7 +20,7 @@ pub mod test {
 
     /// Assert that a redundant clock is redundant for the correct reason
     pub fn assert_clock_reason(
-        redundant_clocks: &Vec<ClockReductionInstruction>, //TODO: Fix type
+        redundant_clocks: &Vec<ClockReductionInstruction>,
         expected_amount_to_reduce: u32,
         expected_reducible_clocks: HashSet<&str>,
         unused_allowed: bool,
@@ -52,7 +51,9 @@ pub mod test {
         expected_redundant_clocks: Vec<usize>,
         global_clock: (String, ClockIndex),
     ) {
-        let redundant_clocks = component.find_redundant_clocks();
+        let redundant_clocks = component.find_redundant_clocks(
+            crate::TransitionSystems::transition_system::Heights::new(0, 0),
+        );
         /*
         assert_eq!(
             expected_redundant_clocks,
@@ -132,17 +133,19 @@ pub mod test {
     /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` should
     /// be removed.
     pub(crate) fn assert_unused_clock_in_clock_reduction_instruction_vec(
-        redundant_clocks: Vec<&ClockReductionInstruction>,
+        redundant_clocks: Vec<ClockReductionInstruction>,
         clock: ClockIndex,
     ) {
-        assert!(redundant_clocks
+        let rv = redundant_clocks
             .iter()
             .any(|instruction| match instruction {
                 ClockReductionInstruction::RemoveClock { clock_index } => {
+                    println!("Found {}, searching for {}", clock_index, clock);
                     *clock_index == clock
                 }
                 _ => false
-            }));
+            });
+        assert!(rv);
     }
 
     pub(crate) fn get_clock_index_by_name<'a>(declarations_vec: Vec<&'a Declarations>, clock_name: &str) -> Option<&'a ClockIndex>{
