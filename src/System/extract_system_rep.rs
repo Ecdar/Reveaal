@@ -14,7 +14,7 @@ use crate::TransitionSystems::{
 };
 
 use crate::component::State;
-use crate::ProtobufServer::services::query_request::settings::ReduceClocksLevel;
+use crate::ProtobufServer::services::query_request::{Settings, settings::ReduceClocksLevel};
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::{ClockReductionInstruction, Heights};
 use edbm::util::constraints::ClockIndex;
@@ -36,30 +36,7 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let mut left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
-                let height = max(left.height(), right.height()) + 1;
-                if let Some(x) = &component_loader.get_settings().reduce_clocks_level {
-                    match x {
-                        ReduceClocksLevel::Level(y) if *y >= 0 => {
-                            let heights = Heights::new(height, (*y) as usize);
-                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights);
-                            dim -= clocks_left.len();
-                            let offset = left.reduce_clocks(clocks_left, None);
-                            let clocks_right: Vec<ClockReductionInstruction> = right.clone().compile(dim)?.find_redundant_clocks(heights);
-                            dim -= clocks_right.len();
-                            right.reduce_clocks(clocks_right, Some(offset));
-                        },
-                        ReduceClocksLevel::All(true) =>{
-                            let heights = Heights::new(height, height);
-                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights);
-                            dim -= clocks_left.len();
-                            let offset = left.reduce_clocks(clocks_left, None);
-                            let clocks_right: Vec<ClockReductionInstruction> = right.clone().compile(dim)?.find_redundant_clocks(heights);
-                            dim -= clocks_right.len();
-                            right.reduce_clocks(clocks_right, Some(offset));
-                        },
-                        _ => (),
-                    };
-                }
+                clock_reduction(&mut left, &mut right, component_loader.get_settings(), &mut dim)?;
                 Ok(Box::new(RefinementExecutor {
                 sys1: left.compile(dim)?,
                 sys2: right.compile(dim)?,
@@ -146,6 +123,31 @@ pub fn create_executable_query<'a>(
     } else {
         bail!("No query was supplied for extraction")
     }
+}
+
+fn clock_reduction(
+    left: &mut Box<SystemRecipe>,
+    right: &mut Box<SystemRecipe>,
+    set: &Settings,
+    dim: &mut usize,
+) -> Result<(), String> {
+    let height = max(left.height(), right.height()) + 1;
+    if let Some(x) = &set.reduce_clocks_level {
+        let heights = match x {
+            ReduceClocksLevel::Level(y) if *y >= 0 => Heights::new(height, (*y) as usize),
+            ReduceClocksLevel::All(true) => Heights::new(height, height),
+            _ => return Err("Clock reduction error: Couldn't parse argument correctly".to_string()),
+        };
+        let clocks_left: Vec<ClockReductionInstruction> =
+            left.clone().compile(*dim)?.find_redundant_clocks(heights);
+        *dim -= clocks_left.len();
+        let offset = left.reduce_clocks(clocks_left, None);
+        let clocks_right: Vec<ClockReductionInstruction> =
+            right.clone().compile(*dim)?.find_redundant_clocks(heights);
+        *dim -= clocks_right.len();
+        right.reduce_clocks(clocks_right, Some(offset));
+    };
+    Ok(())
 }
 
 #[derive(Clone)]

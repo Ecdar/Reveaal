@@ -362,22 +362,13 @@ impl Component {
         }
     }
 
-    pub(crate) fn get_first_clock_index(&self) -> ClockIndex {
-        *self.declarations.clocks.values().min().expect("lol") //TODO, handle
-    }
-
+    /// Gets the range of clock indices of this component
     pub(crate) fn get_clock_range(&self) -> Option<Range<usize>> {
         Some(*self.declarations.clocks.values().min()?..*self.declarations.clocks.values().max()?)
     }
 }
 pub fn contain(channels: &[Channel], channel: &str) -> bool {
-    for c in channels {
-        if c.name == channel {
-            return true;
-        }
-    }
-
-    false
+    channels.iter().any(|c| c.name == channel)
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
