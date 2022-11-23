@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec, compile_json_component};
+    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec, compile_json_component, read_json_component_and_process};
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
@@ -11,11 +11,10 @@ pub mod test {
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
     const DIM: ClockIndex = 5; // TODO: Dim
 
-    #[test_case("x".to_string() ; "Clock x should be a duplicate")]
-    #[test_case("y".to_string() ; "Clock y should be a duplicate")]
-    #[test_case("z".to_string() ; "Clock z should be a duplicate")]
-    fn test_three_synced_clocks(expected_clock:String) {
-        let component = read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
+    #[test]
+    fn test_three_synced_clocks() {
+        let expected_clock:String = "x".to_string();
+        let component = read_json_component_and_process(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
         let compiled_component = CompiledComponent::compile(
             component.clone(),
             DIM,
