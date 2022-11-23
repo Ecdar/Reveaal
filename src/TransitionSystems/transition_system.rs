@@ -221,13 +221,10 @@ pub enum ClockReductionInstruction {
 }
 
 impl ClockReductionInstruction {
-    ///Checks the index/indices is within a given range
-    pub(crate) fn is_in_range(&self, range: &Range<usize>) -> bool {
+    pub(crate) fn clocks_removed(&self) -> usize {
         match self {
-            ClockReductionInstruction::RemoveClock { clock_index } => range.contains(clock_index),
-            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => {
-                clock_indices.iter().any(|c| range.contains(c))
-            }
+            ClockReductionInstruction::RemoveClock { .. } => 1,
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.len(),
         }
     }
 

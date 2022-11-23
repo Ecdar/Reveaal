@@ -8,13 +8,14 @@ use crate::System::executable_query::{
 };
 use crate::System::extract_state::get_state;
 use std::cmp::max;
+use std::collections::HashSet;
 
 use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
 use crate::component::State;
-use crate::ProtobufServer::services::query_request::{Settings, settings::ReduceClocksLevel};
+use crate::ProtobufServer::services::query_request::{settings::ReduceClocksLevel, Settings};
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::{ClockReductionInstruction, Heights};
 use edbm::util::constraints::ClockIndex;
@@ -34,9 +35,12 @@ pub fn create_executable_query<'a>(
         match query {
             QueryExpression::Refinement(left_side, right_side) => {
                 let mut quotient_index = None;
+
                 let mut left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
+
                 clock_reduction(&mut left, &mut right, component_loader.get_settings(), &mut dim)?;
+
                 Ok(Box::new(RefinementExecutor {
                 sys1: left.compile(dim)?,
                 sys2: right.compile(dim)?,
@@ -138,16 +142,31 @@ fn clock_reduction(
             ReduceClocksLevel::All(true) => Heights::new(height, height),
             _ => return Err("Clock reduction error: Couldn't parse argument correctly".to_string()),
         };
+
         let clocks_left: Vec<ClockReductionInstruction> =
             left.clone().compile(*dim)?.find_redundant_clocks(heights);
-        *dim -= clocks_left.len();
-        let offset = left.reduce_clocks(clocks_left, None);
         let clocks_right: Vec<ClockReductionInstruction> =
             right.clone().compile(*dim)?.find_redundant_clocks(heights);
-        *dim -= clocks_right.len();
-        right.reduce_clocks(clocks_right, Some(offset));
+
+        *dim -= clocks_left.iter().fold(0, |_acc, c| c.clocks_removed())
+            + clocks_right.iter().fold(0, |_acc, c| c.clocks_removed());
+
+        left.reduce_clocks(clocks_left);
+        right.reduce_clocks(clocks_right);
     };
     Ok(())
+}
+
+fn clean_component_decls(mut comps: Vec<&mut Component>, omit: HashSet<ClockIndex>) {
+    for clock in omit {
+        comps.iter_mut().for_each(|c| {
+            c.declarations
+                .clocks
+                .values_mut()
+                .filter(|cl| **cl > clock)
+                .for_each(|cl| *cl -= 1)
+        });
+    }
 }
 
 #[derive(Clone)]
@@ -203,38 +222,36 @@ impl SystemRecipe {
     }
 
     ///Applies the clock-reduction
-    pub(crate) fn reduce_clocks(
-        &mut self,
-        clock_instruction: Vec<ClockReductionInstruction>,
-        offset: Option<usize>,
-    ) -> usize {
-        let mut adjust: Option<usize> = offset;
-
-        for (range, comp) in self
-            .get_components()
-            .into_iter()
-            .filter_map(move |c| Some((c.get_clock_range()?, c)))
-        {
-            let clocks: Vec<&ClockReductionInstruction> = clock_instruction
-                .iter()
-                .filter(move |r| r.is_in_range(&range))
-                .collect();
-            let len = clocks.len();
-            let offset = match adjust {
-                Some(u) if u > 0 => {
-                    comp.decrement_dim(u, clocks.iter().flat_map(|r| r.get_indices()).collect());
-                    u
+    pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
+        let mut comps = self.get_components();
+        let mut omitting = HashSet::new();
+        for redundant in clock_instruction {
+            match redundant {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    comps
+                        .iter_mut()
+                        .find(|c| c.declarations.clocks.values().any(|ci| *ci == clock_index))
+                        .unwrap()
+                        .remove_clock(clock_index);
                 }
-                _ => 0,
-            };
-            comp.reduce_clocks(clocks);
-            adjust = if offset + len > 0 {
-                Some(offset + len)
-            } else {
-                None
-            };
+                ClockReductionInstruction::ReplaceClocks {
+                    clock_indices,
+                    clock_index,
+                } => {
+                    comps
+                        .iter_mut()
+                        .filter_map(|c| {
+                            c.declarations
+                                .clocks
+                                .values_mut()
+                                .find(|ci| clock_indices.contains(ci))
+                        })
+                        .for_each(|c| *c = clock_index);
+                    omitting.insert(clock_index);
+                }
+            }
         }
-        adjust.unwrap_or(0)
+        clean_component_decls(comps, omitting);
     }
 
     /// Gets all components in `SystemRecipe`
