@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec};
+    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec, compile_json_component};
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
@@ -27,15 +27,10 @@ pub mod test {
         assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index);
     }
 
-    /*
-        //TODO: This is not a valid test anymore
+    //TODO: This is not a valid test anymore
     #[test]
     fn test_three_synced_clocks_correct_location_target() {
-        let component = CompiledComponent::compile(
-            read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
-            DIM,
-        )
-        .unwrap();
+        let compiled_component = compile_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
 
         let mut expected_locations: HashMap<String, HashSet<String>> = HashMap::new();
 
@@ -56,8 +51,15 @@ pub mod test {
         expected_edges.insert("y".to_string(), HashSet::from(["L0->L4".to_string()]));
         expected_edges.insert("z".to_string(), HashSet::from(["L4->L2".to_string()]));
 
+        let redundant_clocks = compiled_component.find_redundant_clocks(
+            crate::TransitionSystems::transition_system::Heights::new(0, 0),
+        );
+
+        println!("{:?}", redundant_clocks);
+
         //assert_correct_edges_and_locations(&component, expected_locations, expected_edges);
         //assert_correct_edges_and_locations(&component, vec![], ("".to_string(), 0));
+        //assert_correct_edges_and_locations(&component, vec![], ("".to_string(), 0));
+        //TODO
     }
-    */
 }

@@ -6,6 +6,9 @@ pub mod test {
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
+    use crate::component;
+    use crate::component::{Edge, SyncType};
+    use crate::DataReader::json_reader::read_json_component;
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -16,6 +19,34 @@ pub mod test {
             sorted_clocks = sorted_clocks + clock;
         }
         sorted_clocks
+    }
+
+    pub fn read_json_component_and_process(project_path: &str, component_name: &str) -> component::Component {
+        let mut component = read_json_component(project_path, component_name);
+
+        let input_edges: &mut Vec<Edge> = component.input_edges.insert(vec![]);
+        let output_edges: &mut Vec<Edge> = component.output_edges.insert(vec![]);
+
+        for edge in &component.edges {
+            match edge.sync_type {
+                SyncType::Input =>
+                    input_edges.push(edge.clone()),
+                SyncType::Output =>
+                    output_edges.push(edge.clone())
+            };
+        }
+
+        component
+    }
+
+    pub fn compile_json_component(project_path: &str, component_name: &str) -> Box<CompiledComponent> {
+        let mut component = read_json_component_and_process(project_path, component_name);
+        let dim = component.declarations.get_clock_count() + 1;
+
+        CompiledComponent::compile(
+            component,
+            dim,
+        ).unwrap()
     }
 
     /// Assert that a redundant clock is redundant for the correct reason
