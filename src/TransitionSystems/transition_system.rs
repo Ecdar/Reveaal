@@ -128,12 +128,11 @@ pub trait TransitionSystem: DynClone {
     ///where nodes represents locations and Edges represent transitions
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
+        graph.dim = self.get_dim();
         let location = self.get_initial_location().unwrap();
         let mut actions = self.get_actions();
 
         self.find_edges_and_nodes(&location, &mut actions, &mut graph);
-
-        println!("redundancies: {:?}", graph.find_clock_redundancies());
 
         graph
     }
@@ -275,13 +274,9 @@ impl ClockAnalysisGraph {
         //First we find the used clocks
         let used_clocks = self.find_used_clocks();
 
-        //Then we create a subset of used clocks that are not updated and decide a global clock which can replace them
-        let mut global_clock: ClockIndex = ClockIndex::MAX;
-        let non_updated_clocks = self.find_non_updated_clocks(&used_clocks, &mut global_clock);
-
         //Then we instruct the caller to remove the unused clocks, we start at 1 since the 0 clock is not a real clock
         let mut unused_clocks = (1..self.dim).collect::<HashSet<ClockIndex>>();
-        for used_clock in &non_updated_clocks {
+        for used_clock in &used_clocks {
             unused_clocks.remove(used_clock);
         }
 
@@ -293,6 +288,7 @@ impl ClockAnalysisGraph {
         }
 
         let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
+
         for equivalent_clock_group in &mut equivalent_clock_groups {
             let lowest_clock = *equivalent_clock_group.iter().min().unwrap();
             equivalent_clock_group.remove(&lowest_clock);
@@ -321,22 +317,20 @@ impl ClockAnalysisGraph {
             }
         }
 
+        //Clock index 0 is not a real clock therefore it is removed
+        used_clocks.remove(&0);
+
         used_clocks
     }
 
     fn find_non_updated_clocks(
         &self,
-        used_clocks: &HashSet<ClockIndex>,
-        global_clock: &mut ClockIndex,
+        used_clocks: &HashSet<ClockIndex>
     ) -> HashSet<ClockIndex> {
-        *global_clock = ClockIndex::MAX;
         let mut non_updated_clocks = used_clocks.clone();
 
         for edge in &self.edges {
             for update in &edge.updates {
-                if update.clock_index < *global_clock {
-                    *global_clock = update.clock_index;
-                }
                 non_updated_clocks.remove(&update.clock_index);
             }
         }
