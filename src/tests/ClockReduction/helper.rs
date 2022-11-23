@@ -1,14 +1,16 @@
 #[cfg(test)]
 pub mod test {
+    use crate::component;
     use crate::component::{Component, Declarations};
-    use crate::TransitionSystems::transition_system::{ClockReductionInstruction, TransitionSystemPtr};
+    use crate::component::{Edge, SyncType};
+    use crate::DataReader::json_reader::read_json_component;
+    use crate::TransitionSystems::transition_system::{
+        ClockReductionInstruction, TransitionSystemPtr,
+    };
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
-    use crate::component;
-    use crate::component::{Edge, SyncType};
-    use crate::DataReader::json_reader::read_json_component;
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -21,7 +23,10 @@ pub mod test {
         sorted_clocks
     }
 
-    pub fn read_json_component_and_process(project_path: &str, component_name: &str) -> component::Component {
+    pub fn read_json_component_and_process(
+        project_path: &str,
+        component_name: &str,
+    ) -> component::Component {
         let mut component = read_json_component(project_path, component_name);
 
         let input_edges: &mut Vec<Edge> = component.input_edges.insert(vec![]);
@@ -29,24 +34,22 @@ pub mod test {
 
         for edge in &component.edges {
             match edge.sync_type {
-                SyncType::Input =>
-                    input_edges.push(edge.clone()),
-                SyncType::Output =>
-                    output_edges.push(edge.clone())
+                SyncType::Input => input_edges.push(edge.clone()),
+                SyncType::Output => output_edges.push(edge.clone()),
             };
         }
 
         component
     }
 
-    pub fn compile_json_component(project_path: &str, component_name: &str) -> Box<CompiledComponent> {
+    pub fn compile_json_component(
+        project_path: &str,
+        component_name: &str,
+    ) -> Box<CompiledComponent> {
         let mut component = read_json_component_and_process(project_path, component_name);
         let dim = component.declarations.get_clock_count() + 1;
 
-        CompiledComponent::compile(
-            component,
-            dim,
-        ).unwrap()
+        CompiledComponent::compile(component, dim).unwrap()
     }
 
     /// Assert that a redundant clock is redundant for the correct reason
@@ -167,22 +170,45 @@ pub mod test {
         redundant_clocks: Vec<ClockReductionInstruction>,
         clock: ClockIndex,
     ) {
-        let rv = redundant_clocks
+        assert!(redundant_clocks
             .iter()
             .any(|instruction| match instruction {
                 ClockReductionInstruction::RemoveClock { clock_index } => {
                     println!("Found {}, searching for {}", clock_index, clock);
                     *clock_index == clock
                 }
-                _ => false
-            });
-        assert!(rv);
+                _ => false,
+            }));
+    }
+    /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` is a
+    /// duplicate of the clocks in `clocks`.
+    pub(crate) fn assert_duplicate_clock_in_clock_reduction_instruction_vec(
+        redundant_clocks: Vec<ClockReductionInstruction>,
+        clock: ClockIndex,
+        clocks: &HashSet<ClockIndex>,
+    ) {
+        assert!(redundant_clocks
+            .iter()
+            .any(|instruction| match instruction {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    false
+                }
+                ClockReductionInstruction::ReplaceClocks {
+                    clock_index,
+                    clock_indices,
+                } => {
+                    *clock_index == clock && clock_indices == clocks
+                }
+            }));
     }
 
-    pub(crate) fn get_clock_index_by_name<'a>(declarations_vec: Vec<&'a Declarations>, clock_name: &str) -> Option<&'a ClockIndex>{
-        for decl in declarations_vec{
+    pub(crate) fn get_clock_index_by_name<'a>(
+        declarations_vec: Vec<&'a Declarations>,
+        clock_name: &str,
+    ) -> Option<&'a ClockIndex> {
+        for decl in declarations_vec {
             let clock_index = decl.clocks.get(clock_name);
-            if clock_index.is_some(){
+            if clock_index.is_some() {
                 return clock_index;
             }
         }
