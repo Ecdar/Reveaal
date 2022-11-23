@@ -347,21 +347,42 @@ impl ClockAnalysisGraph {
         }
         let mut equivalent_clock_groups: Vec<HashSet<ClockIndex>> = Vec::new();
 
+
+        //This function works by maintaining the loop invariant that equivalent_clock_groups contains
+        //groups containing clocks where all clocks contained are equivalent in all edges we have iterated
+        //through. We also have to make sure that each clock are only present in one group at a time.
+        //This means that for the first iteration all clocks are equivalent. We do not include
+        //unused clocks since they are all equivalent and will removed completely in another stage.
         equivalent_clock_groups.push(used_clocks.clone());
 
         for edge in &self.edges {
+            //First the clocks which are equivalent in this edge are found. This is defined by every
+            //clock in their respective group are set to the same value. This is done through a
+            //HashMap with the value being key and the group of clocks being the value
             let mut locally_equivalent_clock_groups: HashMap<i32, HashSet<ClockIndex>> =
                 HashMap::new();
+            //Here the clocks are grouped by the value they are set to
             for update in edge.updates.iter() {
-                let same_value_set: &mut HashSet<ClockIndex> =
+                //This gets the values' clock group or creates a new one and inserts the new one
+                //in the hashset and returns a mutable reference
+                let clock_group: &mut HashSet<ClockIndex> =
                     match locally_equivalent_clock_groups.entry(update.value) {
                         Entry::Occupied(o) => o.into_mut(),
                         Entry::Vacant(v) => v.insert(HashSet::new()),
                     };
-                same_value_set.insert(update.clock_index);
+                clock_group.insert(update.clock_index);
             }
+            //Then we maintain the loop invariant by creating a new list of clock groups and
+            //dividing the old groups when clocks are found to not be equivalent
             let mut new_groups: Vec<HashSet<ClockIndex>> = Vec::new();
+            //We do this by iterating on each globally equivalent clock group and removing the clocks
+            //that are not updated to the same value
             for equivalent_clock_group in &mut equivalent_clock_groups {
+                //For each of the locally equivalent clock groups we can construct a new clock group
+                //for the clocks that are in the globally equivalant clock group we are iterating
+                //over now.
+                //Then we remove the clocks from the globally equivalent clocks that we use in
+                //the new group
                 for locally_equivalent_clock_group in &locally_equivalent_clock_groups {
                     let mut new_clock_group = HashSet::new();
                     for locally_equivalent_clock in locally_equivalent_clock_group.1 {
@@ -370,14 +391,18 @@ impl ClockAnalysisGraph {
                             equivalent_clock_group.remove(locally_equivalent_clock);
                         }
                     }
+                    //If the new clock group only contains one clock then there is no reason to keep
+                    //Track of it, since it will never be redundant
                     if new_clock_group.len() > 1 {
                         new_groups.push(new_clock_group);
                     }
                 }
+                //The same thing is done here
                 if equivalent_clock_group.len() > 1 {
                     new_groups.push(equivalent_clock_group.clone());
                 }
             }
+            //Then we use the new groups which uphold the loop invariant
             equivalent_clock_groups = new_groups;
         }
         equivalent_clock_groups
