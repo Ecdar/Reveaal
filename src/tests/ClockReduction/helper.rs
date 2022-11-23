@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use crate::component::Component;
+    use crate::component::{Component, Declarations};
     use crate::extract_system_rep::ClockReductionInstruction;
     use crate::TransitionSystems::transition_system::TransitionSystemPtr;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
@@ -143,5 +143,15 @@ pub mod test {
                 }
                 _ => false
             }));
+    }
+
+    pub(crate) fn get_clock_index_by_name<'a>(declarations_vec: Vec<&'a Declarations>, clock_name: &str) -> Option<&'a ClockIndex>{
+        for decl in declarations_vec{
+            let clock_index = decl.clocks.get(clock_name);
+            if clock_index.is_some(){
+                return clock_index;
+            }
+        }
+        None
     }
 }

@@ -10,9 +10,9 @@ pub mod test {
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
     const DIM: ClockIndex = 5; // TODO: Dim
 
-    #[test_case("x".to_string() ; "Clock x should be duplicate")]
-    #[test_case("y".to_string() ; "Clock y should be duplicate")]
-    #[test_case("z".to_string() ; "Clock z should be duplicate")]
+    #[test_case("x".to_string() ; "Clock x should be a duplicate")]
+    #[test_case("y".to_string() ; "Clock y should be a duplicate")]
+    #[test_case("z".to_string() ; "Clock z should be a duplicate")]
     fn test_three_synced_clocks(expected_clock:String) {
         let component = read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
         let compiled_component = CompiledComponent::compile(
