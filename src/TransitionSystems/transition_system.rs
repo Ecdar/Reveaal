@@ -131,20 +131,20 @@ pub trait TransitionSystem: DynClone {
         let location = self.get_initial_location().unwrap();
         let mut actions = self.get_actions();
 
-        self.find_next_transition(&location, &mut actions, &mut graph);
+        self.find_edges_and_nodes(&location, &mut actions, &mut graph);
 
         println!("redundancies: {:?}", graph.find_clock_redundancies());
 
         graph
     }
 
-    ///Helper function to recursively travers all transitions in a transitions system
+    ///Helper function to recursively traverse all transitions in a transitions system
     ///in order to find all transitions and location in the transition system, and
     ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
-    fn find_next_transition(
+    fn find_edges_and_nodes(
         &self,
         location: &LocationTuple,
-        actions: &mut HashSet<String>,
+        actions: &HashSet<String>,
         graph: &mut ClockAnalysisGraph,
     ) {
         //Constructs a node to represent this location and add it to the graph.
@@ -166,7 +166,7 @@ pub trait TransitionSystem: DynClone {
         graph.nodes.insert(node.id.clone(), node);
 
         //Constructs an edge to represent each transition from this graph and add it to the graph.
-        for action in actions.clone().iter() {
+        for action in actions.iter() {
             let transitions = self.next_transitions_if_available(location, action);
             for transition in transitions {
                 let mut edge = ClockAnalysisEdge {
@@ -191,7 +191,7 @@ pub trait TransitionSystem: DynClone {
                 //Calls itself on the transitions target location if the location is not already in
                 //represented as a node in the graph.
                 if !graph.nodes.contains_key(&transition.target_locations.id) {
-                    self.find_next_transition(&transition.target_locations, actions, graph);
+                    self.find_edges_and_nodes(&transition.target_locations, actions, graph);
                 }
             }
         }
@@ -388,21 +388,6 @@ impl ClockAnalysisGraph {
         }
         equivalent_clock_groups
     }
-}
-
-pub fn analyze_transition_system(transition_system: TransitionSystemPtr) {
-    let clock_decl = transition_system.get_decls();
-    let mut clocks: HashMap<String, ClockIndex> = HashMap::new();
-
-    // gets clocks used in the two components
-    for decl in clock_decl.iter() {
-        for (k, v) in decl.clocks.iter() {
-            clocks.insert(k.to_string(), *v);
-        }
-    }
-    print!("{:?}", clocks);
-
-    transition_system.get_analysis_graph();
 }
 
 clone_trait_object!(TransitionSystem);
