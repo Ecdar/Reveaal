@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::{
@@ -13,7 +13,7 @@ use crate::{
 };
 
 use super::{
-    transition_system::PrecheckResult, CompositionType, LocationTuple, TransitionSystem,
+    transition_system::CompositionType, LocationTuple, TransitionSystem,
     TransitionSystemPtr,
 };
 
@@ -105,19 +105,6 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         let mut comps = left.get_decls();
         comps.extend(right.get_decls());
         comps
-    }
-
-    fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(location, action) = self.is_deterministic() {
-            warn!("Not deterministic");
-            return PrecheckResult::NotDeterministic(location, action);
-        }
-
-        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
-            warn!("Not consistent");
-            return PrecheckResult::NotConsistent(failure);
-        }
-        PrecheckResult::Success
     }
 
     fn is_deterministic(&self) -> DeterminismResult {

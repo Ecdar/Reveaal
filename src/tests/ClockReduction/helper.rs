@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod test {
+    use crate::TransitionSystems::transition_system::ClockReductionInstruction;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
-    use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -50,7 +50,9 @@ pub mod test {
         expected_redundant_clocks: Vec<usize>,
         global_clock: (String, ClockIndex),
     ) {
-        let redundant_clocks = component.find_redundant_clocks(crate::TransitionSystems::transition_system::Heights::new(0, 0));
+        let redundant_clocks = component.find_redundant_clocks(
+            crate::TransitionSystems::transition_system::Heights::new(0, 0),
+        );
         /*
         assert_eq!(
             expected_redundant_clocks,

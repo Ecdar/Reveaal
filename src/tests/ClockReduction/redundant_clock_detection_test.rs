@@ -18,7 +18,9 @@ pub mod test {
             DIM,
         )
         .unwrap();
-        let redundant_clocks = component.find_redundant_clocks(crate::TransitionSystems::transition_system::Heights::new(0, 0));
+        let redundant_clocks = component.find_redundant_clocks(
+            crate::TransitionSystems::transition_system::Heights::new(0, 0),
+        );
 
         assert_clock_reason(&redundant_clocks, 2, HashSet::from(["x", "y", "z"]), false);
     }

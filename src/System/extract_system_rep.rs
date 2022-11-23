@@ -9,7 +9,9 @@ use crate::System::executable_query::{
 use crate::System::extract_state::get_state;
 use std::cmp::max;
 
-use crate::TransitionSystems::{CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr};
+use crate::TransitionSystems::{
+    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
+};
 
 use crate::component::State;
 use crate::ProtobufServer::services::query_request::settings::ReduceClocksLevel;
@@ -36,10 +38,10 @@ pub fn create_executable_query<'a>(
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
                 let height = max(left.height(), right.height()) + 1;
                 if let Some(x) = &component_loader.get_settings().reduce_clocks_level {
-                    match x { //TODO: Find dem clocks and parse
+                    match x {
                         ReduceClocksLevel::Level(y) if *y >= 0 => {
                             let heights = Heights::new(height, (*y) as usize);
-                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights.clone());
+                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights);
                             dim -= clocks_left.len();
                             let offset = left.reduce_clocks(clocks_left, None);
                             let clocks_right: Vec<ClockReductionInstruction> = right.clone().compile(dim)?.find_redundant_clocks(heights);
@@ -48,7 +50,7 @@ pub fn create_executable_query<'a>(
                         },
                         ReduceClocksLevel::All(true) =>{
                             let heights = Heights::new(height, height);
-                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights.clone());
+                            let clocks_left: Vec<ClockReductionInstruction> = left.clone().compile(dim)?.find_redundant_clocks(heights);
                             dim -= clocks_left.len();
                             let offset = left.reduce_clocks(clocks_left, None);
                             let clocks_right: Vec<ClockReductionInstruction> = right.clone().compile(dim)?.find_redundant_clocks(heights);
