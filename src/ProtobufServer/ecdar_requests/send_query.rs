@@ -8,6 +8,7 @@ use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::statepair::StatePair;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::query_ok::{
     ComponentResult, ConsistencyResult as ProtobufConsistencyResult,
@@ -30,7 +31,6 @@ use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, De
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
 use crate::TransitionSystems::{self, LocationID, TransitionID};
-use edbm::util::constraints::Disjunction;
 use log::trace;
 use tonic::Status;
 
@@ -327,7 +327,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                 success: false,
                 relation: vec![],
                 state: Some(State {
-                    federation: make_proto_zone(state_pair.ref_zone().minimal_constraints()),
+                    federation: make_proto_zone(state_pair),
                     location_tuple: Some(LocationTuple {
                         locations: make_location_vec(
                             state_pair.get_locations1(),
@@ -348,7 +348,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                     location_tuple: Some(LocationTuple {
                         locations: vec![Location {
                             id: value_in_location(location_id),
-                            specific_component: value_in_component(location_id),
+                            specific_component: value_in_component(location_id.as_ref()),
                         }],
                     }),
                     federation: None,
@@ -360,7 +360,6 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
     }
 }
 
-/// CAREFUL: sets specific_component to None
 fn make_location_vec(
     locations1: &TransitionSystems::LocationTuple,
     locations2: &TransitionSystems::LocationTuple,
@@ -368,29 +367,35 @@ fn make_location_vec(
     let loc_vec: Vec<Location> = vec![
         Location {
             id: locations1.id.to_string(),
-            specific_component: None,
+            specific_component: Some(SpecificComponent {
+                component_name: locations1.id.get_component_id().unwrap(),
+                component_index: 0,
+            }),
         },
         Location {
             id: locations2.id.to_string(),
-            specific_component: None,
+            specific_component: Some(SpecificComponent {
+                component_name: locations2.id.get_component_id().unwrap(),
+                component_index: 0,
+            }),
         },
     ];
     loc_vec
 }
 
-/// CAREFUL: sets specific_component to None for ComponentClocks
-fn make_proto_zone(disjunction: Disjunction) -> Option<Federation> {
+fn make_proto_zone(state_pair: &StatePair) -> Option<Federation> {
+    let disjunction = state_pair.ref_zone().minimal_constraints();
     let mut conjunctions: Vec<ProtobufConjunction> = vec![];
     for conjunction in disjunction.conjunctions.iter() {
         let mut constraints: Vec<ProtobufConstraint> = vec![];
         for constraint in conjunction.constraints.iter() {
             constraints.push(ProtobufConstraint {
                 x: Some(ProtobufComponentClock {
-                    specific_component: None,
+                    specific_component: value_in_component(Some(&state_pair.locations1.id)),
                     clock_name: constraint.i.to_string(),
                 }),
                 y: Some(ProtobufComponentClock {
-                    specific_component: None,
+                    specific_component: value_in_component(Some(&state_pair.locations1.id)),
                     clock_name: constraint.j.to_string(),
                 }),
                 strict: constraint.ineq().is_strict(),
@@ -411,13 +416,11 @@ fn value_in_location(maybe_location: &Option<LocationID>) -> String {
     }
 }
 
-fn value_in_component(maybe_location: &Option<LocationID>) -> Option<SpecificComponent> {
-    maybe_location
-        .as_ref()
-        .map(|location_id| SpecificComponent {
-            component_name: location_id.get_component_id().unwrap(),
-            component_index: 0,
-        })
+fn value_in_component(maybe_location: Option<&LocationID>) -> Option<SpecificComponent> {
+    maybe_location.map(|location_id| SpecificComponent {
+        component_name: location_id.get_component_id().unwrap(),
+        component_index: 0,
+    })
 }
 
 fn value_in_action(maybe_action: &Option<String>) -> String {
