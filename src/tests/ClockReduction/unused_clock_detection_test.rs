@@ -2,7 +2,7 @@
 mod unused_clocks_tests {
     use crate::component::Component;
     use crate::extract_system_rep::ClockReductionInstruction;
-    use crate::tests::ClockReduction::helper::test::assert_clock_reason;
+    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec};
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem, TransitionSystemPtr};
     use edbm::util::constraints::ClockIndex;
@@ -50,22 +50,6 @@ mod unused_clocks_tests {
         let instructions = compiled_component.find_redundant_clocks();
 
         assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index)
-    }
-
-    /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` should
-    /// be removed.
-    fn assert_unused_clock_in_clock_reduction_instruction_vec(
-        redundant_clocks: Vec<&ClockReductionInstruction>,
-        clock: ClockIndex,
-    ) {
-        assert!(redundant_clocks
-            .iter()
-            .any(|instruction| match instruction {
-                ClockReductionInstruction::RemoveClock { clock_index } => {
-                    *clock_index == clock
-                }
-                _ => false
-            }));
     }
 
     #[test]

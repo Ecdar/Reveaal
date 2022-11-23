@@ -129,4 +129,19 @@ pub mod test {
         }
          */
     }
+    /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` should
+    /// be removed.
+    pub(crate) fn assert_unused_clock_in_clock_reduction_instruction_vec(
+        redundant_clocks: Vec<&ClockReductionInstruction>,
+        clock: ClockIndex,
+    ) {
+        assert!(redundant_clocks
+            .iter()
+            .any(|instruction| match instruction {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    *clock_index == clock
+                }
+                _ => false
+            }));
+    }
 }

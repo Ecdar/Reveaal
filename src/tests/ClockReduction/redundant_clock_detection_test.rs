@@ -1,28 +1,33 @@
 #[cfg(test)]
 pub mod test {
-    use crate::tests::ClockReduction::helper::test::assert_clock_reason;
+    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec};
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
+    use test_case::test_case;
 
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
     const DIM: ClockIndex = 5; // TODO: Dim
 
-    /*TODO: FIX
-    #[test]
-    fn test_three_synced_clocks() {
-        let component = CompiledComponent::compile(
-            read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1"),
+    #[test_case("x".to_string() ; "Clock x should be duplicate")]
+    #[test_case("y".to_string() ; "Clock y should be duplicate")]
+    #[test_case("z".to_string() ; "Clock z should be duplicate")]
+    fn test_three_synced_clocks(expected_clock:String) {
+        let component = read_json_component(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
+        let compiled_component = CompiledComponent::compile(
+            component.clone(),
             DIM,
         )
         .unwrap();
-        let redundant_clocks = component.find_redundant_clocks();
+        let instructions = compiled_component.find_redundant_clocks();
+        let clock_index = component.declarations.get_clock_index_by_name(&expected_clock).unwrap();
 
-        assert_clock_reason(&redundant_clocks, 2, HashSet::from(["x", "y", "z"]), false);
+        assert_unused_clock_in_clock_reduction_instruction_vec(instructions, *clock_index);
     }
-    */
 
+    /*
+        //TODO: This is not a valid test anymore
     #[test]
     fn test_three_synced_clocks_correct_location_target() {
         let component = CompiledComponent::compile(
@@ -52,6 +57,6 @@ pub mod test {
 
         //assert_correct_edges_and_locations(&component, expected_locations, expected_edges);
         //assert_correct_edges_and_locations(&component, vec![], ("".to_string(), 0));
-        //TODO
     }
+    */
 }
