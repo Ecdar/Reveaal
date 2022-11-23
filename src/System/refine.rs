@@ -4,8 +4,10 @@ use log::{debug, info, log_enabled, trace, warn, Level};
 use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
 use crate::ModelObjects::component::Transition;
 
+use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::statepair::StatePair;
 use crate::System::local_consistency::ConsistencyFailure;
+use crate::TransitionSystems::common::CollectionOperation;
 use crate::TransitionSystems::transition_system::PrecheckResult;
 use crate::TransitionSystems::{LocationID, LocationTuple, TransitionSystemPtr};
 use std::collections::HashSet;
@@ -24,7 +26,7 @@ pub enum RefinementResult {
 #[derive(Debug)]
 pub enum RefinementFailure {
     NotDisjointAndNotSubset,
-    NotDisjoint,
+    NotDisjoint(SystemRecipeFailure),
     NotSubset,
     CutsDelaySolutions(StatePair),
     InitialState(StatePair),
@@ -46,7 +48,7 @@ impl fmt::Display for RefinementFailure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RefinementFailure::NotDisjointAndNotSubset => write!(f, "Not Disjoint and Not Subset"),
-            RefinementFailure::NotDisjoint => write!(f, "Not Disjoint"),
+            RefinementFailure::NotDisjoint(_) => write!(f, "Not Disjoint"),
             RefinementFailure::NotSubset => write!(f, "Not Subset"),
             RefinementFailure::CutsDelaySolutions(_) => write!(f, "Cuts Delay Solutions"),
             RefinementFailure::InitialState(_) => write!(f, "Error in Initial State"),
@@ -621,7 +623,16 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
     let s_inputs = sys1.get_input_actions();
     let t_inputs = sys2.get_input_actions();
 
-    let disjoint = s_inputs.is_disjoint(&t_outputs) && t_inputs.is_disjoint(&s_outputs);
+    let mut disjoint = true;
+    let mut actions = vec![];
+    if let Err(action) = s_inputs.is_disjoint_action(&t_inputs) {
+        disjoint = false;
+        actions.extend(action);
+    }
+    if let Err(action) = s_outputs.is_disjoint_action(&t_outputs) {
+        disjoint = false;
+        actions.extend(action);
+    }
 
     let subset = s_inputs.is_subset(&t_inputs) && t_outputs.is_subset(&s_outputs);
 
@@ -637,7 +648,12 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
         RefinementResult::Failure(RefinementFailure::NotSubset)
     } else if !disjoint {
         warn!("Refinement failed - Systems not disjoint");
-        RefinementResult::Failure(RefinementFailure::NotDisjoint)
+        RefinementResult::Failure(RefinementFailure::NotDisjoint(SystemRecipeFailure::new(
+            "Not Disjoint".to_string(),
+            sys1.to_owned(),
+            sys2.to_owned(),
+            actions,
+        )))
     } else {
         RefinementResult::Success
     }

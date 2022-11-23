@@ -307,7 +307,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
 fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufResult> {
     match failure {
         RefinementFailure::NotDisjointAndNotSubset
-        | RefinementFailure::NotDisjoint
+        | RefinementFailure::NotDisjoint(_)
         | RefinementFailure::NotSubset
         | RefinementFailure::EmptySpecification
         | RefinementFailure::EmptyImplementation => {
