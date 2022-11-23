@@ -624,12 +624,13 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
     let t_inputs = sys2.get_input_actions();
 
     let mut disjoint = true;
+
     let mut actions = vec![];
-    if let Err(action) = s_inputs.is_disjoint_action(&t_inputs) {
+    if let Err(action) = s_inputs.is_disjoint_action(&t_outputs) {
         disjoint = false;
         actions.extend(action);
     }
-    if let Err(action) = s_outputs.is_disjoint_action(&t_outputs) {
+    if let Err(action) = t_inputs.is_disjoint_action(&s_outputs) {
         disjoint = false;
         actions.extend(action);
     }
