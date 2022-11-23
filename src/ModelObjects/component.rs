@@ -10,16 +10,16 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
-use crate::extract_system_rep::ClockReductionInstruction;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTuple, TransitionID};
 use edbm::zones::OwnedFederation;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ops::Range;
+use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -327,7 +327,7 @@ impl Component {
     /// # Arguments
     /// `global_index`: The index of the global clock\n
     /// `indices` are the duplicate clocks that should be set to `global_index`
-    pub(crate) fn replace_clock(&mut self, global_index: ClockIndex, indices: &Vec<ClockIndex>) {
+    pub(crate) fn replace_clock(&mut self, global_index: ClockIndex, indices: &HashSet<ClockIndex>) {
         let global = self
             .declarations
             .get_clock_name_by_index(global_index)

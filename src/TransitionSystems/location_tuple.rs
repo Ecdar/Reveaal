@@ -17,7 +17,7 @@ pub enum CompositionType {
 #[derive(Clone, Debug)]
 pub struct LocationTuple {
     pub id: LocationID,
-    invariant: Option<OwnedFederation>,
+    pub invariant: Option<OwnedFederation>,
     pub loc_type: LocationType,
     left: Option<Box<LocationTuple>>,
     right: Option<Box<LocationTuple>>,

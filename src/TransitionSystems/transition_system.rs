@@ -1,5 +1,5 @@
+use std::collections::hash_map::Entry;
 use super::{CompositionType, LocationID, LocationTuple};
-use crate::extract_system_rep::ClockReductionInstruction;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
@@ -9,6 +9,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use std::ops::Range;
+use crate::EdgeEval::updater::CompiledUpdate;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -110,19 +112,275 @@ pub trait TransitionSystem: DynClone {
 
     fn get_composition_type(&self) -> CompositionType;
 
-    /// Returns all transitions in the transition system.
-    fn get_all_transitions(&self) -> Vec<&Transition>;
+    ///Constructs a [CLockAnalysisGraph],
+    ///where nodes represents locations and Edges represent transitions
+    fn get_analysis_graph(&self) -> ClockAnalysisGraph {
+        let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
+        let location = self.get_initial_location().unwrap();
+        let mut actions = self.get_actions();
 
-    fn get_clocks_in_transitions(&self) -> HashMap<String, Vec<EdgeIndex>>;
+        self.find_next_transition(&location, &mut actions, &mut graph);
 
-    fn get_clocks_in_locations(&self) -> HashMap<String, LocationID>;
+        println!("redundancies: {:?}", graph.find_clock_redundancies());
 
-    fn get_transition(&self, location: LocationID, transition_index: usize) -> Option<&Transition>;
-
-    fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
-        //TODO do
-        vec![]
+        graph
     }
+
+    ///Helper function to recursively travers all transitions in a transitions system
+    ///in order to find all transitions and location in the transition system, and
+    ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
+    fn find_next_transition(&self, location: &LocationTuple, actions: &mut HashSet<String>, graph: &mut ClockAnalysisGraph){
+        //Constructs a node to represent this location and add it to the graph.
+        let mut node: ClockAnalysisNode = ClockAnalysisNode {
+            invariant_dependencies: HashSet::new(),
+            id: location.id.to_owned()
+        };
+
+        //Finds clocks used in invariants in this location.
+        if let Some(invariant) = &location.invariant {
+            let conjunctions = invariant.minimal_constraints().conjunctions;
+            for conjunction in conjunctions {
+                for constraint in conjunction.iter() {
+                    node.invariant_dependencies.insert(constraint.i);
+                    node.invariant_dependencies.insert(constraint.j);
+                }
+            }
+        }
+        graph.nodes.insert(node.id.clone(), node);
+
+        //Constructs an edge to represent each transition from this graph and add it to the graph.
+        for action in actions.clone().iter() {
+            let transitions = self.next_transitions_if_available(&location, action);
+            for transition in transitions {
+
+                let mut edge = ClockAnalysisEdge {
+                    from: location.id.to_owned(),
+                    to: transition.target_locations.id.clone(),
+                    guard_dependencies: HashSet::new(),
+                    updates: transition.updates,
+                    edge_type: action.to_string(),
+                };
+
+                //Finds clocks used in guards in this transition.
+                let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
+                for conjunction in &conjunctions {
+                    for constraint in conjunction.iter() {
+                        edge.guard_dependencies.insert(constraint.i);
+                        edge.guard_dependencies.insert(constraint.j);
+                    }
+                }
+
+
+                graph.edges.push(edge);
+
+                //Calls itself on the transitions target location if the location is not already in
+                //represented as a node in the graph.
+                if !graph.nodes.contains_key(&transition.target_locations.id) {
+                    self.find_next_transition(&transition.target_locations, actions, graph);
+                }
+            }
+        }
+    }
+
+    fn find_redundant_clocks(&self, height: Heights) -> Vec<ClockReductionInstruction> {
+        if height.tree > height.target {
+            let (a, b) = self.get_children();
+            let mut out = a.find_redundant_clocks(height.clone().level_down());
+            out.extend(b.find_redundant_clocks(height.level_down()));
+            out
+        } else {
+            self.get_analysis_graph().find_clock_redundancies()
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ClockReductionInstruction {
+    RemoveClock {
+        clock_index: ClockIndex,
+    },
+    ReplaceClocks {
+        clock_index: ClockIndex,
+        clock_indices: HashSet<ClockIndex>,
+    }
+}
+
+impl ClockReductionInstruction {
+    ///Checks the index/indices is within a given range
+    pub(crate) fn is_in_range(&self, range: &Range<usize>) -> bool {
+        match self {
+            ClockReductionInstruction::RemoveClock { clock_index } => range.contains(clock_index),
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => {
+                clock_indices.iter().any(|c| range.contains(c))
+            }
+        }
+    }
+
+    ///Gets the index/indices
+    pub(crate) fn get_indices(&self) -> HashSet<usize> {
+        match self {
+            ClockReductionInstruction::RemoveClock { clock_index } => HashSet::from([*clock_index]),
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.clone(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisNode {
+    pub invariant_dependencies: HashSet<ClockIndex>,
+    pub id: LocationID,
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisEdge {
+    pub from: LocationID,
+    pub to: LocationID,
+    pub guard_dependencies: HashSet<ClockIndex>,
+    pub updates: Vec<CompiledUpdate>,
+    pub edge_type: String,
+}
+
+#[derive(Debug)]
+pub struct ClockAnalysisGraph {
+    pub nodes: HashMap<LocationID, ClockAnalysisNode>,
+    pub edges: Vec<ClockAnalysisEdge>,
+    pub dim: ClockIndex
+}
+
+impl ClockAnalysisGraph {
+    pub fn empty() -> ClockAnalysisGraph {
+        ClockAnalysisGraph{
+            nodes: HashMap::new(),
+            edges: vec![],
+            dim: 0
+        }
+    }
+
+    pub fn find_clock_redundancies(&self) -> Vec<ClockReductionInstruction> {
+        //First we find the used clocks
+        let used_clocks = self.find_used_clocks();
+
+        //Then we create a subset of used clocks that are not updated and decide a global clock which can replace them
+        let mut global_clock: ClockIndex = ClockIndex::MAX;
+        let non_updated_clocks = self.find_non_updated_clocks(&used_clocks, &mut global_clock);
+
+        //Then we instruct the caller to remove the unused clocks, we start at 1 since the 0 clock is not a real clock
+        let mut unused_clocks = (1..self.dim).collect::<HashSet<ClockIndex>>();
+        for used_clock in &non_updated_clocks {
+            unused_clocks.remove(&used_clock);
+        }
+
+        let mut rv: Vec<ClockReductionInstruction> = Vec::new();
+        for unused_clock in &unused_clocks {
+            rv.push(ClockReductionInstruction::RemoveClock {
+                clock_index: unused_clock.clone()
+            });
+        }
+
+        let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
+        for equivalent_clock_group in &mut equivalent_clock_groups {
+            let lowest_clock = equivalent_clock_group.iter().min().unwrap().clone();
+            equivalent_clock_group.remove(&lowest_clock);
+            rv.push(ClockReductionInstruction::ReplaceClocks {
+                clock_index: lowest_clock,
+                clock_indices: equivalent_clock_group.clone()
+            });
+        }
+
+        rv
+    }
+
+    fn find_used_clocks(&self) -> HashSet<ClockIndex> {
+        let mut used_clocks = HashSet::new();
+
+        //First we find the used clocs
+        for edge in &self.edges {
+            for guard_dependency in &edge.guard_dependencies {
+                used_clocks.insert(guard_dependency.clone());
+            }
+        }
+
+        for node in &self.nodes {
+            for invariant_dependency in &node.1.invariant_dependencies {
+                used_clocks.insert(invariant_dependency.clone());
+            }
+        }
+
+        return used_clocks;
+    }
+
+    fn find_non_updated_clocks(&self, used_clocks: &HashSet<ClockIndex>, global_clock: &mut ClockIndex) -> HashSet<ClockIndex> {
+        *global_clock = ClockIndex::MAX;
+        let mut non_updated_clocks = used_clocks.clone();
+
+        for edge in &self.edges {
+            for update in &edge.updates {
+                if update.clock_index < *global_clock {
+                    *global_clock = update.clock_index;
+                }
+                non_updated_clocks.remove(&update.clock_index);
+            }
+        }
+
+        return non_updated_clocks;
+    }
+
+    fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>> {
+        if used_clocks.len() < 2 || self.edges.len() == 0 {
+            return Vec::new();
+        }
+        let mut equivalent_clock_groups: Vec<HashSet<ClockIndex>> = Vec::new();
+
+        equivalent_clock_groups.push(used_clocks.clone());
+
+        for edge in &self.edges {
+            let mut locally_equivalent_clock_groups: HashMap<i32, HashSet<ClockIndex>> = HashMap::new();
+            for update in edge.updates.iter() {
+
+                let same_value_set: &mut HashSet<ClockIndex> =
+                    match locally_equivalent_clock_groups.entry(update.value) {
+                        Entry::Occupied(o) => o.into_mut(),
+                        Entry::Vacant(v) => v.insert(HashSet::new()),
+                    };
+                same_value_set.insert(update.clock_index);
+            }
+            let mut new_groups: Vec<HashSet<ClockIndex>> = Vec::new();
+            for equivalent_clock_group in &mut equivalent_clock_groups {
+                for locally_equivalent_clock_group in &locally_equivalent_clock_groups {
+                    let mut new_clock_group = HashSet::new();
+                    for locally_equivalent_clock in locally_equivalent_clock_group.1 {
+                        if equivalent_clock_group.contains(&locally_equivalent_clock) {
+                            new_clock_group.insert(*locally_equivalent_clock);
+                            equivalent_clock_group.remove(&locally_equivalent_clock);
+                        }
+                    }
+                    if new_clock_group.len() > 1 {
+                        new_groups.push(new_clock_group);
+                    }
+                }
+                if equivalent_clock_group.len() > 1 {
+                    new_groups.push(equivalent_clock_group.clone());
+                }
+            }
+            equivalent_clock_groups = new_groups;
+        }
+        equivalent_clock_groups
+    }
+}
+
+pub fn analyze_transition_system(transition_system: TransitionSystemPtr) {
+    let clock_decl = transition_system.get_decls();
+    let mut clocks : HashMap<String,ClockIndex> = HashMap::new();
+
+    // gets clocks used in the two components
+    for decl in clock_decl.iter(){
+        for (k,v) in decl.clocks.iter(){
+            clocks.insert(k.to_string(),*v);
+        }
+    }    print!("{:?}",clocks);
+
+    transition_system.get_analysis_graph();
+
 }
 
 clone_trait_object!(TransitionSystem);

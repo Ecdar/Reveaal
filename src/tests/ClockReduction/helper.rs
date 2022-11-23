@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod test {
-    use crate::extract_system_rep::ClockReductionInstruction;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::iter::FromIterator;
+    use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 
     fn sort_clocks_and_join(dependent_clocks: &HashSet<String>) -> String {
         let mut dependent_clocks_vec = Vec::from_iter(dependent_clocks.iter());
@@ -19,7 +19,7 @@ pub mod test {
 
     /// Assert that a redundant clock is redundant for the correct reason
     pub fn assert_clock_reason(
-        redundant_clocks: &Vec<ClockReductionInstruction>, //TODO: Fix type
+        redundant_clocks: &Vec<ClockReductionInstruction>,
         expected_amount_to_reduce: u32,
         expected_reducible_clocks: HashSet<&str>,
         unused_allowed: bool,
@@ -50,7 +50,7 @@ pub mod test {
         expected_redundant_clocks: Vec<usize>,
         global_clock: (String, ClockIndex),
     ) {
-        let redundant_clocks = component.find_redundant_clocks();
+        let redundant_clocks = component.find_redundant_clocks(crate::TransitionSystems::transition_system::Heights::new(0, 0));
         /*
         assert_eq!(
             expected_redundant_clocks,
