@@ -7,15 +7,13 @@ use edbm::{
 };
 use log::warn;
 
+use crate::TransitionSystems::CompositionType;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::{ConsistencyResult, DeterminismResult},
 };
 
-use super::{
-    transition_system::CompositionType, LocationTuple, TransitionSystem,
-    TransitionSystemPtr,
-};
+use super::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 
 pub trait ComposedTransitionSystem: DynClone {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;

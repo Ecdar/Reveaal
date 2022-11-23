@@ -7,7 +7,7 @@ use crate::{
 
 use super::LocationID;
 
-#[derive(Debug, Clone, std::cmp::PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum CompositionType {
     Conjunction,
     Composition,
