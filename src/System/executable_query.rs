@@ -54,16 +54,11 @@ impl QueryResult {
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)
             }
-
+            QueryResult::NotDisjoint(systemRecipeFailure) => {
+                not_satisfied(query_str);
+                println!("Got failure: {}", systemRecipeFailure);
+            }
             QueryResult::Error(_) => println!("{} -- Failed", query_str),
-            QueryResult::NotDisjoint(systemRecipeFailure) => match systemRecipeFailure.left_name {
-                Some(_) => println!(
-                    "{} {} ",
-                    systemRecipeFailure.left_name.to_owned().unwrap(),
-                    systemRecipeFailure.reason
-                ),
-                None => println!("{} ", systemRecipeFailure.reason),
-            },
         };
     }
 }
