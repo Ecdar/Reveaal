@@ -1,17 +1,12 @@
 #[cfg(test)]
 pub mod test {
     use crate::tests::ClockReduction::helper::test::{
-        assert_clock_reason, assert_duplicate_clock_in_clock_reduction_instruction_vec,
-        assert_unused_clock_in_clock_reduction_instruction_vec, compile_json_component,
-        read_json_component_and_process,
+        assert_duplicate_clock_in_clock_reduction_instruction_vec, read_json_component_and_process,
     };
-    use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::transition_system::Heights;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
-    use std::collections::{HashMap, HashSet};
-    use std::ops::Deref;
-    use test_case::test_case;
+    use std::collections::HashSet;
 
     const REDUNDANT_CLOCKS_TEST_PROJECT: &str = "samples/json/ClockReductionTest/RedundantClocks";
     const DIM: ClockIndex = 5; // TODO: Dim

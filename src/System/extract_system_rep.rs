@@ -150,7 +150,9 @@ fn clock_reduction(
         .intersect(&right.clone().compile(*dim)?.find_redundant_clocks(heights));
 
     debug!("Clocks to be reduced: {clocks:?}");
-    *dim -= clocks.iter().fold(0, |acc, c| acc + c.clocks_removed_count());
+    *dim -= clocks
+        .iter()
+        .fold(0, |acc, c| acc + c.clocks_removed_count());
     debug!("New dimension: {dim}");
 
     left.reduce_clocks(clocks.clone());
