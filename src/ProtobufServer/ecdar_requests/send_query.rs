@@ -9,25 +9,27 @@ use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::services::component::Rep;
-use crate::ProtobufServer::services::query_response::query_ok::Result as ProtobufResult;
 use crate::ProtobufServer::services::query_response::query_ok::{
     ComponentResult, ConsistencyResult as ProtobufConsistencyResult,
     DeterminismResult as ProtobufDeterminismResult, RefinementResult,
 };
+use crate::ProtobufServer::services::query_response::query_ok::{
+    ReachabilityResult, Result as ProtobufResult,
+};
 use crate::ProtobufServer::services::query_response::QueryOk;
 use crate::ProtobufServer::services::query_response::Response as QueryOkOrErrorResponse;
 use crate::ProtobufServer::services::{
-    Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
+    self, Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
     Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
     Disjunction as ProtobufDisjunction, Federation, Location, LocationTuple, QueryRequest,
-    QueryResponse, State,
+    QueryResponse, SpecificComponent, State,
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::executable_query::QueryResult;
 use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
-use crate::TransitionSystems::{self, LocationID};
+use crate::TransitionSystems::{self, LocationID, TransitionID};
 use edbm::util::constraints::Disjunction;
 use log::trace;
 use tonic::Status;
@@ -163,8 +165,52 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             refine::RefinementResult::Failure(failure) => convert_refinement_failure(failure),
         },
 
-        QueryResult::Reachability(_, _) => {
-            unimplemented!("Not implemented, but should be implemented");
+        QueryResult::Reachability(path) => {
+            let proto_path = TransitionID::split_into_component_lists(
+                &path
+                    .path
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .map(|p| p.id.clone())
+                    .collect(),
+            );
+
+            match proto_path {
+                Ok(p) => {
+                    let component_paths = p
+                        .iter()
+                        .map(|component_path| services::Path {
+                            edge_ids: component_path
+                                .concat()
+                                .iter()
+                                .map(|id| id.to_string())
+                                .collect(),
+                        })
+                        .collect();
+                    if path.was_reachable {
+                        Some(ProtobufResult::Reachability(ReachabilityResult {
+                            success: true,
+                            reason: "".to_string(),
+                            state: None,
+                            component_paths,
+                        }))
+                    } else {
+                        Some(ProtobufResult::Reachability(ReachabilityResult {
+                            success: false,
+                            reason: "Path was not reachable".to_string(),
+                            state: None,
+                            component_paths: vec![],
+                        }))
+                    }
+                }
+                Err(e) => Some(ProtobufResult::Reachability(ReachabilityResult {
+                    success: false,
+                    reason: format!("Internal error occurred during reachability check: {}", e),
+                    state: None,
+                    component_paths: vec![],
+                })),
+            }
         }
 
         QueryResult::GetComponent(comp) => Some(ProtobufResult::Component(ComponentResult {
@@ -199,7 +245,10 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                             location_tuple: Some(LocationTuple {
                                 locations: vec![Location {
                                     id: location_id.to_string(),
-                                    specific_component: None,
+                                    specific_component: Some(SpecificComponent {
+                                        component_name: location_id.get_component_id().unwrap(),
+                                        component_index: 0,
+                                    }),
                                 }],
                             }),
                             federation: None,
@@ -226,7 +275,10 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                         location_tuple: Some(LocationTuple {
                             locations: vec![Location {
                                 id: location_id.to_string(),
-                                specific_component: None,
+                                specific_component: Some(SpecificComponent {
+                                    component_name: location_id.get_component_id().unwrap(),
+                                    component_index: 0,
+                                }),
                             }],
                         }),
                         federation: None,
@@ -283,7 +335,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                     location_tuple: Some(LocationTuple {
                         locations: vec![Location {
                             id: value_in_location(location_id),
-                            specific_component: None,
+                            specific_component: value_in_component(location_id),
                         }],
                     }),
                     federation: None,
@@ -344,6 +396,15 @@ fn value_in_location(maybe_location: &Option<LocationID>) -> String {
         Some(location_id) => location_id.to_string(),
         None => "".to_string(),
     }
+}
+
+fn value_in_component(maybe_location: &Option<LocationID>) -> Option<SpecificComponent> {
+    maybe_location
+        .as_ref()
+        .map(|location_id| SpecificComponent {
+            component_name: location_id.get_component_id().unwrap(),
+            component_index: 0,
+        })
 }
 
 fn value_in_action(maybe_action: &Option<String>) -> String {

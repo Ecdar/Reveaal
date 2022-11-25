@@ -1,6 +1,12 @@
 #[cfg(test)]
 pub mod test {
-    use crate::TransitionSystems::transition_system::ClockReductionInstruction;
+    use crate::component;
+    use crate::component::{Component, Declarations};
+    use crate::component::{Edge, SyncType};
+    use crate::DataReader::json_reader::read_json_component;
+    use crate::TransitionSystems::transition_system::{
+        ClockReductionInstruction, TransitionSystemPtr,
+    };
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
@@ -15,6 +21,35 @@ pub mod test {
             sorted_clocks = sorted_clocks + clock;
         }
         sorted_clocks
+    }
+
+    pub fn read_json_component_and_process(
+        project_path: &str,
+        component_name: &str,
+    ) -> component::Component {
+        let mut component = read_json_component(project_path, component_name);
+
+        let input_edges: &mut Vec<Edge> = component.input_edges.insert(vec![]);
+        let output_edges: &mut Vec<Edge> = component.output_edges.insert(vec![]);
+
+        for edge in &component.edges {
+            match edge.sync_type {
+                SyncType::Input => input_edges.push(edge.clone()),
+                SyncType::Output => output_edges.push(edge.clone()),
+            };
+        }
+
+        component
+    }
+
+    pub fn compile_json_component(
+        project_path: &str,
+        component_name: &str,
+    ) -> Box<CompiledComponent> {
+        let mut component = read_json_component_and_process(project_path, component_name);
+        let dim = component.declarations.get_clock_count() + 1;
+
+        CompiledComponent::compile(component, dim).unwrap()
     }
 
     /// Assert that a redundant clock is redundant for the correct reason
@@ -38,7 +73,7 @@ pub mod test {
         assert_eq!(
             clocksReduced.len(),
             expected_amount_to_reduce as usize,
-            "Too many clocks were reduced, expected only {}, got {}",
+            "Too many clocks were reduced, expected {}, got {}",
             expected_amount_to_reduce,
             clocksReduced.len()
         );
@@ -128,5 +163,55 @@ pub mod test {
             );
         }
          */
+    }
+    /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` should
+    /// be removed.
+    pub(crate) fn assert_unused_clock_in_clock_reduction_instruction_vec(
+        redundant_clocks: Vec<ClockReductionInstruction>,
+        clock: ClockIndex,
+    ) {
+        assert!(redundant_clocks
+            .iter()
+            .any(|instruction| match instruction {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    println!("Found {}, searching for {}", clock_index, clock);
+                    *clock_index == clock
+                }
+                _ => false,
+            }));
+    }
+    /// Assert that a [`vec<&ClockReductionInstruction>`] contains an instruction that `clock` is a
+    /// duplicate of the clocks in `clocks`.
+    pub(crate) fn assert_duplicate_clock_in_clock_reduction_instruction_vec(
+        redundant_clocks: Vec<ClockReductionInstruction>,
+        clock: ClockIndex,
+        clocks: &HashSet<ClockIndex>,
+    ) {
+        assert!(redundant_clocks
+            .iter()
+            .any(|instruction| match instruction {
+                ClockReductionInstruction::RemoveClock { clock_index } => {
+                    false
+                }
+                ClockReductionInstruction::ReplaceClocks {
+                    clock_index,
+                    clock_indices,
+                } => {
+                    *clock_index == clock && clock_indices == clocks
+                }
+            }));
+    }
+
+    pub(crate) fn get_clock_index_by_name<'a>(
+        declarations_vec: Vec<&'a Declarations>,
+        clock_name: &str,
+    ) -> Option<&'a ClockIndex> {
+        for decl in declarations_vec {
+            let clock_index = decl.clocks.get(clock_name);
+            if clock_index.is_some() {
+                return clock_index;
+            }
+        }
+        None
     }
 }

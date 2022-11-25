@@ -1,11 +1,10 @@
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-use edbm::util::bounds::Bounds;
-use edbm::util::constraints::ClockIndex;
-
 use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use edbm::util::bounds::Bounds;
+use edbm::util::constraints::ClockIndex;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
