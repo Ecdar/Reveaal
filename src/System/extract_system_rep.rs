@@ -140,7 +140,8 @@ fn clock_reduction(
         let heights = match x {
             ReduceClocksLevel::Level(y) if *y >= 0 => Heights::new(height, (*y) as usize),
             ReduceClocksLevel::All(true) => Heights::new(height, height),
-            _ => return Err("Clock reduction error: Couldn't parse argument correctly".to_string()),
+            ReduceClocksLevel::All(false) => return Ok(()),
+            ReduceClocksLevel::Level(err) => return Err(format!("Clock reduction error: Couldn't parse argument correctly. Got {err}, expected a value above")),
         };
 
         let clocks_left: Vec<ClockReductionInstruction> =
@@ -148,8 +149,8 @@ fn clock_reduction(
         let clocks_right: Vec<ClockReductionInstruction> =
             right.clone().compile(*dim)?.find_redundant_clocks(heights);
 
-        *dim -= clocks_left.iter().fold(0, |_acc, c| c.clocks_removed())
-            + clocks_right.iter().fold(0, |_acc, c| c.clocks_removed());
+        *dim -= clocks_left.iter().fold(0, |_acc, c| c.clocks_removed_count())
+            + clocks_right.iter().fold(0, |_acc, c| c.clocks_removed_count());
 
         left.reduce_clocks(clocks_left);
         right.reduce_clocks(clocks_right);
@@ -222,17 +223,19 @@ impl SystemRecipe {
     }
 
     ///Applies the clock-reduction
-    pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
+pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
         let mut comps = self.get_components();
         let mut omitting = HashSet::new();
         for redundant in clock_instruction {
             match redundant {
                 ClockReductionInstruction::RemoveClock { clock_index } => {
-                    comps
+                    match comps
                         .iter_mut()
                         .find(|c| c.declarations.clocks.values().any(|ci| *ci == clock_index))
-                        .unwrap()
-                        .remove_clock(clock_index);
+                    {
+                        Some(c) => c.remove_clock(clock_index),
+                        None => return,
+                    }
                 }
                 ClockReductionInstruction::ReplaceClocks {
                     clock_indices,

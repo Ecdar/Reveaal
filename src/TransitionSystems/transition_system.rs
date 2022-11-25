@@ -11,7 +11,6 @@ use log::warn;
 use std::collections::hash_map::Entry;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use std::ops::Range;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -224,18 +223,10 @@ pub enum ClockReductionInstruction {
 }
 
 impl ClockReductionInstruction {
-    pub(crate) fn clocks_removed(&self) -> usize {
+    pub(crate) fn clocks_removed_count(&self) -> usize {
         match self {
             ClockReductionInstruction::RemoveClock { .. } => 1,
             ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.len(),
-        }
-    }
-
-    ///Gets the index/indices
-    pub(crate) fn get_indices(&self) -> HashSet<usize> {
-        match self {
-            ClockReductionInstruction::RemoveClock { clock_index } => HashSet::from([*clock_index]),
-            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.clone(),
         }
     }
 }
@@ -322,21 +313,6 @@ impl ClockAnalysisGraph {
         used_clocks.remove(&0);
 
         used_clocks
-    }
-
-    fn find_non_updated_clocks(
-        &self,
-        used_clocks: &HashSet<ClockIndex>
-    ) -> HashSet<ClockIndex> {
-        let mut non_updated_clocks = used_clocks.clone();
-
-        for edge in &self.edges {
-            for update in &edge.updates {
-                non_updated_clocks.remove(&update.clock_index);
-            }
-        }
-
-        non_updated_clocks
     }
 
     fn find_equivalent_clock_groups(
