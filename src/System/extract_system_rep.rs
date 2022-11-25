@@ -149,8 +149,12 @@ fn clock_reduction(
         let clocks_right: Vec<ClockReductionInstruction> =
             right.clone().compile(*dim)?.find_redundant_clocks(heights);
 
-        *dim -= clocks_left.iter().fold(0, |_acc, c| c.clocks_removed_count())
-            + clocks_right.iter().fold(0, |_acc, c| c.clocks_removed_count());
+        *dim -= clocks_left
+            .iter()
+            .fold(0, |_acc, c| c.clocks_removed_count())
+            + clocks_right
+                .iter()
+                .fold(0, |_acc, c| c.clocks_removed_count());
 
         left.reduce_clocks(clocks_left);
         right.reduce_clocks(clocks_right);
@@ -223,7 +227,7 @@ impl SystemRecipe {
     }
 
     ///Applies the clock-reduction
-pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
+    pub(crate) fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
         let mut comps = self.get_components();
         let mut omitting = HashSet::new();
         for redundant in clock_instruction {

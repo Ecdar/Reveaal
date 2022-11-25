@@ -46,8 +46,8 @@ impl Heights {
         }
     }
 
-    pub fn empty() -> Heights{
-        Heights::new(0,0)
+    pub fn empty() -> Heights {
+        Heights::new(0, 0)
     }
 }
 
