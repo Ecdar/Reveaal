@@ -150,21 +150,25 @@ fn clock_reduction(
         .intersect(&right.clone().compile(*dim)?.find_redundant_clocks(heights));
 
     debug!("Clocks to be reduced: {clocks:?}");
-    *dim -= clocks.iter().fold(0, |_acc, c| c.clocks_removed_count());
+    *dim -= clocks.iter().fold(0, |acc, c| acc + c.clocks_removed_count());
+    debug!("New dimension: {dim}");
 
     left.reduce_clocks(clocks.clone());
     right.reduce_clocks(clocks);
     Ok(())
 }
 
-fn clean_component_decls(mut comps: Vec<&mut Component>, omit: HashSet<ClockIndex>) {
-    for clock in omit {
+fn clean_component_decls(mut comps: Vec<&mut Component>, omit: HashSet<(ClockIndex, usize)>) {
+    let mut list: Vec<&(ClockIndex, usize)> = omit.iter().collect();
+    list.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
+
+    for (clock, size) in list.iter().rev() {
         comps.iter_mut().for_each(|c| {
             c.declarations
                 .clocks
                 .values_mut()
-                .filter(|cl| **cl > clock)
-                .for_each(|cl| *cl -= 1)
+                .filter(|cl| **cl > *clock)
+                .for_each(|cl| *cl -= size)
         });
     }
 }
@@ -233,8 +237,9 @@ impl SystemRecipe {
                         .find(|c| c.declarations.clocks.values().any(|ci| *ci == clock_index))
                     {
                         Some(c) => c.remove_clock(clock_index),
-                        None => return,
+                        None => continue,
                     }
+                    omitting.insert((clock_index, 1));
                 }
                 ClockReductionInstruction::ReplaceClocks {
                     clock_indices,
@@ -249,7 +254,7 @@ impl SystemRecipe {
                                 .find(|ci| clock_indices.contains(ci))
                         })
                         .for_each(|c| *c = clock_index);
-                    omitting.insert(clock_index);
+                    omitting.insert((clock_index, clock_indices.len()));
                 }
             }
         }
