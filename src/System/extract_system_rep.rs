@@ -135,27 +135,25 @@ fn clock_reduction(
     set: &Settings,
     dim: &mut usize,
 ) -> Result<(), String> {
-    let height = max(left.height(), right.height()) + 1;
-    if let Some(x) = &set.reduce_clocks_level {
-        let heights = match x {
-            ReduceClocksLevel::Level(y) if *y >= 0 => Heights::new(height, (*y) as usize),
+    let height = max(left.height(), right.height());
+    let heights = match set.reduce_clocks_level.to_owned().ok_or_else(|| "No clock reduction level specified".to_string())? {
+            ReduceClocksLevel::Level(y) if y >= 0 => Heights::new(height, y as usize),
             ReduceClocksLevel::All(true) => Heights::new(height, height),
             ReduceClocksLevel::All(false) => return Ok(()),
             ReduceClocksLevel::Level(err) => return Err(format!("Clock reduction error: Couldn't parse argument correctly. Got {err}, expected a value above")),
         };
 
-        let clocks = left
-            .clone()
-            .compile(*dim)?
-            .find_redundant_clocks(heights)
-            .intersect(&right.clone().compile(*dim)?.find_redundant_clocks(heights));
+    let clocks = left
+        .clone()
+        .compile(*dim)?
+        .find_redundant_clocks(heights)
+        .intersect(&right.clone().compile(*dim)?.find_redundant_clocks(heights));
 
-        debug!("Clocks to be reduced: {clocks:?}");
-        *dim -= clocks.iter().fold(0, |_acc, c| c.clocks_removed_count());
+    debug!("Clocks to be reduced: {clocks:?}");
+    *dim -= clocks.iter().fold(0, |_acc, c| c.clocks_removed_count());
 
-        left.reduce_clocks(clocks.clone());
-        right.reduce_clocks(clocks);
-    };
+    left.reduce_clocks(clocks.clone());
+    right.reduce_clocks(clocks);
     Ok(())
 }
 

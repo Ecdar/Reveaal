@@ -133,9 +133,9 @@ pub trait TransitionSystem: DynClone {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
         graph.dim = self.get_dim();
         let location = self.get_initial_location().unwrap();
-        let mut actions = self.get_actions();
+        let actions = self.get_actions();
 
-        self.find_edges_and_nodes(&location, &mut actions, &mut graph);
+        self.find_edges_and_nodes(&location, &actions, &mut graph);
 
         graph
     }
