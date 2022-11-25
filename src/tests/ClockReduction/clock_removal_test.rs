@@ -21,4 +21,26 @@ pub mod clock_removal_tests {
         component.reduce_clocks(redundant_clocks);
     }
      */
+
+    #[test]
+    fn test_check_declarations_unused_clocks_are_removed(){
+        let mut component = read_json_component("samples/json/ClockReductionTest/UnusedClock",
+                                            "Component1");
+
+        let compiled_component = CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
+            .unwrap();
+
+        let clock_index = component
+            .declarations
+            .get_clock_index_by_name("x")
+            .unwrap();
+
+        component.remove_clock(*clock_index);
+
+        clock_reduced_compiled_component = CompiledComponent::compile(component.clone(),  )
+
+    }
+
+
+
 }
