@@ -211,7 +211,27 @@ pub trait TransitionSystem: DynClone {
     }
 }
 
-#[derive(Debug, Clone)]
+pub(crate) trait Intersect<T> {
+    fn intersect(&self, other: &[T]) -> Vec<T>;
+}
+
+impl Intersect<ClockReductionInstruction> for Vec<ClockReductionInstruction> {
+    // Prioritizes replacements over removals
+    fn intersect(&self, other: &[ClockReductionInstruction]) -> Vec<ClockReductionInstruction> {
+        self.iter()
+            .filter(|r| r.is_replace())
+            .chain(other.iter().filter(|r| r.is_replace()))
+            .chain(
+                self.iter()
+                    .filter(|r| !r.is_replace())
+                    .filter_map(|c| other.iter().filter(|r| !r.is_replace()).find(|rc| *rc == c)),
+            )
+            .cloned()
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ClockReductionInstruction {
     RemoveClock {
         clock_index: ClockIndex,
@@ -227,6 +247,13 @@ impl ClockReductionInstruction {
         match self {
             ClockReductionInstruction::RemoveClock { .. } => 1,
             ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.len(),
+        }
+    }
+
+    fn is_replace(&self) -> bool {
+        match self {
+            ClockReductionInstruction::RemoveClock { .. } => false,
+            ClockReductionInstruction::ReplaceClocks { .. } => true,
         }
     }
 }
@@ -323,7 +350,6 @@ impl ClockAnalysisGraph {
             return Vec::new();
         }
         let mut equivalent_clock_groups: Vec<HashSet<ClockIndex>> = Vec::new();
-
 
         //This function works by maintaining the loop invariant that equivalent_clock_groups contains
         //groups containing clocks where all clocks contained are equivalent in all edges we have iterated

@@ -17,7 +17,7 @@ use crate::TransitionSystems::{
 use crate::component::State;
 use crate::ProtobufServer::services::query_request::{settings::ReduceClocksLevel, Settings};
 use crate::System::pruning;
-use crate::TransitionSystems::transition_system::{ClockReductionInstruction, Heights};
+use crate::TransitionSystems::transition_system::{ClockReductionInstruction, Heights, Intersect};
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
@@ -144,20 +144,17 @@ fn clock_reduction(
             ReduceClocksLevel::Level(err) => return Err(format!("Clock reduction error: Couldn't parse argument correctly. Got {err}, expected a value above")),
         };
 
-        let clocks_left: Vec<ClockReductionInstruction> =
-            left.clone().compile(*dim)?.find_redundant_clocks(heights);
-        let clocks_right: Vec<ClockReductionInstruction> =
-            right.clone().compile(*dim)?.find_redundant_clocks(heights);
+        let clocks = left
+            .clone()
+            .compile(*dim)?
+            .find_redundant_clocks(heights)
+            .intersect(&right.clone().compile(*dim)?.find_redundant_clocks(heights));
 
-        *dim -= clocks_left
-            .iter()
-            .fold(0, |_acc, c| c.clocks_removed_count())
-            + clocks_right
-                .iter()
-                .fold(0, |_acc, c| c.clocks_removed_count());
+        debug!("Clocks to be reduced: {clocks:?}");
+        *dim -= clocks.iter().fold(0, |_acc, c| c.clocks_removed_count());
 
-        left.reduce_clocks(clocks_left);
-        right.reduce_clocks(clocks_right);
+        left.reduce_clocks(clocks.clone());
+        right.reduce_clocks(clocks);
     };
     Ok(())
 }
