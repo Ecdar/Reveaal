@@ -11,7 +11,6 @@ use log::warn;
 use std::collections::hash_map::Entry;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
-use std::ops::Range;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -47,8 +46,8 @@ impl Heights {
         }
     }
 
-    pub fn empty() -> Heights{
-        Heights::new(0,0)
+    pub fn empty() -> Heights {
+        Heights::new(0, 0)
     }
 }
 
@@ -212,7 +211,27 @@ pub trait TransitionSystem: DynClone {
     }
 }
 
-#[derive(Debug, Clone)]
+pub(crate) trait Intersect<T> {
+    fn intersect(&self, other: &[T]) -> Vec<T>;
+}
+
+impl Intersect<ClockReductionInstruction> for Vec<ClockReductionInstruction> {
+    // Prioritizes replacements over removals
+    fn intersect(&self, other: &[ClockReductionInstruction]) -> Vec<ClockReductionInstruction> {
+        self.iter()
+            .filter(|r| r.is_replace())
+            .chain(other.iter().filter(|r| r.is_replace()))
+            .chain(
+                self.iter()
+                    .filter(|r| !r.is_replace())
+                    .filter_map(|c| other.iter().filter(|r| !r.is_replace()).find(|rc| *rc == c)),
+            )
+            .cloned()
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ClockReductionInstruction {
     RemoveClock {
         clock_index: ClockIndex,
@@ -224,21 +243,17 @@ pub enum ClockReductionInstruction {
 }
 
 impl ClockReductionInstruction {
-    ///Checks the index/indices is within a given range
-    pub(crate) fn is_in_range(&self, range: &Range<usize>) -> bool {
+    pub(crate) fn clocks_removed_count(&self) -> usize {
         match self {
-            ClockReductionInstruction::RemoveClock { clock_index } => range.contains(clock_index),
-            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => {
-                clock_indices.iter().any(|c| range.contains(c))
-            }
+            ClockReductionInstruction::RemoveClock { .. } => 1,
+            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.len(),
         }
     }
 
-    ///Gets the index/indices
-    pub(crate) fn get_indices(&self) -> HashSet<usize> {
+    fn is_replace(&self) -> bool {
         match self {
-            ClockReductionInstruction::RemoveClock { clock_index } => HashSet::from([*clock_index]),
-            ClockReductionInstruction::ReplaceClocks { clock_indices, .. } => clock_indices.clone(),
+            ClockReductionInstruction::RemoveClock { .. } => false,
+            ClockReductionInstruction::ReplaceClocks { .. } => true,
         }
     }
 }
@@ -327,21 +342,6 @@ impl ClockAnalysisGraph {
         used_clocks
     }
 
-    fn find_non_updated_clocks(
-        &self,
-        used_clocks: &HashSet<ClockIndex>
-    ) -> HashSet<ClockIndex> {
-        let mut non_updated_clocks = used_clocks.clone();
-
-        for edge in &self.edges {
-            for update in &edge.updates {
-                non_updated_clocks.remove(&update.clock_index);
-            }
-        }
-
-        non_updated_clocks
-    }
-
     fn find_equivalent_clock_groups(
         &self,
         used_clocks: &HashSet<ClockIndex>,
@@ -351,21 +351,41 @@ impl ClockAnalysisGraph {
         }
         let mut equivalent_clock_groups: Vec<HashSet<ClockIndex>> = Vec::new();
 
+        //This function works by maintaining the loop invariant that equivalent_clock_groups contains
+        //groups containing clocks where all clocks contained are equivalent in all edges we have iterated
+        //through. We also have to make sure that each clock are only present in one group at a time.
+        //This means that for the first iteration all clocks are equivalent. We do not include
+        //unused clocks since they are all equivalent and will removed completely in another stage.
         equivalent_clock_groups.push(used_clocks.clone());
 
         for edge in &self.edges {
+            //First the clocks which are equivalent in this edge are found. This is defined by every
+            //clock in their respective group are set to the same value. This is done through a
+            //HashMap with the value being key and the group of clocks being the value
             let mut locally_equivalent_clock_groups: HashMap<i32, HashSet<ClockIndex>> =
                 HashMap::new();
+            //Here the clocks are grouped by the value they are set to
             for update in edge.updates.iter() {
-                let same_value_set: &mut HashSet<ClockIndex> =
+                //This gets the values' clock group or creates a new one and inserts the new one
+                //in the hashset and returns a mutable reference
+                let clock_group: &mut HashSet<ClockIndex> =
                     match locally_equivalent_clock_groups.entry(update.value) {
                         Entry::Occupied(o) => o.into_mut(),
                         Entry::Vacant(v) => v.insert(HashSet::new()),
                     };
-                same_value_set.insert(update.clock_index);
+                clock_group.insert(update.clock_index);
             }
+            //Then we maintain the loop invariant by creating a new list of clock groups and
+            //dividing the old groups when clocks are found to not be equivalent
             let mut new_groups: Vec<HashSet<ClockIndex>> = Vec::new();
+            //We do this by iterating on each globally equivalent clock group and removing the clocks
+            //that are not updated to the same value
             for equivalent_clock_group in &mut equivalent_clock_groups {
+                //For each of the locally equivalent clock groups we can construct a new clock group
+                //for the clocks that are in the globally equivalant clock group we are iterating
+                //over now.
+                //Then we remove the clocks from the globally equivalent clocks that we use in
+                //the new group
                 for locally_equivalent_clock_group in &locally_equivalent_clock_groups {
                     let mut new_clock_group = HashSet::new();
                     for locally_equivalent_clock in locally_equivalent_clock_group.1 {
@@ -374,14 +394,18 @@ impl ClockAnalysisGraph {
                             equivalent_clock_group.remove(locally_equivalent_clock);
                         }
                     }
+                    //If the new clock group only contains one clock then there is no reason to keep
+                    //Track of it, since it will never be redundant
                     if new_clock_group.len() > 1 {
                         new_groups.push(new_clock_group);
                     }
                 }
+                //The same thing is done here
                 if equivalent_clock_group.len() > 1 {
                     new_groups.push(equivalent_clock_group.clone());
                 }
             }
+            //Then we use the new groups which uphold the loop invariant
             equivalent_clock_groups = new_groups;
         }
         equivalent_clock_groups

@@ -1,15 +1,17 @@
-
 #[cfg(test)]
 pub mod test {
     use crate::component::Component;
     use crate::extract_system_rep::SystemRecipe;
-    use crate::tests::ClockReduction::helper::test::{assert_clock_reason, assert_correct_edges_and_locations, assert_unused_clock_in_clock_reduction_instruction_vec, get_clock_index_by_name};
+    use crate::tests::ClockReduction::helper::test::{
+        assert_clock_reason, assert_correct_edges_and_locations,
+        assert_unused_clock_in_clock_reduction_instruction_vec, get_clock_index_by_name,
+    };
     use crate::DataReader::json_reader::read_json_component;
     use crate::System::save_component::{combine_components, PruningStrategy};
+    use crate::TransitionSystems::transition_system::Heights;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystemPtr};
     use std::collections::{HashMap, HashSet};
     use test_case::test_case;
-    use crate::TransitionSystems::transition_system::Heights;
 
     fn get_combined_component(path: &str, comp1: &str, comp2: &str) -> TransitionSystemPtr {
         let mut component1 = read_json_component(path, comp1);
@@ -54,4 +56,3 @@ pub mod test {
     }
     */
 }
-

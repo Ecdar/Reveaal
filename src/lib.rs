@@ -28,7 +28,7 @@ pub const DEFAULT_SETTINGS: ProtobufServer::services::query_request::Settings =
     };
 pub const TEST_SETTINGS: ProtobufServer::services::query_request::Settings =
     ProtobufServer::services::query_request::Settings {
-        reduce_clocks_level: None,
+        reduce_clocks_level: Some(All(false)),
     };
 
 #[macro_use]

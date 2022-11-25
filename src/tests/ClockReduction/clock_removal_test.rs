@@ -1,9 +1,9 @@
 #[cfg(test)]
 pub mod clock_removal_tests {
     use crate::DataReader::json_reader::read_json_component;
+    use crate::TransitionSystems::transition_system::Heights;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use std::collections::HashSet;
-    use crate::TransitionSystems::transition_system::Heights;
 
     /*
     // Tests that the clocks that are never used in any guards are removed.
