@@ -21,4 +21,14 @@ pub mod clock_removal_tests {
         component.reduce_clocks(redundant_clocks);
     }
      */
+    #[test]
+    fn test_check_declarations_duplicated_clocks_are_removed(){
+        let mut component = read_json_component(
+            "samples/json/ClockReductionTest/RedundantClocks",
+            "Component1",
+        );
+
+
+
+    }
 }
