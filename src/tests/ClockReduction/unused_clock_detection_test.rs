@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod unused_clocks_tests {
-    use crate::tests::ClockReduction::helper::test::{
-        assert_clock_reason, assert_unused_clock_in_clock_reduction_instruction_vec,
-    };
+    use crate::tests::ClockReduction::helper::test::
+         assert_unused_clock_in_clock_reduction_instruction_vec;
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::transition_system::Heights;
-    use crate::TransitionSystems::{CompiledComponent, TransitionSystem, TransitionSystemPtr};
+    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
 
     /// Loads the sample in `samples/json/ClockReductionTest/UnusedClockWithCycle` which contains
     /// unused clocks. It then tests that these clocks are located correctly.
