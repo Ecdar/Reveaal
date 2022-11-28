@@ -60,7 +60,7 @@ mod test {
         assert!(matches!(
             actual,
             QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::NotDisjointAndNotSubset
+                RefinementFailure::NotDisjointAndNotSubset(_)
             ))
         ));
     }
