@@ -47,7 +47,9 @@ enum StatePairResult {
 impl fmt::Display for RefinementFailure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            RefinementFailure::NotDisjointAndNotSubset(_) => write!(f, "Not Disjoint and Not Subset"),
+            RefinementFailure::NotDisjointAndNotSubset(_) => {
+                write!(f, "Not Disjoint and Not Subset")
+            }
             RefinementFailure::NotDisjoint(_) => write!(f, "Not Disjoint"),
             RefinementFailure::NotSubset => write!(f, "Not Subset"),
             RefinementFailure::CutsDelaySolutions(_) => write!(f, "Cuts Delay Solutions"),
@@ -618,7 +620,7 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
                 }
                 ConsistencyFailure::NotDisjoint(srf) => {
                     return RefinementResult::Failure(RefinementFailure::NotDisjoint(srf))
-                },
+                }
             }
         }
     }
@@ -649,12 +651,14 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
 
     if !disjoint && !subset {
         warn!("Refinement failed - Systems are not disjoint and not subset");
-        RefinementResult::Failure(RefinementFailure::NotDisjointAndNotSubset(SystemRecipeFailure::new(
-            "Not Disjoint and not subset".to_string(),
-            sys1.to_owned(),
-            sys2.to_owned(),
-            actions,
-        )))
+        RefinementResult::Failure(RefinementFailure::NotDisjointAndNotSubset(
+            SystemRecipeFailure::new(
+                "Not Disjoint and not subset".to_string(),
+                sys1.to_owned(),
+                sys2.to_owned(),
+                actions,
+            ),
+        ))
     } else if !subset {
         warn!("Refinement failed - Systems are not subset");
         RefinementResult::Failure(RefinementFailure::NotSubset)

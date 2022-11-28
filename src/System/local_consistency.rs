@@ -3,9 +3,9 @@ use std::fmt;
 use edbm::zones::OwnedFederation;
 use log::warn;
 
+use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::State;
 use crate::TransitionSystems::{LocationID, TransitionSystem};
-use crate::extract_system_rep::SystemRecipeFailure;
 
 /// The result of a consistency check.
 /// If there was a failure, [ConsistencyFailure] will specify the failure.
@@ -30,7 +30,7 @@ pub enum ConsistencyFailure {
     EmptyInitialState,
     NotConsistentFrom(LocationID, String),
     NotDeterministicFrom(LocationID, String),
-    NotDisjoint(SystemRecipeFailure,)
+    NotDisjoint(SystemRecipeFailure),
 }
 
 impl fmt::Display for ConsistencyFailure {
@@ -53,11 +53,7 @@ impl fmt::Display for ConsistencyFailure {
                 )
             }
             ConsistencyFailure::NotDisjoint(srf) => {
-                write!(
-                    f,
-                    "Not Disjoint: {} {:?}", 
-                    srf.reason, srf.actions
-                )
+                write!(f, "Not Disjoint: {} {:?}", srf.reason, srf.actions)
             }
         }
     }

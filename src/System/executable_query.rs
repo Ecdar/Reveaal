@@ -1,7 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
 use crate::component::Transition;
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::component::State;
@@ -23,7 +22,6 @@ pub enum QueryResult {
     GetComponent(Component),
     Consistency(ConsistencyResult),
     Determinism(DeterminismResult),
-    NotDisjoint(SystemRecipeFailure),
     Error(String),
 }
 
@@ -53,10 +51,6 @@ impl QueryResult {
 
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)
-            }
-            QueryResult::NotDisjoint(systemRecipeFailure) => {
-                not_satisfied(query_str);
-                println!("Got failure: {}", systemRecipeFailure);
             }
             QueryResult::Error(_) => println!("{} -- Failed", query_str),
         };
@@ -162,7 +156,9 @@ impl ExecutableQuery for ConsistencyExecutor {
                     QueryResult::Consistency(ConsistencyResult::Failure(failure))
                 }
             },
-            Err(error) => QueryResult::NotDisjoint(error),
+            Err(error) => QueryResult::Consistency(ConsistencyResult::Failure(
+                ConsistencyFailure::NotDisjoint(error),
+            )),
         };
         res
     }

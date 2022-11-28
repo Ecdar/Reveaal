@@ -295,12 +295,11 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                 }))
             }
         },
-        QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
-        QueryResult::NotDisjoint(notDisjoint) => Some(ProtobufResult::Error(format!(
-            "{}{}",
-            notDisjoint.reason.clone(),
-            notDisjoint.left_name.as_ref().unwrap()
-        ))),
+
+        QueryResult::Error(message) => {
+            println!("Here apparently");
+            Some(ProtobufResult::Error(message.clone()))
+        }
     }
 }
 
@@ -312,7 +311,7 @@ fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufRes
                 reason: "Not Disjoint and Not Subset".to_string(),
                 relation: vec![],
                 state: None,
-                action: srf.actions.clone()
+                action: srf.actions.clone(),
             }))
         }
         RefinementFailure::NotSubset
