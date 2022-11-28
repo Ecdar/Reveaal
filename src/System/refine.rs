@@ -586,6 +586,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
                         Some(action),
                     ))
                 }
+                ConsistencyFailure::NotDisjoint(srf) => {
+                    return RefinementResult::Failure(RefinementFailure::NotDisjoint(srf))
+                }
             }
         }
     }
@@ -613,6 +616,9 @@ fn check_preconditions(sys1: &TransitionSystemPtr, sys2: &TransitionSystemPtr) -
                         Some(action),
                     ))
                 }
+                ConsistencyFailure::NotDisjoint(srf) => {
+                    return RefinementResult::Failure(RefinementFailure::NotDisjoint(srf))
+                },
             }
         }
     }

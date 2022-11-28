@@ -256,6 +256,14 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                         action: vec![action.to_string()],
                     }))
                 }
+                ConsistencyFailure::NotDisjoint(srf) => {
+                    Some(ProtobufResult::Consistency(ProtobufConsistencyResult {
+                        success: false,
+                        reason: srf.reason.to_string(),
+                        state: None,
+                        action: srf.actions.clone(),
+                    }))
+                }
             },
         },
         QueryResult::Determinism(is_deterministic) => match is_deterministic {
@@ -298,8 +306,16 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
 
 fn convert_refinement_failure(failure: &RefinementFailure) -> Option<ProtobufResult> {
     match failure {
-        RefinementFailure::NotDisjointAndNotSubset
-        | RefinementFailure::NotSubset
+        RefinementFailure::NotDisjointAndNotSubset(srf) => {
+            Some(ProtobufResult::Refinement(RefinementResult {
+                success: false,
+                reason: "Not Disjoint and Not Subset".to_string(),
+                relation: vec![],
+                state: None,
+                action: srf.actions.clone()
+            }))
+        }
+        RefinementFailure::NotSubset
         | RefinementFailure::EmptySpecification
         | RefinementFailure::EmptyImplementation => {
             Some(ProtobufResult::Refinement(RefinementResult {
