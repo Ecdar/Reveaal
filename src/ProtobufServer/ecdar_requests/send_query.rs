@@ -27,7 +27,7 @@ use crate::ProtobufServer::services::{
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::executable_query::QueryResult;
-use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult};
+use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult, DeterminismFailure};
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
 use crate::TransitionSystems::{self, LocationID, TransitionID};
@@ -275,7 +275,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                     action: vec![],
                 }))
             }
-            DeterminismResult::Failure(location_id, action) => {
+            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location_id, action)) => {
                 Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
                     success: false,
                     reason: "Not deterministic From Location".to_string(),
@@ -292,6 +292,14 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                         federation: None,
                     }),
                     action: vec![action.to_string()],
+                }))
+            }
+            DeterminismResult::Failure(DeterminismFailure::NotDisjoint(srf)) => {
+                Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
+                    success: false,
+                    reason: srf.reason.to_string(),
+                    state: None,
+                    action: srf.actions.clone(),
                 }))
             }
         },

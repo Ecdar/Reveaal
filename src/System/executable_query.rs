@@ -47,7 +47,7 @@ impl QueryResult {
             QueryResult::Consistency(ConsistencyResult::Failure(_)) => not_satisfied(query_str),
 
             QueryResult::Determinism(DeterminismResult::Success) => satisfied(query_str),
-            QueryResult::Determinism(DeterminismResult::Failure(_, _)) => not_satisfied(query_str),
+            QueryResult::Determinism(DeterminismResult::Failure(_)) => not_satisfied(query_str),
 
             QueryResult::GetComponent(_) => {
                 println!("{} -- Component succesfully created", query_str)

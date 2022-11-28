@@ -9,7 +9,7 @@ use log::warn;
 
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
-    System::local_consistency::{ConsistencyResult, DeterminismResult},
+    System::local_consistency::{ConsistencyResult, DeterminismResult, DeterminismFailure},
 };
 
 use super::{
@@ -84,7 +84,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     }
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(location, action) = self.is_deterministic() {
+        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) = self.is_deterministic() {
             warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location, action);
         }
