@@ -76,13 +76,16 @@ impl fmt::Display for DeterminismResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             DeterminismResult::Success => write!(f, "Success"),
-            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) => {
+            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+                location,
+                action,
+            )) => {
                 write!(
                     f,
                     "Not Deterministic From {} failing action {}",
                     location, action
                 )
-            },
+            }
             DeterminismResult::Failure(DeterminismFailure::NotDisjoint(srf)) => {
                 write!(f, "Not Disjoint: {} {:?}", srf.reason, srf.actions)
             }
@@ -147,15 +150,22 @@ fn is_deterministic_helper(
                         state.get_location().id,
                         action
                     );
-                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(state.get_location().id.clone(), action));
+                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+                        state.get_location().id.clone(),
+                        action,
+                    ));
                 }
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
 
-                if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) =
-                    is_deterministic_helper(new_state, passed_list, system)
+                if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+                    location,
+                    action,
+                )) = is_deterministic_helper(new_state, passed_list, system)
                 {
-                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action));
+                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+                        location, action,
+                    ));
                 }
             }
         }

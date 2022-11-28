@@ -2,7 +2,9 @@ use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult, DeterminismFailure};
+use crate::System::local_consistency::{
+    self, ConsistencyResult, DeterminismFailure, DeterminismResult,
+};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
@@ -187,7 +189,11 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) = self.is_deterministic() {
+        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+            location,
+            action,
+        )) = self.is_deterministic()
+        {
             warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location, action);
         }

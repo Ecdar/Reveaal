@@ -27,7 +27,9 @@ use crate::ProtobufServer::services::{
 };
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::executable_query::QueryResult;
-use crate::System::local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult, DeterminismFailure};
+use crate::System::local_consistency::{
+    ConsistencyFailure, ConsistencyResult, DeterminismFailure, DeterminismResult,
+};
 use crate::System::refine::{self, RefinementFailure};
 use crate::System::{extract_system_rep, input_enabler};
 use crate::TransitionSystems::{self, LocationID, TransitionID};
@@ -275,25 +277,26 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
                     action: vec![],
                 }))
             }
-            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location_id, action)) => {
-                Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
-                    success: false,
-                    reason: "Not deterministic From Location".to_string(),
-                    state: Some(State {
-                        location_tuple: Some(LocationTuple {
-                            locations: vec![Location {
-                                id: location_id.to_string(),
-                                specific_component: Some(SpecificComponent {
-                                    component_name: location_id.get_component_id().unwrap(),
-                                    component_index: 0,
-                                }),
-                            }],
-                        }),
-                        federation: None,
+            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+                location_id,
+                action,
+            )) => Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
+                success: false,
+                reason: "Not deterministic From Location".to_string(),
+                state: Some(State {
+                    location_tuple: Some(LocationTuple {
+                        locations: vec![Location {
+                            id: location_id.to_string(),
+                            specific_component: Some(SpecificComponent {
+                                component_name: location_id.get_component_id().unwrap(),
+                                component_index: 0,
+                            }),
+                        }],
                     }),
-                    action: vec![action.to_string()],
-                }))
-            }
+                    federation: None,
+                }),
+                action: vec![action.to_string()],
+            })),
             DeterminismResult::Failure(DeterminismFailure::NotDisjoint(srf)) => {
                 Some(ProtobufResult::Determinism(ProtobufDeterminismResult {
                     success: false,

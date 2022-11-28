@@ -6,7 +6,7 @@ use crate::extract_system_rep::SystemRecipeFailure;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
 use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::System::local_consistency::{ConsistencyResult, DeterminismResult, DeterminismFailure};
+use crate::System::local_consistency::{ConsistencyResult, DeterminismFailure, DeterminismResult};
 use crate::TransitionSystems::common::CollectionOperation;
 use crate::TransitionSystems::transition_system::PrecheckResult;
 use edbm::util::bounds::Bounds;
@@ -416,7 +416,11 @@ impl TransitionSystem for Quotient {
     }
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) = self.is_deterministic() {
+        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+            location,
+            action,
+        )) = self.is_deterministic()
+        {
             warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location, action);
         }
