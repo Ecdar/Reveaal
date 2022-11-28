@@ -171,7 +171,6 @@ pub struct DeterminismExecutor {
 impl ExecutableQuery for DeterminismExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         let is_deterministic = self.system.is_deterministic();
-
         QueryResult::Determinism(is_deterministic)
     }
 }
