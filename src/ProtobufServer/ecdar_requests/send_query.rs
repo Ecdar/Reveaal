@@ -10,15 +10,11 @@ use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::statepair::StatePair;
 use crate::ProtobufServer::services::component::Rep;
-use crate::ProtobufServer::services::query_response::query_ok::{
+use crate::ProtobufServer::services::query_response::{
     ComponentResult, ConsistencyResult as ProtobufConsistencyResult,
-    DeterminismResult as ProtobufDeterminismResult, RefinementResult,
+    DeterminismResult as ProtobufDeterminismResult, ReachabilityResult, RefinementResult,
+    Result as ProtobufResult,
 };
-use crate::ProtobufServer::services::query_response::query_ok::{
-    ReachabilityResult, Result as ProtobufResult,
-};
-use crate::ProtobufServer::services::query_response::QueryOk;
-use crate::ProtobufServer::services::query_response::Response as QueryOkOrErrorResponse;
 use crate::ProtobufServer::services::{
     self, Component as ProtobufComponent, ComponentClock as ProtobufComponentClock,
     Conjunction as ProtobufConjunction, Constraint as ProtobufConstraint,
@@ -85,11 +81,9 @@ impl ConcreteEcdarBackend {
         let result = executable_query.execute();
 
         let reply = QueryResponse {
-            response: Some(QueryOkOrErrorResponse::QueryOk(QueryOk {
-                query_id: query_request.query_id,
-                info: vec![], // TODO: Should be logs
-                result: convert_ecdar_result(&result),
-            })),
+            query_id: query_request.query_id,
+            info: vec![], // TODO: Should be logs
+            result: convert_ecdar_result(&result),
         };
 
         Ok(reply)
@@ -167,51 +161,45 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             refine::RefinementResult::Failure(failure) => convert_refinement_failure(failure),
         },
 
-        QueryResult::Reachability(path) => {
+        QueryResult::Reachability(res) => {
             let proto_path = TransitionID::split_into_component_lists(
-                &path
-                    .path
+                &res.path
                     .as_ref()
                     .unwrap()
                     .iter()
-                    .map(|p| p.id.clone())
+                    .map(|t| t.id.clone())
                     .collect(),
             );
 
             match proto_path {
                 Ok(p) => {
+                    // Format into result expected by protobuf
                     let component_paths = p
                         .iter()
                         .map(|component_path| services::Path {
                             edge_ids: component_path
-                                .concat()
+                                .concat() // Concat to break the edges of the transitions into one vec instead a vec of vecs.
                                 .iter()
                                 .map(|id| id.to_string())
                                 .collect(),
                         })
                         .collect();
-                    if path.was_reachable {
-                        Some(ProtobufResult::Reachability(ReachabilityResult {
-                            success: true,
-                            reason: "".to_string(),
-                            state: None,
-                            component_paths,
-                        }))
-                    } else {
-                        Some(ProtobufResult::Reachability(ReachabilityResult {
-                            success: false,
-                            reason: "Path was not reachable".to_string(),
-                            state: None,
-                            component_paths: vec![],
-                        }))
-                    }
+
+                    Some(ProtobufResult::Reachability(ReachabilityResult {
+                        success: res.was_reachable,
+                        reason: if res.was_reachable {
+                            "".to_string()
+                        } else {
+                            "No path exists".to_string()
+                        },
+                        state: None,
+                        component_paths,
+                    }))
                 }
-                Err(e) => Some(ProtobufResult::Reachability(ReachabilityResult {
-                    success: false,
-                    reason: format!("Internal error occurred during reachability check: {}", e),
-                    state: None,
-                    component_paths: vec![],
-                })),
+                Err(e) => Some(ProtobufResult::Error(format!(
+                    "Internal error occurred during reachability check: {}",
+                    e
+                ))),
             }
         }
 
