@@ -295,10 +295,7 @@ fn convert_ecdar_result(query_result: &QueryResult) -> Option<ProtobufResult> {
             }
         },
 
-        QueryResult::Error(message) => {
-            println!("Here apparently");
-            Some(ProtobufResult::Error(message.clone()))
-        }
+        QueryResult::Error(message) => Some(ProtobufResult::Error(message.clone())),
     }
 }
 
