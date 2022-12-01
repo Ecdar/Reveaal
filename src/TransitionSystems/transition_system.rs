@@ -112,7 +112,11 @@ pub trait TransitionSystem: DynClone {
     fn get_decls(&self) -> Vec<&Declarations>;
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(location, action)) = self.is_deterministic() {
+        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+            location,
+            action,
+        )) = self.is_deterministic()
+        {
             warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location, action);
         }

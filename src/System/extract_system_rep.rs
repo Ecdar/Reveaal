@@ -30,7 +30,7 @@ pub struct SystemRecipeFailure {
     pub actions: Vec<String>,
 }
 
-impl From<SystemRecipeFailure> for String{
+impl From<SystemRecipeFailure> for String {
     fn from(failure: SystemRecipeFailure) -> Self {
         failure.reason
     }
