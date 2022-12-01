@@ -2,9 +2,7 @@ use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-use crate::System::local_consistency::{
-    self, ConsistencyResult, DeterminismFailure, DeterminismResult,
-};
+use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
@@ -12,7 +10,6 @@ use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 
 use super::common::CollectionOperation;
-use super::transition_system::PrecheckResult;
 use super::{CompositionType, LocationID};
 
 type Action = String;
