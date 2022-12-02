@@ -66,8 +66,8 @@ impl Conjunction {
             .collect();
 
         let ts = Box::new(Conjunction {
-            left: left,
-            right: right,
+            left,
+            right,
             inputs,
             outputs,
             dim,
