@@ -1,5 +1,6 @@
 use super::{CompositionType, LocationID, LocationTuple};
 use crate::EdgeEval::updater::CompiledUpdate;
+use crate::System::local_consistency::DeterminismFailure;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
@@ -23,37 +24,8 @@ pub enum PrecheckResult {
     NotConsistent(ConsistencyFailure),
 }
 
-#[derive(Clone, Copy)]
-/// Struct for determining the level for clock reduction
-pub struct Heights {
-    /// The level in the tree
-    pub(crate) tree: usize,
-    /// The level to reduce
-    pub(crate) target: usize,
-}
-
-impl Heights {
-    pub fn new(tree: usize, target: usize) -> Heights {
-        Heights { tree, target }
-    }
-
-    /// Function to "go down" a level in the tree
-    pub fn level_down(&self) -> Heights {
-        Heights {
-            tree: self.tree - 1,
-            ..*self
-        }
-    }
-
-    /// Creates an empty `Heights` (ALl values are `0`)
-    pub fn empty() -> Heights {
-        Heights::new(0, 0)
-    }
-}
-
 pub trait TransitionSystem: DynClone {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
-
     fn get_dim(&self) -> ClockIndex;
 
     fn next_transitions_if_available(
@@ -112,7 +84,11 @@ pub trait TransitionSystem: DynClone {
     fn get_decls(&self) -> Vec<&Declarations>;
 
     fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(location, action) = self.is_deterministic() {
+        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
+            location,
+            action,
+        )) = self.is_deterministic()
+        {
             warn!("Not deterministic");
             return PrecheckResult::NotDeterministic(location, action);
         }
@@ -220,15 +196,8 @@ pub trait TransitionSystem: DynClone {
         }
     }
 
-    fn find_redundant_clocks(&self, height: Heights) -> Vec<ClockReductionInstruction> {
-        if height.tree > height.target {
-            let (a, b) = self.get_children();
-            let mut out = a.find_redundant_clocks(height.clone().level_down());
-            out.extend(b.find_redundant_clocks(height.level_down()));
-            out
-        } else {
-            self.get_analysis_graph().find_clock_redundancies()
-        }
+    fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
+        self.get_analysis_graph().find_clock_redundancies()
     }
 }
 

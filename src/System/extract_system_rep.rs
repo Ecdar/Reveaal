@@ -7,7 +7,6 @@ use crate::System::executable_query::{
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::System::extract_state::get_state;
-use std::cmp::max;
 use std::collections::HashMap;
 
 use crate::TransitionSystems::{
@@ -15,13 +14,76 @@ use crate::TransitionSystems::{
 };
 
 use crate::component::State;
-use crate::ProtobufServer::services::query_request::{settings::ReduceClocksLevel, Settings};
 use crate::System::pruning;
-use crate::TransitionSystems::transition_system::{ClockReductionInstruction, Heights};
+use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
 use std::error::Error;
+
+pub struct SystemRecipeFailure {
+    pub reason: String,
+    pub left_name: Option<String>,
+    pub right_name: Option<String>,
+    pub actions: Vec<String>,
+}
+
+impl From<SystemRecipeFailure> for String {
+    fn from(failure: SystemRecipeFailure) -> Self {
+        failure.reason
+    }
+}
+
+impl std::fmt::Display for SystemRecipeFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SystemRecipeFailure: {}", self.reason)
+    }
+}
+
+impl std::fmt::Debug for SystemRecipeFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SystemRecipeFailure: {}", self.reason)
+    }
+}
+impl std::error::Error for SystemRecipeFailure {
+    fn description(&self) -> &str {
+        &self.reason
+    }
+}
+
+impl SystemRecipeFailure {
+    pub fn new_from_component(reason: String, component: Component, actions: Vec<String>) -> Self {
+        SystemRecipeFailure {
+            reason,
+            left_name: Some(component.get_name().to_string()),
+            right_name: None,
+            actions,
+        }
+    }
+    pub fn new(
+        reason: String,
+        left: TransitionSystemPtr,
+        right: TransitionSystemPtr,
+        actions: Vec<String>,
+    ) -> Self {
+        let mut left_name = None;
+        let mut right_name = None;
+
+        if let Some(location) = left.get_initial_location() {
+            left_name = location.id.get_component_id()
+        }
+        if let Some(location) = right.get_initial_location() {
+            right_name = location.id.get_component_id()
+        }
+
+        SystemRecipeFailure {
+            reason,
+            left_name,
+            right_name,
+            actions,
+        }
+    }
+}
 
 /// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
 /// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
@@ -38,7 +100,11 @@ pub fn create_executable_query<'a>(
 
                 let mut left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
-                clock_reduction::clock_reduce(&mut left, Some(&mut right), component_loader.get_settings(), &mut dim, quotient_index.is_some())?;
+
+                if !component_loader.get_settings().disable_clock_reduction {
+                    clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index.is_some())?;
+                }
+
                 Ok(Box::new(RefinementExecutor {
                 sys1: left.compile(dim)?,
                 sys2: right.compile(dim)?,
@@ -80,7 +146,11 @@ pub fn create_executable_query<'a>(
                     &mut dim,
                     &mut quotient_index
                 );
-                clock_reduction::clock_reduce(&mut recipe, None, component_loader.get_settings(), &mut dim, quotient_index.is_some())?;
+
+                if !component_loader.get_settings().disable_clock_reduction {
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                }
+
                 Ok(Box::new(ConsistencyExecutor {
                     recipe,
                     dim
@@ -94,7 +164,11 @@ pub fn create_executable_query<'a>(
                     &mut dim,
                     &mut quotient_index
                 );
-                clock_reduction::clock_reduce(&mut recipe, None, component_loader.get_settings(), &mut dim, quotient_index.is_some())?;
+
+                if !component_loader.get_settings().disable_clock_reduction {
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                }
+
                 Ok(Box::new(DeterminismExecutor {
                     system: recipe.compile(dim)?,
                 }))
@@ -122,7 +196,11 @@ pub fn create_executable_query<'a>(
                         &mut dim,
                         &mut quotient_index
                     );
-                    clock_reduction::clock_reduce(&mut recipe, None, component_loader.get_settings(), &mut dim, quotient_index.is_some())?;
+
+                    if !component_loader.get_settings().disable_clock_reduction {
+                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                    }
+
                     Ok(Box::new(
                         GetComponentExecutor {
                             system: pruning::prune_system(recipe.compile(dim)?, dim),
@@ -152,7 +230,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, String> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         match self {
             SystemRecipe::Composition(left, right) => {
                 Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
@@ -170,16 +248,6 @@ impl SystemRecipe {
                 Ok(comp) => Ok(comp),
                 Err(err) => Err(err),
             },
-        }
-    }
-
-    /// Gets the height of the `SystemRecipe` tree
-    fn height(&self) -> usize {
-        match self {
-            SystemRecipe::Composition(l, r)
-            | SystemRecipe::Conjunction(l, r)
-            | SystemRecipe::Quotient(l, r, _) => 1 + max(l.height(), r.height()),
-            SystemRecipe::Component(_) => 1,
         }
     }
 
@@ -324,24 +392,16 @@ pub(crate) mod clock_reduction {
     pub fn clock_reduce(
         lhs: &mut Box<SystemRecipe>,
         mut rhs: Option<&mut Box<SystemRecipe>>,
-        settings: &Settings,
         dim: &mut usize,
         has_quotient: bool,
     ) -> Result<(), String> {
-        let heights = match heights(
-            &settings.reduce_clocks_level,
-            max(lhs.height(), rhs.as_ref().map(|s| s.height()).unwrap_or(0)),
-        )? {
-            Some(h) => h,
-            None => return Ok(()),
-        };
         let clocks = if let Some(ref mut r) = rhs {
             intersect(
-                lhs.clone().compile(*dim)?.find_redundant_clocks(heights),
-                r.clone().compile(*dim)?.find_redundant_clocks(heights),
+                lhs.clone().compile(*dim)?.find_redundant_clocks(),
+                r.clone().compile(*dim)?.find_redundant_clocks(),
             )
         } else {
-            lhs.clone().compile(*dim)?.find_redundant_clocks(heights)
+            lhs.clone().compile(*dim)?.find_redundant_clocks()
         };
 
         debug!("Clocks to be reduced: {clocks:?}");
@@ -365,15 +425,6 @@ pub(crate) mod clock_reduction {
             }
         }
         Ok(())
-    }
-
-    fn heights(lvl: &Option<ReduceClocksLevel>, height: usize) -> Result<Option<Heights>, String> {
-        match lvl.to_owned().ok_or_else(|| "No clock reduction level specified".to_string())? {
-            ReduceClocksLevel::Level(y) if y >= 0 => Ok(Some(Heights::new(height, y as usize))),
-            ReduceClocksLevel::All(true) => Ok(Some(Heights::new(height, height))),
-            ReduceClocksLevel::All(false) => Ok(None),
-            ReduceClocksLevel::Level(err) => Err(format!("Clock reduction error: Couldn't parse argument correctly. Got {err}, expected a value above")),
-        }
     }
 
     fn intersect(
