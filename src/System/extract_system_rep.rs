@@ -39,7 +39,6 @@ pub fn create_executable_query<'a>(
                 let mut left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
                 clock_reduction::clock_reduce(&mut left, Some(&mut right), component_loader.get_settings(), &mut dim, quotient_index.is_some())?;
-
                 Ok(Box::new(RefinementExecutor {
                 sys1: left.compile(dim)?,
                 sys2: right.compile(dim)?,
@@ -234,7 +233,6 @@ impl SystemRecipe {
             SystemRecipe::Component(c) => vec![c],
         }
     }
-
     fn change_quotient(&mut self, index: ClockIndex) {
         match self {
             SystemRecipe::Composition(l, r) | SystemRecipe::Conjunction(l, r) => {
@@ -320,7 +318,7 @@ fn validate_reachability_input(
     Ok(())
 }
 
-mod clock_reduction {
+pub(crate) mod clock_reduction {
     use super::*;
 
     pub fn clock_reduce(
@@ -337,7 +335,6 @@ mod clock_reduction {
             Some(h) => h,
             None => return Ok(()),
         };
-
         let clocks = if let Some(ref mut r) = rhs {
             intersect(
                 lhs.clone().compile(*dim)?.find_redundant_clocks(heights),
@@ -352,7 +349,6 @@ mod clock_reduction {
             .iter()
             .fold(0, |acc, c| acc + c.clocks_removed_count());
         debug!("New dimension: {dim}");
-
         if let Some(r) = rhs {
             r.reduce_clocks(clocks.clone());
             lhs.reduce_clocks(clocks);
