@@ -20,7 +20,7 @@ pub mod test {
 
         clock_reduction::clock_reduce(
             &mut system_recipe_copy,
-            Option::None,
+            None,
             &mut dimensions,
             false,
         )
@@ -52,7 +52,7 @@ pub mod test {
                     assert_eq!(edge.guard_dependencies.len(), 0, "edge (Component1.L0&&Component2.L4)->(Component1.L1&&Component2.L5) should only have 1 guard dependency");
                     assert_eq!(edge.updates.len(), 0, "(Component1.L2&&Component2.L6)->(Component1.L3&&Component2.L7) should have no updates");
                 }
-                _ => assert!(false, "unknown edge"),
+                _ => panic!("unknown edge"),
             }
         }
     }

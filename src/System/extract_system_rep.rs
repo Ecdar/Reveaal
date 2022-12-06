@@ -45,7 +45,7 @@ impl std::fmt::Debug for SystemRecipeFailure {
         write!(f, "SystemRecipeFailure: {}", self.reason)
     }
 }
-impl std::error::Error for SystemRecipeFailure {
+impl Error for SystemRecipeFailure {
     fn description(&self) -> &str {
         &self.reason
     }
@@ -386,9 +386,18 @@ fn validate_reachability_input(
     Ok(())
 }
 
+/// Module containing a "safer" function for clock reduction, along with some helper functions
 pub(crate) mod clock_reduction {
     use super::*;
 
+    /// Function for a "safer" clock reduction that handles both the dimension of the DBM and the quotient index if needed be
+    /// # Arguments
+    /// `lhs`: The (main) `SystemRecipe` to clock reduce\n
+    /// `rhs`: An optional `SystemRecipe` used for multiple operands (Refinement)\n
+    /// `dim`: A mutable reference to the DBMs dimension for updating\n
+    /// `has_quotient`: A boolean to indicate if there is a quotient clock to update
+    /// # Returns
+    /// A `Result` used if the `SystemRecipe`(s) fail during compilation
     pub fn clock_reduce(
         lhs: &mut Box<SystemRecipe>,
         mut rhs: Option<&mut Box<SystemRecipe>>,

@@ -137,11 +137,11 @@ pub mod test {
     ) -> HashMap<String, ClockIndex> {
         let mut clock_name_to_index: HashMap<String, ClockIndex> = HashMap::new();
 
-        for (i, declaration) in (&transition_system.get_decls()).iter().enumerate() {
+        for (i, declaration) in transition_system.get_decls().iter().enumerate() {
             for (clock_name, clock_index) in &declaration.clocks {
                 clock_name_to_index.insert(format!("component{}:{}", i, clock_name), *clock_index);
             }
         }
-        return clock_name_to_index;
+        clock_name_to_index
     }
 }
