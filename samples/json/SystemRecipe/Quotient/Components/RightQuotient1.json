@@ -76,7 +76,7 @@
       "select": "",
       "guard": "",
       "update": "",
-      "sync": "Output2",
+      "sync": "Input1",
       "isLocked": false,
       "nails": [
         {
