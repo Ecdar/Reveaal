@@ -12,6 +12,7 @@ pub enum CompositionType {
     Conjunction,
     Composition,
     Quotient,
+    Simple,
 }
 
 #[derive(Clone, Debug)]

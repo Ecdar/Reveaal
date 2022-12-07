@@ -93,15 +93,17 @@ impl EcdarBackend for ConcreteEcdarBackend {
 
     async fn start_simulation(
         &self,
-        _request: Request<SimulationStartRequest>,
+        request: Request<SimulationStartRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        unimplemented!();
+        self.handle_request(request, Self::handle_start_simulation)
+            .await
     }
 
     async fn take_simulation_step(
         &self,
-        _request: Request<SimulationStepRequest>,
+        request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        unimplemented!();
+        self.handle_request(request, Self::handle_take_simulation_step)
+            .await
     }
 }

@@ -1,7 +1,13 @@
 use super::{CompositionType, LocationID, LocationTuple};
+use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::System::local_consistency::DeterminismFailure;
 use crate::{
+    component::Component,
+    extract_system_rep::get_system_recipe,
+    parse_queries::{build_expression_from_pair, QueryParser},
+    ComponentLoader,
+    DataReader::component_loader::ComponentContainer,
     ModelObjects::component::{Declarations, State, Transition},
     System::local_consistency::DeterminismResult,
     System::local_consistency::{ConsistencyFailure, ConsistencyResult},
@@ -9,9 +15,14 @@ use crate::{
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use log::warn;
+use pest::Parser;
 use std::collections::hash_map::Entry;
-use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
+use std::{
+    collections::{hash_set::HashSet, HashMap},
+    iter::zip,
+};
+
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
 pub type EdgeTuple = (Action, Transition);
@@ -121,6 +132,60 @@ pub trait TransitionSystem: DynClone {
 
     fn get_composition_type(&self) -> CompositionType;
 
+    /// Returns a [`Vec`] of all component names in a given [`TransitionSystem`].
+    fn component_names(&self) -> Vec<&str> {
+        let children = self.get_children();
+        let left_child = children.0;
+        let right_child = children.1;
+        left_child
+            .component_names()
+            .into_iter()
+            .chain(right_child.component_names().into_iter())
+            .collect()
+    }
+
+    /// Maps a clock- and component name to a clock index for a given [`TransitionSystem`].
+    fn clock_name_and_component_to_index(&self, name: &str, component: &str) -> Option<usize> {
+        let index_to_clock_name_and_component = self.clock_name_and_component_to_index_map();
+        index_to_clock_name_and_component
+            .get(&(name.to_string(), component.to_string()))
+            .copied()
+    }
+
+    /// Maps a clock index to a clock- and component name for a given [`TransitionSystem`].
+    fn index_to_clock_name_and_component(&self, index: &usize) -> Option<(String, String)> {
+        fn invert<T1, T2>(hash_map: HashMap<T1, T2>) -> HashMap<T2, T1>
+        where
+            T2: Hash + Eq,
+        {
+            hash_map.into_iter().map(|x| (x.1, x.0)).collect()
+        }
+
+        let index_to_clock_name_and_component = self.clock_name_and_component_to_index_map();
+        let index_to_clock_name_and_component = invert(index_to_clock_name_and_component);
+        index_to_clock_name_and_component
+            .get(index)
+            .map(|x| x.to_owned())
+    }
+
+    /// Returns a [`HashMap`] from clock- and component names to clock indices.
+    fn clock_name_and_component_to_index_map(&self) -> HashMap<(String, String), usize> {
+        let binding = self.component_names();
+        let component_names = binding.into_iter();
+        let binding = self.get_decls();
+        let clock_to_index = binding.into_iter().map(|decl| decl.clocks.to_owned());
+
+        zip(component_names, clock_to_index)
+            .map(|x| {
+                x.1.iter()
+                    .map(|y| ((y.0.to_owned(), x.0.to_string()), y.1.to_owned()))
+                    .collect::<HashMap<(String, String), usize>>()
+            })
+            .fold(HashMap::new(), |accumulator, head| {
+                accumulator.into_iter().chain(head).collect()
+            })
+    }
+
     ///Constructs a [CLockAnalysisGraph],
     ///where nodes represents locations and Edges represent transitions
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
@@ -199,6 +264,31 @@ pub trait TransitionSystem: DynClone {
     fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
         self.get_analysis_graph().find_clock_redundancies()
     }
+}
+
+/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some `components`.
+pub fn components_to_transition_system(
+    components: Vec<Component>,
+    composition: &str,
+) -> TransitionSystemPtr {
+    let mut component_container = ComponentContainer::from_components(components);
+    component_loader_to_transition_system(&mut component_container, composition)
+}
+
+/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some components in a [`ComponentLoader`].
+pub fn component_loader_to_transition_system(
+    loader: &mut dyn ComponentLoader,
+    composition: &str,
+) -> TransitionSystemPtr {
+    let mut dimension = 0;
+    let composition = QueryParser::parse(Rule::expr, composition)
+        .unwrap()
+        .next()
+        .unwrap();
+    let composition = build_expression_from_pair(composition);
+    get_system_recipe(&composition, loader, &mut dimension, &mut None)
+        .compile(dimension)
+        .unwrap()
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

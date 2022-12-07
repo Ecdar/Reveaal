@@ -16,9 +16,15 @@ type Action = String;
 
 #[derive(Clone)]
 struct ComponentInfo {
-    //name: String,
+    name: String,
     declarations: Declarations,
     max_bounds: Bounds,
+}
+
+impl ComponentInfo {
+    pub fn _name(&self) -> &str {
+        self.name.as_ref()
+    }
 }
 
 #[derive(Clone)]
@@ -87,7 +93,7 @@ impl CompiledComponent {
             initial_location,
             dim,
             comp_info: ComponentInfo {
-                //name: component.name,
+                name: component.name,
                 declarations: component.declarations,
                 max_bounds,
             },
@@ -110,6 +116,10 @@ impl CompiledComponent {
             .collect();
 
         Self::compile_with_actions(component, inputs, outputs, dim)
+    }
+
+    fn _comp_info(&self) -> &ComponentInfo {
+        &self.comp_info
     }
 }
 
@@ -193,7 +203,7 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_composition_type(&self) -> CompositionType {
-        panic!("Components do not have a composition type")
+        CompositionType::Simple
     }
 
     fn get_combined_decls(&self) -> Declarations {
@@ -202,5 +212,9 @@ impl TransitionSystem for CompiledComponent {
 
     fn get_location(&self, id: &LocationID) -> Option<LocationTuple> {
         self.locations.get(id).cloned()
+    }
+
+    fn component_names(&self) -> Vec<&str> {
+        vec![&self.comp_info.name]
     }
 }

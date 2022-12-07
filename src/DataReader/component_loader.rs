@@ -1,16 +1,20 @@
 use lru::LruCache;
 
 use crate::component::Component;
+use crate::xml_parser;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::ProtobufServer::services;
 use crate::ProtobufServer::services::query_request::Settings;
 use crate::System::input_enabler;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
+
+use super::proto_reader::components_info_to_components;
 
 type ComponentsMap = HashMap<String, Component>;
 
@@ -132,10 +136,64 @@ impl ComponentContainer {
         }
     }
 
+    /// Creates a [`ComponentContainer`] from a [`services::ComponentsInfo`].
+    pub fn from_info(
+        components_info: &services::ComponentsInfo,
+    ) -> Result<ComponentContainer, tonic::Status> {
+        let components = components_info_to_components(components_info);
+        let component_container = Self::from_components(components);
+        Ok(component_container)
+    }
+
+    /// Creates a [`ComponentContainer`] from a [`Vec`] of [`Component`]s
+    pub fn from_components(components: Vec<Component>) -> ComponentContainer {
+        let mut comp_hashmap = HashMap::<String, Component>::new();
+        for mut component in components {
+            log::trace!("Adding comp {} to container", component.get_name());
+
+            component.create_edge_io_split();
+            let inputs: Vec<_> = component
+                .get_input_actions()
+                .into_iter()
+                .map(|channel| channel.name)
+                .collect();
+            input_enabler::make_input_enabled(&mut component, &inputs);
+            comp_hashmap.insert(component.get_name().to_string(), component);
+        }
+        ComponentContainer::new(Arc::new(comp_hashmap))
+    }
+
     /// Sets the settings
     pub(crate) fn set_settings(&mut self, settings: Settings) {
         self.settings = Some(settings);
     }
+}
+
+pub fn parse_components_if_some(
+    proto_component: &services::Component,
+) -> Result<Vec<Component>, tonic::Status> {
+    if let Some(rep) = &proto_component.rep {
+        match rep {
+            services::component::Rep::Json(json) => parse_json_component(json),
+            services::component::Rep::Xml(xml) => Ok(parse_xml_components(xml)),
+        }
+    } else {
+        Ok(vec![])
+    }
+}
+
+fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
+    match json_reader::json_to_component(json) {
+        Ok(comp) => Ok(vec![comp]),
+        Err(_) => Err(tonic::Status::invalid_argument(
+            "Failed to parse json component",
+        )),
+    }
+}
+
+fn parse_xml_components(xml: &str) -> Vec<Component> {
+    let (comps, _, _) = xml_parser::parse_xml_from_str(xml);
+    comps
 }
 
 pub trait ProjectLoader: ComponentLoader {

@@ -18,7 +18,6 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
@@ -239,6 +238,11 @@ impl Component {
         }
 
         max_bounds
+    }
+
+    /// Find [`Edge`] in the component given the edges `id`.
+    pub fn find_edge_from_id(&self, id: &str) -> Option<&Edge> {
+        self.get_edges().iter().find(|e| e.id.contains(id))
     }
 
     /// Used in initial setup to split edges based on their sync type
@@ -518,6 +522,15 @@ impl Transition {
         }
         state.set_zone(zone);
         false
+    }
+
+    /// Returns the resulting [`State`] when using a transition in the given [`State`]
+    pub fn use_transition_alt(&self, state: &State) -> Option<State> {
+        let mut state = state.to_owned();
+        match self.use_transition(&mut state) {
+            true => Some(state),
+            false => None,
+        }
     }
 
     pub fn combinations(
