@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod test {
-    use crate::component::{Edge, SyncType};
     use crate::extract_system_rep::SystemRecipe;
     use crate::DataReader::json_reader::read_json_component;
+    use crate::System::input_enabler;
     use crate::TransitionSystems::transition_system::ClockReductionInstruction;
     use crate::TransitionSystems::TransitionSystemPtr;
     use crate::{component, JsonProjectLoader, DEFAULT_SETTINGS};
@@ -16,17 +16,8 @@ pub mod test {
         component_name: &str,
     ) -> component::Component {
         let mut component = read_json_component(project_path, component_name);
-
-        let input_edges: &mut Vec<Edge> = component.input_edges.insert(vec![]);
-        let output_edges: &mut Vec<Edge> = component.output_edges.insert(vec![]);
-
-        for edge in &component.edges {
-            match edge.sync_type {
-                SyncType::Input => input_edges.push(edge.clone()),
-                SyncType::Output => output_edges.push(edge.clone()),
-            };
-        }
-
+        let inputs = component.get_input_actions();
+        input_enabler::make_input_enabled(&mut component, &inputs);
         component
     }
 

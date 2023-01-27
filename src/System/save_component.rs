@@ -28,7 +28,8 @@ pub fn combine_components(
     };
 
     let locations = get_locations_from_tuples(&location_tuples, &clocks);
-    let mut comp = Component {
+
+    Component {
         name: "".to_string(),
         declarations: Declarations {
             ints: HashMap::new(),
@@ -36,11 +37,7 @@ pub fn combine_components(
         },
         locations,
         edges,
-        input_edges: None,
-        output_edges: None,
-    };
-    comp.create_edge_io_split();
-    comp
+    }
 }
 
 pub fn get_locations_from_tuples(

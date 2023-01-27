@@ -8,6 +8,7 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 use super::common::CollectionOperation;
 use super::{CompositionType, LocationID};
@@ -104,16 +105,8 @@ impl CompiledComponent {
         component: Component,
         dim: ClockIndex,
     ) -> Result<Box<Self>, SystemRecipeFailure> {
-        let inputs: HashSet<_> = component
-            .get_input_actions()
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
-        let outputs: HashSet<_> = component
-            .get_output_actions()
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
+        let inputs = HashSet::from_iter(component.get_input_actions());
+        let outputs = HashSet::from_iter(component.get_output_actions());
 
         Self::compile_with_actions(component, inputs, outputs, dim)
     }

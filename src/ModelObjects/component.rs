@@ -31,10 +31,6 @@ pub struct Component {
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
-    #[serde(skip)]
-    pub input_edges: Option<Vec<Edge>>,
-    #[serde(skip)]
-    pub output_edges: Option<Vec<Edge>>,
 }
 
 impl DeclarationProvider for Component {
@@ -86,31 +82,8 @@ impl Component {
     pub fn add_edges(&mut self, edges: &mut Vec<Edge>) {
         self.edges.append(edges);
     }
-    pub fn add_input_edges(&mut self, edges: &mut Vec<Edge>) {
-        self.add_edges(edges);
-        if let Some(input_edges) = &mut self.input_edges {
-            input_edges.append(edges);
-        } else {
-            self.input_edges = Some(edges.to_vec());
-        }
-    }
     pub fn get_mut_declaration(&mut self) -> &mut Declarations {
         &mut self.declarations
-    }
-
-    pub fn get_input_edges(&self) -> &Vec<Edge> {
-        if let Some(input_edges) = &self.input_edges {
-            input_edges
-        } else {
-            panic!("attempted to get input edges before they were created")
-        }
-    }
-    pub fn get_output_edges(&self) -> &Vec<Edge> {
-        if let Some(output_edges) = &self.output_edges {
-            output_edges
-        } else {
-            panic!("attempted to get output edges before they were created")
-        }
     }
 
     pub fn get_initial_location(&self) -> Option<&Location> {
@@ -123,92 +96,42 @@ impl Component {
         vec.first().copied()
     }
 
-    pub fn get_actions(&self) -> Vec<Channel> {
-        let mut actions: Vec<Channel> = vec![];
+    pub fn get_actions(&self) -> Vec<String> {
+        let mut actions = vec![];
         for edge in self.get_edges() {
-            actions.push(Channel {
-                name: edge.get_sync().clone(),
-            });
+            actions.push(edge.get_sync().clone());
         }
 
         actions
     }
 
-    pub fn get_input_actions(&self) -> Vec<Channel> {
+    pub fn get_input_actions(&self) -> Vec<String> {
         let mut actions = vec![];
-        for edge in self.input_edges.as_ref().unwrap_or(&vec![]) {
+        for edge in &self.edges {
             if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
                 };
-                actions.push(Channel {
-                    name: edge.get_sync().clone(),
-                });
+                actions.push(edge.get_sync().clone());
             }
         }
         actions
     }
 
-    pub fn get_output_actions(&self) -> Vec<Channel> {
+    pub fn get_output_actions(&self) -> Vec<String> {
         let mut actions = vec![];
-        for edge in self.output_edges.as_ref().unwrap_or(&vec![]) {
+        for edge in &self.edges {
             if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
                 if edge.get_sync() == "*" {
                     continue;
                 };
-                actions.push(Channel {
-                    name: edge.get_sync().clone(),
-                });
+                actions.push(edge.get_sync().clone());
             }
         }
         actions
     }
 
-    /// End of basic methods
-
-    /// Method used to get the next edges based on a current location and a specific sync type (i.e input or output)
-    pub fn get_next_edges(
-        &self,
-        location: &Location,
-        channel_name: &str,
-        sync_type: SyncType,
-    ) -> Vec<&Edge> {
-        return match sync_type {
-            SyncType::Input => {
-                let result: Vec<&Edge> = self
-                    .get_input_edges()
-                    .iter()
-                    .filter(|e| {
-                        (e.get_source_location() == location.get_id())
-                            && (e.get_sync() == (channel_name.to_string()).as_str()
-                                || e.get_sync() == "*")
-                    })
-                    .collect();
-                result
-            }
-            SyncType::Output => {
-                let result: Vec<&Edge> = self
-                    .get_output_edges()
-                    .iter()
-                    .filter(|e| {
-                        (e.get_source_location() == location.get_id())
-                            && (e.get_sync() == (channel_name.to_string()).as_str()
-                                || e.get_sync() == "*")
-                    })
-                    .collect();
-                result
-            }
-        };
-    }
-
-    pub fn get_all_edges_from(&self, location: &Location) -> Vec<&Edge> {
-        let result: Vec<&Edge> = self
-            .get_output_edges()
-            .iter()
-            .filter(|e| e.get_source_location() == location.get_id())
-            .collect();
-        result
-    }
+    // End of basic methods
 
     pub fn get_max_bounds(&self, dimensions: ClockIndex) -> Bounds {
         let mut max_bounds = Bounds::new(dimensions);
@@ -245,31 +168,12 @@ impl Component {
         self.get_edges().iter().find(|e| e.id.contains(id))
     }
 
-    /// Used in initial setup to split edges based on their sync type
-    pub fn create_edge_io_split(&mut self) {
-        let mut o_edges = vec![];
-        let mut i_edges = vec![];
-
-        for edge in &self.edges {
-            match edge.sync_type {
-                SyncType::Input => i_edges.push(edge.clone()),
-                SyncType::Output => o_edges.push(edge.clone()),
-            }
-        }
-
-        self.output_edges = Some(o_edges);
-        self.input_edges = Some(i_edges);
-    }
-
     /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
     pub fn remake_edge_ids(&mut self) {
         // Give all edges a name
         for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
             edge.id = format!("E{}", index);
         }
-
-        // Remake the input and output edges
-        self.create_edge_io_split();
     }
 
     /// Removes unused clock
@@ -336,8 +240,9 @@ impl Component {
         }
     }
 }
-pub fn contain(channels: &[Channel], channel: &str) -> bool {
-    channels.iter().any(|c| c.name == channel)
+
+fn contain(channels: &[String], channel: &str) -> bool {
+    channels.iter().any(|c| c == channel)
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
@@ -788,17 +693,6 @@ impl Edge {
         }
 
         clock_vec
-    }
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Channel {
-    pub name: String,
-}
-
-impl Channel {
-    pub fn get_name(&self) -> &String {
-        &self.name
     }
 }
 

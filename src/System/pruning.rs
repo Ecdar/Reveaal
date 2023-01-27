@@ -64,7 +64,6 @@ impl PruneContext {
         if let Some(index) = self.comp.edges.iter().position(|e| *e == *edge) {
             trace!("Removing {}", edge);
             self.comp.edges.remove(index);
-            self.comp.create_edge_io_split();
         }
     }
 
@@ -81,7 +80,6 @@ impl PruneContext {
                 guard.as_ref().unwrap_or(&BoolExpression::Bool(true))
             );
             self.comp.edges.get_mut(index).unwrap().guard = guard;
-            self.comp.create_edge_io_split();
         }
     }
 
@@ -96,8 +94,7 @@ pub fn prune(
     inputs: HashSet<String>,
     outputs: HashSet<String>,
 ) -> Result<Box<CompiledComponent>, String> {
-    let mut new_comp = comp.clone();
-    new_comp.create_edge_io_split();
+    let new_comp = comp.clone();
     let inconsistent_locs: Vec<_> = new_comp
         .locations
         .iter()

@@ -150,13 +150,7 @@ impl ComponentContainer {
         let mut comp_hashmap = HashMap::<String, Component>::new();
         for mut component in components {
             log::trace!("Adding comp {} to container", component.get_name());
-
-            component.create_edge_io_split();
-            let inputs: Vec<_> = component
-                .get_input_actions()
-                .into_iter()
-                .map(|channel| channel.name)
-                .collect();
+            let inputs: Vec<_> = component.get_input_actions();
             input_enabler::make_input_enabled(&mut component, &inputs);
             comp_hashmap.insert(component.get_name().to_string(), component);
         }
@@ -271,8 +265,6 @@ impl JsonProjectLoader {
     fn load_component(&mut self, component_name: &str) {
         let mut component = json_reader::read_json_component(&self.project_path, component_name);
 
-        component.create_edge_io_split();
-
         let opt_inputs = self
             .get_declarations()
             .get_component_inputs(component.get_name());
@@ -340,8 +332,6 @@ impl XmlProjectLoader {
 
         let mut map = HashMap::<String, Component>::new();
         for mut component in comps {
-            component.create_edge_io_split();
-
             let opt_inputs = system_declarations.get_component_inputs(component.get_name());
             if let Some(opt_inputs) = opt_inputs {
                 input_enabler::make_input_enabled(&mut component, opt_inputs);

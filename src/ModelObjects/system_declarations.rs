@@ -23,20 +23,12 @@ impl SystemDeclarations {
     }
 
     pub fn add_component(&mut self, comp: &Component) {
-        self.declarations.input_actions.insert(
-            comp.get_name().clone(),
-            comp.get_input_actions()
-                .into_iter()
-                .map(|channel| channel.name)
-                .collect(),
-        );
-        self.declarations.output_actions.insert(
-            comp.get_name().clone(),
-            comp.get_output_actions()
-                .into_iter()
-                .map(|channel| channel.name)
-                .collect(),
-        );
+        self.declarations
+            .input_actions
+            .insert(comp.get_name().clone(), comp.get_input_actions());
+        self.declarations
+            .output_actions
+            .insert(comp.get_name().clone(), comp.get_output_actions());
     }
 }
 

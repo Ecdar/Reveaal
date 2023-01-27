@@ -135,12 +135,7 @@ fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
     for mut component in components {
         trace!("Adding comp {} to container", component.get_name());
 
-        component.create_edge_io_split();
-        let inputs: Vec<_> = component
-            .get_input_actions()
-            .into_iter()
-            .map(|channel| channel.name)
-            .collect();
+        let inputs: Vec<_> = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);
         comp_hashmap.insert(component.get_name().to_string(), component);
     }
