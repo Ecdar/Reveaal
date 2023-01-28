@@ -696,53 +696,6 @@ impl Edge {
     }
 }
 
-#[derive(Clone)]
-pub struct DecoratedLocation<'a> {
-    pub location: &'a Location,
-    pub decls: &'a Declarations,
-}
-
-impl PartialEq for DecoratedLocation<'_> {
-    fn eq(&self, other: &DecoratedLocation) -> bool {
-        self.location == other.location
-    }
-}
-
-#[allow(dead_code)]
-impl<'a> DecoratedLocation<'a> {
-    pub fn create(location: &'a Location, decls: &'a Declarations) -> DecoratedLocation<'a> {
-        DecoratedLocation { location, decls }
-    }
-
-    pub fn apply_invariant(&self, mut fed: OwnedFederation) -> OwnedFederation {
-        if let Some(inv) = self.get_location().get_invariant() {
-            fed = apply_constraints_to_state(inv, self.decls, fed).unwrap();
-        }
-
-        fed
-    }
-
-    pub fn get_invariant(&self) -> &Option<BoolExpression> {
-        self.get_location().get_invariant()
-    }
-
-    pub fn get_declarations(&self) -> &Declarations {
-        self.decls
-    }
-
-    pub fn get_location(&self) -> &Location {
-        self.location
-    }
-
-    pub fn set_location(&mut self, location: &'a Location) {
-        self.location = location;
-    }
-
-    pub fn get_clock_count(&self) -> ClockIndex {
-        self.get_declarations().get_clock_count()
-    }
-}
-
 pub trait DeclarationProvider {
     fn get_declarations(&self) -> &Declarations;
 }
