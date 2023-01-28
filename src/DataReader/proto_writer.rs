@@ -68,7 +68,7 @@ fn location_id_to_proto_location_vec(id: &LocationID) -> Vec<ProtoLocation> {
             .into_iter()
             .chain(location_id_to_proto_location_vec(r).into_iter())
             .collect(),
-        LocationID::AnyLocation() => vec![],
+        LocationID::AnyLocation => vec![],
     }
 }
 

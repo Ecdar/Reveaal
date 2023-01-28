@@ -13,7 +13,7 @@ pub enum LocationID {
         component_id: Option<String>,
     },
     /// Used for representing a partial state and it is generated when a location's name is set as `_`
-    AnyLocation(),
+    AnyLocation,
 }
 
 impl LocationID {
@@ -54,7 +54,7 @@ impl LocationID {
                 location_id: location_id.to_string(),
                 component_id: component_id.as_ref().map(|x| x.to_string()),
             }],
-            LocationID::AnyLocation() => vec![LocationID::AnyLocation()],
+            LocationID::AnyLocation => vec![LocationID::AnyLocation],
         }
     }
 
@@ -67,7 +67,7 @@ impl LocationID {
                 left.is_partial_location() || right.is_partial_location()
             }
             LocationID::Simple { .. } => false,
-            LocationID::AnyLocation() => true,
+            LocationID::AnyLocation => true,
         }
     }
 
@@ -95,7 +95,7 @@ impl LocationID {
             LocationID::Quotient(a, b) => {
                 format!("({}\\{})", a.get_unique_string(), b.get_unique_string())
             }
-            LocationID::AnyLocation() => "_".to_string(),
+            LocationID::AnyLocation => "_".to_string(),
             LocationID::Simple {
                 location_id,
                 component_id,
@@ -197,7 +197,7 @@ impl Display for LocationID {
             } => {
                 write!(f, "{}", location_id)?;
             }
-            LocationID::AnyLocation() => write!(f, "_")?,
+            LocationID::AnyLocation => write!(f, "_")?,
         }
         Ok(())
     }

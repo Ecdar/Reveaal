@@ -62,7 +62,7 @@ impl LocationTuple {
     /// covers more than one location, and therefore there is no specific `invariant`
     pub fn build_any_location_tuple() -> Self {
         LocationTuple {
-            id: LocationID::AnyLocation(),
+            id: LocationID::AnyLocation,
             invariant: None,
             loc_type: LocationType::Any,
             left: None,
@@ -187,9 +187,9 @@ impl LocationTuple {
                         .get_right()
                         .compare_partial_locations(other.get_right())
             }
-            (LocationID::AnyLocation(), LocationID::Simple { .. })
-            | (LocationID::Simple { .. }, LocationID::AnyLocation())
-            | (LocationID::AnyLocation(), LocationID::AnyLocation()) => true,
+            (LocationID::AnyLocation, LocationID::Simple { .. })
+            | (LocationID::Simple { .. }, LocationID::AnyLocation)
+            | (LocationID::AnyLocation, LocationID::AnyLocation) => true,
             (
                 LocationID::Simple {
                     location_id: loc_id_1,
@@ -229,7 +229,7 @@ impl LocationTuple {
                     && self.get_right().is_universal_or_inconsistent(loc_type)
             }
             LocationID::Simple { .. } => self.loc_type == *loc_type,
-            LocationID::AnyLocation() => true,
+            LocationID::AnyLocation => true,
         }
     }
 }
