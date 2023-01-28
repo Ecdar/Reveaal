@@ -95,24 +95,24 @@ fn get_indices(
     let result: Result<(ClockIndex, ClockIndex, i32), String> = match (clocks_left, clocks_right) {
         (1, 1) => {
             let (c1, c2) = (
-                get_clock_val(left, d, 1, false)?.0,
-                get_clock_val(right, d, 1, false)?.0,
+                get_clock_val(left, 1, false)?.0,
+                get_clock_val(right, 1, false)?.0,
             );
             combine_clocks(c1, c2, constant, true)
         }
         (2, 0) => {
-            let (c1, c2) = get_clock_val(left, d, 2, false)?;
+            let (c1, c2) = get_clock_val(left, 2, false)?;
             combine_clocks(c1, c2.unwrap(), constant, false)
         }
         (0, 2) => {
-            let (mut c1, c2) = get_clock_val(right, d, 2, false)?;
+            let (mut c1, c2) = get_clock_val(right, 2, false)?;
             let mut c2 = c2.unwrap();
             c1.invert();
             c2.invert();
             combine_clocks(c1, c2, constant, false)
         }
         (1, 0) => {
-            let c = get_clock_val(left, d, 1, false)?.0;
+            let c = get_clock_val(left, 1, false)?.0;
             if c.negated {
                 Ok((0, c.value, constant))
             } else {
@@ -120,7 +120,7 @@ fn get_indices(
             }
         }
         (0, 1) => {
-            let c = get_clock_val(right, d, 1, false)?.0;
+            let c = get_clock_val(right, 1, false)?.0;
             if !c.negated {
                 Ok((0, c.value, constant))
             } else {
@@ -201,14 +201,13 @@ fn combine_clocks(
 
 fn get_clock_val(
     expression: &ArithExpression,
-    decls: &Declarations,
     count: i32,
     negated: bool,
 ) -> Result<(Clock, Option<Clock>), String> {
     let mut nxt_expr: Option<&ArithExpression> = None;
     let mut nxt_negated = false;
     let val = match expression {
-        ArithExpression::Parentheses(inner) => get_clock_val(inner, decls, count, negated)?.0,
+        ArithExpression::Parentheses(inner) => get_clock_val(inner, count, negated)?.0,
         ArithExpression::Difference(l, r) => {
             if let ArithExpression::Clock(x) = **l {
                 nxt_expr = Some(&**r);
@@ -244,7 +243,7 @@ fn get_clock_val(
     if count > 1 {
         Ok((
             val,
-            Some(get_clock_val(nxt_expr.unwrap(), decls, count - 1, nxt_negated)?.0),
+            Some(get_clock_val(nxt_expr.unwrap(), count - 1, nxt_negated)?.0),
         ))
     } else {
         Ok((val, None))
