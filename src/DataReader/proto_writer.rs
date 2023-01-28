@@ -58,7 +58,7 @@ fn location_id_to_proto_location_vec(id: &LocationID) -> Vec<ProtoLocation> {
         } => vec![ProtoLocation {
             id: location_id.to_string(),
             specific_component: Some(SpecificComponent {
-                component_name: component_id.as_ref().unwrap_or(&"".to_string()).to_string(), // TODO this looks disgusting
+                component_name: component_id.clone().unwrap_or_default(),
                 component_index: 0,
             }),
         }],
