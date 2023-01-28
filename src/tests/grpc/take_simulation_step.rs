@@ -39,7 +39,6 @@ mod test {
         );
     }
 
-    #[ignore = "Server hangs on panic"]
     #[test_case(
         test_data::create_mismatched_request_1();
         "given a request with component decision mismatch, decision referencing source not in the set of states, responds with invalid argument"

@@ -78,4 +78,36 @@ mod refinements {
             settings: Some(crate::tests::TEST_SETTINGS),
         })
     }
+
+    /// Ensure that the backend does not crash when a query panics
+    #[tokio::test]
+    async fn send_panic_query() {
+        let backend = ConcreteEcdarBackend::default();
+        let query_request = create_query_request("refinement: Machine | <= Machine");
+
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_err());
+    }
+
+    /// Ensure that the backend can recover from panics entirely
+    #[tokio::test]
+    async fn send_after_panic_query() {
+        let backend = ConcreteEcdarBackend::default();
+        for _ in 0..5 {
+            let query_request = create_query_request("refinement: Machine | <= Machine");
+            let query_response = backend.send_query(query_request).await;
+            assert!(query_response.is_err());
+        }
+        let query_request = create_query_request("refinement: Machine <= Machine");
+
+        let query_response = backend.send_query(query_request).await;
+        assert!(query_response.is_ok());
+
+        let query_result = query_response.unwrap().into_inner();
+        let result = query_result.result.unwrap();
+        match result {
+            query_response::Result::Refinement(refine) => assert!(refine.success),
+            _ => panic!(),
+        }
+    }
 }

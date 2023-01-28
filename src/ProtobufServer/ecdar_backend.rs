@@ -5,14 +5,15 @@ use crate::ProtobufServer::services::{
     QueryRequest, QueryResponse, SimulationStartRequest, SimulationStepRequest,
     SimulationStepResponse, UserTokenResponse,
 };
+use futures::executor::block_on;
 use futures::FutureExt;
 use std::panic::UnwindSafe;
 use std::sync::atomic::{AtomicI32, Ordering};
 use tonic::{Request, Response, Status};
 
-use super::threadpool::ThreadPool;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ConcreteEcdarBackend {
     thread_pool: ThreadPool,
     model_cache: ModelCache,
@@ -22,14 +23,31 @@ pub struct ConcreteEcdarBackend {
 impl ConcreteEcdarBackend {
     pub fn new(thread_count: usize, cache_size: usize) -> Self {
         ConcreteEcdarBackend {
-            thread_pool: ThreadPool::new(thread_count),
+            thread_pool: ThreadPoolBuilder::new()
+                .num_threads(thread_count)
+                .build()
+                .unwrap(),
             model_cache: ModelCache::new(cache_size),
             num: AtomicI32::new(1),
         }
     }
 }
 
-async fn catch_unwind<T, O>(future: T) -> Result<O, Status>
+impl Default for ConcreteEcdarBackend {
+    fn default() -> Self {
+        ConcreteEcdarBackend {
+            thread_pool: ThreadPoolBuilder::new()
+                .num_threads(num_cpus::get())
+                .build()
+                .unwrap(),
+
+            model_cache: ModelCache::default(),
+            num: AtomicI32::new(1),
+        }
+    }
+}
+
+async fn catch_unwind<T, O>(future: T) -> Result<Response<O>, Status>
 where
     T: UnwindSafe + futures::Future<Output = Result<O, Status>>,
 {
@@ -50,27 +68,10 @@ where
             downcast_to_string(e)
         ))),
     }
+    .map(Response::new)
 }
 
-impl ConcreteEcdarBackend {
-    async fn handle_request<RequestT, ResponseT>(
-        &self,
-        request: Request<RequestT>,
-        handler: impl Fn(RequestT, ModelCache) -> Result<ResponseT, Status> + Send + 'static,
-    ) -> Result<Response<ResponseT>, Status>
-    where
-        ResponseT: Send + 'static,
-        RequestT: Send + 'static,
-    {
-        let cache = self.model_cache.clone();
-        let res = catch_unwind(
-            self.thread_pool
-                .enqueue(move || handler(request.into_inner(), cache)),
-        )
-        .await;
-        res.map(Response::new)
-    }
-}
+impl ConcreteEcdarBackend {}
 
 #[tonic::async_trait]
 impl EcdarBackend for ConcreteEcdarBackend {
@@ -87,23 +88,56 @@ impl EcdarBackend for ConcreteEcdarBackend {
         &self,
         request: Request<QueryRequest>,
     ) -> Result<Response<QueryResponse>, Status> {
-        self.handle_request(request, ConcreteEcdarBackend::handle_send_query)
-            .await
+        async fn async_query(
+            request: QueryRequest,
+            cache: ModelCache,
+        ) -> Result<QueryResponse, Status> {
+            ConcreteEcdarBackend::handle_send_query(request, cache)
+        }
+        let cache = self.model_cache.clone();
+
+        self.thread_pool
+            .install(|| block_on(catch_unwind(async_query(request.into_inner(), cache))))
+
+        // TODO: Test whether there is a large performance difference between block_on and the non-catching commented out code below
+        // self.thread_pool.install(|| {
+        //     ConcreteEcdarBackend::handle_send_query(request.into_inner(), cache).map(Response::new)
+        // })
     }
 
     async fn start_simulation(
         &self,
         request: Request<SimulationStartRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        self.handle_request(request, Self::handle_start_simulation)
-            .await
+        async fn async_start_simulation(
+            request: SimulationStartRequest,
+            cache: ModelCache,
+        ) -> Result<SimulationStepResponse, Status> {
+            ConcreteEcdarBackend::handle_start_simulation(request, cache)
+        }
+
+        catch_unwind(async_start_simulation(
+            request.into_inner(),
+            self.model_cache.clone(),
+        ))
+        .await
     }
 
     async fn take_simulation_step(
         &self,
         request: Request<SimulationStepRequest>,
     ) -> Result<Response<SimulationStepResponse>, Status> {
-        self.handle_request(request, Self::handle_take_simulation_step)
-            .await
+        async fn async_simulation_step(
+            request: SimulationStepRequest,
+            cache: ModelCache,
+        ) -> Result<SimulationStepResponse, Status> {
+            ConcreteEcdarBackend::handle_take_simulation_step(request, cache)
+        }
+
+        catch_unwind(async_simulation_step(
+            request.into_inner(),
+            self.model_cache.clone(),
+        ))
+        .await
     }
 }

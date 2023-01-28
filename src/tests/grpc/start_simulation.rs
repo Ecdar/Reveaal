@@ -42,7 +42,6 @@ mod test {
         );
     }
 
-    #[ignore = "Server hangs on panic"]
     #[test_case(
         crate::tests::Simulation::test_data::create_malformed_component_start_request();
         "given a request with a malformed component, respond with error"

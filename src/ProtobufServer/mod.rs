@@ -1,7 +1,6 @@
 mod ecdar_backend;
 mod ecdar_requests;
 mod server;
-mod threadpool;
 
 pub mod services {
     #![allow(clippy::derive_partial_eq_without_eq)]
