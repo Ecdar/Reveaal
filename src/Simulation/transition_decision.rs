@@ -153,7 +153,6 @@ mod tests {
     }
 
     // Yes this test is stupid and bad, no you will not remove it >:(
-    #[allow(unused_must_use)]
     #[test]
     fn resolve__EcdarUniversity_Machine__correct_TransitionDecisionPoint() {
         // Arrange
@@ -198,6 +197,6 @@ mod tests {
             expected_possible_decisions.len()
         );
 
-        expected_possible_decisions.map(|x| assert!(actual_possible_decisions.contains(&x)));
+        expected_possible_decisions.for_each(|x| assert!(actual_possible_decisions.contains(&x)));
     }
 }
