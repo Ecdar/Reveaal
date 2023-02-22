@@ -196,7 +196,7 @@ impl TransitionSystem for Quotient {
                     // In the following comments we use ϕ to symbolize the guard of the transition
                     // ϕ_T ∧ Inv(l2_t)[r |-> 0] ∧ Inv(l1_t) ∧ ϕ_S ∧ Inv(l2_s)[r |-> 0] ∧ Inv(l1_s)
                     let guard_zone = get_allowed_fed(loc_t, t_transition)
-                        .intersection(&get_allowed_fed(loc_s, s_transition));
+                        .intersection(&get_allowed_fed_and_invariant(loc_s, s_transition));
 
                     let target_locations = merge(
                         &t_transition.target_locations,
@@ -220,7 +220,7 @@ impl TransitionSystem for Quotient {
         if self.S.actions_contain(action) && !self.T.actions_contain(action) {
             //Independent S
             for s_transition in &s {
-                let guard_zone = get_allowed_fed(loc_s, s_transition);
+                let guard_zone = get_allowed_fed_and_invariant(loc_s, s_transition);
 
                 let target_locations = merge(loc_t, &s_transition.target_locations);
                 let updates = s_transition.updates.clone();
@@ -420,9 +420,13 @@ fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
     LocationTuple::merge_as_quotient(t, s)
 }
 
-fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> OwnedFederation {
+fn get_allowed_fed_and_invariant(from: &LocationTuple, transition: &Transition) -> OwnedFederation {
     let fed = transition.get_allowed_federation();
     from.apply_invariants(fed)
+}
+
+fn get_allowed_fed(_from: &LocationTuple, transition: &Transition) -> OwnedFederation {
+    transition.get_allowed_federation()
 }
 
 fn get_invariant(loc: &LocationTuple, dim: ClockIndex) -> OwnedFederation {
