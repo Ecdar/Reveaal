@@ -32,12 +32,29 @@ impl PartialEq for LocationTuple {
 }
 
 impl LocationTuple {
-    pub fn simple(
-        location: &Location,
-        component_id: Option<String>,
-        decls: &Declarations,
-        dim: ClockIndex,
-    ) -> Self {
+    pub fn universal() -> Self {
+        LocationTuple {
+            id: LocationID::Special(crate::System::specifics::SpecialLocation::Universal),
+            invariant: None,
+            loc_type: LocationType::Universal,
+            left: None,
+            right: None,
+        }
+    }
+
+    pub fn error(dim: ClockIndex, quotient_clock_index: ClockIndex) -> Self {
+        let inv = OwnedFederation::universe(dim).constrain_eq(quotient_clock_index, 0);
+
+        LocationTuple {
+            id: LocationID::Special(crate::System::specifics::SpecialLocation::Error),
+            invariant: Some(inv),
+            loc_type: LocationType::Inconsistent,
+            left: None,
+            right: None,
+        }
+    }
+
+    pub fn simple(location: &Location, decls: &Declarations, dim: ClockIndex) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
             let mut fed = OwnedFederation::universe(dim);
             fed = apply_constraints_to_state(inv, decls, fed).unwrap();
@@ -46,10 +63,7 @@ impl LocationTuple {
             None
         };
         LocationTuple {
-            id: LocationID::Simple {
-                location_id: location.get_id().clone(),
-                component_id,
-            },
+            id: LocationID::Simple(location.get_id().clone()),
             invariant,
             loc_type: location.get_location_type().clone(),
             left: None,
@@ -190,16 +204,7 @@ impl LocationTuple {
             (LocationID::AnyLocation, LocationID::Simple { .. })
             | (LocationID::Simple { .. }, LocationID::AnyLocation)
             | (LocationID::AnyLocation, LocationID::AnyLocation) => true,
-            (
-                LocationID::Simple {
-                    location_id: loc_id_1,
-                    component_id: comp_id_1,
-                },
-                LocationID::Simple {
-                    location_id: loc_id_2,
-                    component_id: comp_id_2,
-                },
-            ) => loc_id_1 == loc_id_2 && comp_id_1 == comp_id_2,
+            (LocationID::Simple(loc_id_1), LocationID::Simple(loc_id_2)) => loc_id_1 == loc_id_2,
             // These six arms below are for comparing universal or inconsistent location with partial location.
             (LocationID::Simple { .. }, LocationID::Composition(..))
             | (LocationID::Simple { .. }, LocationID::Conjunction(..))
@@ -228,7 +233,7 @@ impl LocationTuple {
                 self.get_left().is_universal_or_inconsistent(loc_type)
                     && self.get_right().is_universal_or_inconsistent(loc_type)
             }
-            LocationID::Simple { .. } => self.loc_type == *loc_type,
+            LocationID::Simple { .. } | LocationID::Special(_) => self.loc_type == *loc_type,
             LocationID::AnyLocation => true,
         }
     }

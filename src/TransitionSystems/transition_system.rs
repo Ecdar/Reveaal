@@ -11,19 +11,13 @@ use crate::{
     ComponentLoader,
     DataReader::component_loader::ComponentContainer,
     ModelObjects::component::{Declarations, State, Transition},
-    System::local_consistency::DeterminismResult,
-    System::local_consistency::{ConsistencyFailure, ConsistencyResult},
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
-use log::warn;
 use pest::Parser;
 use std::collections::hash_map::Entry;
+use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
-use std::{
-    collections::{hash_set::HashSet, HashMap},
-    iter::zip,
-};
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
@@ -125,21 +119,9 @@ pub trait TransitionSystem: DynClone {
 
     fn get_decls(&self) -> Vec<&Declarations>;
 
-    fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-            location,
-            action,
-        )) = self.is_deterministic()
-        {
-            warn!("Not deterministic");
-            return PrecheckResult::NotDeterministic(location, action);
-        }
-
-        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
-            warn!("Not consistent");
-            return PrecheckResult::NotConsistent(failure);
-        }
-        PrecheckResult::Success
+    fn precheck_sys_rep(&self) -> ConsistencyResult {
+        self.check_determinism()?;
+        self.check_local_consistency()
     }
     fn get_combined_decls(&self) -> Declarations {
         let mut clocks = HashMap::new();
@@ -153,9 +135,9 @@ pub trait TransitionSystem: DynClone {
         Declarations { ints, clocks }
     }
 
-    fn is_deterministic(&self) -> DeterminismResult;
+    fn check_determinism(&self) -> DeterminismResult;
 
-    fn is_locally_consistent(&self) -> ConsistencyResult;
+    fn check_local_consistency(&self) -> ConsistencyResult;
 
     fn get_initial_state(&self) -> Option<State>;
 

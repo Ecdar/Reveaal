@@ -1,4 +1,3 @@
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
@@ -20,9 +19,10 @@ use super::{CompositionType, LocationID};
 type Action = String;
 
 #[derive(Clone)]
-struct ComponentInfo {
-    name: String,
-    declarations: Declarations,
+pub struct ComponentInfo {
+    pub name: String,
+    pub id: u32,
+    pub declarations: Declarations,
     max_bounds: Bounds,
 }
 
@@ -43,25 +43,18 @@ impl CompiledComponent {
         inputs: HashSet<String>,
         outputs: HashSet<String>,
         dim: ClockIndex,
+        id: u32,
     ) -> Result<Box<Self>, SystemRecipeFailure> {
-        if let Err(actions) = inputs.is_disjoint_action(&outputs) {
-            return Err(SystemRecipeFailure::new_from_component(
-                "Input is not disjoint from output".to_string(),
-                component,
-                actions,
-            ));
+        if !inputs.is_disjoint(&outputs) {
+            ActionFailure::not_disjoint_IO(&component.name, inputs.clone(), outputs.clone())
+                .map_err(|e| e.to_simple_failure(&component.name))?;
         }
 
         let locations: HashMap<LocationID, LocationTuple> = component
             .get_locations()
             .iter()
             .map(|loc| {
-                let tuple = LocationTuple::simple(
-                    loc,
-                    Some(component.get_name().to_owned()),
-                    component.get_declarations(),
-                    dim,
-                );
+                let tuple = LocationTuple::simple(loc, component.get_declarations(), dim);
                 (tuple.id.clone(), tuple)
             })
             .collect();
@@ -70,10 +63,7 @@ impl CompiledComponent {
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
         for edge in component.get_edges() {
-            let id = LocationID::Simple {
-                location_id: edge.source_location.clone(),
-                component_id: Some(component.get_name().to_owned()),
-            };
+            let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from(&component, edge, dim);
             location_edges
                 .get_mut(&id)
@@ -95,6 +85,7 @@ impl CompiledComponent {
                 name: component.name,
                 declarations: component.declarations,
                 max_bounds,
+                id,
             },
         }))
     }
@@ -102,11 +93,13 @@ impl CompiledComponent {
     pub fn compile(
         component: Component,
         dim: ClockIndex,
+        component_index: &mut u32,
     ) -> Result<Box<Self>, SystemRecipeFailure> {
         let inputs = HashSet::from_iter(component.get_input_actions());
         let outputs = HashSet::from_iter(component.get_output_actions());
-
-        Self::compile_with_actions(component, inputs, outputs, dim)
+        let index = *component_index;
+        *component_index += 1;
+        Self::compile_with_actions(component, inputs, outputs, dim, index)
     }
 
     fn _comp_info(&self) -> &ComponentInfo {
@@ -175,11 +168,11 @@ impl TransitionSystem for CompiledComponent {
         vec![&self.comp_info.declarations]
     }
 
-    fn is_deterministic(&self) -> DeterminismResult {
-        local_consistency::is_deterministic(self)
+    fn check_determinism(&self) -> DeterminismResult {
+        local_consistency::check_determinism(self)
     }
 
-    fn is_locally_consistent(&self) -> ConsistencyResult {
+    fn check_local_consistency(&self) -> ConsistencyResult {
         local_consistency::is_least_consistent(self)
     }
 
@@ -190,7 +183,7 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
-        unimplemented!()
+        unreachable!()
     }
 
     fn get_composition_type(&self) -> CompositionType {

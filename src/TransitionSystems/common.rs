@@ -7,18 +7,18 @@ use edbm::{
 };
 use log::warn;
 
-use crate::TransitionSystems::CompositionType;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
     System::{query_failures::DeterminismResult, specifics::SpecificLocation},
 };
+use crate::{System::query_failures::ConsistencyResult, TransitionSystems::CompositionType};
 
 use super::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 
-pub trait ComposedTransitionSystem: DynClone {
+pub(super) trait ComposedTransitionSystem: DynClone {
     fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
 
-    fn is_locally_consistent(&self) -> ConsistencyResult;
+    fn check_local_consistency(&self) -> ConsistencyResult;
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
@@ -38,6 +38,7 @@ clone_trait_object!(ComposedTransitionSystem);
 impl<T: ComposedTransitionSystem> TransitionSystem for T {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
+            // TODO: this seems wrong
             Bounds::new(self.get_dim())
         } else {
             let (left, right) = self.get_children();
@@ -105,21 +106,16 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         comps
     }
 
-    fn is_deterministic(&self) -> DeterminismResult {
+    fn check_determinism(&self) -> DeterminismResult {
         let (left, right) = self.get_children();
-        if let DeterminismResult::Success = left.is_deterministic() {
-            if let DeterminismResult::Success = right.is_deterministic() {
-                DeterminismResult::Success
-            } else {
-                right.is_deterministic()
-            }
-        } else {
-            left.is_deterministic()
-        }
+        left.check_determinism()?;
+        right.check_determinism()
     }
 
-    fn is_locally_consistent(&self) -> ConsistencyResult {
-        self.is_locally_consistent()
+    fn check_local_consistency(&self) -> ConsistencyResult {
+        let (left, right) = self.get_children();
+        left.check_local_consistency()?;
+        right.check_local_consistency()
     }
 
     fn get_initial_state(&self) -> Option<State> {

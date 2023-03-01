@@ -364,28 +364,14 @@ impl TransitionSystem for Quotient {
         comps
     }
 
-    fn is_deterministic(&self) -> DeterminismResult {
-        if let DeterminismResult::Success = self.T.is_deterministic() {
-            if let DeterminismResult::Success = self.S.is_deterministic() {
-                DeterminismResult::Success
-            } else {
-                self.S.is_deterministic()
-            }
-        } else {
-            self.T.is_deterministic()
-        }
+    fn check_determinism(&self) -> DeterminismResult {
+        self.T.check_determinism()?;
+        self.S.check_determinism()
     }
 
-    fn is_locally_consistent(&self) -> ConsistencyResult {
-        if let ConsistencyResult::Success = self.T.is_locally_consistent() {
-            if let ConsistencyResult::Success = self.S.is_locally_consistent() {
-                ConsistencyResult::Success
-            } else {
-                self.S.is_locally_consistent()
-            }
-        } else {
-            self.T.is_locally_consistent()
-        }
+    fn check_local_consistency(&self) -> ConsistencyResult {
+        self.S.check_local_consistency()?;
+        self.T.check_local_consistency()
     }
 
     fn get_initial_state(&self) -> Option<State> {
