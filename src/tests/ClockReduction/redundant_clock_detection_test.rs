@@ -15,7 +15,8 @@ pub mod test {
         let expected_clocks = ["x".to_string(), "y".to_string(), "z".to_string()];
         let component =
             read_json_component_and_process(REDUNDANT_CLOCKS_TEST_PROJECT, "Component1");
-        let compiled_component = CompiledComponent::compile(component.clone(), DIM).unwrap();
+        let compiled_component =
+            CompiledComponent::compile(component.clone(), DIM, &mut 0).unwrap();
         let clock_index_x = component
             .declarations
             .get_clock_index_by_name(&expected_clocks[0])

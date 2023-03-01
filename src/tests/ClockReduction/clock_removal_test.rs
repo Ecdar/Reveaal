@@ -24,9 +24,12 @@ pub mod clock_removal_tests {
 
         component.remove_clock(*clock_index);
 
-        let clock_reduced_compiled_component =
-            CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
-                .unwrap();
+        let clock_reduced_compiled_component = CompiledComponent::compile(
+            component.clone(),
+            component.declarations.clocks.len() + 1,
+            &mut 0,
+        )
+        .unwrap();
 
         let decls = clock_reduced_compiled_component.get_decls();
 
@@ -49,9 +52,12 @@ pub mod clock_removal_tests {
 
         component.replace_clock(*clock_1_index, &duplicate_clocks_index);
 
-        let clock_reduced_compiled_component =
-            CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
-                .unwrap();
+        let clock_reduced_compiled_component = CompiledComponent::compile(
+            component.clone(),
+            component.declarations.clocks.len() + 1,
+            &mut 0,
+        )
+        .unwrap();
 
         let decls = clock_reduced_compiled_component.get_decls();
 
