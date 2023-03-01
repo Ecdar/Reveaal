@@ -25,6 +25,11 @@ struct SubPath {
 }
 
 fn is_trivially_unreachable(start_state: &State, end_state: &State) -> bool {
+    // If any of the zones are empty
+    if start_state.zone_ref().is_empty() || end_state.zone_ref().is_empty() {
+        return true;
+    }
+
     // If the end location has invariants and these do not have an intersection (overlap) with the zone of the end state of the query
     if let Some(invariants) = end_state.get_location().get_invariants() {
         if !end_state.zone_ref().has_intersection(invariants) {
