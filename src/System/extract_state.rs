@@ -27,11 +27,12 @@ pub fn get_state(
                 _ => unreachable!(),
             };
         }
-
-        Ok(State::create(
+        let mut state = State::create(
             build_location_tuple(&mut locations.iter(), machine, system)?,
             create_zone_given_constraints(clock.as_deref(), system)?,
-        ))
+        );
+        state.apply_invariants();
+        Ok(state)
     } else {
         Err(format!(
             "The following information \"{}\" could not be used to create a State",
@@ -91,10 +92,7 @@ fn build_location_tuple(
             // It is ensured .next() will not give a None, since the number of location is same as number of component. This is also being checked in validate_reachability_input function, that is called before get_state
             "_" => Ok(LocationTuple::build_any_location_tuple()),
             str => system
-                .get_location(&LocationID::Simple {
-                    location_id: str.to_string(),
-                    component_id: Some(component.get_name().clone()),
-                })
+                .get_location(&LocationID::Simple(str.to_string()))
                 .ok_or(format!(
                     "Location {} does not exist in the component {}",
                     str,
