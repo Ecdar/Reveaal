@@ -20,7 +20,6 @@ pub use crate::System::extract_system_rep;
 pub use ModelObjects::component;
 pub use ModelObjects::queries;
 pub use ProtobufServer::start_grpc_server_with_tokio;
-pub use System::executable_query::QueryResult;
 
 /// The default settings
 pub const DEFAULT_SETTINGS: Settings = Settings {
