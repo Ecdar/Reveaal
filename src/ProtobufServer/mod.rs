@@ -1,5 +1,6 @@
 mod ecdar_backend;
 mod ecdar_requests;
+mod proto_conversions;
 mod server;
 
 pub mod services {

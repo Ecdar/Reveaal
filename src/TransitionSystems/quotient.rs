@@ -2,16 +2,14 @@ use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 use log::debug;
 
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{Location, LocationType, State, Transition};
-use crate::System::local_consistency::{ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::common::CollectionOperation;
-use crate::TransitionSystems::transition_system::PrecheckResult;
+use crate::ModelObjects::component::{State, Transition};
+use crate::System::query_failures::{
+    ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
+};
+use crate::System::specifics::{SpecialLocation, SpecificLocation};
 use edbm::util::bounds::Bounds;
-
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
 use crate::TransitionSystems::{
     LocationTuple, TransitionID, TransitionSystem, TransitionSystemPtr,
@@ -27,8 +25,8 @@ pub struct Quotient {
     S: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    universal_location: Location,
-    inconsistent_location: Location,
+    universal_location: LocationTuple,
+    inconsistent_location: LocationTuple,
     decls: Declarations,
     quotient_clock_index: ClockIndex,
     new_input_name: String,
@@ -36,8 +34,6 @@ pub struct Quotient {
     dim: ClockIndex,
 }
 
-static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
-static UNIVERSAL_LOC_NAME: &str = "Universal";
 impl Quotient {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
@@ -46,58 +42,16 @@ impl Quotient {
         new_clock_index: ClockIndex,
         dim: ClockIndex,
     ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
-        if let Err(actions) = S
-            .get_output_actions()
-            .is_disjoint_action(&T.get_input_actions())
-        {
-            return Err(SystemRecipeFailure::new(
-                "s_out and t_in not disjoint in quotient!".to_string(),
-                T,
-                S,
-                actions,
-            ));
+        if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
+            ActionFailure::not_disjoint(
+                (S.as_ref(), S.get_output_actions()),
+                (T.as_ref(), T.get_input_actions()),
+            )
+            .map_err(|e| e.to_rfq(&T, &S))?;
         }
 
-        match T.precheck_sys_rep() {
-            PrecheckResult::Success => {}
-            _ => {
-                return Err(SystemRecipeFailure::new(
-                    "T (left) must be least consistent for quotient".to_string(),
-                    T,
-                    S,
-                    vec![],
-                ));
-            }
-        }
-        match S.precheck_sys_rep() {
-            PrecheckResult::Success => {}
-            _ => {
-                return Err(SystemRecipeFailure::new(
-                    "S (right) must be least consistent for quotient".to_string(),
-                    T,
-                    S,
-                    vec![],
-                ));
-            }
-        }
-
-        let universal_location = Location {
-            id: UNIVERSAL_LOC_NAME.to_string(),
-            invariant: None,
-            location_type: LocationType::Universal,
-            urgency: "".to_string(),
-        };
-
-        let inconsistent_location = Location {
-            id: INCONSISTENT_LOC_NAME.to_string(),
-            // xnew <= 0
-            invariant: Some(BoolExpression::LessEQ(
-                Box::new(ArithExpression::VarName("quotient_xnew".to_string())),
-                Box::new(ArithExpression::Int(0)),
-            )),
-            location_type: LocationType::Inconsistent,
-            urgency: "".to_string(),
-        };
+        T.precheck_sys_rep().map_err(|e| e.to_rfq(&T, &S))?;
+        S.precheck_sys_rep().map_err(|e| e.to_rfq(&T, &S))?;
 
         let mut inputs: HashSet<String> = T
             .get_input_actions()
@@ -150,8 +104,8 @@ impl Quotient {
             S,
             inputs,
             outputs,
-            universal_location,
-            inconsistent_location,
+            universal_location: LocationTuple::universal(),
+            inconsistent_location: LocationTuple::error(dim, new_clock_index),
             decls,
             quotient_clock_index: new_clock_index,
             new_input_name,
@@ -190,7 +144,7 @@ impl TransitionSystem for Quotient {
         let mut transitions = vec![];
 
         //Rules [universal] and [inconsistent]
-
+        // TODO: ensure that it is actually this quotients inconsistent location
         if location.is_inconsistent() {
             //Rule 10
             if is_input {
@@ -201,6 +155,7 @@ impl TransitionSystem for Quotient {
                 transitions.push(transition);
             }
             return transitions;
+            // TODO: ensure that it is actually this quotients universal location
         } else if location.is_universal() {
             // Rule 9
             let transition = Transition::new(location, self.dim);
@@ -213,11 +168,6 @@ impl TransitionSystem for Quotient {
         let loc_s = location.get_right();
         let t = self.T.next_transitions_if_available(loc_t, action);
         let s = self.S.next_transitions_if_available(loc_s, action);
-
-        let inconsistent_location =
-            LocationTuple::simple(&self.inconsistent_location, None, &self.decls, self.dim);
-        let universal_location =
-            LocationTuple::simple(&self.universal_location, None, &self.decls, self.dim);
 
         //Rule 1
         if self.S.actions_contain(action) && self.T.actions_contain(action) {
@@ -282,7 +232,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 id: TransitionID::Quotient(Vec::new(), s.iter().map(|t| t.id.clone()).collect()),
                 guard_zone: (!inv_l_s) + (!g_s),
-                target_locations: universal_location,
+                target_locations: self.universal_location.clone(),
                 updates: vec![],
             });
         } else {
@@ -292,7 +242,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 id: TransitionID::None,
                 guard_zone: !inv_l_s,
-                target_locations: universal_location,
+                target_locations: self.universal_location.clone(),
                 updates: vec![],
             });
         }
@@ -324,7 +274,7 @@ impl TransitionSystem for Quotient {
                         vec![s_transition.id.clone()],
                     ),
                     guard_zone,
-                    target_locations: inconsistent_location.clone(),
+                    target_locations: self.inconsistent_location.clone(),
                     updates,
                 })
             }
@@ -344,7 +294,7 @@ impl TransitionSystem for Quotient {
             transitions.push(Transition {
                 id: TransitionID::None,
                 guard_zone,
-                target_locations: inconsistent_location,
+                target_locations: self.inconsistent_location.clone(),
                 updates,
             })
         }
@@ -401,13 +351,8 @@ impl TransitionSystem for Quotient {
             }
         }
 
-        let inconsistent =
-            LocationTuple::simple(&self.inconsistent_location, None, &self.decls, self.dim);
-        let universal =
-            LocationTuple::simple(&self.universal_location, None, &self.decls, self.dim);
-
-        location_tuples.push(inconsistent);
-        location_tuples.push(universal);
+        location_tuples.push(self.inconsistent_location.clone());
+        location_tuples.push(self.universal_location.clone());
 
         location_tuples
     }
@@ -455,6 +400,23 @@ impl TransitionSystem for Quotient {
 
     fn get_composition_type(&self) -> CompositionType {
         CompositionType::Quotient
+    }
+
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String> {
+        match target {
+            SpecificLocation::BranchLocation(left, right) => {
+                let left = self.T.construct_location_tuple(*left)?;
+                let right = self.S.construct_location_tuple(*right)?;
+                Ok(merge(&left, &right))
+            }
+            SpecificLocation::SpecialLocation(SpecialLocation::Universal) => {
+                Ok(self.universal_location.clone())
+            }
+            SpecificLocation::SpecialLocation(SpecialLocation::Error) => {
+                Ok(self.inconsistent_location.clone())
+            }
+            SpecificLocation::ComponentLocation { .. } => unreachable!("Should not occur"),
+        }
     }
 }
 

@@ -10,7 +10,7 @@ use log::warn;
 use crate::TransitionSystems::CompositionType;
 use crate::{
     ModelObjects::component::{Declarations, State, Transition},
-    System::local_consistency::{ConsistencyResult, DeterminismResult},
+    System::{query_failures::DeterminismResult, specifics::SpecificLocation},
 };
 
 use super::{LocationTuple, TransitionSystem, TransitionSystemPtr};
@@ -140,6 +140,18 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
 
     fn get_composition_type(&self) -> CompositionType {
         self.get_composition_type()
+    }
+
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String> {
+        let (left, right) = self.get_children();
+        let (t_left, t_right) = target.split();
+        let loc_l = left.construct_location_tuple(t_left)?;
+        let loc_r = right.construct_location_tuple(t_right)?;
+        Ok(LocationTuple::compose(
+            &loc_l,
+            &loc_r,
+            self.get_composition_type(),
+        ))
     }
 }
 

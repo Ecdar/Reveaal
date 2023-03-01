@@ -2,7 +2,11 @@ use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
+use crate::System::local_consistency::{self};
+use crate::System::query_failures::{
+    ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
+};
+use crate::System::specifics::SpecificLocation;
 use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
@@ -213,4 +217,23 @@ impl TransitionSystem for CompiledComponent {
         self.comp_info.name.clone()
     }
 
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String> {
+        match target {
+            SpecificLocation::ComponentLocation { comp, location_id } => {
+                assert_eq!(comp.name, self.comp_info.name);
+                self.get_all_locations()
+                    .into_iter()
+                    .find(|loc| loc.id == LocationID::Simple(location_id.clone()))
+                    .ok_or_else(|| {
+                        format!(
+                            "Could not find location {} in component {}",
+                            location_id, self.comp_info.name
+                        )
+                    })
+            }
+            SpecificLocation::BranchLocation(_, _) | SpecificLocation::SpecialLocation(_) => {
+                unreachable!("Should not happen at the level of a component.")
+            }
+        }
+    }
 }
