@@ -5,11 +5,10 @@ pub mod util {
     use crate::ModelObjects::representations::QueryExpression;
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
+    use crate::System::query_failures::ConsistencyResult;
     use crate::System::refine;
-    use crate::System::refine::RefinementResult;
     use crate::System::save_component::combine_components;
     use crate::System::save_component::PruningStrategy;
-    use crate::TransitionSystems::transition_system::PrecheckResult;
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
@@ -64,19 +63,16 @@ pub mod util {
         if helper(&base_precheck) && helper(&new_precheck) {
             assert!(matches!(
                 refine::check_refinement(new_comp.clone(), base_system.clone()),
-                RefinementResult::Success
+                Ok(())
             ));
             assert!(matches!(
                 refine::check_refinement(base_system.clone(), new_comp.clone()),
-                RefinementResult::Success
+                Ok(())
             ));
         }
     }
 
-    fn helper(a: &PrecheckResult) -> bool {
-        if let PrecheckResult::Success = a {
-            return true;
-        }
-        false
+    fn helper(a: &ConsistencyResult) -> bool {
+        a.is_ok()
     }
 }
