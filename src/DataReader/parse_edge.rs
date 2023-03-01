@@ -64,7 +64,7 @@ impl Update {
     }
 }
 
-pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Error<Rule>> {
+pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<Error<Rule>>> {
     let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)
         .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
     let pair = pairs.next().unwrap();
