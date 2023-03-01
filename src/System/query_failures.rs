@@ -1,4 +1,4 @@
-use std::{collections::HashSet, error::Error, fmt};
+use std::{collections::HashSet, fmt};
 
 use crate::{
     component::{Component, State},
@@ -6,7 +6,7 @@ use crate::{
     TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr},
 };
 
-use super::{reachability::Path, specifics::SpecificState};
+use super::specifics::{SpecificPath, SpecificState};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Composition {
@@ -132,7 +132,7 @@ pub enum QueryResult {
     CustomError(String),
 }
 
-pub type PathResult = Result<Path, PathFailure>;
+pub type PathResult = Result<SpecificPath, PathFailure>;
 
 //TODO: add refinement Ok result
 #[allow(clippy::result_large_err)]
@@ -144,7 +144,7 @@ pub type DeterminismResult = Result<(), DeterminismFailure>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PathFailure {
-    Unknown(String),
+    Unreachable,
 }
 
 #[allow(clippy::result_large_err)]
@@ -362,8 +362,6 @@ impl ActionFailure {
 pub enum SystemRecipeFailure {
     Action(ActionFailure, System),
     Inconsistent(ConsistencyFailure, System),
-    ClockReduction(ClockReductionFailure),
-    CustomError(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -527,8 +525,6 @@ impl std::fmt::Display for SystemRecipeFailure {
             SystemRecipeFailure::Inconsistent(cf, system) => {
                 write!(f, "{} in {} is invalid: {}", system.comp, system.name, cf)
             }
-            SystemRecipeFailure::ClockReduction(cr) => write!(f, "Clock reduction failed: {}", cr),
-            SystemRecipeFailure::CustomError(e) => write!(f, "Unknown error: {}", e),
         }
     }
 }
@@ -581,82 +577,69 @@ impl std::fmt::Display for RefinementPrecondition {
     }
 }
 
-// ---------------------------- //
-// - Ugly generics begin here - //
-// --- You have been warned --- //
-// ---------------------------- //
+// ------------------------------- //
+// - Ugly conversions begin here - //
+// ----- You have been warned ---- //
+// ------------------------------- //
+mod conversions {
+    use super::*;
+    use std::error::Error;
+    impl Error for SystemRecipeFailure {}
+    impl Error for ClockReductionFailure {}
+    impl Error for RefinementFailure {}
+    impl Error for ConsistencyFailure {}
+    impl Error for DeterminismFailure {}
 
-impl Error for dyn Query {}
-impl Error for SystemRecipeFailure {}
-impl Error for ClockReductionFailure {}
-
-trait Query: fmt::Display + fmt::Debug {}
-
-impl Query for RefinementFailure {}
-impl Query for ConsistencyFailure {}
-impl Query for DeterminismFailure {}
-
-impl From<RefinementPrecondition> for RefinementFailure {
-    fn from(failure: RefinementPrecondition) -> Self {
-        RefinementFailure::Precondition(failure)
-    }
-}
-
-impl From<CompositionType> for Composition {
-    fn from(comp: CompositionType) -> Self {
-        match comp {
-            CompositionType::Quotient => Composition::Quotient,
-            CompositionType::Composition => Composition::Composition,
-            CompositionType::Conjunction => Composition::Conjunction,
-            CompositionType::Simple => Composition::Simple,
+    impl From<RefinementPrecondition> for RefinementFailure {
+        fn from(failure: RefinementPrecondition) -> Self {
+            RefinementFailure::Precondition(failure)
         }
     }
-}
 
-impl From<DeterminismFailure> for ConsistencyFailure {
-    fn from(failure: DeterminismFailure) -> Self {
-        ConsistencyFailure::NotDeterministic(failure)
+    impl From<CompositionType> for Composition {
+        fn from(comp: CompositionType) -> Self {
+            match comp {
+                CompositionType::Quotient => Composition::Quotient,
+                CompositionType::Composition => Composition::Composition,
+                CompositionType::Conjunction => Composition::Conjunction,
+                CompositionType::Simple => Composition::Simple,
+            }
+        }
     }
-}
 
-impl From<&str> for SystemRecipeFailure {
-    fn from(system: &str) -> Self {
-        SystemRecipeFailure::CustomError(system.to_string())
+    impl From<DeterminismFailure> for ConsistencyFailure {
+        fn from(failure: DeterminismFailure) -> Self {
+            ConsistencyFailure::NotDeterministic(failure)
+        }
     }
-}
 
-impl From<String> for SystemRecipeFailure {
-    fn from(system: String) -> Self {
-        SystemRecipeFailure::CustomError(system)
+    impl From<SystemRecipeFailure> for QueryResult {
+        fn from(res: SystemRecipeFailure) -> Self {
+            QueryResult::RecipeFailure(res)
+        }
     }
-}
 
-impl From<SystemRecipeFailure> for QueryResult {
-    fn from(res: SystemRecipeFailure) -> Self {
-        QueryResult::RecipeFailure(res)
+    impl From<PathResult> for QueryResult {
+        fn from(res: PathResult) -> Self {
+            QueryResult::Reachability(res)
+        }
     }
-}
 
-impl From<PathResult> for QueryResult {
-    fn from(res: PathResult) -> Self {
-        QueryResult::Reachability(res)
+    impl From<ConsistencyResult> for QueryResult {
+        fn from(res: ConsistencyResult) -> Self {
+            QueryResult::Consistency(res)
+        }
     }
-}
 
-impl From<ConsistencyResult> for QueryResult {
-    fn from(res: ConsistencyResult) -> Self {
-        QueryResult::Consistency(res)
+    impl From<DeterminismResult> for QueryResult {
+        fn from(res: DeterminismResult) -> Self {
+            QueryResult::Determinism(res)
+        }
     }
-}
 
-impl From<DeterminismResult> for QueryResult {
-    fn from(res: DeterminismResult) -> Self {
-        QueryResult::Determinism(res)
-    }
-}
-
-impl From<RefinementResult> for QueryResult {
-    fn from(res: RefinementResult) -> Self {
-        QueryResult::Refinement(res)
+    impl From<RefinementResult> for QueryResult {
+        fn from(res: RefinementResult) -> Self {
+            QueryResult::Refinement(res)
+        }
     }
 }
