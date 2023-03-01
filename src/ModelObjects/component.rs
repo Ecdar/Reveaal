@@ -283,6 +283,12 @@ impl State {
         })
     }
 
+    pub fn apply_invariants(&mut self) {
+        let fed = self.take_zone();
+        let new_fed = self.decorated_locations.apply_invariants(fed);
+        self.set_zone(new_fed);
+    }
+
     pub fn zone_ref(&self) -> &OwnedFederation {
         self.zone_sentinel.as_ref().unwrap()
     }
