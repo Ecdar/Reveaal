@@ -1,13 +1,11 @@
 #[cfg(test)]
 mod test {
-    use crate::tests::refinement::Helper::xml_run_query;
-    use crate::System::executable_query::QueryResult;
-    use crate::System::local_consistency::ConsistencyResult;
+    use crate::{tests::refinement::Helper::xml_run_query, System::query_failures::QueryResult};
 
     static PATH: &str = "samples/xml/ConsTests.xml";
 
     fn convert_to_bool(result: QueryResult) -> bool {
-        matches!(result, QueryResult::Consistency(ConsistencyResult::Success))
+        matches!(result, QueryResult::Consistency(Ok(())))
     }
 
     #[test]

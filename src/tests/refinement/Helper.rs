@@ -2,9 +2,10 @@ use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
-use crate::System::executable_query::QueryResult;
 use crate::System::extract_system_rep::create_executable_query;
-use crate::System::refine::RefinementResult;
+use crate::System::query_failures::QueryResult;
+use crate::TransitionSystems::transition_system::component_loader_to_transition_system;
+use crate::TransitionSystems::TransitionSystemPtr;
 
 fn try_setup_logging() {
     #[cfg(feature = "logging")]
@@ -14,9 +15,9 @@ fn try_setup_logging() {
 pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
     try_setup_logging();
     match xml_run_query(PATH, QUERY) {
-        QueryResult::Refinement(RefinementResult::Success) => true,
-        QueryResult::Refinement(RefinementResult::Failure(_)) => false,
-        QueryResult::Error(err) => panic!("{}", err),
+        QueryResult::Refinement(Ok(())) => true,
+        QueryResult::Refinement(Err(_)) => false,
+        QueryResult::CustomError(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
@@ -25,9 +26,9 @@ pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     try_setup_logging();
 
     match json_run_query(PATH, QUERY) {
-        QueryResult::Refinement(RefinementResult::Success) => true,
-        QueryResult::Refinement(RefinementResult::Failure(_)) => false,
-        QueryResult::Error(err) => panic!("{}", err),
+        QueryResult::Refinement(Ok(())) => true,
+        QueryResult::Refinement(Err(_)) => false,
+        QueryResult::CustomError(err) => panic!("{}", err),
         _ => panic!("Not a refinement check"),
     }
 }
@@ -63,4 +64,10 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     let query = create_executable_query(&q, &mut *comp_loader).unwrap();
 
     query.execute()
+}
+
+pub fn json_get_system(PATH: &str, COMP: &str) -> TransitionSystemPtr {
+    let project_loader = JsonProjectLoader::new(String::from(PATH), crate::tests::TEST_SETTINGS);
+    let mut loader = project_loader.to_comp_loader();
+    component_loader_to_transition_system(&mut *loader, COMP)
 }
