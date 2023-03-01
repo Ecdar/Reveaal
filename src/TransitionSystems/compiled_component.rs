@@ -210,4 +210,9 @@ impl TransitionSystem for CompiledComponent {
     fn component_names(&self) -> Vec<&str> {
         vec![&self.comp_info.name]
     }
+
+    fn to_string(&self) -> String {
+        self.comp_info.name.clone()
+    }
+
 }

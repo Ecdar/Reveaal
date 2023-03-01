@@ -132,6 +132,20 @@ pub trait TransitionSystem: DynClone {
 
     fn get_composition_type(&self) -> CompositionType;
 
+    fn to_string(&self) -> String {
+        if self.get_composition_type() == CompositionType::Simple {
+            panic!("Simple Transition Systems should implement to_string() themselves.")
+        }
+        let (left, right) = self.get_children();
+        let comp = match self.get_composition_type() {
+            CompositionType::Conjunction => "&&",
+            CompositionType::Composition => "||",
+            CompositionType::Quotient => r"\\",
+            CompositionType::Simple => unreachable!(),
+        };
+        format!("({} {} {})", left.to_string(), comp, right.to_string())
+    }
+
     /// Returns a [`Vec`] of all component names in a given [`TransitionSystem`].
     fn component_names(&self) -> Vec<&str> {
         let children = self.get_children();
