@@ -20,13 +20,15 @@ fn create_step_request(
     last_response: &SimulationStartRequest,
 ) -> SimulationStepRequest {
     let cache = ModelCache::default();
-    helper::create_step_request(
+    helper::create_step_requests(
         component_names,
         components_path,
         composition,
         ConcreteEcdarBackend::handle_start_simulation(last_response.clone(), cache)
             .map(Response::new),
     )
+    .next()
+    .unwrap()
 }
 
 fn start_simulation(c: &mut Criterion, id: &str, request: SimulationStartRequest) {
