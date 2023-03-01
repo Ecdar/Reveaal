@@ -1,9 +1,12 @@
 #[cfg(test)]
 
 mod test {
-    use crate::extract_system_rep::SystemRecipeFailure;
-    use crate::System::refine::{RefinementFailure, RefinementResult};
-    use crate::{tests::refinement::Helper::json_run_query, System::executable_query::QueryResult};
+    use crate::{
+        tests::refinement::Helper::json_run_query,
+        System::query_failures::{
+            ActionFailure, QueryResult, RefinementFailure, RefinementPrecondition,
+        },
+    };
 
     const PATH: &str = "samples/json/RefinementTests";
 
@@ -12,9 +15,7 @@ mod test {
         let actual = json_run_query(PATH, "refinement: A <= B");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::NotEmptyResult(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
         ));
     }
 
@@ -23,9 +24,7 @@ mod test {
         let actual = json_run_query(PATH, "refinement: A <= A2");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::EmptyTransition2s(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
         ));
     }
 
@@ -34,9 +33,7 @@ mod test {
         let actual = json_run_query(PATH, "refinement: A2 <= B2");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::CutsDelaySolutions(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CutsDelaySolutions { .. }))
         ));
     }
 
@@ -45,8 +42,8 @@ mod test {
         let actual = json_run_query(PATH, "refinement: C <= D");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::InitialState(
-                _
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::EmptyInitialState { .. },
             )))
         ));
     }
@@ -59,9 +56,9 @@ mod test {
         );
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::NotDisjointAndNotSubset(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
+            )))
         ));
     }
 
@@ -70,7 +67,9 @@ mod test {
         let actual = json_run_query(PATH, "refinement: notSubset1 <= notSubset2");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::NotSubset))
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotSubset(_, _), _),
+            )))
         ));
     }
 
@@ -79,13 +78,8 @@ mod test {
         let actual = json_run_query(PATH, "refinement: disJoint2 <= disJoint1");
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::NotDisjoint(
-                SystemRecipeFailure {
-                    reason: _,
-                    left_name: _,
-                    right_name: _,
-                    actions: _
-                }
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
             ))),
         ));
     }

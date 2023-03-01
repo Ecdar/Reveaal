@@ -3,94 +3,94 @@
 mod test {
 
     use crate::tests::refinement::Helper::json_run_query;
-    use crate::System::local_consistency::DeterminismFailure;
-    use crate::System::{
-        executable_query::QueryResult,
-        local_consistency::{ConsistencyFailure, ConsistencyResult, DeterminismResult},
-        refine::{RefinementFailure, RefinementResult},
+    use crate::System::query_failures::{
+        ConsistencyFailure, DeterminismFailure, DeterminismResult, QueryResult, RefinementFailure,
+        RefinementPrecondition,
     };
-    use crate::TransitionSystems::LocationID;
-
+    use crate::System::specifics::SpecificLocation;
     const PATH: &str = "samples/json/Actions";
 
     #[test]
     fn determinism_test() {
         let expected_action = String::from("1");
-        let expected_location = LocationID::Simple {
-            location_id: (String::from("L1")),
-            component_id: Some(String::from("NonDeterminismCom")),
-        };
-        if let QueryResult::Determinism(DeterminismResult::Failure(
-            DeterminismFailure::NotDeterministicFrom(actual_location, actual_action),
-        )) = json_run_query(PATH, "determinism: NonDeterministic1")
+        let expected_location = SpecificLocation::new("NonDeterministic1", "L1", 0); //LocationID::Simple(String::from("L1"));
+        if let QueryResult::Determinism(DeterminismResult::Err(DeterminismFailure {
+            state: actual_state,
+            action: actual_action,
+            system: actual_system,
+        })) = json_run_query(PATH, "determinism: NonDeterministic1")
         {
+            let actual_location = actual_state.locations;
             assert_eq!(
                 (expected_location, expected_action),
-                (actual_location, actual_action)
+                (actual_location, actual_action.name)
             );
+            assert_eq!(actual_system, "NonDeterministic1");
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 
     #[test]
     fn not_consistent_from_test() {
-        let expected_action = String::from("");
-        let expected_location = LocationID::Simple {
-            location_id: (String::from("L17")),
-            component_id: Some(String::from("notConsistent")),
-        };
-        if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotConsistentFrom(actual_location, actual_action),
-        )) = json_run_query(PATH, "consistency: NonConsistent")
+        let expected_location = SpecificLocation::new("NonConsistent", "L17", 0);
+        if let QueryResult::Consistency(Err(ConsistencyFailure::InconsistentFrom {
+            state: actual_state,
+            system: actual_system,
+        })) = json_run_query(PATH, "consistency: NonConsistent")
         {
-            assert_eq!(
-                (expected_location, expected_action),
-                (actual_location, actual_action)
-            );
+            let actual_location = actual_state.locations;
+            assert_eq!((expected_location), (actual_location));
+            assert_eq!(actual_system, "NonConsistent");
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 
     #[test]
     fn refinement_determinism_test() {
         let expected_action = String::from("1");
-        let expected_location = LocationID::Simple {
-            location_id: (String::from("L1")),
-            component_id: Some(String::from("NonDeterminismCom")),
-        };
-        if let QueryResult::Refinement(RefinementResult::Failure(
-            RefinementFailure::DeterminismFailure(actual_location, actual_action),
-        )) = json_run_query(PATH, "refinement: NonDeterministic1 <= NonDeterministic2")
+        let expected_location = SpecificLocation::new("NonDeterministic1", "L1", 0);
+        if let QueryResult::Refinement(Err(RefinementFailure::Precondition(
+            RefinementPrecondition::InconsistentChild(
+                ConsistencyFailure::NotDeterministic(DeterminismFailure {
+                    state: actual_state,
+                    action: actual_action,
+                    system: actual_system,
+                }),
+                _,
+            ),
+        ))) = json_run_query(PATH, "refinement: NonDeterministic1 <= NonDeterministic2")
         {
+            let actual_location = actual_state.locations;
             assert_eq!(
                 (expected_location, expected_action),
-                (actual_location.unwrap(), actual_action.unwrap())
+                (actual_location, actual_action.name)
             );
+            assert_eq!(actual_system, "NonDeterministic1"); // Assuming left child is checked first
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 
     #[test]
     fn refinement_consistency_test() {
-        let expected_action = String::from("");
-        let expected_location = LocationID::Simple {
-            location_id: (String::from("L17")),
-            component_id: Some(String::from("notConsistent")),
-        };
-
-        if let QueryResult::Refinement(RefinementResult::Failure(
-            RefinementFailure::ConsistencyFailure(actual_location, actual_action),
-        )) = json_run_query(PATH, "refinement: NonConsistent <= CorrectComponent")
+        let expected_location = SpecificLocation::new("NonConsistent", "L17", 0);
+        if let QueryResult::Refinement(Err(RefinementFailure::Precondition(
+            RefinementPrecondition::InconsistentChild(
+                ConsistencyFailure::InconsistentFrom {
+                    state: actual_state,
+                    system: actual_system,
+                },
+                _,
+            ),
+        ))) = json_run_query(PATH, "refinement: NonConsistent <= CorrectComponent")
         {
-            assert_eq!(
-                (expected_location, expected_action),
-                (actual_location.unwrap(), actual_action.unwrap())
-            );
+            let actual_location = actual_state.locations;
+            assert_eq!((expected_location), (actual_location));
+            assert_eq!(actual_system, "NonConsistent");
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 }
