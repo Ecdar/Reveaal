@@ -1,6 +1,7 @@
 use edbm::zones::OwnedFederation;
 
 use super::query_failures::PathFailure;
+use super::specifics::SpecificPath;
 use crate::component::LocationType;
 use crate::ModelObjects::component::{State, Transition};
 use crate::Simulation::decision::Decision;
@@ -86,6 +87,14 @@ pub fn find_path(
     }
 
     reachability_search(&start_state, &end_state, system)
+}
+
+pub fn find_specific_path(
+    start_state: State,
+    end_state: State,
+    system: &TransitionSystemPtr,
+) -> PathResult {
+    find_path(start_state, end_state, system).map(|p| SpecificPath::from_path(&p, system.as_ref()))
 }
 
 /// Currently runs a BFS search on the transition system.
