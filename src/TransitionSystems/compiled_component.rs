@@ -10,7 +10,7 @@ use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use super::common::CollectionOperation;
+use super::transition_system::ComponentInfoTree;
 use super::{CompositionType, LocationID};
 
 type Action = String;
@@ -20,12 +20,6 @@ struct ComponentInfo {
     name: String,
     declarations: Declarations,
     max_bounds: Bounds,
-}
-
-impl ComponentInfo {
-    pub fn _name(&self) -> &str {
-        self.name.as_ref()
-    }
 }
 
 #[derive(Clone)]
@@ -209,6 +203,10 @@ impl TransitionSystem for CompiledComponent {
 
     fn component_names(&self) -> Vec<&str> {
         vec![&self.comp_info.name]
+    }
+
+    fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
+        ComponentInfoTree::Info(&self.comp_info)
     }
 
     fn to_string(&self) -> String {

@@ -1,3 +1,4 @@
+use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTuple};
 use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
@@ -28,11 +29,40 @@ pub type Action = String;
 pub type EdgeTuple = (Action, Transition);
 pub type EdgeIndex = (LocationID, usize);
 
-/// Precheck can fail because of either consistency or determinism.
-pub enum PrecheckResult {
-    Success,
-    NotDeterministic(LocationID, String),
-    NotConsistent(ConsistencyFailure),
+pub enum ComponentInfoTree<'a> {
+    Info(&'a ComponentInfo),
+    Composition(Box<ComponentInfoTree<'a>>, Box<ComponentInfoTree<'a>>),
+}
+
+impl<'a> ComponentInfoTree<'a> {
+    pub fn iter(&'a self) -> Box<dyn Iterator<Item = &'a ComponentInfo> + '_> {
+        match self {
+            ComponentInfoTree::Info(info) => Box::new(std::iter::once(*info)),
+            ComponentInfoTree::Composition(left, right) => {
+                Box::new(left.iter().chain(right.iter()))
+            }
+        }
+    }
+
+    pub fn split(self) -> (ComponentInfoTree<'a>, ComponentInfoTree<'a>) {
+        match self {
+            ComponentInfoTree::Composition(left, right) => (*left, *right),
+            ComponentInfoTree::Info(_) => {
+                unreachable!("Cannot split a ComponentInfoTree with only one ComponentInfo")
+            }
+        }
+    }
+
+    pub fn info(&self) -> &ComponentInfo {
+        match self {
+            ComponentInfoTree::Info(info) => info,
+            ComponentInfoTree::Composition(_, _) => {
+                unreachable!(
+                    "Cannot get info from a ComponentInfoTree with more than one ComponentInfo"
+                )
+            }
+        }
+    }
 }
 
 pub trait TransitionSystem: DynClone {
@@ -131,6 +161,13 @@ pub trait TransitionSystem: DynClone {
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;
+
+    fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
+        let (left, right) = self.get_children();
+        let left_info = left.comp_infos();
+        let right_info = right.comp_infos();
+        ComponentInfoTree::Composition(Box::new(left_info), Box::new(right_info))
+    }
 
     fn to_string(&self) -> String {
         if self.get_composition_type() == CompositionType::Simple {
