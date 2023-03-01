@@ -1,9 +1,12 @@
 #[cfg(test)]
 mod reachability_parse_partial_state {
     use crate::{
-        extract_system_rep, parse_queries,
+        extract_system_rep::{self, ExecutableQueryError},
+        parse_queries,
         tests::reachability::helper_functions::reachability_test_helper_functions,
-        JsonProjectLoader, ModelObjects::representations::QueryExpression, System,
+        JsonProjectLoader,
+        ModelObjects::representations::QueryExpression,
+        System::{self},
     };
     use test_case::test_case;
 
@@ -57,8 +60,10 @@ mod reachability_parse_partial_state {
         let result = extract_system_rep::create_executable_query(queries, &mut *comp_loader);
         if let Err(e) = result {
             assert_eq!(
-                (*e).to_string(),
-                "Start state is a partial state, which it must not be"
+                e,
+                ExecutableQueryError::Custom(
+                    "Start state is a partial state, which it must not be".to_string()
+                )
             );
         } else {
             panic!("No error was returned")

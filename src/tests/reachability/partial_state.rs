@@ -13,7 +13,6 @@ mod reachability_partial_states_test {
                 location_type,
                 urgency: "".to_string(),
             },
-            None,
             &Declarations::empty(),
             0,
         )

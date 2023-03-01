@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod reachability_search_algorithm_test {
-    use crate::component::Transition;
+
     use crate::tests::refinement::Helper::json_run_query;
-    use crate::QueryResult;
+    use crate::System::query_failures::QueryResult;
     use test_case::test_case;
 
     const PATH: &str = "samples/json/EcdarUniversity";
@@ -29,7 +29,7 @@ mod reachability_search_algorithm_test {
     #[test_case(PATH, "reachability: Researcher && Researcher -> [U0, U0](); [_, U0]()", true; "Trivially reachable because _ is U0")]
     fn search_algorithm_returns_result_university(path: &str, query: &str, expected: bool) {
         match json_run_query(path, query) {
-            QueryResult::Reachability(path) => assert_eq!(path.was_reachable, expected),
+            QueryResult::Reachability(path) => assert_eq!(path.is_ok(), expected),
             _ => panic!("Inconsistent query result, expected Reachability"),
         }
     }
@@ -51,35 +51,78 @@ mod reachability_search_algorithm_test {
     #[test_case(PATH2, "reachability: Component3 && Component3 -> [L6, L6](); [L7, L7]()", true; "Simple conjunction")]
     fn search_algorithm_returns_result(path: &str, query: &str, expected: bool) {
         match json_run_query(path, query) {
-            QueryResult::Reachability(path) => assert_eq!(path.was_reachable, expected),
+            QueryResult::Reachability(path) => assert_eq!(path.is_ok(), expected),
             _ => panic!("Inconsistent query result, expected Reachability"),
         }
     }
 
-    #[test_case(PATH2, "reachability: Component1 -> [L0](); [L2]()", Vec::from(["E3", "E2"]); "Path in Component1 from L0 to L2")]
-    #[test_case(PATH2, "reachability: Component3 -> [L6](); [L7]()", Vec::from(["E5"]); "Path in Component3 from L6 to L7")]
-    #[test_case(PATH2, "reachability: Component3 -> [L7](); [L8]()", Vec::from(["E6"]); "Path in Component3 from L7 to L8")]
-    #[test_case(PATH2, "reachability: Component5 -> [L11](); [L12]()", Vec::from(["E8"]); "Path in Component5 from L11 to L12")]
-    #[test_case(PATH2, "reachability: Component6 -> [L13](); [L15]()", Vec::from(["E12", "E11", "E9", "E10", "E13"]); "Path in Component6 from L13 to L15")]
-    #[test_case(PATH2, "reachability: Component7 -> [L16](); [L19]()", Vec::from(["E11", "E12", "E10"]); "Path in Component7 from L16 to L19")]
-    #[test_case(PATH2, "reachability: Component8 -> [L20](); [L22]()", Vec::from(["E13", "E15", "E14"]); "Path in Component8 from L20 to L22")]
-    #[test_case(PATH2, "reachability: Component9 -> [L23](x>5); [L26]()", Vec::from(["E17", "E18"]); "Path in Component9 from L23 x gt 5 to L26")]
-    #[test_case(PATH2, "reachability: Component9 -> [L23](x<5); [L26]()", Vec::from(["E16", "E19"]); "Path in Component9 from L23 x lt 5 to L26")]
-    #[test_case(PATH2, "reachability: Component3 && Component3 -> [L6, L6](); [L7, L7]()", Vec::from(["E5&&E5"]); "Path in Component3 && Component3 from L6 && L6 to L7 && L7")]
-    #[test_case(PATH, "reachability: Researcher && Researcher -> [U0, U0](); [_, U0]()", Vec::from([]); "Path in Researcher && Researcher from universal state to partial universal state")]
+    #[test_case(PATH2, "reachability: Component1 -> [L0](); [L2]()", vec!["E3", "E2"]; "Path in Component1 from L0 to L2")]
+    #[test_case(PATH2, "reachability: Component3 -> [L6](); [L7]()", vec!["E5"]; "Path in Component3 from L6 to L7")]
+    #[test_case(PATH2, "reachability: Component3 -> [L7](); [L8]()", vec!["E6"]; "Path in Component3 from L7 to L8")]
+    #[test_case(PATH2, "reachability: Component5 -> [L11](); [L12]()", vec!["E8"]; "Path in Component5 from L11 to L12")]
+    #[test_case(PATH2, "reachability: Component6 -> [L13](); [L15]()", vec!["E12", "E11", "E9", "E10", "E13"]; "Path in Component6 from L13 to L15")]
+    #[test_case(PATH2, "reachability: Component7 -> [L16](); [L19]()", vec!["E11", "E12", "E10"]; "Path in Component7 from L16 to L19")]
+    #[test_case(PATH2, "reachability: Component8 -> [L20](); [L22]()", vec!["E13", "E15", "E14"]; "Path in Component8 from L20 to L22")]
+    #[test_case(PATH2, "reachability: Component9 -> [L23](x>5); [L26]()", vec!["E17", "E18"]; "Path in Component9 from L23 x gt 5 to L26")]
+    #[test_case(PATH2, "reachability: Component9 -> [L23](x<5); [L26]()", vec!["E16", "E19"]; "Path in Component9 from L23 x lt 5 to L26")]
     fn path_gen_test_correct_path(folder_path: &str, query: &str, expected_path: Vec<&str>) {
         match json_run_query(folder_path, query) {
             QueryResult::Reachability(actual_path) => {
-                assert!(
-                    actual_path.was_reachable,
-                    "Query: {}\nEnd state is not reachable from start state \n",
-                    query
-                );
-                let path: Vec<Transition> = actual_path.path.unwrap();
+                let actual_path = actual_path.unwrap_or_else(|_| {
+                    panic!(
+                        "Query: {}\nEnd state is not reachable from start state \n",
+                        query
+                    )
+                });
+                let path = actual_path.path;
                 assert!(expected_path.len() == path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(),path.len());
                 for i in 0..path.len() {
+                    let edges: Vec<_> = path[i].edges.iter().map(|e| e.edge_id.clone()).collect();
+                    assert_eq!(
+                        1,
+                        edges.len(),
+                        "Query: {}\nThere should only be one edge in the path \n",
+                        query
+                    );
                     assert!(
-                        expected_path[i] == path[i].id.to_string(),
+                        expected_path[i] == edges[0],
+                        "Query: {}\nThe actual and expected is not the same \n",
+                        query
+                    );
+                }
+            }
+            _ => panic!("Inconsistent query result, expected Reachability"),
+        }
+    }
+
+    #[test_case(PATH2, "reachability: Component3 && Component3 -> [L6, L6](); [L7, L7]()", vec![vec!["E5","E5"]]; "Path in Component3 && Component3 from L6 && L6 to L7 && L7")]
+    #[test_case(PATH2, "reachability: Component3 && Component3 && Component3 -> [L6, L6, L6](); [L7, L7, L7]()", vec![vec!["E5","E5", "E5"]]; "Path in Component3 && Component3 && Component3 from L6 && L6 && L6 to L7 && L7 && L7")]
+    #[test_case(PATH, "reachability: Researcher && Researcher -> [U0, U0](); [_, U0]()", vec![]; "Path in Researcher && Researcher from universal state to partial universal state")]
+    fn path_gen_test_correct_path_vecvec(
+        folder_path: &str,
+        query: &str,
+        expected_path: Vec<Vec<&str>>,
+    ) {
+        match json_run_query(folder_path, query) {
+            QueryResult::Reachability(actual_path) => {
+                let actual_path = actual_path.unwrap_or_else(|_| {
+                    panic!(
+                        "Query: {}\nEnd state is not reachable from start state \n",
+                        query
+                    )
+                });
+                let path = actual_path.path;
+                assert!(expected_path.len() == path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(),path.len());
+                for i in 0..path.len() {
+                    let edges: Vec<_> = path[i].edges.iter().map(|e| e.edge_id.clone()).collect();
+                    assert_eq!(
+                        expected_path[i].len(),
+                        edges.len(),
+                        "Query: {}\nThere should only be one edge in the path \n",
+                        query
+                    );
+                    assert!(
+                        expected_path[i] == edges,
                         "Query: {}\nThe actual and expected is not the same \n",
                         query
                     );
