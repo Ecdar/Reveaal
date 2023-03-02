@@ -13,13 +13,13 @@ use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
+use super::query_failures::SystemRecipeFailure;
 use crate::component::State;
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
-use super::query_failures::SystemRecipeFailure;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutableQueryError {
@@ -87,7 +87,7 @@ pub fn create_executable_query<'a>(
                 };
 
                 let end_state: State = get_state(end, &machine, &transition_system).map_err(|err| format!("Invalid End state: {}",err))?;
-                
+
                 Ok(Box::new(ReachabilityExecutor {
                     transition_system,
                     start_state,
@@ -162,8 +162,7 @@ pub fn create_executable_query<'a>(
                         query_expression,
                         component_loader,
                         &mut dim,
-                        &mut quotient_index, 
-                    );
+                        &mut quotient_index,                    );
 
                     if !component_loader.get_settings().disable_clock_reduction {
                         clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
@@ -203,28 +202,42 @@ impl SystemRecipe {
         self._compile(dim + 1, &mut component_index)
     }
 
-    pub fn compile_with_index(self, dim: ClockIndex, component_index: &mut u32) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    pub fn compile_with_index(
+        self,
+        dim: ClockIndex,
+        component_index: &mut u32,
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         self._compile(dim + 1, component_index)
     }
 
-    fn _compile(self, dim: ClockIndex, component_index: &mut u32) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    fn _compile(
+        self,
+        dim: ClockIndex,
+        component_index: &mut u32,
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         match self {
-            SystemRecipe::Composition(left, right) => {
-                Composition::new(left._compile(dim, component_index)?, right._compile(dim, component_index)?, dim)
-            }
-            SystemRecipe::Conjunction(left, right) => {
-                Conjunction::new(left._compile(dim, component_index)?, right._compile(dim, component_index)?, dim)
-            }
+            SystemRecipe::Composition(left, right) => Composition::new(
+                left._compile(dim, component_index)?,
+                right._compile(dim, component_index)?,
+                dim,
+            ),
+            SystemRecipe::Conjunction(left, right) => Conjunction::new(
+                left._compile(dim, component_index)?,
+                right._compile(dim, component_index)?,
+                dim,
+            ),
             SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 clock_index,
                 dim,
             ),
-            SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim, component_index) {
-                Ok(comp) => Ok(comp),
-                Err(err) => Err(err),
-            },
+            SystemRecipe::Component(comp) => {
+                match CompiledComponent::compile(*comp, dim, component_index) {
+                    Ok(comp) => Ok(comp),
+                    Err(err) => Err(err),
+                }
+            }
         }
     }
 
@@ -301,60 +314,20 @@ pub fn get_system_recipe(
     quotient_index: &mut Option<ClockIndex>,
 ) -> Box<SystemRecipe> {
     match side {
-        QueryExpression::Parentheses(expression) => get_system_recipe(
-            expression,
-            component_loader,
-            clock_index,
-            quotient_index,
-            
-        ),
+        QueryExpression::Parentheses(expression) => {
+            get_system_recipe(expression, component_loader, clock_index, quotient_index)
+        }
         QueryExpression::Composition(left, right) => Box::new(SystemRecipe::Composition(
-            get_system_recipe(
-                left,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            ),
-            get_system_recipe(
-                right,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            ),
+            get_system_recipe(left, component_loader, clock_index, quotient_index),
+            get_system_recipe(right, component_loader, clock_index, quotient_index),
         )),
         QueryExpression::Conjunction(left, right) => Box::new(SystemRecipe::Conjunction(
-            get_system_recipe(
-                left,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            ),
-            get_system_recipe(
-                right,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            ),
+            get_system_recipe(left, component_loader, clock_index, quotient_index),
+            get_system_recipe(right, component_loader, clock_index, quotient_index),
         )),
         QueryExpression::Quotient(left, right) => {
-            let left = get_system_recipe(
-                left,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            );
-            let right = get_system_recipe(
-                right,
-                component_loader,
-                clock_index,
-                quotient_index,
-                
-            );
+            let left = get_system_recipe(left, component_loader, clock_index, quotient_index);
+            let right = get_system_recipe(right, component_loader, clock_index, quotient_index);
 
             let q_index = match quotient_index {
                 Some(q_i) => *q_i,
@@ -376,13 +349,9 @@ pub fn get_system_recipe(
 
             Box::new(SystemRecipe::Component(Box::new(component)))
         }
-        QueryExpression::SaveAs(comp, _) => get_system_recipe(
-            comp,
-            component_loader,
-            clock_index,
-            &mut None,
-            
-        ),
+        QueryExpression::SaveAs(comp, _) => {
+            get_system_recipe(comp, component_loader, clock_index, &mut None)
+        }
         _ => panic!("Got unexpected query side: {:?}", side),
     }
 }
