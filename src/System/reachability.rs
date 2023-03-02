@@ -2,7 +2,6 @@ use edbm::zones::OwnedFederation;
 
 use super::query_failures::PathFailure;
 use super::specifics::SpecificPath;
-use crate::component::LocationType;
 use crate::ModelObjects::component::{State, Transition};
 use crate::Simulation::decision::Decision;
 use crate::TransitionSystems::{LocationID, TransitionSystemPtr};
@@ -35,17 +34,6 @@ fn is_trivially_unreachable(start_state: &State, end_state: &State) -> bool {
         if !end_state.zone_ref().has_intersection(invariants) {
             return true;
         }
-    }
-    // If the start state is a universal or inconsistent location and the end state isn't
-    // Since universal and inconsistent locations cannot reach other locations
-    if matches!(
-        start_state.decorated_locations.loc_type,
-        LocationType::Universal | LocationType::Inconsistent
-    ) && !start_state
-        .decorated_locations
-        .compare_partial_locations(&end_state.decorated_locations)
-    {
-        return true;
     }
 
     false
