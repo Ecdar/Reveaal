@@ -90,7 +90,7 @@ impl Component {
         let vec: Vec<&Location> = self
             .get_locations()
             .iter()
-            .filter(|location| location.get_location_type() == &LocationType::Initial)
+            .filter(|location| location.get_location_type() == LocationType::Initial)
             .collect();
 
         vec.first().copied()
@@ -320,7 +320,7 @@ impl State {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]
 pub enum LocationType {
     Normal,
     Initial,
@@ -355,8 +355,8 @@ impl Location {
     pub fn get_invariant(&self) -> &Option<BoolExpression> {
         &self.invariant
     }
-    pub fn get_location_type(&self) -> &LocationType {
-        &self.location_type
+    pub fn get_location_type(&self) -> LocationType {
+        self.location_type
     }
     pub fn get_urgency(&self) -> &String {
         &self.urgency
