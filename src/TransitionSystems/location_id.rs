@@ -34,23 +34,6 @@ impl LocationID {
         }
     }
 
-    /// Does an inorder walk of the [`LocationID`] tree mapping it to a list of [`LocationID::Simple`].
-    pub fn inorder_vec_tranform(&self) -> Vec<Self> {
-        match self {
-            LocationID::Composition(left, right)
-            | LocationID::Quotient(left, right)
-            | LocationID::Conjunction(left, right) => {
-                let mut left = left.inorder_vec_tranform();
-                let mut right = right.inorder_vec_tranform();
-                left.append(&mut right);
-                left
-            }
-            LocationID::Simple(_) | LocationID::AnyLocation | LocationID::Special(_) => {
-                vec![self.clone()]
-            }
-        }
-    }
-
     /// It check whether the [`LocationID`] is a partial location by search through [`LocationID`] structure and see if there is any [`LocationID::AnyLocation`]
     pub fn is_partial_location(&self) -> bool {
         // TODO: Remove this function and implement it on a new PartialLocationID type
