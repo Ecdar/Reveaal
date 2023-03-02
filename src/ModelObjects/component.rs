@@ -329,6 +329,15 @@ pub enum LocationType {
     Any,
 }
 
+impl LocationType {
+    pub fn combine(self, other: Self) -> Self {
+        match (self, other) {
+            (LocationType::Initial, LocationType::Initial) => LocationType::Initial,
+            _ => LocationType::Normal,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyLocation")]
 pub struct Location {

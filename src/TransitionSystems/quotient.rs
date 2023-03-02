@@ -144,7 +144,6 @@ impl TransitionSystem for Quotient {
         let mut transitions = vec![];
 
         //Rules [universal] and [inconsistent]
-        // TODO: ensure that it is actually this quotients inconsistent location
         if location.is_inconsistent() {
             //Rule 10
             if is_input {
@@ -155,7 +154,6 @@ impl TransitionSystem for Quotient {
                 transitions.push(transition);
             }
             return transitions;
-            // TODO: ensure that it is actually this quotients universal location
         } else if location.is_universal() {
             // Rule 9
             let transition = Transition::new(location, self.dim);

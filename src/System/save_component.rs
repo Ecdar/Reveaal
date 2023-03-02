@@ -1,3 +1,4 @@
+use crate::component::LocationType;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
@@ -52,10 +53,16 @@ pub fn get_locations_from_tuples(
                 BoolExpression::from_disjunction(&fed.minimal_constraints(), clock_map)
             });
 
+            let location_type = if loc_vec.is_initial() {
+                LocationType::Initial
+            } else {
+                LocationType::Normal
+            };
+
             Location {
                 id: loc_vec.id.to_string(),
                 invariant,
-                location_type: loc_vec.loc_type,
+                location_type,
                 urgency: "NORMAL".to_string(), //TODO: Handle different urgencies eventually
             }
         })

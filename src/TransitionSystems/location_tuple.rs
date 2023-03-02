@@ -20,7 +20,7 @@ pub struct LocationTuple {
     pub id: LocationID,
     /// The invariant for the `Location`
     pub invariant: Option<OwnedFederation>,
-    pub loc_type: LocationType,
+    loc_type: LocationType,
     left: Option<Box<LocationTuple>>,
     right: Option<Box<LocationTuple>>,
 }
@@ -88,19 +88,7 @@ impl LocationTuple {
     pub fn merge_as_quotient(left: &Self, right: &Self) -> Self {
         let id = LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()));
 
-        if left.loc_type == right.loc_type
-            && (left.loc_type == LocationType::Universal
-                || left.loc_type == LocationType::Inconsistent)
-        {
-            return left.clone();
-        }
-
-        let loc_type =
-            if left.loc_type == LocationType::Initial && right.loc_type == LocationType::Initial {
-                LocationType::Initial
-            } else {
-                LocationType::Normal
-            };
+        let loc_type = left.loc_type.combine(right.loc_type);
 
         LocationTuple {
             id,
@@ -123,10 +111,6 @@ impl LocationTuple {
             _ => panic!("Invalid composition type {:?}", comp),
         };
 
-        if left.loc_type == right.loc_type && (left.is_universal() || left.is_inconsistent()) {
-            return left.clone();
-        }
-
         let invariant = if let Some(inv1) = &left.invariant {
             if let Some(inv2) = &right.invariant {
                 Some(inv1.clone().intersection(inv2))
@@ -137,12 +121,7 @@ impl LocationTuple {
             right.invariant.clone()
         };
 
-        let loc_type =
-            if left.loc_type == LocationType::Initial && right.loc_type == LocationType::Initial {
-                LocationType::Initial
-            } else {
-                LocationType::Normal
-            };
+        let loc_type = left.loc_type.combine(right.loc_type);
 
         LocationTuple {
             id,
@@ -165,16 +144,10 @@ impl LocationTuple {
     }
 
     pub fn get_left(&self) -> &LocationTuple {
-        if self.is_universal() || self.is_inconsistent() {
-            return self;
-        }
         self.left.as_ref().unwrap()
     }
 
     pub fn get_right(&self) -> &LocationTuple {
-        if self.is_universal() || self.is_inconsistent() {
-            return self;
-        }
         self.right.as_ref().unwrap()
     }
 
@@ -205,36 +178,7 @@ impl LocationTuple {
             | (LocationID::Simple { .. }, LocationID::AnyLocation)
             | (LocationID::AnyLocation, LocationID::AnyLocation) => true,
             (LocationID::Simple(loc_id_1), LocationID::Simple(loc_id_2)) => loc_id_1 == loc_id_2,
-            // These six arms below are for comparing universal or inconsistent location with partial location.
-            (LocationID::Simple { .. }, LocationID::Composition(..))
-            | (LocationID::Simple { .. }, LocationID::Conjunction(..))
-            | (LocationID::Simple { .. }, LocationID::Quotient(..)) => {
-                self.handle_universal_inconsistent_compare(other)
-            }
-            (LocationID::Composition(..), LocationID::Simple { .. })
-            | (LocationID::Conjunction(..), LocationID::Simple { .. })
-            | (LocationID::Quotient(..), LocationID::Simple { .. }) => {
-                other.handle_universal_inconsistent_compare(self)
-            }
             (_, _) => false,
-        }
-    }
-
-    fn handle_universal_inconsistent_compare(&self, other: &LocationTuple) -> bool {
-        (self.is_universal() || self.is_inconsistent())
-            && other.is_universal_or_inconsistent(&self.loc_type)
-    }
-
-    fn is_universal_or_inconsistent(&self, loc_type: &LocationType) -> bool {
-        match self.id {
-            LocationID::Conjunction(..)
-            | LocationID::Composition(..)
-            | LocationID::Quotient(..) => {
-                self.get_left().is_universal_or_inconsistent(loc_type)
-                    && self.get_right().is_universal_or_inconsistent(loc_type)
-            }
-            LocationID::Simple { .. } | LocationID::Special(_) => self.loc_type == *loc_type,
-            LocationID::AnyLocation => true,
         }
     }
 }
