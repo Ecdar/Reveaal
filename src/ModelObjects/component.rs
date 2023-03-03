@@ -301,6 +301,12 @@ impl State {
         self.zone_sentinel = Some(zone);
     }
 
+    pub fn update_zone(&mut self, update: impl FnOnce(OwnedFederation) -> OwnedFederation) {
+        let fed = self.take_zone();
+        let new_fed = update(fed);
+        self.set_zone(new_fed);
+    }
+
     pub fn is_subset_of(&self, other: &Self) -> bool {
         if self.decorated_locations != other.decorated_locations {
             return false;
