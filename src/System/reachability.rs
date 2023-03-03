@@ -165,10 +165,10 @@ fn take_transition(
     system: &TransitionSystemPtr,
     action: &str,
 ) {
-    // TODO: i think this method can be simplified a lot
     let mut new_state = sub_path.destination_state.clone();
     if transition.use_transition(&mut new_state) {
-        new_state.extrapolate_max_bounds(system.as_ref()); // Ensures the bounds cant grow infinitely, avoiding infinite loops in an edge case TODO: does not take end state zone into account, leading to a very rare edge case
+        // TODO: bounds here are not always correct, they should take the added bounds from the target state into account
+        new_state.extrapolate_max_bounds(system.as_ref()); // Ensures the bounds cant grow infinitely, avoiding infinite loops
         let new_location_id = &new_state.get_location().id;
         let existing_zones = visited_states.entry(new_location_id.clone()).or_default();
         // If this location has not already been reached (explored) with a larger zone

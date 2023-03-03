@@ -37,18 +37,13 @@ clone_trait_object!(ComposedTransitionSystem);
 
 impl<T: ComposedTransitionSystem> TransitionSystem for T {
     fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
-        if loc.is_universal() || loc.is_inconsistent() {
-            // TODO: this seems wrong
-            Bounds::new(self.get_dim())
-        } else {
-            let (left, right) = self.get_children();
-            let loc_l = loc.get_left();
-            let loc_r = loc.get_right();
-            let mut bounds_l = left.get_local_max_bounds(loc_l);
-            let bounds_r = right.get_local_max_bounds(loc_r);
-            bounds_l.add_bounds(&bounds_r);
-            bounds_l
-        }
+        let (left, right) = self.get_children();
+        let loc_l = loc.get_left();
+        let loc_r = loc.get_right();
+        let mut bounds_l = left.get_local_max_bounds(loc_l);
+        let bounds_r = right.get_local_max_bounds(loc_r);
+        bounds_l.add_bounds(&bounds_r);
+        bounds_l
     }
 
     fn get_dim(&self) -> ClockIndex {
