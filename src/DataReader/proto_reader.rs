@@ -248,8 +248,7 @@ mod tests {
     fn empty_state_test() {
         let system = json_get_system(PATH, "Spec // Machine // Administration");
         let mut initial_state = system.get_initial_state().unwrap();
-        let zone = initial_state.take_zone().set_empty();
-        initial_state.set_zone(zone);
+        initial_state.update_zone(|zone| zone.set_empty());
         let initial_state2 = convert_to_proto_and_back(&initial_state, &system);
         assert_state_equals(&initial_state, &initial_state2)
     }

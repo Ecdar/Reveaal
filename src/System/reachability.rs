@@ -100,10 +100,8 @@ fn reachability_search(
     system: &TransitionSystemPtr,
 ) -> Result<Path, PathFailure> {
     // Apply the invariant of the start state to the start state
-    let mut start_clone = start_state.clone();
-    let start_zone = start_clone.take_zone();
-    let zone = start_clone.decorated_locations.apply_invariants(start_zone);
-    start_clone.set_zone(zone);
+    let mut start_state = start_state.clone();
+    start_state.apply_invariants();
 
     // hashmap linking every location to all its current zones
     let mut visited_states: HashMap<LocationID, Vec<OwnedFederation>> = HashMap::new();
@@ -116,14 +114,14 @@ fn reachability_search(
 
     // Push start state to visited state
     visited_states.insert(
-        start_clone.get_location().id.clone(),
-        vec![start_clone.zone_ref().clone()],
+        start_state.get_location().id.clone(),
+        vec![start_state.zone_ref().clone()],
     );
 
     // Push initial state to frontier
     frontier_states.push_back(Rc::new(SubPath {
         previous_sub_path: None,
-        destination_state: start_clone,
+        destination_state: start_state.clone(),
         transition: None,
     }));
 
@@ -213,7 +211,7 @@ fn remove_existing_subsets_of_zone(
     existing_zones.retain(|existing_zone| !existing_zone.subset_eq(new_zone));
 }
 /// Makes the path from the last subpath
-fn make_path(mut sub_path: Rc<SubPath>, start_state: &State) -> Path {
+fn make_path(mut sub_path: Rc<SubPath>, start_state: State) -> Path {
     let mut path: Vec<(Transition, String)> = Vec::new();
     // Traverse the subpaths to make the path (from end location to start location)
     while sub_path.previous_sub_path.is_some() {
@@ -222,7 +220,7 @@ fn make_path(mut sub_path: Rc<SubPath>, start_state: &State) -> Path {
     }
     // Reverse the path since the transitions are in reverse order (now from start location to end location)
     path.reverse();
-    let mut state = start_state.clone();
+    let mut state = start_state;
 
     let mut decisions = Vec::new();
 

@@ -293,11 +293,11 @@ impl State {
         self.zone_sentinel.as_ref().unwrap()
     }
 
-    pub fn take_zone(&mut self) -> OwnedFederation {
+    fn take_zone(&mut self) -> OwnedFederation {
         self.zone_sentinel.take().unwrap()
     }
 
-    pub fn set_zone(&mut self, zone: OwnedFederation) {
+    fn set_zone(&mut self, zone: OwnedFederation) {
         self.zone_sentinel = Some(zone);
     }
 

@@ -36,7 +36,7 @@ pub fn check_determinism(system: &dyn TransitionSystem) -> DeterminismResult {
         return Ok(());
     }
     let mut state = state.unwrap();
-    state.set_zone(OwnedFederation::universe(system.get_dim()));
+    state.update_zone(|_| OwnedFederation::universe(system.get_dim()));
     is_deterministic_helper(state, &mut passed, system)
 }
 
