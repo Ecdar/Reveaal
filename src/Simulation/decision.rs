@@ -9,6 +9,7 @@ pub struct Decision {
     pub state: State,
     pub action: String,
     pub transition: Option<Transition>,
+    pub next_state: State,
 }
 
 impl Decision {
@@ -35,6 +36,31 @@ impl Decision {
         Decision::get_decisions_from_state(next_state, system)
     }
 
+    pub fn from_state_transition(
+        mut state: State,
+        transition: &Transition,
+        action: impl Into<String>,
+    ) -> Option<Decision> {
+        // Get the zone that is allowed by the transition
+        let allowed = transition.get_allowed_federation();
+        // Intersect the state zone with the allowed zone
+        state.update_zone(|zone| zone.intersection(&allowed));
+        // Check if the new state is empty
+        if !state.zone_ref().is_empty() {
+            let next_state = transition.use_transition_alt(&state).expect(
+                "If the allowed zone is non-empty, the transition should lead to a non-empty state",
+            );
+            Some(Decision {
+                state,
+                action: action.into(),
+                transition: Some(transition.to_owned()),
+                next_state,
+            })
+        } else {
+            None
+        }
+    }
+
     /// Get all possible [`Decision`]s from a [`State`]
     pub fn get_decisions_from_state(state: State, system: &TransitionSystemPtr) -> Vec<Decision> {
         let mut next_decisions = vec![];
@@ -42,14 +68,9 @@ impl Decision {
         for action in system.get_actions() {
             let possible_transitions = system.next_transitions(&state.decorated_locations, &action);
             for t in possible_transitions {
-                let allowed = t.get_allowed_federation();
-                let intersection = allowed.intersection(state.zone_ref());
-                if !intersection.is_empty() {
-                    next_decisions.push(Decision {
-                        state: State::create(state.decorated_locations.clone(), intersection),
-                        action: action.clone(),
-                        transition: Some(t),
-                    });
+                if let Some(decision) = Decision::from_state_transition(state.clone(), &t, &action)
+                {
+                    next_decisions.push(decision);
                 }
             }
         }

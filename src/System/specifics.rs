@@ -19,6 +19,7 @@ pub struct SpecificDecision {
     pub source_state: SpecificState,
     pub action: String,
     pub edges: Vec<SpecificEdge>,
+    pub destination_state: SpecificState,
 }
 
 fn transition_id_to_specific_edges(
@@ -73,6 +74,7 @@ impl SpecificDecision {
             source_state: SpecificState::from_state(&decision.state, system),
             action: decision.action.clone(),
             edges,
+            destination_state: SpecificState::from_state(&decision.next_state, system),
         }
     }
 }

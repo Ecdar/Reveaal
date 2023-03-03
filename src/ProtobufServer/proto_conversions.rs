@@ -313,6 +313,7 @@ impl From<SpecificDecision> for services::Decision {
             source: Some(decision.source_state.into()),
             action: decision.action,
             edges: decision.edges.into_iter().map(|e| e.into()).collect(),
+            destination: Some(decision.destination_state.into()),
         }
     }
 }

@@ -56,12 +56,17 @@ pub fn proto_decision_to_decision(
 ) -> Decision {
     let proto_state: ProtoState = proto_decision.source.unwrap();
     let state = proto_state_to_state(proto_state, system);
+
+    let next_proto_state = proto_decision.destination.unwrap();
+    let next_state = proto_state_to_state(next_proto_state, system);
+
     let action = proto_decision.action;
 
     Decision {
         state,
         action,
         transition: None,
+        next_state,
     }
 }
 

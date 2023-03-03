@@ -227,17 +227,10 @@ fn make_path(mut sub_path: Rc<SubPath>, start_state: &State) -> Path {
     let mut decisions = Vec::new();
 
     for (transition, action) in path {
-        let mut source_state = state.clone();
-        let zone = source_state.take_zone();
-        // Get the zone that is allowed by the transition
-        let zone = zone.intersection(&transition.get_allowed_federation());
-        source_state.set_zone(zone);
+        let decision = Decision::from_state_transition(state.clone(), &transition, action)
+            .expect("If the transition is in a path, it should lead to a non-empty state");
 
-        decisions.push(Decision {
-            state: source_state,
-            action,
-            transition: Some(transition.clone()),
-        });
+        decisions.push(decision);
 
         transition.use_transition(&mut state);
     }
