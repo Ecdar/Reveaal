@@ -14,6 +14,7 @@ use crate::{
 
 use super::reachability::Path;
 
+/// Intermediate representation of a [decision](Decision) from a `source` specific state to a `destination` specific state with an `action`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificDecision {
     pub source_state: SpecificState,
@@ -79,6 +80,7 @@ impl SpecificDecision {
     }
 }
 
+/// Intermediate representation of a [path](Path) of [decisions](SpecificDecision).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificPath {
     pub path: Vec<SpecificDecision>,
@@ -96,6 +98,7 @@ impl SpecificPath {
     }
 }
 
+/// Intermediate representation of a component instance. `id` is used to distinguish different instances of the same components in a system.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificComp {
     pub name: String,
@@ -108,6 +111,7 @@ impl SpecificComp {
     }
 }
 
+/// Intermediate representation of an [edge](crate::ModelObjects::component::Edge) in a component instance.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificEdge {
     pub comp: SpecificComp,
@@ -127,6 +131,7 @@ impl SpecificEdge {
     }
 }
 
+/// Intermediate representaton of a [disjunction](Disjunction) of conjunctions of clock constraints.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificDisjunction {
     pub conjunctions: Vec<SpecificConjunction>,
@@ -144,6 +149,7 @@ impl SpecificDisjunction {
     }
 }
 
+/// Intermediate representaton of a [conjunction](Conjunction) of clock constraints.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificConjunction {
     pub constraints: Vec<SpecificConstraint>,
@@ -161,14 +167,18 @@ impl SpecificConjunction {
     }
 }
 
+/// Intermediate representation of a [clock](ClockIndex) used in a constraint.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificClockVar {
+    /// The zero clock.
     Zero,
+    /// A clock in a component instance.
     ComponentClock(SpecificClock),
+    /// A clock without a component instance. E.g. a quotient clock.
     SystemClock(ClockIndex),
 }
 
-/// i-j <?= c
+/// Intermediate representation of a clock [constraint](Constraint) of the form `i-j <?= c`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificConstraint {
     pub i: SpecificClockVar,
@@ -201,19 +211,25 @@ impl SpecificConstraint {
     }
 }
 
+/// Intermediate representation of a [State] in a system with its `locations` and zone `constraints`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificState {
     pub locations: SpecificLocation,
     pub constraints: SpecificDisjunction,
 }
 
+/// Intermediate representation of a [LocationID](crate::TransitionSystems::location_id::LocationID) in a system.
+/// It is a binary tree with either [component](SpecificComp) locations or [special](SpecialLocation) locations at the leaves.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificLocation {
+    /// A location in a component instance.
     ComponentLocation {
         comp: SpecificComp,
         location_id: String,
     },
+    /// A branch with two child locations.
     BranchLocation(Box<SpecificLocation>, Box<SpecificLocation>),
+    /// A special location. E.g. `Error` or `Universal` from a quotient.
     SpecialLocation(SpecialLocation),
 }
 
@@ -229,6 +245,9 @@ impl SpecificLocation {
         }
     }
 
+    /// Assume that the location is a branch location and return the left and right child.
+    /// # Panics
+    /// Panics if the location is not a branch location.
     pub fn split(self) -> (Self, Self) {
         match self {
             SpecificLocation::BranchLocation(left, right) => (*left, *right),
@@ -249,6 +268,7 @@ impl fmt::Display for SpecificLocation {
     }
 }
 
+/// Intermediate representation of a [special](crate::TransitionSystems::location_id::LocationID::Special) location. E.g. `Error` or `Universal` from a quotient.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecialLocation {
     Universal,
@@ -265,6 +285,7 @@ impl fmt::Display for SpecialLocation {
 }
 
 impl SpecificState {
+    /// Create a new [SpecificState] from a [State] and its transition system.
     pub fn from_state(state: &State, sys: &dyn TransitionSystem) -> Self {
         let locations = state_specific_location(state, sys);
         let clock_map = specific_clock_comp_map(sys);
@@ -276,6 +297,8 @@ impl SpecificState {
             constraints,
         }
     }
+
+    /// Create a new [SpecificState] from a [StatePair] and its pair of transition systems.
     pub fn from_state_pair(
         state: &StatePair,
         sys1: &dyn TransitionSystem,
@@ -304,6 +327,7 @@ impl fmt::Display for SpecificState {
     }
 }
 
+/// Intermediate representation of a clock name in a specific [component instance](SpecificComp).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificClock {
     pub name: String,
@@ -316,6 +340,7 @@ impl SpecificClock {
     }
 }
 
+/// Construct a map from clock indices to [SpecificClock]s for the transition system.
 pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex, SpecificClock> {
     sys.comp_infos()
         .iter()
@@ -336,6 +361,7 @@ pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex
         .collect()
 }
 
+/// Construct a map from clock indices to [SpecificClock]s for the transition system pair.
 pub fn specific_clock_comp_map2(
     sys1: &dyn TransitionSystem,
     sys2: &dyn TransitionSystem,
@@ -345,6 +371,7 @@ pub fn specific_clock_comp_map2(
     map
 }
 
+/// Get the [SpecificLocation] of a [StatePair] given the transition systems.
 pub fn state_pair_specific_location(
     state: &StatePair,
     sys1: &dyn TransitionSystem,
@@ -355,10 +382,12 @@ pub fn state_pair_specific_location(
     SpecificLocation::BranchLocation(Box::new(left), Box::new(right))
 }
 
+/// Get the [SpecificLocation] of a [State] given the transition system.
 pub fn state_specific_location(state: &State, sys: &dyn TransitionSystem) -> SpecificLocation {
     specific_location(&state.decorated_locations.id, sys)
 }
 
+/// Get the [SpecificLocation] of a [LocationID] given the transition system.
 pub fn specific_location(location_id: &LocationID, sys: &dyn TransitionSystem) -> SpecificLocation {
     fn inner(location_id: &LocationID, infos: ComponentInfoTree) -> SpecificLocation {
         match location_id {
