@@ -307,13 +307,12 @@ impl fmt::Display for SpecificState {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificClock {
     pub name: String,
-    pub id: ClockIndex,
     pub comp: SpecificComp,
 }
 
 impl SpecificClock {
-    pub fn new(name: String, id: ClockIndex, comp: SpecificComp) -> Self {
-        Self { name, id, comp }
+    pub fn new(name: String, comp: SpecificComp) -> Self {
+        Self { name, comp }
     }
 }
 
@@ -321,8 +320,6 @@ pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex
     sys.comp_infos()
         .iter()
         .flat_map(|comp| {
-            //let name = comp.name.clone();
-            //let id = comp.id;
             comp.declarations
                 .clocks
                 .iter()
@@ -331,7 +328,6 @@ pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex
                         clock_id,
                         SpecificClock::new(
                             clock.clone(),
-                            clock_id,
                             SpecificComp::new(comp.name.clone(), comp.id),
                         ),
                     )
