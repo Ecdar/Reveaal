@@ -306,7 +306,7 @@ impl SpecificState {
     ) -> Self {
         let locations = state_pair_specific_location(state, sys1, sys2);
 
-        let clock_map = specific_clock_comp_map2(sys1, sys2);
+        let clock_map = specific_clock_comp_map_composite(sys1, sys2);
 
         let constraints = state.ref_zone().minimal_constraints();
         let constraints = SpecificDisjunction::from(constraints, &clock_map);
@@ -362,7 +362,7 @@ pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex
 }
 
 /// Construct a map from clock indices to [SpecificClock]s for the transition system pair.
-pub fn specific_clock_comp_map2(
+pub fn specific_clock_comp_map_composite(
     sys1: &dyn TransitionSystem,
     sys2: &dyn TransitionSystem,
 ) -> HashMap<ClockIndex, SpecificClock> {
