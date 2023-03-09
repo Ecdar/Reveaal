@@ -433,21 +433,18 @@ fn check_preconditions(
     let t_inputs = sys2.get_input_actions();
 
     if !s_inputs.is_disjoint(&t_outputs) {
-        return ActionFailure::not_disjoint((sys1.as_ref(), s_inputs), (sys2.as_ref(), t_outputs))
-            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()));
+        ActionFailure::not_disjoint((sys1.as_ref(), s_inputs), (sys2.as_ref(), t_outputs))
+            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()))
+    } else if !t_inputs.is_disjoint(&s_outputs) {
+        ActionFailure::not_disjoint((sys2.as_ref(), t_inputs), (sys1.as_ref(), s_outputs))
+            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()))
+    } else if !s_inputs.is_subset(&t_inputs) {
+        ActionFailure::not_subset((sys1.as_ref(), s_inputs), (sys2.as_ref(), t_inputs))
+            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()))
+    } else if !t_outputs.is_subset(&s_outputs) {
+        ActionFailure::not_subset((sys2.as_ref(), t_outputs), (sys1.as_ref(), s_outputs))
+            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()))
+    } else {
+        Ok(())
     }
-    if !t_inputs.is_disjoint(&s_outputs) {
-        return ActionFailure::not_disjoint((sys2.as_ref(), t_inputs), (sys1.as_ref(), s_outputs))
-            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()));
-    }
-    if !s_inputs.is_subset(&t_inputs) {
-        return ActionFailure::not_subset((sys1.as_ref(), s_inputs), (sys2.as_ref(), t_inputs))
-            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()));
-    }
-    if !t_outputs.is_subset(&s_outputs) {
-        return ActionFailure::not_subset((sys2.as_ref(), t_outputs), (sys1.as_ref(), s_outputs))
-            .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()));
-    }
-
-    Ok(())
 }
