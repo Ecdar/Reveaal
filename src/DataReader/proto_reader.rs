@@ -75,28 +75,28 @@ pub fn proto_decision_to_decision(
 /// # Panics
 /// If:
 /// - `state.federation` is `None`.
-/// - `state.location_tuple` is `None`.
+/// - `state.location_tree` is `None`.
 pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> State {
     let proto_federation: ProtoFederation = state.federation.unwrap();
     let federation: OwnedFederation =
         proto_federation_to_owned_federation(proto_federation, system);
 
-    let proto_location_tuple: ProtoLocationTree = state.location_tuple.unwrap();
-    let location_tuple = proto_location_tuple_to_location_tuple(proto_location_tuple, system);
+    let proto_location_tree: ProtoLocationTree = state.location_tuple.unwrap();
+    let location_tree = proto_location_tree_to_location_tree(proto_location_tree, system);
 
     // Ensure that the invariants are applied to the state
-    let federation = location_tuple.apply_invariants(federation);
+    let federation = location_tree.apply_invariants(federation);
 
-    State::create(location_tuple, federation)
+    State::create(location_tree, federation)
 }
 
-fn proto_location_tuple_to_location_tuple(
-    location_tuple: ProtoLocationTree,
+fn proto_location_tree_to_location_tree(
+    location_tree: ProtoLocationTree,
     system: &TransitionSystemPtr,
 ) -> LocationTree {
-    let target: SpecificLocation = location_tuple.into();
+    let target: SpecificLocation = location_tree.into();
 
-    system.construct_location_tuple(target).unwrap()
+    system.construct_location_tree(target).unwrap()
 }
 
 fn proto_constraint_to_constraint(
@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(
             *state1.get_location(),
             *state2.get_location(),
-            "Location tuples are not equal"
+            "Location trees are not equal"
         );
     }
 

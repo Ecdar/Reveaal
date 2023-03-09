@@ -336,21 +336,21 @@ impl TransitionSystem for Quotient {
     }
 
     fn get_all_locations(&self) -> Vec<LocationTree> {
-        let mut location_tuples = vec![];
+        let mut location_trees = vec![];
 
         let left = self.T.get_all_locations();
         let right = self.S.get_all_locations();
         for loc_t in &left {
             for loc_s in &right {
                 let location = merge(loc_t, loc_s);
-                location_tuples.push(location);
+                location_trees.push(location);
             }
         }
 
-        location_tuples.push(self.inconsistent_location.clone());
-        location_tuples.push(self.universal_location.clone());
+        location_trees.push(self.inconsistent_location.clone());
+        location_trees.push(self.universal_location.clone());
 
-        location_tuples
+        location_trees
     }
 
     fn get_decls(&self) -> Vec<&Declarations> {
@@ -384,11 +384,11 @@ impl TransitionSystem for Quotient {
         CompositionType::Quotient
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String> {
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         match target {
             SpecificLocation::BranchLocation(left, right) => {
-                let left = self.T.construct_location_tuple(*left)?;
-                let right = self.S.construct_location_tuple(*right)?;
+                let left = self.T.construct_location_tree(*left)?;
+                let right = self.S.construct_location_tree(*right)?;
                 Ok(merge(&left, &right))
             }
             SpecificLocation::SpecialLocation(SpecialLocation::Universal) => {

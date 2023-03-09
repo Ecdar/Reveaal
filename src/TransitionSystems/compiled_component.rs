@@ -54,8 +54,8 @@ impl CompiledComponent {
             .get_locations()
             .iter()
             .map(|loc| {
-                let tuple = LocationTree::simple(loc, component.get_declarations(), dim);
-                (tuple.id.clone(), tuple)
+                let loc = LocationTree::simple(loc, component.get_declarations(), dim);
+                (loc.id.clone(), loc)
             })
             .collect();
 
@@ -210,7 +210,7 @@ impl TransitionSystem for CompiledComponent {
         self.comp_info.name.clone()
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String> {
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         match target {
             SpecificLocation::ComponentLocation { comp, location_id } => {
                 assert_eq!(comp.name, self.comp_info.name);

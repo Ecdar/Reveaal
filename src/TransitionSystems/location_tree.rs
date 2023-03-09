@@ -70,11 +70,11 @@ impl LocationTree {
             right: None,
         }
     }
-    /// This method is used to a build partial [`LocationTuple`].
-    /// A partial [`LocationTuple`] means it has a [`LocationID`] that is [`LocationID::AnyLocation`].
-    /// A partial [`LocationTuple`] has `None` in the field `invariant` since a partial [`LocationTuple`]
+    /// This method is used to a build partial [`LocationTree`].
+    /// A partial [`LocationTree`] means it has a [`LocationID`] that is [`LocationID::AnyLocation`].
+    /// A partial [`LocationTree`] has `None` in the field `invariant` since a partial [`LocationTree`]
     /// covers more than one location, and therefore there is no specific `invariant`
-    pub fn build_any_location_tuple() -> Self {
+    pub fn build_any_location_tree() -> Self {
         LocationTree {
             id: LocationID::AnyLocation,
             invariant: None,
@@ -163,7 +163,7 @@ impl LocationTree {
         self.loc_type == LocationType::Inconsistent
     }
 
-    /// This function is used when you want to compare [`LocationTuple`]s that can contain partial locations.
+    /// This function is used when you want to compare [`LocationTree`]s that can contain partial locations.
     pub fn compare_partial_locations(&self, other: &LocationTree) -> bool {
         match (&self.id, &other.id) {
             (LocationID::Composition(..), LocationID::Composition(..))

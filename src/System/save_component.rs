@@ -16,19 +16,19 @@ pub fn combine_components(
     system: &TransitionSystemPtr,
     reachability: PruningStrategy,
 ) -> Component {
-    let mut location_tuples = vec![];
+    let mut location_trees = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
     match reachability {
         Reachable => {
-            collect_reachable_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks)
+            collect_reachable_edges_and_locations(system, &mut location_trees, &mut edges, &clocks)
         }
         NoPruning => {
-            collect_all_edges_and_locations(system, &mut location_tuples, &mut edges, &clocks)
+            collect_all_edges_and_locations(system, &mut location_trees, &mut edges, &clocks)
         }
     };
 
-    let locations = get_locations_from_tuples(&location_tuples, &clocks);
+    let locations = get_locations_from_trees(&location_trees, &clocks);
 
     Component {
         name: "".to_string(),
@@ -41,11 +41,11 @@ pub fn combine_components(
     }
 }
 
-pub fn get_locations_from_tuples(
-    location_tuples: &[LocationTree],
+pub fn get_locations_from_trees(
+    location_trees: &[LocationTree],
     clock_map: &HashMap<String, ClockIndex>,
 ) -> Vec<Location> {
-    location_tuples
+    location_trees
         .iter()
         .cloned()
         .map(|loc_vec| {

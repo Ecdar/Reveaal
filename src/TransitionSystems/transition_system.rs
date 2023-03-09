@@ -257,7 +257,7 @@ pub trait TransitionSystem: DynClone {
         self.get_analysis_graph().find_clock_redundancies()
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String>;
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String>;
 }
 
 /// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some `components`.
