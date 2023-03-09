@@ -8,16 +8,23 @@ use crate::{
 
 use super::specifics::{SpecificPath, SpecificState};
 
+/// Represents how a system is composed at the highest level
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SystemType {
-    Quotient,
+    /// A refinement between two systems
     Refinement,
+    /// A quotient of two systems
+    Quotient,
+    /// A composition of two systems
     Composition,
+    /// A conjunction of two systems
     Conjunction,
+    /// A simple component, not composed with anything else
     Simple,
 }
 
 impl SystemType {
+    /// Returns the string representation of the operator for this composition type
     pub fn op(&self) -> String {
         match self {
             Self::Quotient => r"\\",
@@ -42,24 +49,28 @@ impl fmt::Display for SystemType {
     }
 }
 
+/// Represents a system of components as a [String] `name` and the type of the highest level composition `sys_type`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct System {
     pub name: String,
     pub sys_type: SystemType,
 }
 impl System {
+    /// Creates a new refinement system from two systems, `sys1` and `sys2`
     pub fn refinement(sys1: &dyn TransitionSystem, sys2: &dyn TransitionSystem) -> Self {
         Self {
             name: format!("{} <= {}", sys1.to_string(), sys2.to_string()),
             sys_type: SystemType::Refinement,
         }
     }
+    /// Creates a new system from a single [TransitionSystem]
     pub fn from(sys: &dyn TransitionSystem) -> Self {
         Self {
             name: sys.to_string(),
             sys_type: sys.get_composition_type().into(),
         }
     }
+    /// Creates a new system from two [TransitionSystem]s, `sys1` and `sys2`, and the type of the composition `sys_type`
     pub fn from2(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
@@ -77,6 +88,10 @@ impl System {
     }
 }
 
+/// Represents a set of actions in a system of components. The system is represented by a [String] `system`,
+/// along with the `actions` and whether the actions are all inputs (`is_input`) or all outputs (`!is_input`).
+///
+/// For representing a single action, see [Action].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionSet {
     pub system: String,
@@ -105,6 +120,10 @@ impl fmt::Display for ActionSet {
     }
 }
 
+/// Represents a single action in a system of components. The system is represented by a [String] `system`,
+/// along with the `action` and whether the action is an input (`is_input`).
+///
+/// For representing a set of actions, see [ActionSet].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Action {
     pub name: String,
@@ -122,19 +141,28 @@ impl fmt::Display for Action {
 }
 
 impl Action {
+    /// Creates a new [Action] from a [String] `name` and whether the action is an input (`is_input`).
     pub fn new(name: String, is_input: bool) -> Self {
         Self { name, is_input }
     }
 }
 
+/// Represents the different types of results that can be returned from a query
 #[derive(Clone, Debug)]
 pub enum QueryResult {
+    /// A query failed because the recipe was invalid. e.g. a conjunction was empty or actions mismatched in a composition.
     RecipeFailure(SystemRecipeFailure),
+    /// A reachability query returned a path or failure, see [PathResult].
     Reachability(PathResult),
+    /// A refinement query returned a success or failure, see [RefinementResult].
     Refinement(RefinementResult),
+    /// A consistency query returned a success or failure, see [ConsistencyResult].
     Consistency(ConsistencyResult),
+    /// A determinism query returned a success or failure, see [DeterminismResult].
     Determinism(DeterminismResult),
+    /// A get components query returned a new component.
     GetComponent(Component),
+    /// The query resulted in an unclassified error.
     CustomError(String),
 }
 
@@ -148,36 +176,48 @@ pub type ConsistencyResult = Result<(), ConsistencyFailure>;
 
 pub type DeterminismResult = Result<(), DeterminismFailure>;
 
+/// Represents the different ways that a reachability query can fail
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PathFailure {
+    /// The target state was unreachable from the initial state
     Unreachable,
 }
 
+/// Represents the different ways that a refinement query can fail
 #[allow(clippy::result_large_err)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RefinementFailure {
+    /// The refinement failed for `system` because the right side cannot match left sides delay after taking `action` from `state`.
     CutsDelaySolutions {
         system: System,
         action: Action,
         state: SpecificState,
     },
+    /// The refinement failed for `system` because one side could not match the `action` from `state`.
     CannotMatch {
         system: System,
         action: Action,
         state: SpecificState,
     },
+    /// The refinement failed on a precondition, see [RefinementPrecondition].
     Precondition(RefinementPrecondition),
 }
 
+/// Represents the different preconditions that a refinement check can fail on
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RefinementPrecondition {
+    /// The refinement `system` failed because the `child` had no initial location.
     EmptyChild { child: String, system: System },
+    /// The refinement `system` failed because the initial state was empty.
     EmptyInitialState { system: System },
+    /// The refinement `System` failed because of a `ConsistencyFailure`, see [ConsistencyFailure].
     InconsistentChild(ConsistencyFailure, System),
+    /// The refinement `System` failed because of an `ActionFailure`, see [ActionFailure].
     ActionMismatch(ActionFailure, System),
 }
 
 impl RefinementFailure {
+    /// Creates a new [RefinementFailure] that failed because the `left` or `!left` system was empty.
     pub fn empty_child(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
@@ -194,7 +234,7 @@ impl RefinementFailure {
             },
         ))
     }
-
+    /// Creates a new [RefinementFailure] that failed because the initial state was empty.
     pub fn empty_initial(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
@@ -206,6 +246,7 @@ impl RefinementFailure {
         ))
     }
 
+    /// Creates a new [RefinementFailure] that failed because a system could not match an `action` from a [state pair](StatePair).
     pub fn cannot_match(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
@@ -221,6 +262,7 @@ impl RefinementFailure {
         })
     }
 
+    /// Creates a new [RefinementFailure] that failed because of a cut delay solution.
     pub fn cuts_delays(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
@@ -237,13 +279,17 @@ impl RefinementFailure {
     }
 }
 
+/// Represents the different ways that actions can mismatch.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ActionFailure {
+    /// The actions in the first [ActionSet] are not a subset of the actions in the second [ActionSet].
     NotSubset(ActionSet, ActionSet),
+    /// The actions in the first [ActionSet] are not disjoint from the actions in the second [ActionSet].
     NotDisjoint(ActionSet, ActionSet),
 }
 #[allow(clippy::result_large_err)]
 impl ActionFailure {
+    /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a disjoint from the actions in `actions2` from `sys2`.
     pub fn not_disjoint<T>(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
@@ -268,6 +314,7 @@ impl ActionFailure {
         ))
     }
 
+    /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `inputs` are not a disjoint from the actions in `outputs`.
     pub fn not_disjoint_IO(
         name: impl Into<String>,
         inputs: HashSet<String>,
@@ -288,6 +335,7 @@ impl ActionFailure {
         ))
     }
 
+    /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a subset of the actions in `actions2` from `sys2`.
     pub fn not_subset(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
@@ -312,6 +360,7 @@ impl ActionFailure {
         ))
     }
 
+    /// Converts this [ActionFailure] into a [RefinementPrecondition] given the two [TransitionSystem]s that failed.
     pub fn to_precondition(
         self,
         sys1: &dyn TransitionSystem,
@@ -320,10 +369,12 @@ impl ActionFailure {
         RefinementPrecondition::ActionMismatch(self, System::refinement(sys1, sys2))
     }
 
+    /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
     pub fn to_recipe_failure(self, sys: &dyn TransitionSystem) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(self, System::from(sys))
     }
 
+    /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the name of the system `sys` that failed.
     pub fn to_simple_failure(self, sys: impl Into<String>) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
@@ -334,6 +385,7 @@ impl ActionFailure {
         )
     }
 
+    /// Converts this [ActionFailure] that occured during the construction of a [Quotient](crate::TransitionSystems::Quotient) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
@@ -341,6 +393,7 @@ impl ActionFailure {
         )
     }
 
+    /// Converts this [ActionFailure] that occured during the construction of a [Composition](crate::TransitionSystems::Composition) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
     pub fn to_rfcomp(
         self,
         left: TransitionSystemPtr,
@@ -352,6 +405,7 @@ impl ActionFailure {
         )
     }
 
+    /// Converts this [ActionFailure] that occured during the construction of a [Conjunction](crate::TransitionSystems::Conjunction) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
     pub fn to_rfconj(
         self,
         left: TransitionSystemPtr,
@@ -364,25 +418,32 @@ impl ActionFailure {
     }
 }
 
+/// A query failed because the recipe was invalid. e.g. a conjunction was empty or actions mismatched in a composition
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SystemRecipeFailure {
+    /// The recipe failed because of an action mismatch, see [ActionFailure].
     Action(ActionFailure, System),
+    /// The recipe failed because a conjunction in the system was empty (and therefore inconsistent).
     Inconsistent(ConsistencyFailure, System),
 }
 
+/// Represents the different ways that clock reduction can fail.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClockReductionFailure {}
 
+/// Represents the different ways that a [TransitionSystem] can fail to be consistent.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ConsistencyFailure {
-    NoInitialState {
-        system: String,
-    },
+    /// The `system` has no initial state.
+    NoInitialState { system: String },
+    /// The system is not deterministic.
     NotDeterministic(DeterminismFailure),
+    /// The `system` cannot prune an inconsistent locaction `state`.
     InconsistentLoc {
         system: String,
         state: SpecificState,
     },
+    /// The `system` cannot prune an inconsistent `state`.
     InconsistentFrom {
         system: String,
         state: SpecificState,
@@ -390,17 +451,22 @@ pub enum ConsistencyFailure {
 }
 
 impl ConsistencyFailure {
+    /// Creates a new [ConsistencyFailure] that failed because the system has no initial state.
     pub fn no_initial_state(system: &dyn TransitionSystem) -> ConsistencyResult {
         Err(ConsistencyFailure::NoInitialState {
             system: system.to_string(),
         })
     }
+
+    /// Creates a new [ConsistencyFailure] that failed because the system cannot prune an inconsistent location `state`.
     pub fn inconsistent(system: &dyn TransitionSystem, state: &State) -> ConsistencyResult {
         Err(ConsistencyFailure::InconsistentLoc {
             system: system.to_string(),
             state: SpecificState::from_state(state, system),
         })
     }
+
+    /// Creates a new [ConsistencyFailure] that failed because the system cannot prune an inconsistent `state`.
     pub fn inconsistent_from(
         system: &dyn TransitionSystem,
         //action: impl Into<String>,
@@ -415,6 +481,7 @@ impl ConsistencyFailure {
         })
     }
 
+    /// Converts this [ConsistencyFailure] into a [RefinementPrecondition] given the two [TransitionSystem]s that failed.
     pub fn to_precondition(
         self,
         sys1: &dyn TransitionSystem,
@@ -423,13 +490,12 @@ impl ConsistencyFailure {
         RefinementPrecondition::InconsistentChild(self, System::refinement(sys1, sys2))
     }
 
+    /// Converts this [ConsistencyFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
     pub fn to_recipe_failure(self, sys: &dyn TransitionSystem) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(self, System::from(sys))
     }
 
-    pub fn to_recipe_failure2(self, sys: System) -> SystemRecipeFailure {
-        SystemRecipeFailure::Inconsistent(self, sys)
-    }
+    /// Converts this [ConsistencyFailure] that occured during the construction of a [Quotient](crate::TransitionSystems::Quotient) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(
             self,
@@ -438,6 +504,7 @@ impl ConsistencyFailure {
     }
 }
 
+/// Represents how a [TransitionSystem] named `system` failed to be deterministic for `action` in `state`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeterminismFailure {
     pub system: String,
@@ -446,6 +513,7 @@ pub struct DeterminismFailure {
 }
 
 impl DeterminismFailure {
+    /// Creates a new [DeterminismFailure] from a `system`, `action`, and `state`.
     pub fn from(
         system: &dyn TransitionSystem,
         action: impl Into<String>,
