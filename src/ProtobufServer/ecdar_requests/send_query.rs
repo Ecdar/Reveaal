@@ -63,32 +63,29 @@ impl ConcreteEcdarBackend {
             };
         component_container.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
 
-        let executable_query =
+        let out =
             match extract_system_rep::create_executable_query(&query, &mut component_container) {
-                Ok(query) => query,
-                Err(ExecutableQueryError::Custom(e)) => {
-                    return Err(Status::invalid_argument(format!(
-                        "Creation of query failed: {}",
-                        e
-                    )))
+                Ok(query) => {
+                    let result = query.execute();
+                    Ok(QueryResponse {
+                        query_id: query_request.query_id,
+                        info: vec![], // TODO: Should be logs
+                        result: Some(result.into_proto_result()),
+                    })
                 }
+                Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
+                    "Creation of query failed: {}",
+                    e
+                ))),
                 Err(ExecutableQueryError::SystemRecipeFailure(failure)) => {
-                    return Ok(QueryResponse {
+                    Ok(QueryResponse {
                         query_id: query_request.query_id,
                         info: vec![], // TODO: Should be logs
                         result: Some(failure.into_proto_result()),
-                    });
+                    })
                 }
             };
-        let result = executable_query.execute();
-
-        let reply = QueryResponse {
-            query_id: query_request.query_id,
-            info: vec![], // TODO: Should be logs
-            result: Some(result.into_proto_result()),
-        };
-
-        Ok(reply)
+        out
     }
 }
 
