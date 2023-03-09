@@ -10,19 +10,15 @@ use super::query_failures::{ConsistencyResult, DeterminismResult};
 ///Local consistency check WITH pruning.
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location().is_none() {
-        return ConsistencyFailure::no_initial_state(system);
-        //TODO: figure out whether we want empty TS to be consistent
-    }
-
-    let mut passed = vec![];
-    let state = system.get_initial_state();
-    if state.is_none() {
+        ConsistencyFailure::no_initial_state(system)
+    } else if let Some(mut state) = system.get_initial_state() {
+        let mut passed = vec![];
+        state.extrapolate_max_bounds(system);
+        consistency_least_helper(state, &mut passed, system)
+    } else {
         warn!("Empty initial state");
-        return ConsistencyFailure::no_initial_state(system);
+        ConsistencyFailure::no_initial_state(system)
     }
-    let mut state = state.unwrap();
-    state.extrapolate_max_bounds(system);
-    consistency_least_helper(state, &mut passed, system)
 }
 
 ///Checks if a [TransitionSystem] is deterministic.
