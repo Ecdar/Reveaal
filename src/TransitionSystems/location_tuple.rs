@@ -16,24 +16,24 @@ pub enum CompositionType {
 }
 
 #[derive(Clone, Debug)]
-pub struct LocationTuple {
+pub struct LocationTree {
     pub id: LocationID,
     /// The invariant for the `Location`
     pub invariant: Option<OwnedFederation>,
     loc_type: LocationType,
-    left: Option<Box<LocationTuple>>,
-    right: Option<Box<LocationTuple>>,
+    left: Option<Box<LocationTree>>,
+    right: Option<Box<LocationTree>>,
 }
 
-impl PartialEq for LocationTuple {
+impl PartialEq for LocationTree {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.loc_type == other.loc_type
     }
 }
 
-impl LocationTuple {
+impl LocationTree {
     pub fn universal() -> Self {
-        LocationTuple {
+        LocationTree {
             id: LocationID::Special(crate::System::specifics::SpecialLocation::Universal),
             invariant: None,
             loc_type: LocationType::Universal,
@@ -45,7 +45,7 @@ impl LocationTuple {
     pub fn error(dim: ClockIndex, quotient_clock_index: ClockIndex) -> Self {
         let inv = OwnedFederation::universe(dim).constrain_eq(quotient_clock_index, 0);
 
-        LocationTuple {
+        LocationTree {
             id: LocationID::Special(crate::System::specifics::SpecialLocation::Error),
             invariant: Some(inv),
             loc_type: LocationType::Inconsistent,
@@ -62,7 +62,7 @@ impl LocationTuple {
         } else {
             None
         };
-        LocationTuple {
+        LocationTree {
             id: LocationID::Simple(location.get_id().clone()),
             invariant,
             loc_type: location.get_location_type(),
@@ -75,7 +75,7 @@ impl LocationTuple {
     /// A partial [`LocationTuple`] has `None` in the field `invariant` since a partial [`LocationTuple`]
     /// covers more than one location, and therefore there is no specific `invariant`
     pub fn build_any_location_tuple() -> Self {
-        LocationTuple {
+        LocationTree {
             id: LocationID::AnyLocation,
             invariant: None,
             loc_type: LocationType::Any,
@@ -90,7 +90,7 @@ impl LocationTuple {
 
         let loc_type = left.loc_type.combine(right.loc_type);
 
-        LocationTuple {
+        LocationTree {
             id,
             invariant: None,
             loc_type,
@@ -123,7 +123,7 @@ impl LocationTuple {
 
         let loc_type = left.loc_type.combine(right.loc_type);
 
-        LocationTuple {
+        LocationTree {
             id,
             invariant,
             loc_type,
@@ -143,11 +143,11 @@ impl LocationTuple {
         fed
     }
 
-    pub fn get_left(&self) -> &LocationTuple {
+    pub fn get_left(&self) -> &LocationTree {
         self.left.as_ref().unwrap()
     }
 
-    pub fn get_right(&self) -> &LocationTuple {
+    pub fn get_right(&self) -> &LocationTree {
         self.right.as_ref().unwrap()
     }
 
@@ -164,7 +164,7 @@ impl LocationTuple {
     }
 
     /// This function is used when you want to compare [`LocationTuple`]s that can contain partial locations.
-    pub fn compare_partial_locations(&self, other: &LocationTuple) -> bool {
+    pub fn compare_partial_locations(&self, other: &LocationTree) -> bool {
         match (&self.id, &other.id) {
             (LocationID::Composition(..), LocationID::Composition(..))
             | (LocationID::Conjunction(..), LocationID::Conjunction(..))

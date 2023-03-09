@@ -6,7 +6,7 @@ use crate::ModelObjects::component::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
 use crate::System::query_failures::RefinementFailure;
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashSet;
 
 use super::query_failures::{ActionFailure, RefinementPrecondition, RefinementResult};
@@ -405,8 +405,8 @@ fn build_state_pair(
 
 fn prepare_init_state(
     initial_pair: &mut StatePair,
-    initial_locations_1: LocationTuple,
-    initial_locations_2: LocationTuple,
+    initial_locations_1: LocationTree,
+    initial_locations_2: LocationTree,
 ) -> bool {
     let mut sp_zone = initial_pair.take_zone();
     sp_zone = initial_locations_1.apply_invariants(sp_zone);

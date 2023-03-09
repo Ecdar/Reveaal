@@ -13,10 +13,10 @@ use crate::{
 };
 use crate::{System::query_failures::ConsistencyResult, TransitionSystems::CompositionType};
 
-use super::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use super::{LocationTree, TransitionSystem, TransitionSystemPtr};
 
 pub(super) trait ComposedTransitionSystem: DynClone {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition>;
 
     fn check_local_consistency(&self) -> ConsistencyResult;
 
@@ -36,7 +36,7 @@ pub(super) trait ComposedTransitionSystem: DynClone {
 clone_trait_object!(ComposedTransitionSystem);
 
 impl<T: ComposedTransitionSystem> TransitionSystem for T {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
         let (left, right) = self.get_children();
         let loc_l = loc.get_left();
         let loc_r = loc.get_right();
@@ -49,7 +49,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     fn get_dim(&self) -> ClockIndex {
         self.get_dim()
     }
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         self.next_transitions(location, action)
     }
     fn get_input_actions(&self) -> HashSet<String> {
@@ -67,22 +67,22 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             .collect()
     }
 
-    fn get_initial_location(&self) -> Option<LocationTuple> {
+    fn get_initial_location(&self) -> Option<LocationTree> {
         let (left, right) = self.get_children();
         let l = left.get_initial_location()?;
         let r = right.get_initial_location()?;
 
-        Some(LocationTuple::compose(&l, &r, self.get_composition_type()))
+        Some(LocationTree::compose(&l, &r, self.get_composition_type()))
     }
 
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
+    fn get_all_locations(&self) -> Vec<LocationTree> {
         let (left, right) = self.get_children();
         let mut location_tuples = vec![];
         let left = left.get_all_locations();
         let right = right.get_all_locations();
         for loc1 in &left {
             for loc2 in &right {
-                location_tuples.push(LocationTuple::compose(
+                location_tuples.push(LocationTree::compose(
                     loc1,
                     loc2,
                     self.get_composition_type(),
@@ -133,12 +133,12 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         self.get_composition_type()
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String> {
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         let (left, right) = self.get_children();
         let (t_left, t_right) = target.split();
         let loc_l = left.construct_location_tuple(t_left)?;
         let loc_r = right.construct_location_tuple(t_right)?;
-        Ok(LocationTuple::compose(
+        Ok(LocationTree::compose(
             &loc_l,
             &loc_r,
             self.get_composition_type(),

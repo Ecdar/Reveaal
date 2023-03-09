@@ -9,7 +9,7 @@ use crate::ModelObjects::component::{
 use crate::ModelObjects::representations::BoolExpression;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
-use crate::TransitionSystems::{CompiledComponent, LocationTuple};
+use crate::TransitionSystems::{CompiledComponent, LocationTree};
 
 use std::collections::{HashMap, HashSet};
 
@@ -496,7 +496,7 @@ fn is_immediately_inconsistent(
     comp: &Component,
     dimensions: ClockIndex,
 ) -> bool {
-    let loc = LocationTuple::simple(location, &comp.declarations, dimensions);
+    let loc = LocationTree::simple(location, &comp.declarations, dimensions);
 
     loc.is_inconsistent()
 

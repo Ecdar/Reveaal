@@ -1,5 +1,5 @@
 use super::ComponentInfo;
-use super::{CompositionType, LocationID, LocationTuple};
+use super::{CompositionType, LocationID, LocationTree};
 use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
@@ -61,12 +61,12 @@ impl<'a> ComponentInfoTree<'a> {
 }
 
 pub trait TransitionSystem: DynClone {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds;
     fn get_dim(&self) -> ClockIndex;
 
     fn next_transitions_if_available(
         &self,
-        location: &LocationTuple,
+        location: &LocationTree,
         action: &str,
     ) -> Vec<Transition> {
         if self.actions_contain(action) {
@@ -76,14 +76,14 @@ pub trait TransitionSystem: DynClone {
         }
     }
 
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition>;
 
-    fn next_outputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_outputs(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         debug_assert!(self.get_output_actions().contains(action));
         self.next_transitions(location, action)
     }
 
-    fn next_inputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_inputs(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         debug_assert!(self.get_input_actions().contains(action));
         self.next_transitions(location, action)
     }
@@ -106,11 +106,11 @@ pub trait TransitionSystem: DynClone {
         self.get_actions().contains(action)
     }
 
-    fn get_initial_location(&self) -> Option<LocationTuple>;
+    fn get_initial_location(&self) -> Option<LocationTree>;
 
-    fn get_all_locations(&self) -> Vec<LocationTuple>;
+    fn get_all_locations(&self) -> Vec<LocationTree>;
 
-    fn get_location(&self, id: &LocationID) -> Option<LocationTuple> {
+    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
         self.get_all_locations()
             .iter()
             .find(|loc| loc.id == *id)
@@ -196,7 +196,7 @@ pub trait TransitionSystem: DynClone {
     ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
     fn find_edges_and_nodes(
         &self,
-        location: &LocationTuple,
+        location: &LocationTree,
         actions: &HashSet<String>,
         graph: &mut ClockAnalysisGraph,
     ) {
@@ -257,7 +257,7 @@ pub trait TransitionSystem: DynClone {
         self.get_analysis_graph().find_clock_redundancies()
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String>;
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String>;
 }
 
 /// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some `components`.

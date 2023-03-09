@@ -4,7 +4,7 @@ use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
-use crate::TransitionSystems::{CompositionType, LocationID, LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 use std::slice::Iter;
 
 /// This function takes a [`QueryExpression`], the system recipe, and the transitionsystem -
@@ -63,11 +63,11 @@ fn build_location_tuple(
     locations: &mut Iter<&str>,
     machine: &SystemRecipe,
     system: &TransitionSystemPtr,
-) -> Result<LocationTuple, String> {
+) -> Result<LocationTree, String> {
     match machine {
         SystemRecipe::Composition(left, right) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::compose(
+            Ok(LocationTree::compose(
                 &build_location_tuple(locations, left, left_system)?,
                 &build_location_tuple(locations, right, right_system)?,
                 CompositionType::Composition,
@@ -75,7 +75,7 @@ fn build_location_tuple(
         }
         SystemRecipe::Conjunction(left, right) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::compose(
+            Ok(LocationTree::compose(
                 &build_location_tuple(locations, left, left_system)?,
                 &build_location_tuple(locations, right, right_system)?,
                 CompositionType::Conjunction,
@@ -83,14 +83,14 @@ fn build_location_tuple(
         }
         SystemRecipe::Quotient(left, right, ..) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::merge_as_quotient(
+            Ok(LocationTree::merge_as_quotient(
                 &build_location_tuple(locations, left, left_system)?,
                 &build_location_tuple(locations, right, right_system)?,
             ))
         }
         SystemRecipe::Component(component) => match locations.next().unwrap().trim() {
             // It is ensured .next() will not give a None, since the number of location is same as number of component. This is also being checked in validate_reachability_input function, that is called before get_state
-            "_" => Ok(LocationTuple::build_any_location_tuple()),
+            "_" => Ok(LocationTree::build_any_location_tuple()),
             str => system
                 .get_location(&LocationID::Simple(str.to_string()))
                 .ok_or(format!(

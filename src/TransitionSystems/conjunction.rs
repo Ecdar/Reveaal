@@ -4,7 +4,7 @@ use crate::ModelObjects::component::Transition;
 use crate::System::local_consistency;
 use crate::System::query_failures::{ActionFailure, ConsistencyResult, SystemRecipeFailure};
 use crate::TransitionSystems::{
-    CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
+    CompositionType, LocationTree, TransitionSystem, TransitionSystemPtr,
 };
 use std::collections::hash_set::HashSet;
 
@@ -73,7 +73,7 @@ impl Conjunction {
 }
 
 impl ComposedTransitionSystem for Conjunction {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();

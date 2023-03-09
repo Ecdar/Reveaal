@@ -2,7 +2,7 @@ use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::component::Transition;
 use crate::System::query_failures::{ActionFailure, SystemRecipeFailure};
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 use super::common::ComposedTransitionSystem;
@@ -75,7 +75,7 @@ impl Composition {
 }
 
 impl ComposedTransitionSystem for Composition {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();

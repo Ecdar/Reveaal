@@ -6,7 +6,7 @@ use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
 };
 use crate::System::specifics::SpecificLocation;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use std::collections::hash_set::HashSet;
@@ -30,9 +30,9 @@ pub struct ComponentInfo {
 pub struct CompiledComponent {
     inputs: HashSet<Action>,
     outputs: HashSet<Action>,
-    locations: HashMap<LocationID, LocationTuple>,
+    locations: HashMap<LocationID, LocationTree>,
     location_edges: HashMap<LocationID, Vec<(Action, Transition)>>,
-    initial_location: Option<LocationTuple>,
+    initial_location: Option<LocationTree>,
     comp_info: ComponentInfo,
     dim: ClockIndex,
 }
@@ -50,11 +50,11 @@ impl CompiledComponent {
                 .map_err(|e| e.to_simple_failure(&component.name))?;
         }
 
-        let locations: HashMap<LocationID, LocationTuple> = component
+        let locations: HashMap<LocationID, LocationTree> = component
             .get_locations()
             .iter()
             .map(|loc| {
-                let tuple = LocationTuple::simple(loc, component.get_declarations(), dim);
+                let tuple = LocationTree::simple(loc, component.get_declarations(), dim);
                 (tuple.id.clone(), tuple)
             })
             .collect();
@@ -108,7 +108,7 @@ impl CompiledComponent {
 }
 
 impl TransitionSystem for CompiledComponent {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
             Bounds::new(self.get_dim())
         } else {
@@ -120,7 +120,7 @@ impl TransitionSystem for CompiledComponent {
         self.dim
     }
 
-    fn next_transitions(&self, locations: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, locations: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
@@ -156,11 +156,11 @@ impl TransitionSystem for CompiledComponent {
         self.inputs.union(&self.outputs).cloned().collect()
     }
 
-    fn get_initial_location(&self) -> Option<LocationTuple> {
+    fn get_initial_location(&self) -> Option<LocationTree> {
         self.initial_location.clone()
     }
 
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
+    fn get_all_locations(&self) -> Vec<LocationTree> {
         self.locations.values().cloned().collect()
     }
 
@@ -194,7 +194,7 @@ impl TransitionSystem for CompiledComponent {
         self.comp_info.declarations.clone()
     }
 
-    fn get_location(&self, id: &LocationID) -> Option<LocationTuple> {
+    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
         self.locations.get(id).cloned()
     }
 
@@ -210,7 +210,7 @@ impl TransitionSystem for CompiledComponent {
         self.comp_info.name.clone()
     }
 
-    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTuple, String> {
+    fn construct_location_tuple(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         match target {
             SpecificLocation::ComponentLocation { comp, location_id } => {
                 assert_eq!(comp.name, self.comp_info.name);

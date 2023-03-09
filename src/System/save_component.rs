@@ -1,7 +1,7 @@
 use crate::component::LocationType;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
 use crate::ModelObjects::representations::BoolExpression;
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashMap;
 
 pub enum PruningStrategy {
@@ -42,7 +42,7 @@ pub fn combine_components(
 }
 
 pub fn get_locations_from_tuples(
-    location_tuples: &[LocationTuple],
+    location_tuples: &[LocationTree],
     clock_map: &HashMap<String, ClockIndex>,
 ) -> Vec<Location> {
     location_tuples
@@ -91,7 +91,7 @@ pub fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, ClockIndex
 
 fn collect_all_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
-    locations: &mut Vec<LocationTuple>,
+    locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
 ) {
@@ -104,7 +104,7 @@ fn collect_all_edges_and_locations<'a>(
 
 fn collect_reachable_edges_and_locations<'a>(
     representation: &'a TransitionSystemPtr,
-    locations: &mut Vec<LocationTuple>,
+    locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
 ) {
@@ -125,9 +125,9 @@ fn collect_reachable_edges_and_locations<'a>(
 }
 
 fn collect_reachable_locations<'a>(
-    location: &LocationTuple,
+    location: &LocationTree,
     representation: &'a TransitionSystemPtr,
-    locations: &mut Vec<LocationTuple>,
+    locations: &mut Vec<LocationTree>,
 ) {
     for input in [true, false].iter() {
         for sync in if *input {
@@ -151,7 +151,7 @@ fn collect_reachable_locations<'a>(
 }
 
 fn collect_edges_from_location(
-    location: &LocationTuple,
+    location: &LocationTree,
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
@@ -161,7 +161,7 @@ fn collect_edges_from_location(
 }
 
 fn collect_specific_edges_from_location(
-    location: &LocationTuple,
+    location: &LocationTree,
     representation: &TransitionSystemPtr,
     edges: &mut Vec<Edge>,
     input: bool,

@@ -5,15 +5,15 @@ use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, 
 use edbm::zones::OwnedFederation;
 
 use crate::component::{Component, Declarations, State};
-use crate::ProtobufServer::services::LocationTree;
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
-    Decision as ProtoDecision, Federation as ProtoFederation, SimulationInfo, State as ProtoState,
+    Decision as ProtoDecision, Federation as ProtoFederation, LocationTree as ProtoLocationTree,
+    SimulationInfo, State as ProtoState,
 };
 use crate::Simulation::decision::Decision;
 use crate::System::specifics::SpecificLocation;
 use crate::TransitionSystems::transition_system::component_loader_to_transition_system;
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 
 use super::component_loader::{parse_components_if_some, ComponentContainer};
 
@@ -81,7 +81,7 @@ pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> 
     let federation: OwnedFederation =
         proto_federation_to_owned_federation(proto_federation, system);
 
-    let proto_location_tuple: LocationTree = state.location_tuple.unwrap();
+    let proto_location_tuple: ProtoLocationTree = state.location_tuple.unwrap();
     let location_tuple = proto_location_tuple_to_location_tuple(proto_location_tuple, system);
 
     // Ensure that the invariants are applied to the state
@@ -91,9 +91,9 @@ pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> 
 }
 
 fn proto_location_tuple_to_location_tuple(
-    location_tuple: LocationTree,
+    location_tuple: ProtoLocationTree,
     system: &TransitionSystemPtr,
-) -> LocationTuple {
+) -> LocationTree {
     let target: SpecificLocation = location_tuple.into();
 
     system.construct_location_tuple(target).unwrap()
