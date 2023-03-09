@@ -70,7 +70,7 @@ impl ConcreteEcdarBackend {
                     Ok(QueryResponse {
                         query_id: query_request.query_id,
                         info: vec![], // TODO: Should be logs
-                        result: Some(result.into_proto_result()),
+                        result: Some(result.into()),
                     })
                 }
                 Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
@@ -81,7 +81,7 @@ impl ConcreteEcdarBackend {
                     Ok(QueryResponse {
                         query_id: query_request.query_id,
                         info: vec![], // TODO: Should be logs
-                        result: Some(failure.into_proto_result()),
+                        result: Some(failure.into()),
                     })
                 }
             };
@@ -140,58 +140,54 @@ fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
     comp_hashmap
 }
 
-trait IntoProtoResult {
-    fn into_proto_result(self) -> ProtobufResult;
-}
-
-impl IntoProtoResult for QueryResult {
-    fn into_proto_result(self) -> ProtobufResult {
-        match self {
+impl From<QueryResult> for ProtobufResult {
+    fn from(result: QueryResult) -> ProtobufResult {
+        match result {
             QueryResult::Reachability(Ok(path)) => ProtobufResult::ReachabilityPath(path.into()),
             QueryResult::Refinement(Ok(_))
             | QueryResult::Consistency(Ok(_))
             | QueryResult::Determinism(Ok(_)) => ProtobufResult::Success(Success {}),
-            QueryResult::Refinement(Err(fail)) => fail.into_proto_result(),
-            QueryResult::Consistency(Err(fail)) => fail.into_proto_result(),
-            QueryResult::Determinism(Err(fail)) => fail.into_proto_result(),
-            QueryResult::Reachability(Err(fail)) => fail.into_proto_result(),
+            QueryResult::Refinement(Err(fail)) => fail.into(),
+            QueryResult::Consistency(Err(fail)) => fail.into(),
+            QueryResult::Determinism(Err(fail)) => fail.into(),
+            QueryResult::Reachability(Err(fail)) => fail.into(),
 
             QueryResult::GetComponent(comp) => ProtobufResult::Component(ProtobufComponent {
                 rep: Some(Rep::Json(component_to_json(&comp))),
             }),
 
-            QueryResult::RecipeFailure(recipe) => recipe.into_proto_result(),
+            QueryResult::RecipeFailure(recipe) => recipe.into(),
             QueryResult::CustomError(custom) => string_error(custom),
         }
     }
 }
 
-impl IntoProtoResult for SystemRecipeFailure {
-    fn into_proto_result(self) -> ProtobufResult {
-        ProtobufResult::Model(self.into())
+impl From<SystemRecipeFailure> for ProtobufResult {
+    fn from(fail: SystemRecipeFailure) -> ProtobufResult {
+        ProtobufResult::Model(fail.into())
     }
 }
 
-impl IntoProtoResult for DeterminismFailure {
-    fn into_proto_result(self) -> ProtobufResult {
-        ProtobufResult::Determinism(self.into())
+impl From<DeterminismFailure> for ProtobufResult {
+    fn from(fail: DeterminismFailure) -> ProtobufResult {
+        ProtobufResult::Determinism(fail.into())
     }
 }
 
-impl IntoProtoResult for ConsistencyFailure {
-    fn into_proto_result(self) -> ProtobufResult {
-        ProtobufResult::Consistency(self.into())
+impl From<ConsistencyFailure> for ProtobufResult {
+    fn from(fail: ConsistencyFailure) -> ProtobufResult {
+        ProtobufResult::Consistency(fail.into())
     }
 }
 
-impl IntoProtoResult for RefinementFailure {
-    fn into_proto_result(self) -> ProtobufResult {
-        ProtobufResult::Refinement(self.into())
+impl From<RefinementFailure> for ProtobufResult {
+    fn from(fail: RefinementFailure) -> ProtobufResult {
+        ProtobufResult::Refinement(fail.into())
     }
 }
 
-impl IntoProtoResult for PathFailure {
-    fn into_proto_result(self) -> ProtobufResult {
-        ProtobufResult::Reachability(self.into())
+impl From<PathFailure> for ProtobufResult {
+    fn from(fail: PathFailure) -> ProtobufResult {
+        ProtobufResult::Reachability(fail.into())
     }
 }
