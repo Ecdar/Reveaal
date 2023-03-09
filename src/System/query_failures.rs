@@ -9,14 +9,15 @@ use crate::{
 use super::specifics::{SpecificPath, SpecificState};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Composition {
+pub enum SystemType {
     Quotient,
     Refinement,
     Composition,
     Conjunction,
     Simple,
 }
-impl Composition {
+
+impl SystemType {
     pub fn op(&self) -> String {
         match self {
             Self::Quotient => r"\\",
@@ -29,7 +30,7 @@ impl Composition {
     }
 }
 
-impl fmt::Display for Composition {
+impl fmt::Display for SystemType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Quotient => write!(f, "Quotient"),
@@ -44,29 +45,34 @@ impl fmt::Display for Composition {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct System {
     pub name: String,
-    pub comp: Composition,
+    pub sys_type: SystemType,
 }
 impl System {
     pub fn refinement(sys1: &dyn TransitionSystem, sys2: &dyn TransitionSystem) -> Self {
         Self {
             name: format!("{} <= {}", sys1.to_string(), sys2.to_string()),
-            comp: Composition::Refinement,
+            sys_type: SystemType::Refinement,
         }
     }
     pub fn from(sys: &dyn TransitionSystem) -> Self {
         Self {
             name: sys.to_string(),
-            comp: sys.get_composition_type().into(),
+            sys_type: sys.get_composition_type().into(),
         }
     }
     pub fn from2(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
-        comp: Composition,
+        sys_type: SystemType,
     ) -> Self {
         Self {
-            name: format!("{} {} {}", sys1.to_string(), comp.op(), sys2.to_string()),
-            comp: Composition::Composition,
+            name: format!(
+                "{} {} {}",
+                sys1.to_string(),
+                sys_type.op(),
+                sys2.to_string()
+            ),
+            sys_type,
         }
     }
 }
@@ -323,7 +329,7 @@ impl ActionFailure {
             self,
             System {
                 name: sys.into(),
-                comp: Composition::Simple,
+                sys_type: SystemType::Simple,
             },
         )
     }
@@ -331,7 +337,7 @@ impl ActionFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
-            System::from2(T.as_ref(), S.as_ref(), Composition::Quotient),
+            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 
@@ -342,7 +348,7 @@ impl ActionFailure {
     ) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), Composition::Composition),
+            System::from2(left.as_ref(), right.as_ref(), SystemType::Composition),
         )
     }
 
@@ -353,7 +359,7 @@ impl ActionFailure {
     ) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), Composition::Conjunction),
+            System::from2(left.as_ref(), right.as_ref(), SystemType::Conjunction),
         )
     }
 }
@@ -427,7 +433,7 @@ impl ConsistencyFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(
             self,
-            System::from2(T.as_ref(), S.as_ref(), Composition::Quotient),
+            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 }
@@ -520,10 +526,14 @@ impl std::fmt::Display for SystemRecipeFailure {
             SystemRecipeFailure::Action(action, system) => write!(
                 f,
                 "{} in {} is invalid: {}",
-                system.comp, system.name, action
+                system.sys_type, system.name, action
             ),
             SystemRecipeFailure::Inconsistent(cf, system) => {
-                write!(f, "{} in {} is invalid: {}", system.comp, system.name, cf)
+                write!(
+                    f,
+                    "{} in {} is invalid: {}",
+                    system.sys_type, system.name, cf
+                )
             }
         }
     }
@@ -596,13 +606,13 @@ mod conversions {
         }
     }
 
-    impl From<CompositionType> for Composition {
+    impl From<CompositionType> for SystemType {
         fn from(comp: CompositionType) -> Self {
             match comp {
-                CompositionType::Quotient => Composition::Quotient,
-                CompositionType::Composition => Composition::Composition,
-                CompositionType::Conjunction => Composition::Conjunction,
-                CompositionType::Simple => Composition::Simple,
+                CompositionType::Quotient => SystemType::Quotient,
+                CompositionType::Composition => SystemType::Composition,
+                CompositionType::Conjunction => SystemType::Conjunction,
+                CompositionType::Simple => SystemType::Simple,
             }
         }
     }
