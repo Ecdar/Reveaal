@@ -401,7 +401,7 @@ pub(crate) mod clock_reduction {
         }
         let rhs = rhs.unwrap();
 
-        let (l_clocks, r_clocks) = sanitize_redundant_clocks(
+        let (l_clocks, r_clocks) = filter_redundant_clocks(
             lhs.clone().compile(*dim)?.find_redundant_clocks(),
             rhs.clone().compile(*dim)?.find_redundant_clocks(),
             quotient_clock,
@@ -458,7 +458,7 @@ pub(crate) mod clock_reduction {
         Ok(())
     }
 
-    fn sanitize_redundant_clocks(
+    fn filter_redundant_clocks(
         lhs: Vec<ClockReductionInstruction>,
         rhs: Vec<ClockReductionInstruction>,
         quotient_clock: Option<ClockIndex>,
