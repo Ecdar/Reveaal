@@ -1,9 +1,9 @@
 #[cfg(test)]
 pub mod clock_removal_tests {
+    use crate::component::Component;
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use std::collections::HashSet;
-    use crate::component::Component;
 
     #[test]
     fn test_check_declarations_unused_clocks_are_removed() {

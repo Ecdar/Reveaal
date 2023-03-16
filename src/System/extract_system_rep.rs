@@ -471,7 +471,7 @@ pub(crate) mod clock_reduction {
             l: Vec<ClockReductionInstruction>,
             r: Vec<ClockReductionInstruction>,
             quotient: ClockIndex,
-            bound_predicate: P
+            bound_predicate: P,
         ) -> Vec<ClockReductionInstruction> {
             l.into_iter()
                 // Takes clock instructions that also occur in the rhs system
@@ -489,7 +489,9 @@ pub(crate) mod clock_reduction {
         }
         let quotient_clock = quotient_clock.unwrap_or_default();
         (
-            get_unique_redundant_clocks(lhs.clone(), rhs.clone(), quotient_clock, |c| c <= split_index),
+            get_unique_redundant_clocks(lhs.clone(), rhs.clone(), quotient_clock, |c| {
+                c <= split_index
+            }),
             get_unique_redundant_clocks(rhs, lhs, quotient_clock, |c| c > split_index),
         )
     }
