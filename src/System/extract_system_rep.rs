@@ -56,7 +56,7 @@ pub fn create_executable_query<'a>(
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index)?;
                 }
 
                 let mut component_index = 0;
@@ -104,7 +104,7 @@ pub fn create_executable_query<'a>(
                 );
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
                 Ok(Box::new(ConsistencyExecutor {
@@ -122,7 +122,7 @@ pub fn create_executable_query<'a>(
                 );
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
                 Ok(Box::new(DeterminismExecutor {
@@ -140,7 +140,7 @@ pub fn create_executable_query<'a>(
                     );
 
                     if !component_loader.get_settings().disable_clock_reduction {
-                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
                     Ok(Box::new(
@@ -165,7 +165,7 @@ pub fn create_executable_query<'a>(
                         &mut quotient_index,                    );
 
                     if !component_loader.get_settings().disable_clock_reduction {
-                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
                     Ok(Box::new(
@@ -382,64 +382,116 @@ pub(crate) mod clock_reduction {
 
     /// Function for a "safer" clock reduction that handles both the dimension of the DBM and the quotient index if needed be
     /// # Arguments
-    /// `lhs`: The (main) `SystemRecipe` to clock reduce\n
-    /// `rhs`: An optional `SystemRecipe` used for multiple operands (Refinement)\n
+    /// `lhs`: The (main) [`SystemRecipe`] to clock reduce\n
+    /// `rhs`: An optional [`SystemRecipe`] used for multiple operands (Refinement)\n
     /// `dim`: A mutable reference to the DBMs dimension for updating\n
-    /// `has_quotient`: A boolean to indicate if there is a quotient clock to update
+    /// `quotient_clock`: The clock for the quotient (This is not reduced)
     /// # Returns
-    /// A `Result` used if the `SystemRecipe`(s) fail during compilation
+    /// A `Result` used if the [`SystemRecipe`](s) fail during compilation
     pub fn clock_reduce(
         lhs: &mut Box<SystemRecipe>,
-        mut rhs: Option<&mut Box<SystemRecipe>>,
+        rhs: Option<&mut Box<SystemRecipe>>,
         dim: &mut usize,
-        has_quotient: bool,
+        quotient_clock: Option<ClockIndex>,
     ) -> Result<(), SystemRecipeFailure> {
-        let clocks = if let Some(ref mut r) = rhs {
-            intersect(
-                lhs.clone().compile(*dim)?.find_redundant_clocks(),
-                r.clone().compile(*dim)?.find_redundant_clocks(),
-            )
-        } else {
-            lhs.clone().compile(*dim)?.find_redundant_clocks()
-        };
+        if *dim == 0 {
+            return Ok(());
+        } else if rhs.is_none() {
+            return clock_reduce_single(lhs, dim, quotient_clock);
+        }
+        let rhs = rhs.unwrap();
 
+        let (l_clocks, r_clocks) = sanitize_redundant_clocks(
+            lhs.clone().compile(*dim)?.find_redundant_clocks(),
+            rhs.clone().compile(*dim)?.find_redundant_clocks(),
+            quotient_clock,
+            lhs.get_components()
+                .iter()
+                .flat_map(|c| c.declarations.clocks.values().cloned())
+                .max()
+                .unwrap_or_default(),
+        );
+
+        debug!("Clocks to be reduced: {l_clocks:?} + {l_clocks:?}");
+        *dim -= l_clocks
+            .iter()
+            .chain(r_clocks.iter())
+            .fold(0, |acc, c| acc + c.clocks_removed_count());
+        debug!("New dimension: {dim}");
+
+        rhs.reduce_clocks(r_clocks);
+        lhs.reduce_clocks(l_clocks);
+        compress_component_decls(lhs.get_components(), Some(rhs.get_components()));
+        if quotient_clock.is_some() {
+            lhs.change_quotient(*dim);
+            rhs.change_quotient(*dim);
+        }
+
+        Ok(())
+    }
+
+    /// Clock reduces a "single_expression", such as consistency
+    /// # Arguments
+    ///
+    /// * `sys`: The [`SystemRecipe`] to clock reduce
+    /// * `dim`: the dimension of the system
+    /// * `quotient_clock`: The clock for the quotient (This is not reduced)
+    ///
+    /// returns: Result<(), SystemRecipeFailure>
+    fn clock_reduce_single(
+        sys: &mut Box<SystemRecipe>,
+        dim: &mut usize,
+        quotient_clock: Option<ClockIndex>,
+    ) -> Result<(), SystemRecipeFailure> {
+        let mut clocks = sys.clone().compile(*dim)?.find_redundant_clocks();
+        clocks.retain(|ins| ins.get_clock_index() != quotient_clock.unwrap_or_default());
         debug!("Clocks to be reduced: {clocks:?}");
         *dim -= clocks
             .iter()
             .fold(0, |acc, c| acc + c.clocks_removed_count());
         debug!("New dimension: {dim}");
-        if let Some(r) = rhs {
-            r.reduce_clocks(clocks.clone());
-            lhs.reduce_clocks(clocks);
-            compress_component_decls(lhs.get_components(), Some(r.get_components()));
-            if has_quotient {
-                lhs.change_quotient(*dim);
-                r.change_quotient(*dim);
-            }
-        } else {
-            lhs.reduce_clocks(clocks);
-            compress_component_decls(lhs.get_components(), None);
-            if has_quotient {
-                lhs.change_quotient(*dim);
-            }
+        sys.reduce_clocks(clocks);
+        compress_component_decls(sys.get_components(), None);
+        if quotient_clock.is_some() {
+            sys.change_quotient(*dim);
         }
         Ok(())
     }
 
-    fn intersect(
+    fn sanitize_redundant_clocks(
         lhs: Vec<ClockReductionInstruction>,
         rhs: Vec<ClockReductionInstruction>,
-    ) -> Vec<ClockReductionInstruction> {
-        lhs.iter()
-            .filter(|r| r.is_replace())
-            .chain(rhs.iter().filter(|r| r.is_replace()))
-            .chain(
-                lhs.iter()
-                    .filter(|r| !r.is_replace())
-                    .filter_map(|c| rhs.iter().filter(|r| !r.is_replace()).find(|rc| *rc == c)),
-            )
-            .cloned()
-            .collect()
+        quotient_clock: Option<ClockIndex>,
+        split_index: ClockIndex,
+    ) -> (
+        Vec<ClockReductionInstruction>,
+        Vec<ClockReductionInstruction>,
+    ) {
+        fn get_unique_redundant_clocks<P: Fn(ClockIndex) -> bool>(
+            l: Vec<ClockReductionInstruction>,
+            r: Vec<ClockReductionInstruction>,
+            quotient: ClockIndex,
+            bound_predicate: P
+        ) -> Vec<ClockReductionInstruction> {
+            l.into_iter()
+                // Takes clock instructions that also occur in the rhs system
+                // This is done because the lhs also finds the redundant clocks from the rhs,
+                // so to ensure that it should be removed, we check if it occurs on both sides
+                // which would mean it can be removed
+                // e.g "A <= B", we can find clocks from B that are not used in A, so they are marked as remove
+                .filter(|ins| r.contains(ins))
+                // Takes all the clocks within the bounds of the given system
+                // This is done to ensure that we don't try to remove a clock from the rhs system
+                .filter(|ins| bound_predicate(ins.get_clock_index()))
+                // Removes the quotient clock
+                .filter(|ins| ins.get_clock_index() != quotient)
+                .collect()
+        }
+        let quotient_clock = quotient_clock.unwrap_or_default();
+        (
+            get_unique_redundant_clocks(lhs.clone(), rhs.clone(), quotient_clock, |c| c <= split_index),
+            get_unique_redundant_clocks(rhs, lhs, quotient_clock, |c| c > split_index),
+        )
     }
 
     fn compress_component_decls(

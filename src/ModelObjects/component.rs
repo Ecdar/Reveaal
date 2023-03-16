@@ -187,13 +187,8 @@ impl Component {
             .expect("Couldn't find clock with index")
             .to_owned();
         self.declarations.clocks.remove(&name);
-        self.declarations
-            .clocks
-            .values_mut()
-            .filter(|val| **val > index)
-            .for_each(|val| *val -= 1);
 
-        // Yeets from updates
+        // Removes from from updates
         self.edges
             .iter_mut()
             .filter(|e| e.update.is_some())

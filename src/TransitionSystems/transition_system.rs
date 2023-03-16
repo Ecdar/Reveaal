@@ -304,10 +304,10 @@ impl ClockReductionInstruction {
         }
     }
 
-    pub(crate) fn is_replace(&self) -> bool {
+    pub(crate) fn get_clock_index(&self) -> ClockIndex {
         match self {
-            ClockReductionInstruction::RemoveClock { .. } => false,
-            ClockReductionInstruction::ReplaceClocks { .. } => true,
+            ClockReductionInstruction::RemoveClock { clock_index }
+            | ClockReductionInstruction::ReplaceClocks { clock_index, .. } => *clock_index,
         }
     }
 }
