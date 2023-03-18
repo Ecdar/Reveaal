@@ -224,7 +224,7 @@ impl TransitionSystem for CompiledComponent {
                         )
                     })
             }
-            SpecificLocation::BranchLocation(_, _) | SpecificLocation::SpecialLocation(_) => {
+            SpecificLocation::BranchLocation(_, _, _) | SpecificLocation::SpecialLocation(_) => {
                 unreachable!("Should not happen at the level of a component.")
             }
         }

@@ -5,10 +5,10 @@ use crate::ProtobufServer::services::query_response::{
 };
 use crate::ProtobufServer::services::{
     self, clock::Clock as ProtoClockEnum, clock::ComponentClock as ProtoComponentClock,
-    clock::SystemClock as ProtoSystemClock, ActionFailure as ProtobufActionFailure, BranchLocation,
-    Clock as ProtoClock, Conjunction as ProtoConjunction, Constraint as ProtoConstraint,
-    Disjunction as ProtoDisjunction, Federation as ProtoFederation, LeafLocation, LocationTree,
-    SpecificComponent as ProtoSpecificComponent, State as ProtoState,
+    clock::SystemClock as ProtoSystemClock, ActionFailure as ProtobufActionFailure,
+    BinaryLocationOperator, Clock as ProtoClock, ComponentInstance as ProtoSpecificComponent,
+    Conjunction as ProtoConjunction, Constraint as ProtoConstraint,
+    Disjunction as ProtoDisjunction, LeafLocation, LocationTree, State as ProtoState,
 };
 use crate::System::query_failures::*;
 use crate::System::specifics::{
@@ -20,8 +20,8 @@ use crate::System::specifics::{
 impl From<SpecificState> for ProtoState {
     fn from(state: SpecificState) -> Self {
         ProtoState {
-            location_tuple: Some(state.locations.into()),
-            federation: Some(state.constraints.into()),
+            location_tree: Some(state.locations.into()),
+            zone: Some(state.constraints.into()),
         }
     }
 }
@@ -30,16 +30,25 @@ impl From<SpecificLocation> for LocationTree {
     fn from(loc: SpecificLocation) -> Self {
         use services::location_tree::NodeType;
         match loc {
-            SpecificLocation::BranchLocation(left, right) => LocationTree {
-                node_type: Some(NodeType::BranchLocation(Box::new(BranchLocation {
-                    left: Some(Box::new((*left).into())),
-                    right: Some(Box::new((*right).into())),
-                }))),
+            SpecificLocation::BranchLocation(left, right, op) => LocationTree {
+                node_type: Some(NodeType::BinaryLocationOp(Box::new(
+                    BinaryLocationOperator {
+                        left: Some(Box::new((*left).into())),
+                        right: Some(Box::new((*right).into())),
+                        operator: match op {
+                            SystemType::Conjunction => 0,
+                            SystemType::Composition => 1,
+                            SystemType::Quotient => 2,
+                            SystemType::Refinement => 3,
+                            _ => unreachable!(),
+                        },
+                    },
+                ))),
             },
             SpecificLocation::ComponentLocation { comp, location_id } => LocationTree {
                 node_type: Some(NodeType::LeafLocation(LeafLocation {
                     id: location_id,
-                    specific_component: Some(comp.into()),
+                    component_instance: Some(comp.into()),
                 })),
             },
             SpecificLocation::SpecialLocation(kind) => LocationTree {
@@ -56,13 +65,22 @@ impl From<LocationTree> for SpecificLocation {
     fn from(loc: LocationTree) -> Self {
         use services::location_tree::NodeType;
         match loc.node_type.unwrap() {
-            NodeType::BranchLocation(branch) => {
+            NodeType::BinaryLocationOp(branch) => {
+                use services::binary_location_operator::Operator;
+                let sys_type = match branch.operator() {
+                    Operator::Conjunction => SystemType::Conjunction,
+                    Operator::Composition => SystemType::Composition,
+                    Operator::Quotient => SystemType::Quotient,
+                    Operator::Refinement => SystemType::Refinement,
+                };
+
                 let left = Box::new((*branch.left.unwrap()).into());
                 let right = Box::new((*branch.right.unwrap()).into());
-                SpecificLocation::BranchLocation(left, right)
+
+                SpecificLocation::BranchLocation(left, right, sys_type)
             }
             NodeType::LeafLocation(leaf) => SpecificLocation::ComponentLocation {
-                comp: leaf.specific_component.unwrap().into(),
+                comp: leaf.component_instance.unwrap().into(),
                 location_id: leaf.id,
             },
             NodeType::SpecialLocation(special) => match special {
@@ -92,16 +110,14 @@ impl From<ProtoSpecificComponent> for SpecificComp {
     }
 }
 
-impl From<SpecificDisjunction> for ProtoFederation {
+impl From<SpecificDisjunction> for ProtoDisjunction {
     fn from(disj: SpecificDisjunction) -> Self {
-        ProtoFederation {
-            disjunction: Some(ProtoDisjunction {
-                conjunctions: disj
-                    .conjunctions
-                    .into_iter()
-                    .map(|conj| conj.into())
-                    .collect(),
-            }),
+        ProtoDisjunction {
+            conjunctions: disj
+                .conjunctions
+                .into_iter()
+                .map(|conj| conj.into())
+                .collect(),
         }
     }
 }
@@ -130,7 +146,7 @@ impl From<SpecificClockVar> for ProtoClock {
         use std::convert::TryFrom;
         match clock {
             SpecificClockVar::Zero => Self {
-                clock: Some(ProtoClockEnum::Zero(Default::default())),
+                clock: Some(ProtoClockEnum::ZeroClock(Default::default())),
             },
             SpecificClockVar::ComponentClock(clock) => Self {
                 clock: Some(ProtoClockEnum::ComponentClock(clock.into())),
@@ -148,7 +164,7 @@ impl From<SpecificClockVar> for ProtoClock {
 impl From<SpecificClock> for ProtoComponentClock {
     fn from(clock: SpecificClock) -> Self {
         Self {
-            specific_component: Some(clock.comp.into()),
+            component_instance: Some(clock.comp.into()),
             clock_name: clock.name,
         }
     }
@@ -332,7 +348,7 @@ impl From<SpecificEdge> for services::Edge {
     fn from(edge: SpecificEdge) -> Self {
         Self {
             id: edge.edge_id,
-            specific_component: Some(edge.comp.into()),
+            component_instance: Some(edge.comp.into()),
         }
     }
 }
