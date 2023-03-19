@@ -19,6 +19,8 @@ mod test {
             action: actual_action,
             system: actual_system,
         })) = json_run_query(PATH, "determinism: NonDeterministic1")
+            .ok()
+            .unwrap()
         {
             let actual_location = actual_state.locations;
             assert_eq!(
@@ -38,6 +40,8 @@ mod test {
             state: actual_state,
             system: actual_system,
         })) = json_run_query(PATH, "consistency: NonConsistent")
+            .ok()
+            .unwrap()
         {
             let actual_location = actual_state.locations;
             assert_eq!((expected_location), (actual_location));
@@ -61,6 +65,8 @@ mod test {
                 _,
             ),
         ))) = json_run_query(PATH, "refinement: NonDeterministic1 <= NonDeterministic2")
+            .ok()
+            .unwrap()
         {
             let actual_location = actual_state.locations;
             assert_eq!(
@@ -85,6 +91,8 @@ mod test {
                 _,
             ),
         ))) = json_run_query(PATH, "refinement: NonConsistent <= CorrectComponent")
+            .ok()
+            .unwrap()
         {
             let actual_location = actual_state.locations;
             assert_eq!((expected_location), (actual_location));

@@ -108,8 +108,7 @@ pub fn create_executable_query<'a>(
                 }
 
                 Ok(Box::new(ConsistencyExecutor {
-                    recipe,
-                    dim
+                    system: recipe.compile(dim)?
                 }))
             },
             QueryExpression::Determinism(query_expression) => {

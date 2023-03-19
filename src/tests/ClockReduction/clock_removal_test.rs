@@ -1,6 +1,8 @@
 #[cfg(test)]
 pub mod clock_removal_tests {
     use crate::component::Component;
+    use crate::extract_system_rep::{clock_reduction, SystemRecipe};
+    use crate::tests::refinement::Helper::json_run_query;
     use crate::DataReader::json_reader::read_json_component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use std::collections::HashSet;
@@ -76,5 +78,57 @@ pub mod clock_removal_tests {
         assert_eq!(*decls[0].clocks.get_key_value("x").unwrap().1, 1);
         assert_eq!(*decls[0].clocks.get_key_value("y").unwrap().1, 1);
         assert_eq!(*decls[0].clocks.get_key_value("z").unwrap().1, 1);
+    }
+
+    #[test]
+    fn test_no_used_clock() {
+        const PATH: &str = "samples/json/AG";
+
+        let comp = read_json_component(PATH, "A");
+
+        let mut dim = comp.declarations.clocks.len();
+        assert_eq!(
+            dim, 4,
+            "As of writing these tests, this component has 4 unused clocks"
+        );
+
+        let recipe = SystemRecipe::Component(Box::from(comp));
+        clock_reduction::clock_reduce(&mut Box::from(recipe), None, &mut dim, None).unwrap();
+        assert_eq!(dim, 0, "After removing the clocks, the dim should be 0");
+
+        assert!(
+            json_run_query(PATH, "consistency: A").is_ok(),
+            "A should be consistent"
+        );
+    }
+
+    #[test]
+    fn test_no_used_clock_multi() {
+        const PATH: &str = "samples/json/AG";
+        let mut dim = 0;
+        let mut lhs = read_json_component(PATH, "A");
+        lhs.set_clock_indices(&mut dim);
+        let mut rhs = read_json_component(PATH, "A");
+        rhs.set_clock_indices(&mut dim);
+
+        assert_eq!(
+            dim, 8,
+            "As of writing these tests, these component has 8 unused clocks"
+        );
+        assert_eq!(
+            lhs.declarations.clocks.len() + rhs.declarations.clocks.len(),
+            8
+        );
+
+        let l = SystemRecipe::Component(Box::from(lhs));
+        let r = SystemRecipe::Component(Box::from(rhs));
+        clock_reduction::clock_reduce(&mut Box::from(l), Some(&mut Box::from(r)), &mut dim, None)
+            .unwrap();
+        assert_eq!(dim, 0, "After removing the clocks, the dim should be 0");
+
+        assert!(
+            json_run_query(PATH, "refinement: A <= A").is_ok(),
+            "A should refine itself"
+        );
     }
 }

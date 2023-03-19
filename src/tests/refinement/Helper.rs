@@ -1,3 +1,4 @@
+use crate::extract_system_rep::ExecutableQueryError;
 use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
@@ -25,7 +26,7 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     try_setup_logging();
 
-    match json_run_query(PATH, QUERY) {
+    match json_run_query(PATH, QUERY).ok().unwrap() {
         QueryResult::Refinement(Ok(())) => true,
         QueryResult::Refinement(Err(_)) => false,
         QueryResult::CustomError(err) => panic!("{}", err),
@@ -50,7 +51,7 @@ pub fn xml_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     query.execute()
 }
 
-pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
+pub fn json_run_query(PATH: &str, QUERY: &str) -> Result<QueryResult, ExecutableQueryError> {
     let project_loader = JsonProjectLoader::new(String::from(PATH), crate::tests::TEST_SETTINGS);
     let query = parse_queries::parse_to_expression_tree(QUERY)
         .unwrap()
@@ -61,9 +62,9 @@ pub fn json_run_query(PATH: &str, QUERY: &str) -> QueryResult {
     };
 
     let mut comp_loader = project_loader.to_comp_loader();
-    let query = create_executable_query(&q, &mut *comp_loader).unwrap();
+    let query = create_executable_query(&q, &mut *comp_loader)?;
 
-    query.execute()
+    Ok(query.execute())
 }
 
 pub fn json_get_system(PATH: &str, COMP: &str) -> TransitionSystemPtr {

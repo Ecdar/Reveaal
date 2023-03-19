@@ -1,5 +1,3 @@
-use edbm::util::constraints::ClockIndex;
-
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::State;
 use crate::System::reachability;
@@ -7,7 +5,6 @@ use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 
-use super::extract_system_rep::SystemRecipe;
 use super::query_failures::PathFailure;
 use super::query_failures::QueryResult;
 use super::save_component::PruningStrategy;
@@ -122,16 +119,12 @@ impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
 }
 
 pub struct ConsistencyExecutor {
-    pub recipe: Box<SystemRecipe>,
-    pub dim: ClockIndex,
+    pub system: TransitionSystemPtr,
 }
 
 impl ExecutableQuery for ConsistencyExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        match self.recipe.compile(self.dim) {
-            Ok(system) => system.precheck_sys_rep().into(),
-            Err(fail) => fail.into(),
-        }
+        self.system.precheck_sys_rep().into()
     }
 }
 

@@ -28,7 +28,7 @@ mod reachability_search_algorithm_test {
     #[test_case(PATH, "reachability: Researcher && Researcher -> [U0, U0](); [L6, U0]()", false; "Trivially unreachable")]
     #[test_case(PATH, "reachability: Researcher && Researcher -> [U0, U0](); [_, U0]()", true; "Trivially reachable because _ is U0")]
     fn search_algorithm_returns_result_university(path: &str, query: &str, expected: bool) {
-        match json_run_query(path, query) {
+        match json_run_query(path, query).ok().unwrap() {
             QueryResult::Reachability(path) => assert_eq!(path.is_ok(), expected),
             _ => panic!("Inconsistent query result, expected Reachability"),
         }
@@ -50,7 +50,7 @@ mod reachability_search_algorithm_test {
     #[test_case(PATH2, "reachability: Component7 -> [L16](); [L19](y<2)", false; "Unreachable due to second clock")]
     #[test_case(PATH2, "reachability: Component3 && Component3 -> [L6, L6](); [L7, L7]()", true; "Simple conjunction")]
     fn search_algorithm_returns_result(path: &str, query: &str, expected: bool) {
-        match json_run_query(path, query) {
+        match json_run_query(path, query).ok().unwrap() {
             QueryResult::Reachability(path) => assert_eq!(path.is_ok(), expected),
             _ => panic!("Inconsistent query result, expected Reachability"),
         }
@@ -66,7 +66,7 @@ mod reachability_search_algorithm_test {
     #[test_case(PATH2, "reachability: Component9 -> [L23](x>5); [L26]()", vec!["E17", "E18"]; "Path in Component9 from L23 x gt 5 to L26")]
     #[test_case(PATH2, "reachability: Component9 -> [L23](x<5); [L26]()", vec!["E16", "E19"]; "Path in Component9 from L23 x lt 5 to L26")]
     fn path_gen_test_correct_path(folder_path: &str, query: &str, expected_path: Vec<&str>) {
-        match json_run_query(folder_path, query) {
+        match json_run_query(folder_path, query).ok().unwrap() {
             QueryResult::Reachability(actual_path) => {
                 let actual_path = actual_path.unwrap_or_else(|_| {
                     panic!(
@@ -103,7 +103,7 @@ mod reachability_search_algorithm_test {
         query: &str,
         expected_path: Vec<Vec<&str>>,
     ) {
-        match json_run_query(folder_path, query) {
+        match json_run_query(folder_path, query).ok().unwrap() {
             QueryResult::Reachability(actual_path) => {
                 let actual_path = actual_path.unwrap_or_else(|_| {
                     panic!(
