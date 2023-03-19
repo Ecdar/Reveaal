@@ -7,7 +7,7 @@ use edbm::zones::OwnedFederation;
 use crate::component::{Component, Declarations, State};
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
-    Decision as ProtoDecision, Federation as ProtoFederation, LocationTree as ProtoLocationTree,
+    Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
     SimulationInfo, State as ProtoState,
 };
 use crate::Simulation::decision::Decision;
@@ -77,11 +77,10 @@ pub fn proto_decision_to_decision(
 /// - `state.federation` is `None`.
 /// - `state.location_tree` is `None`.
 pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> State {
-    let proto_federation: ProtoFederation = state.federation.unwrap();
-    let federation: OwnedFederation =
-        proto_federation_to_owned_federation(proto_federation, system);
+    let proto_zone: ProtoDisjunction = state.zone.unwrap();
+    let federation: OwnedFederation = proto_zone_to_owned_federation(proto_zone, system);
 
-    let proto_location_tree: ProtoLocationTree = state.location_tuple.unwrap();
+    let proto_location_tree: ProtoLocationTree = state.location_tree.unwrap();
     let location_tree = proto_location_tree_to_location_tree(proto_location_tree, system);
 
     // Ensure that the invariants are applied to the state
@@ -106,13 +105,13 @@ fn proto_constraint_to_constraint(
     fn determine_index(clock: ProtoClock, map: &HashMap<u32, (String, &Declarations)>) -> usize {
         match clock.clock.unwrap() {
             ClockEnum::ComponentClock(clock) => {
-                let comp = clock.specific_component.as_ref().unwrap();
+                let comp = clock.component_instance.as_ref().unwrap();
                 let (name, decl) = map.get(&comp.component_index).unwrap();
                 assert_eq!(name, &comp.component_name);
                 *decl.get_clock_index_by_name(&clock.clock_name).unwrap()
             }
             ClockEnum::SystemClock(sc) => sc.clock_index.try_into().unwrap(),
-            ClockEnum::Zero(_) => 0,
+            ClockEnum::ZeroClock(_) => 0,
         }
     }
 
@@ -130,12 +129,12 @@ fn proto_constraint_to_constraint(
     Constraint::new(i, j, RawInequality::from_inequality(&inequality))
 }
 
-fn proto_federation_to_owned_federation(
-    proto_federation: ProtoFederation,
+fn proto_zone_to_owned_federation(
+    proto_zone: ProtoDisjunction,
     system: &TransitionSystemPtr,
 ) -> OwnedFederation {
     // Get the vector of conjunctions from the proto
-    let proto_conjunctions = proto_federation.disjunction.unwrap().conjunctions;
+    let proto_conjunctions = proto_zone.conjunctions;
 
     // Generate map from component index to declarations (include component name for sanity check)
     let infos = system.comp_infos();

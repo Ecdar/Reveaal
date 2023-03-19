@@ -9,7 +9,7 @@ use crate::{
 use super::specifics::{SpecificPath, SpecificState};
 
 /// Represents how a system is composed at the highest level
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SystemType {
     /// A refinement between two systems
     Refinement,

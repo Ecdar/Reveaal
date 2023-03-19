@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use super::reachability::Path;
+use super::{query_failures::SystemType, reachability::Path};
 
 /// Intermediate representation of a [decision](Decision) from a `source` specific state to a `destination` specific state with an `action`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -228,7 +228,7 @@ pub enum SpecificLocation {
         location_id: String,
     },
     /// A branch with two child locations.
-    BranchLocation(Box<SpecificLocation>, Box<SpecificLocation>),
+    BranchLocation(Box<SpecificLocation>, Box<SpecificLocation>, SystemType),
     /// A special location. E.g. `Error` or `Universal` from a quotient.
     SpecialLocation(SpecialLocation),
 }
@@ -250,7 +250,7 @@ impl SpecificLocation {
     /// Panics if the location is not a branch location.
     pub fn split(self) -> (Self, Self) {
         match self {
-            SpecificLocation::BranchLocation(left, right) => (*left, *right),
+            SpecificLocation::BranchLocation(left, right, _) => (*left, *right),
             _ => unreachable!("Cannot split non-branch location"),
         }
     }
@@ -262,7 +262,9 @@ impl fmt::Display for SpecificLocation {
             SpecificLocation::ComponentLocation { comp, location_id } => {
                 write!(f, "{}.{}", comp.name, location_id)
             }
-            SpecificLocation::BranchLocation(left, right) => write!(f, "({}, {})", left, right),
+            SpecificLocation::BranchLocation(left, right, op) => {
+                write!(f, "({}{}{})", left, op.op(), right)
+            }
             SpecificLocation::SpecialLocation(spec) => write!(f, "{}", spec),
         }
     }
@@ -379,7 +381,7 @@ pub fn state_pair_specific_location(
 ) -> SpecificLocation {
     let left = specific_location(&state.locations1.id, sys1);
     let right = specific_location(&state.locations2.id, sys2);
-    SpecificLocation::BranchLocation(Box::new(left), Box::new(right))
+    SpecificLocation::BranchLocation(Box::new(left), Box::new(right), SystemType::Refinement)
 }
 
 /// Get the [SpecificLocation] of a [State] given the transition system.
@@ -398,6 +400,12 @@ pub fn specific_location(location_id: &LocationID, sys: &dyn TransitionSystem) -
                 SpecificLocation::BranchLocation(
                     Box::new(inner(left, i_left)),
                     Box::new(inner(right, i_right)),
+                    match location_id {
+                        LocationID::Conjunction(_, _) => SystemType::Conjunction,
+                        LocationID::Composition(_, _) => SystemType::Composition,
+                        LocationID::Quotient(_, _) => SystemType::Quotient,
+                        _ => unreachable!(),
+                    },
                 )
             }
             LocationID::Simple(loc_id) => {

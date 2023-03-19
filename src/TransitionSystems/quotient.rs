@@ -386,7 +386,7 @@ impl TransitionSystem for Quotient {
 
     fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         match target {
-            SpecificLocation::BranchLocation(left, right) => {
+            SpecificLocation::BranchLocation(left, right, _) => {
                 let left = self.T.construct_location_tree(*left)?;
                 let right = self.S.construct_location_tree(*right)?;
                 Ok(merge(&left, &right))
