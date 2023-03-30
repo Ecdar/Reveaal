@@ -99,7 +99,7 @@ impl DepthFirstWaitingStateList {
         let key = (pair.locations1.id.clone(), pair.locations2.id.clone());
 
         if let Some(vec) = self.map.get_mut(&key) {
-            vec.pop_front().unwrap();
+            let _ = vec.pop_front().unwrap();
         };
 
         Some(pair)
