@@ -2,7 +2,7 @@
 name = "reveaal"
 version = "0.1.0"
 build = "src/build.rs"
-authors = ["Peter Greve <Pgreve16@student.aau.dk>"]
+authors = ["Thomas Lohse", "Sebastian Lund", "Thorulf Neustrup", "Peter Greve"]
 edition = "2018"
 
 [lib]
