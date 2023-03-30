@@ -5,8 +5,9 @@ mod test {
 
     use crate::{
         tests::refinement::Helper::json_run_query,
+        System::extract_system_rep::ExecutableQueryError,
         System::query_failures::{
-            ActionFailure, ConsistencyFailure, DeterminismFailure, QueryResult, SystemRecipeFailure,
+            ActionFailure, ConsistencyFailure, DeterminismFailure, SystemRecipeFailure,
         },
     };
 
@@ -14,10 +15,11 @@ mod test {
 
     #[test]
     fn quotient1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1");
+        let actual =
+            json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1").unwrap_err();
         assert!(matches!(
             actual,
-            QueryResult::RecipeFailure(SystemRecipeFailure::Action(
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
                 ActionFailure::NotDisjoint(_, _),
                 _
             ))
@@ -27,10 +29,10 @@ mod test {
     #[test]
     fn quotient1_fails_with_correct_actions() {
         let expected_actions = HashSet::from(["Input1".to_string()]);
-        if let QueryResult::RecipeFailure(SystemRecipeFailure::Action(
+        if let Some(ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
             ActionFailure::NotDisjoint(left, right),
             _,
-        )) = json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1")
+        ))) = json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1").err()
         {
             assert_eq!(
                 left.actions
@@ -49,11 +51,12 @@ mod test {
         let actual = json_run_query(
             PATH,
             "consistency: NotDeterministicQuotientComp // DeterministicQuotientComp",
-        );
+        )
+        .unwrap_err();
         println!("{:?}", actual);
         assert!(matches!(
             actual,
-            QueryResult::RecipeFailure(SystemRecipeFailure::Inconsistent(
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Inconsistent(
                 ConsistencyFailure::NotDeterministic(DeterminismFailure { .. }),
                 _
             ))
@@ -65,11 +68,12 @@ mod test {
         let actual = json_run_query(
             PATH,
             "consistency: DeterministicQuotientComp // NotDeterministicQuotientComp",
-        );
+        )
+        .unwrap_err();
         println!("{:?}", actual);
         assert!(matches!(
             actual,
-            QueryResult::RecipeFailure(SystemRecipeFailure::Inconsistent(
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Inconsistent(
                 ConsistencyFailure::NotDeterministic(DeterminismFailure { .. }),
                 _
             ))

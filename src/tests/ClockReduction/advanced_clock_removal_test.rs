@@ -18,7 +18,7 @@ pub mod test {
 
         let mut system_recipe_copy = Box::new(system_recipe);
 
-        clock_reduction::clock_reduce(&mut system_recipe_copy, None, &mut dimensions, false)
+        clock_reduction::clock_reduce(&mut system_recipe_copy, None, &mut dimensions, None)
             .unwrap();
 
         //We let it use the unreduced amount of dimensions so we can catch the error

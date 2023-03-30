@@ -183,10 +183,10 @@ pub trait TransitionSystem: DynClone {
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
         graph.dim = self.get_dim();
-        let location = self.get_initial_location().unwrap();
         let actions = self.get_actions();
-
-        self.find_edges_and_nodes(&location, &actions, &mut graph);
+        for location in self.get_all_locations() {
+            self.find_edges_and_nodes(&location, &actions, &mut graph);
+        }
 
         graph
     }
@@ -240,15 +240,6 @@ pub trait TransitionSystem: DynClone {
                 }
 
                 graph.edges.push(edge);
-
-                //Calls itself on the transitions target location if the location is not already in
-                //represented as a node in the graph.
-                if !graph
-                    .nodes
-                    .contains_key(&transition.target_locations.id.get_unique_string())
-                {
-                    self.find_edges_and_nodes(&transition.target_locations, actions, graph);
-                }
             }
         }
     }
@@ -304,10 +295,10 @@ impl ClockReductionInstruction {
         }
     }
 
-    pub(crate) fn is_replace(&self) -> bool {
+    pub(crate) fn get_clock_index(&self) -> ClockIndex {
         match self {
-            ClockReductionInstruction::RemoveClock { .. } => false,
-            ClockReductionInstruction::ReplaceClocks { .. } => true,
+            ClockReductionInstruction::RemoveClock { clock_index }
+            | ClockReductionInstruction::ReplaceClocks { clock_index, .. } => *clock_index,
         }
     }
 }
