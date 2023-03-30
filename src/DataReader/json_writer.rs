@@ -1,13 +1,12 @@
 use crate::ModelObjects::component::Component;
-use std::fs::File;
+use std::{fs::File, path::Path};
 
-pub fn component_to_json_file(project_path: &str, component: &Component) {
-    let path = format!(
-        "{0}{1}Components{1}{2}.json",
-        project_path,
-        std::path::MAIN_SEPARATOR,
-        component.get_name()
-    );
+pub fn component_to_json_file<P: AsRef<Path>>(project_path: P, component: &Component) {
+    let path = project_path
+        .as_ref()
+        .join("Components")
+        .join(format!("{}.json", component.get_name()));
+
     let file = File::create(path).expect("Couldnt open file");
 
     serde_json::to_writer_pretty(&file, component).expect("Failed to serialize component");

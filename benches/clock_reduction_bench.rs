@@ -22,8 +22,7 @@ fn bench_clock_reduced_refinement(c: &mut Criterion) {
 fn clock_reduced_refinement() {
     let query = parse_to_query(QUERY);
     let mut loader =
-        JsonProjectLoader::new("samples/json/EcdarUniversity".to_string(), DEFAULT_SETTINGS)
-            .to_comp_loader();
+        JsonProjectLoader::new("samples/json/EcdarUniversity", DEFAULT_SETTINGS).to_comp_loader();
     let executor = create_executable_query(query.get(0).unwrap(), &mut *loader).unwrap();
     executor.execute();
 }
@@ -31,8 +30,7 @@ fn clock_reduced_refinement() {
 fn normal_refinement() {
     let query = parse_to_query(QUERY);
     let mut loader =
-        JsonProjectLoader::new("samples/json/EcdarUniversity".to_string(), TEST_SETTINGS)
-            .to_comp_loader();
+        JsonProjectLoader::new("samples/json/EcdarUniversity", TEST_SETTINGS).to_comp_loader();
     let executor = create_executable_query(query.get(0).unwrap(), &mut *loader).unwrap();
     executor.execute();
 }

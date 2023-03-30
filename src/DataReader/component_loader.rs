@@ -12,6 +12,7 @@ use crate::ProtobufServer::services::query_request::Settings;
 use crate::System::input_enabler;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use super::proto_reader::components_info_to_components;
@@ -194,12 +195,12 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
 pub trait ProjectLoader: ComponentLoader {
     fn get_declarations(&self) -> &SystemDeclarations;
     fn get_queries(&self) -> &Vec<Query>;
-    fn get_project_path(&self) -> &str;
+    fn get_project_path(&self) -> &PathBuf;
     fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader>;
 }
 
 pub struct JsonProjectLoader {
-    project_path: String,
+    project_path: PathBuf,
     loaded_components: ComponentsMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
@@ -240,7 +241,7 @@ impl ProjectLoader for JsonProjectLoader {
         &self.queries
     }
 
-    fn get_project_path(&self) -> &str {
+    fn get_project_path(&self) -> &PathBuf {
         &self.project_path
     }
 
@@ -251,12 +252,12 @@ impl ProjectLoader for JsonProjectLoader {
 
 impl JsonProjectLoader {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
+    pub fn new<P: AsRef<Path>>(project_path: P, settings: Settings) -> Box<dyn ProjectLoader> {
         let system_declarations = json_reader::read_system_declarations(&project_path).unwrap();
         let queries = json_reader::read_queries(&project_path).unwrap();
 
         Box::new(JsonProjectLoader {
-            project_path,
+            project_path: project_path.as_ref().to_path_buf(),
             loaded_components: HashMap::new(),
             system_declarations,
             queries,
@@ -284,7 +285,7 @@ impl JsonProjectLoader {
 }
 
 pub struct XmlProjectLoader {
-    project_path: String,
+    project_path: PathBuf,
     loaded_components: ComponentsMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
@@ -319,7 +320,7 @@ impl ProjectLoader for XmlProjectLoader {
         &self.queries
     }
 
-    fn get_project_path(&self) -> &str {
+    fn get_project_path(&self) -> &PathBuf {
         &self.project_path
     }
 
@@ -330,7 +331,7 @@ impl ProjectLoader for XmlProjectLoader {
 
 impl XmlProjectLoader {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
+    pub fn new<P: AsRef<Path>>(project_path: P, settings: Settings) -> Box<dyn ProjectLoader> {
         let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
 
         let mut map = HashMap::<String, Component>::new();
@@ -345,7 +346,7 @@ impl XmlProjectLoader {
         }
 
         Box::new(XmlProjectLoader {
-            project_path,
+            project_path: project_path.as_ref().to_path_buf(),
             loaded_components: map,
             system_declarations,
             queries,
