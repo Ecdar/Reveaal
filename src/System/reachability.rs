@@ -1,3 +1,4 @@
+use edbm::util::bounds::Bounds;
 use edbm::zones::OwnedFederation;
 
 use super::query_failures::PathFailure;
@@ -125,6 +126,8 @@ fn reachability_search(
         transition: None,
     }));
 
+    let target_bounds = end_state.zone_ref().get_bounds();
+
     // Take the first state from the frontier and explore it
     while let Some(sub_path) = frontier_states.pop_front() {
         if reached_end_state(&sub_path.destination_state, end_state) {
@@ -142,6 +145,7 @@ fn reachability_search(
                     &mut visited_states,
                     system,
                     action,
+                    &target_bounds,
                 );
             }
         }
@@ -164,11 +168,13 @@ fn take_transition(
     visited_states: &mut HashMap<LocationID, Vec<OwnedFederation>>,
     system: &TransitionSystemPtr,
     action: &str,
+    target_bounds: &Bounds,
 ) {
     let mut new_state = sub_path.destination_state.clone();
     if transition.use_transition(&mut new_state) {
-        // TODO: bounds here are not always correct, they should take the added bounds from the target state into account
-        new_state.extrapolate_max_bounds(system.as_ref()); // Ensures the bounds cant grow infinitely, avoiding infinite loops
+        // Extrapolation ensures the bounds cant grow indefinitely, avoiding infinite loops
+        // We must take the added bounds from the target state into account to ensure correctness
+        new_state.extrapolate_max_bounds_with_extra_bounds(system.as_ref(), target_bounds);
         let new_location_id = &new_state.get_location().id;
         let existing_zones = visited_states.entry(new_location_id.clone()).or_default();
         // If this location has not already been reached (explored) with a larger zone
