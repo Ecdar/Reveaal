@@ -10,9 +10,7 @@ mod test {
 
     #[test]
     fn not_consistent_test() {
-        let actual = json_run_query(PATH, "consistency: notConsistent")
-            .ok()
-            .unwrap();
+        let actual = json_run_query(PATH, "consistency: notConsistent").unwrap();
         assert!(matches!(
             actual,
             QueryResult::Consistency(ConsistencyResult::Err(

@@ -13,9 +13,8 @@ mod test {
 
     #[test]
     fn compostion1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -47,9 +46,8 @@ mod test {
 
     #[test]
     fn compostion2_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -81,9 +79,8 @@ mod test {
 
     #[test]
     fn compostion3_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(

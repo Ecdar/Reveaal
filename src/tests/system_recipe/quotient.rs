@@ -15,9 +15,8 @@ mod test {
 
     #[test]
     fn quotient1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftQuotient1 // RightQuotient1").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -53,8 +52,7 @@ mod test {
             PATH,
             "consistency: NotDeterministicQuotientComp // DeterministicQuotientComp",
         )
-        .err()
-        .unwrap();
+        .unwrap_err();
         println!("{:?}", actual);
         assert!(matches!(
             actual,
@@ -71,8 +69,7 @@ mod test {
             PATH,
             "consistency: DeterministicQuotientComp // NotDeterministicQuotientComp",
         )
-        .err()
-        .unwrap();
+        .unwrap_err();
         println!("{:?}", actual);
         assert!(matches!(
             actual,

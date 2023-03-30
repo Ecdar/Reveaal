@@ -13,9 +13,7 @@ mod test {
 
     #[test]
     fn compiled_component1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: CompiledComponent1")
-            .err()
-            .unwrap();
+        let actual = json_run_query(PATH, "consistency: CompiledComponent1").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -47,9 +45,7 @@ mod test {
 
     #[test]
     fn compiled_component2_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: CompiledComponent2")
-            .err()
-            .unwrap();
+        let actual = json_run_query(PATH, "consistency: CompiledComponent2").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -81,9 +77,7 @@ mod test {
 
     #[test]
     fn compiled_component3_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: CompiledComponent3")
-            .err()
-            .unwrap();
+        let actual = json_run_query(PATH, "consistency: CompiledComponent3").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(

@@ -26,7 +26,7 @@ pub fn xml_refinement_check(PATH: &str, QUERY: &str) -> bool {
 pub fn json_refinement_check(PATH: &str, QUERY: &str) -> bool {
     try_setup_logging();
 
-    match json_run_query(PATH, QUERY).ok().unwrap() {
+    match json_run_query(PATH, QUERY).unwrap() {
         QueryResult::Refinement(Ok(())) => true,
         QueryResult::Refinement(Err(_)) => false,
         QueryResult::CustomError(err) => panic!("{}", err),

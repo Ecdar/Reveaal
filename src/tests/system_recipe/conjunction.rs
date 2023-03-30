@@ -13,9 +13,8 @@ mod test {
 
     #[test]
     fn conjunction1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftConjunction1 && RightConjunction1")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftConjunction1 && RightConjunction1").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -47,9 +46,8 @@ mod test {
 
     #[test]
     fn conjunction2_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftConjunction2 && RightConjunction2")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftConjunction2 && RightConjunction2").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
@@ -81,9 +79,8 @@ mod test {
 
     #[test]
     fn conjunction3_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftConjunction3 && RightConjunction3")
-            .err()
-            .unwrap();
+        let actual =
+            json_run_query(PATH, "consistency: LeftConjunction3 && RightConjunction3").unwrap_err();
         assert!(matches!(
             actual,
             ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
