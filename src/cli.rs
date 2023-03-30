@@ -2,9 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(author, version, 
-    about="Reveaal is a model checking engine for ECDAR (Environment for Compositional Design and Analysis of Real Time Systems)\nFor more information about ECDAR see https://www.ecdar.net/", 
-    long_about = Some("With Reveaal you can either run a single query with the 'query' command or run it as a server with the 'serve' command"))]
+#[command(author, version, about="Reveaal is a model checking engine for ECDAR (Environment for Compositional Design and Analysis of Real Time Systems)\nFor more information about ECDAR see https://www.ecdar.net/", long_about = Some("With Reveaal you can either run a single query with the 'query' command or run it as a server with the 'serve' command"))]
 pub enum Args {
     /// Start a gRPC server with the protocol defined in the protobuf file
     ///
