@@ -1,85 +1,112 @@
 #[cfg(test)]
 
 mod test {
+    use std::collections::HashSet;
+
+    use crate::extract_system_rep::ExecutableQueryError;
     use crate::{
-        extract_system_rep::SystemRecipeFailure,
         tests::refinement::Helper::json_run_query,
-        QueryResult,
-        System::local_consistency::{ConsistencyFailure, ConsistencyResult},
+        System::query_failures::{ActionFailure, SystemRecipeFailure},
     };
 
     const PATH: &str = "samples/json/SystemRecipe/Composition";
 
     #[test]
     fn compostion1_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1");
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1").unwrap_err();
         assert!(matches!(
             actual,
-            QueryResult::Consistency(ConsistencyResult::Failure(ConsistencyFailure::NotDisjoint(
-                ..
-            )))
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+                ActionFailure::NotDisjoint(_, _),
+                _
+            ))
         ));
     }
 
     #[test]
     fn composition1_fails_with_correct_actions() {
-        let expected_actions = vec!["Output1".to_string()];
-        if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotDisjoint(SystemRecipeFailure { actions, .. }),
-        )) = json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1")
+        let expected_actions = HashSet::from(["Output1".to_string()]);
+        if let Some(ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+            ActionFailure::NotDisjoint(left, right),
+            _,
+        ))) = json_run_query(PATH, "consistency: LeftComposition1 || RightComposition1").err()
         {
-            assert_eq!(actions, expected_actions);
+            assert_eq!(
+                left.actions
+                    .intersection(&right.actions)
+                    .cloned()
+                    .collect::<HashSet<_>>(),
+                expected_actions
+            );
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 
     #[test]
     fn compostion2_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2");
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2").unwrap_err();
         assert!(matches!(
             actual,
-            QueryResult::Consistency(ConsistencyResult::Failure(ConsistencyFailure::NotDisjoint(
-                ..
-            )))
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+                ActionFailure::NotDisjoint(_, _),
+                _
+            ))
         ));
     }
 
     #[test]
     fn composition2_fails_with_correct_actions() {
-        let expected_actions = vec!["Output1".to_string(), "Output2".to_string()];
-        if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotDisjoint(SystemRecipeFailure { mut actions, .. }),
-        )) = json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2")
+        let expected_actions = HashSet::from(["Output1".to_string(), "Output2".to_string()]);
+        if let Some(ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+            ActionFailure::NotDisjoint(left, right),
+            _,
+        ))) = json_run_query(PATH, "consistency: LeftComposition2 || RightComposition2").err()
         {
-            actions.sort();
-            assert_eq!(actions, expected_actions);
+            assert_eq!(
+                left.actions
+                    .intersection(&right.actions)
+                    .cloned()
+                    .collect::<HashSet<_>>(),
+                expected_actions
+            );
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 
     #[test]
     fn compostion3_fails_correctly() {
-        let actual = json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3");
+        let actual =
+            json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3").unwrap_err();
         assert!(matches!(
             actual,
-            QueryResult::Consistency(ConsistencyResult::Failure(ConsistencyFailure::NotDisjoint(
-                ..
-            )))
+            ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+                ActionFailure::NotDisjoint(_, _),
+                _
+            ))
         ));
     }
 
     #[test]
     fn composition3_fails_with_correct_actions() {
-        let expected_actions = vec!["Output2".to_string()];
-        if let QueryResult::Consistency(ConsistencyResult::Failure(
-            ConsistencyFailure::NotDisjoint(SystemRecipeFailure { actions, .. }),
-        )) = json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3")
+        let expected_actions = HashSet::from(["Output2".to_string()]);
+        if let Some(ExecutableQueryError::SystemRecipeFailure(SystemRecipeFailure::Action(
+            ActionFailure::NotDisjoint(left, right),
+            _,
+        ))) = json_run_query(PATH, "consistency: LeftComposition3 || RightComposition3").err()
         {
-            assert_eq!(actions, expected_actions);
+            assert_eq!(
+                left.actions
+                    .intersection(&right.actions)
+                    .cloned()
+                    .collect::<HashSet<_>>(),
+                expected_actions
+            );
         } else {
-            panic!("Models in saples/action have been changed, REVERT!");
+            panic!("Models in samples/action have been changed, REVERT!");
         }
     }
 }

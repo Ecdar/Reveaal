@@ -1,7 +1,9 @@
-use super::{CompositionType, LocationID, LocationTuple};
+use super::ComponentInfo;
+use super::{CompositionType, LocationID, LocationTree};
 use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::System::local_consistency::DeterminismFailure;
+use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
+use crate::System::specifics::SpecificLocation;
 use crate::{
     component::Component,
     extract_system_rep::get_system_recipe,
@@ -9,39 +11,62 @@ use crate::{
     ComponentLoader,
     DataReader::component_loader::ComponentContainer,
     ModelObjects::component::{Declarations, State, Transition},
-    System::local_consistency::DeterminismResult,
-    System::local_consistency::{ConsistencyFailure, ConsistencyResult},
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
-use log::warn;
 use pest::Parser;
 use std::collections::hash_map::Entry;
+use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
-use std::{
-    collections::{hash_set::HashSet, HashMap},
-    iter::zip,
-};
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
 pub type Action = String;
 pub type EdgeTuple = (Action, Transition);
 pub type EdgeIndex = (LocationID, usize);
 
-/// Precheck can fail because of either consistency or determinism.
-pub enum PrecheckResult {
-    Success,
-    NotDeterministic(LocationID, String),
-    NotConsistent(ConsistencyFailure),
+pub enum ComponentInfoTree<'a> {
+    Info(&'a ComponentInfo),
+    Composition(Box<ComponentInfoTree<'a>>, Box<ComponentInfoTree<'a>>),
+}
+
+impl<'a> ComponentInfoTree<'a> {
+    pub fn iter(&'a self) -> Box<dyn Iterator<Item = &'a ComponentInfo> + '_> {
+        match self {
+            ComponentInfoTree::Info(info) => Box::new(std::iter::once(*info)),
+            ComponentInfoTree::Composition(left, right) => {
+                Box::new(left.iter().chain(right.iter()))
+            }
+        }
+    }
+
+    pub fn split(self) -> (ComponentInfoTree<'a>, ComponentInfoTree<'a>) {
+        match self {
+            ComponentInfoTree::Composition(left, right) => (*left, *right),
+            ComponentInfoTree::Info(_) => {
+                unreachable!("Cannot split a ComponentInfoTree with only one ComponentInfo")
+            }
+        }
+    }
+
+    pub fn info(&self) -> &ComponentInfo {
+        match self {
+            ComponentInfoTree::Info(info) => info,
+            ComponentInfoTree::Composition(_, _) => {
+                unreachable!(
+                    "Cannot get info from a ComponentInfoTree with more than one ComponentInfo"
+                )
+            }
+        }
+    }
 }
 
 pub trait TransitionSystem: DynClone {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds;
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds;
     fn get_dim(&self) -> ClockIndex;
 
     fn next_transitions_if_available(
         &self,
-        location: &LocationTuple,
+        location: &LocationTree,
         action: &str,
     ) -> Vec<Transition> {
         if self.actions_contain(action) {
@@ -51,14 +76,14 @@ pub trait TransitionSystem: DynClone {
         }
     }
 
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition>;
 
-    fn next_outputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_outputs(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         debug_assert!(self.get_output_actions().contains(action));
         self.next_transitions(location, action)
     }
 
-    fn next_inputs(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_inputs(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         debug_assert!(self.get_input_actions().contains(action));
         self.next_transitions(location, action)
     }
@@ -81,11 +106,11 @@ pub trait TransitionSystem: DynClone {
         self.get_actions().contains(action)
     }
 
-    fn get_initial_location(&self) -> Option<LocationTuple>;
+    fn get_initial_location(&self) -> Option<LocationTree>;
 
-    fn get_all_locations(&self) -> Vec<LocationTuple>;
+    fn get_all_locations(&self) -> Vec<LocationTree>;
 
-    fn get_location(&self, id: &LocationID) -> Option<LocationTuple> {
+    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
         self.get_all_locations()
             .iter()
             .find(|loc| loc.id == *id)
@@ -94,21 +119,9 @@ pub trait TransitionSystem: DynClone {
 
     fn get_decls(&self) -> Vec<&Declarations>;
 
-    fn precheck_sys_rep(&self) -> PrecheckResult {
-        if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-            location,
-            action,
-        )) = self.is_deterministic()
-        {
-            warn!("Not deterministic");
-            return PrecheckResult::NotDeterministic(location, action);
-        }
-
-        if let ConsistencyResult::Failure(failure) = self.is_locally_consistent() {
-            warn!("Not consistent");
-            return PrecheckResult::NotConsistent(failure);
-        }
-        PrecheckResult::Success
+    fn precheck_sys_rep(&self) -> ConsistencyResult {
+        self.check_determinism()?;
+        self.check_local_consistency()
     }
     fn get_combined_decls(&self) -> Declarations {
         let mut clocks = HashMap::new();
@@ -122,15 +135,36 @@ pub trait TransitionSystem: DynClone {
         Declarations { ints, clocks }
     }
 
-    fn is_deterministic(&self) -> DeterminismResult;
+    fn check_determinism(&self) -> DeterminismResult;
 
-    fn is_locally_consistent(&self) -> ConsistencyResult;
+    fn check_local_consistency(&self) -> ConsistencyResult;
 
     fn get_initial_state(&self) -> Option<State>;
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;
+
+    fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
+        let (left, right) = self.get_children();
+        let left_info = left.comp_infos();
+        let right_info = right.comp_infos();
+        ComponentInfoTree::Composition(Box::new(left_info), Box::new(right_info))
+    }
+
+    fn to_string(&self) -> String {
+        if self.get_composition_type() == CompositionType::Simple {
+            panic!("Simple Transition Systems should implement to_string() themselves.")
+        }
+        let (left, right) = self.get_children();
+        let comp = match self.get_composition_type() {
+            CompositionType::Conjunction => "&&",
+            CompositionType::Composition => "||",
+            CompositionType::Quotient => r"\\",
+            CompositionType::Simple => unreachable!(),
+        };
+        format!("({} {} {})", left.to_string(), comp, right.to_string())
+    }
 
     /// Returns a [`Vec`] of all component names in a given [`TransitionSystem`].
     fn component_names(&self) -> Vec<&str> {
@@ -144,57 +178,15 @@ pub trait TransitionSystem: DynClone {
             .collect()
     }
 
-    /// Maps a clock- and component name to a clock index for a given [`TransitionSystem`].
-    fn clock_name_and_component_to_index(&self, name: &str, component: &str) -> Option<usize> {
-        let index_to_clock_name_and_component = self.clock_name_and_component_to_index_map();
-        index_to_clock_name_and_component
-            .get(&(name.to_string(), component.to_string()))
-            .copied()
-    }
-
-    /// Maps a clock index to a clock- and component name for a given [`TransitionSystem`].
-    fn index_to_clock_name_and_component(&self, index: &usize) -> Option<(String, String)> {
-        fn invert<T1, T2>(hash_map: HashMap<T1, T2>) -> HashMap<T2, T1>
-        where
-            T2: Hash + Eq,
-        {
-            hash_map.into_iter().map(|x| (x.1, x.0)).collect()
-        }
-
-        let index_to_clock_name_and_component = self.clock_name_and_component_to_index_map();
-        let index_to_clock_name_and_component = invert(index_to_clock_name_and_component);
-        index_to_clock_name_and_component
-            .get(index)
-            .map(|x| x.to_owned())
-    }
-
-    /// Returns a [`HashMap`] from clock- and component names to clock indices.
-    fn clock_name_and_component_to_index_map(&self) -> HashMap<(String, String), usize> {
-        let binding = self.component_names();
-        let component_names = binding.into_iter();
-        let binding = self.get_decls();
-        let clock_to_index = binding.into_iter().map(|decl| decl.clocks.to_owned());
-
-        zip(component_names, clock_to_index)
-            .map(|x| {
-                x.1.iter()
-                    .map(|y| ((y.0.to_owned(), x.0.to_string()), y.1.to_owned()))
-                    .collect::<HashMap<(String, String), usize>>()
-            })
-            .fold(HashMap::new(), |accumulator, head| {
-                accumulator.into_iter().chain(head).collect()
-            })
-    }
-
     ///Constructs a [CLockAnalysisGraph],
     ///where nodes represents locations and Edges represent transitions
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
         graph.dim = self.get_dim();
-        let location = self.get_initial_location().unwrap();
         let actions = self.get_actions();
-
-        self.find_edges_and_nodes(&location, &actions, &mut graph);
+        for location in self.get_all_locations() {
+            self.find_edges_and_nodes(&location, &actions, &mut graph);
+        }
 
         graph
     }
@@ -204,7 +196,7 @@ pub trait TransitionSystem: DynClone {
     ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
     fn find_edges_and_nodes(
         &self,
-        location: &LocationTuple,
+        location: &LocationTree,
         actions: &HashSet<String>,
         graph: &mut ClockAnalysisGraph,
     ) {
@@ -248,15 +240,6 @@ pub trait TransitionSystem: DynClone {
                 }
 
                 graph.edges.push(edge);
-
-                //Calls itself on the transitions target location if the location is not already in
-                //represented as a node in the graph.
-                if !graph
-                    .nodes
-                    .contains_key(&transition.target_locations.id.get_unique_string())
-                {
-                    self.find_edges_and_nodes(&transition.target_locations, actions, graph);
-                }
             }
         }
     }
@@ -264,6 +247,8 @@ pub trait TransitionSystem: DynClone {
     fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
         self.get_analysis_graph().find_clock_redundancies()
     }
+
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String>;
 }
 
 /// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some `components`.
@@ -310,10 +295,10 @@ impl ClockReductionInstruction {
         }
     }
 
-    pub(crate) fn is_replace(&self) -> bool {
+    pub(crate) fn get_clock_index(&self) -> ClockIndex {
         match self {
-            ClockReductionInstruction::RemoveClock { .. } => false,
-            ClockReductionInstruction::ReplaceClocks { .. } => true,
+            ClockReductionInstruction::RemoveClock { clock_index }
+            | ClockReductionInstruction::ReplaceClocks { clock_index, .. } => *clock_index,
         }
     }
 }

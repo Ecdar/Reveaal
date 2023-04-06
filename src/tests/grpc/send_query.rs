@@ -23,8 +23,8 @@ mod refinements {
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
         match result {
-            query_response::Result::Refinement(refine) => assert!(refine.success),
-            _ => panic!(),
+            query_response::Result::Success(_) => {}
+            _ => panic!("Expected success, got {:?}", result),
         }
     }
 
@@ -34,13 +34,12 @@ mod refinements {
         let query_request = create_query_request("consistency: Machine");
 
         let query_response = backend.send_query(query_request).await;
-        assert!(query_response.is_ok());
 
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
         match result {
-            query_response::Result::Consistency(consistent) => assert!(consistent.success),
-            _ => panic!(),
+            query_response::Result::Success(_) => {}
+            _ => panic!("Expected success, got {:?}", result),
         }
     }
 
@@ -50,13 +49,12 @@ mod refinements {
         let query_request = create_query_request("determinism: Machine");
 
         let query_response = backend.send_query(query_request).await;
-        assert!(query_response.is_ok());
 
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
         match result {
-            query_response::Result::Determinism(determinism) => assert!(determinism.success),
-            _ => panic!(),
+            query_response::Result::Success(_) => {}
+            _ => panic!("Expected success, got {:?}", result),
         }
     }
 
@@ -74,7 +72,6 @@ mod refinements {
                 }],
                 components_hash: 0,
             }),
-            ignored_input_outputs: None,
             settings: Some(crate::tests::TEST_SETTINGS),
         })
     }
@@ -106,8 +103,8 @@ mod refinements {
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
         match result {
-            query_response::Result::Refinement(refine) => assert!(refine.success),
-            _ => panic!(),
+            query_response::Result::Success(_) => {}
+            _ => panic!("Expected success, got {:?}", result),
         }
     }
 }

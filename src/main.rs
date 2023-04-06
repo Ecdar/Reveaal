@@ -1,11 +1,12 @@
 #![allow(non_snake_case)]
 use clap::{load_yaml, App};
 use reveaal::logging::setup_logger;
+use reveaal::System::query_failures::QueryResult;
 
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
     extract_system_rep, parse_queries, start_grpc_server_with_tokio, xml_parser, ComponentLoader,
-    JsonProjectLoader, ProjectLoader, Query, QueryResult, XmlProjectLoader,
+    JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
 };
 use std::env;
 
@@ -46,7 +47,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
 
         let result = executable_query.execute();
 
-        if let QueryResult::Error(err) = result {
+        if let QueryResult::CustomError(err) = result {
             panic!("{}", err);
         }
 

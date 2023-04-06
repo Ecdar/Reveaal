@@ -16,28 +16,45 @@ pub enum CompositionType {
 }
 
 #[derive(Clone, Debug)]
-pub struct LocationTuple {
+pub struct LocationTree {
     pub id: LocationID,
     /// The invariant for the `Location`
     pub invariant: Option<OwnedFederation>,
-    pub loc_type: LocationType,
-    left: Option<Box<LocationTuple>>,
-    right: Option<Box<LocationTuple>>,
+    loc_type: LocationType,
+    left: Option<Box<LocationTree>>,
+    right: Option<Box<LocationTree>>,
 }
 
-impl PartialEq for LocationTuple {
+impl PartialEq for LocationTree {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.loc_type == other.loc_type
     }
 }
 
-impl LocationTuple {
-    pub fn simple(
-        location: &Location,
-        component_id: Option<String>,
-        decls: &Declarations,
-        dim: ClockIndex,
-    ) -> Self {
+impl LocationTree {
+    pub fn universal() -> Self {
+        LocationTree {
+            id: LocationID::Special(crate::System::specifics::SpecialLocation::Universal),
+            invariant: None,
+            loc_type: LocationType::Universal,
+            left: None,
+            right: None,
+        }
+    }
+
+    pub fn error(dim: ClockIndex, quotient_clock_index: ClockIndex) -> Self {
+        let inv = OwnedFederation::universe(dim).constrain_eq(quotient_clock_index, 0);
+
+        LocationTree {
+            id: LocationID::Special(crate::System::specifics::SpecialLocation::Error),
+            invariant: Some(inv),
+            loc_type: LocationType::Inconsistent,
+            left: None,
+            right: None,
+        }
+    }
+
+    pub fn simple(location: &Location, decls: &Declarations, dim: ClockIndex) -> Self {
         let invariant = if let Some(inv) = location.get_invariant() {
             let mut fed = OwnedFederation::universe(dim);
             fed = apply_constraints_to_state(inv, decls, fed).unwrap();
@@ -45,23 +62,20 @@ impl LocationTuple {
         } else {
             None
         };
-        LocationTuple {
-            id: LocationID::Simple {
-                location_id: location.get_id().clone(),
-                component_id,
-            },
+        LocationTree {
+            id: LocationID::Simple(location.get_id().clone()),
             invariant,
-            loc_type: location.get_location_type().clone(),
+            loc_type: location.get_location_type(),
             left: None,
             right: None,
         }
     }
-    /// This method is used to a build partial [`LocationTuple`].
-    /// A partial [`LocationTuple`] means it has a [`LocationID`] that is [`LocationID::AnyLocation`].
-    /// A partial [`LocationTuple`] has `None` in the field `invariant` since a partial [`LocationTuple`]
+    /// This method is used to a build partial [`LocationTree`].
+    /// A partial [`LocationTree`] means it has a [`LocationID`] that is [`LocationID::AnyLocation`].
+    /// A partial [`LocationTree`] has `None` in the field `invariant` since a partial [`LocationTree`]
     /// covers more than one location, and therefore there is no specific `invariant`
-    pub fn build_any_location_tuple() -> Self {
-        LocationTuple {
+    pub fn build_any_location_tree() -> Self {
+        LocationTree {
             id: LocationID::AnyLocation,
             invariant: None,
             loc_type: LocationType::Any,
@@ -74,21 +88,9 @@ impl LocationTuple {
     pub fn merge_as_quotient(left: &Self, right: &Self) -> Self {
         let id = LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()));
 
-        if left.loc_type == right.loc_type
-            && (left.loc_type == LocationType::Universal
-                || left.loc_type == LocationType::Inconsistent)
-        {
-            return left.clone();
-        }
+        let loc_type = left.loc_type.combine(right.loc_type);
 
-        let loc_type =
-            if left.loc_type == LocationType::Initial && right.loc_type == LocationType::Initial {
-                LocationType::Initial
-            } else {
-                LocationType::Normal
-            };
-
-        LocationTuple {
+        LocationTree {
             id,
             invariant: None,
             loc_type,
@@ -109,10 +111,6 @@ impl LocationTuple {
             _ => panic!("Invalid composition type {:?}", comp),
         };
 
-        if left.loc_type == right.loc_type && (left.is_universal() || left.is_inconsistent()) {
-            return left.clone();
-        }
-
         let invariant = if let Some(inv1) = &left.invariant {
             if let Some(inv2) = &right.invariant {
                 Some(inv1.clone().intersection(inv2))
@@ -123,14 +121,9 @@ impl LocationTuple {
             right.invariant.clone()
         };
 
-        let loc_type =
-            if left.loc_type == LocationType::Initial && right.loc_type == LocationType::Initial {
-                LocationType::Initial
-            } else {
-                LocationType::Normal
-            };
+        let loc_type = left.loc_type.combine(right.loc_type);
 
-        LocationTuple {
+        LocationTree {
             id,
             invariant,
             loc_type,
@@ -150,17 +143,11 @@ impl LocationTuple {
         fed
     }
 
-    pub fn get_left(&self) -> &LocationTuple {
-        if self.is_universal() || self.is_inconsistent() {
-            return self;
-        }
+    pub fn get_left(&self) -> &LocationTree {
         self.left.as_ref().unwrap()
     }
 
-    pub fn get_right(&self) -> &LocationTuple {
-        if self.is_universal() || self.is_inconsistent() {
-            return self;
-        }
+    pub fn get_right(&self) -> &LocationTree {
         self.right.as_ref().unwrap()
     }
 
@@ -176,8 +163,8 @@ impl LocationTuple {
         self.loc_type == LocationType::Inconsistent
     }
 
-    /// This function is used when you want to compare [`LocationTuple`]s that can contain partial locations.
-    pub fn compare_partial_locations(&self, other: &LocationTuple) -> bool {
+    /// This function is used when you want to compare [`LocationTree`]s that can contain partial locations.
+    pub fn compare_partial_locations(&self, other: &LocationTree) -> bool {
         match (&self.id, &other.id) {
             (LocationID::Composition(..), LocationID::Composition(..))
             | (LocationID::Conjunction(..), LocationID::Conjunction(..))
@@ -190,46 +177,8 @@ impl LocationTuple {
             (LocationID::AnyLocation, LocationID::Simple { .. })
             | (LocationID::Simple { .. }, LocationID::AnyLocation)
             | (LocationID::AnyLocation, LocationID::AnyLocation) => true,
-            (
-                LocationID::Simple {
-                    location_id: loc_id_1,
-                    component_id: comp_id_1,
-                },
-                LocationID::Simple {
-                    location_id: loc_id_2,
-                    component_id: comp_id_2,
-                },
-            ) => loc_id_1 == loc_id_2 && comp_id_1 == comp_id_2,
-            // These six arms below are for comparing universal or inconsistent location with partial location.
-            (LocationID::Simple { .. }, LocationID::Composition(..))
-            | (LocationID::Simple { .. }, LocationID::Conjunction(..))
-            | (LocationID::Simple { .. }, LocationID::Quotient(..)) => {
-                self.handle_universal_inconsistent_compare(other)
-            }
-            (LocationID::Composition(..), LocationID::Simple { .. })
-            | (LocationID::Conjunction(..), LocationID::Simple { .. })
-            | (LocationID::Quotient(..), LocationID::Simple { .. }) => {
-                other.handle_universal_inconsistent_compare(self)
-            }
+            (LocationID::Simple(loc_id_1), LocationID::Simple(loc_id_2)) => loc_id_1 == loc_id_2,
             (_, _) => false,
-        }
-    }
-
-    fn handle_universal_inconsistent_compare(&self, other: &LocationTuple) -> bool {
-        (self.is_universal() || self.is_inconsistent())
-            && other.is_universal_or_inconsistent(&self.loc_type)
-    }
-
-    fn is_universal_or_inconsistent(&self, loc_type: &LocationType) -> bool {
-        match self.id {
-            LocationID::Conjunction(..)
-            | LocationID::Composition(..)
-            | LocationID::Quotient(..) => {
-                self.get_left().is_universal_or_inconsistent(loc_type)
-                    && self.get_right().is_universal_or_inconsistent(loc_type)
-            }
-            LocationID::Simple { .. } => self.loc_type == *loc_type,
-            LocationID::AnyLocation => true,
         }
     }
 }

@@ -9,7 +9,7 @@ use pest::Parser;
 #[grammar = "DataReader/grammars/invariant_grammar.pest"]
 pub struct InvariantParser;
 
-pub fn parse(edge_attribute_str: &str) -> Result<BoolExpression, Error<Rule>> {
+pub fn parse(edge_attribute_str: &str) -> Result<BoolExpression, Box<Error<Rule>>> {
     let mut pairs = InvariantParser::parse(Rule::invariant, edge_attribute_str)
         .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
     let pair = pairs.next().unwrap();

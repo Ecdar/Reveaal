@@ -13,75 +13,29 @@ use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
+use super::query_failures::SystemRecipeFailure;
 use crate::component::State;
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
-use std::error::Error;
 
-pub struct SystemRecipeFailure {
-    pub reason: String,
-    pub left_name: Option<String>,
-    pub right_name: Option<String>,
-    pub actions: Vec<String>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExecutableQueryError {
+    SystemRecipeFailure(SystemRecipeFailure),
+    Custom(String),
 }
 
-impl From<SystemRecipeFailure> for String {
+impl From<SystemRecipeFailure> for ExecutableQueryError {
     fn from(failure: SystemRecipeFailure) -> Self {
-        failure.reason
+        ExecutableQueryError::SystemRecipeFailure(failure)
     }
 }
 
-impl std::fmt::Display for SystemRecipeFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SystemRecipeFailure: {}", self.reason)
-    }
-}
-
-impl std::fmt::Debug for SystemRecipeFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SystemRecipeFailure: {}", self.reason)
-    }
-}
-impl Error for SystemRecipeFailure {
-    fn description(&self) -> &str {
-        &self.reason
-    }
-}
-
-impl SystemRecipeFailure {
-    pub fn new_from_component(reason: String, component: Component, actions: Vec<String>) -> Self {
-        SystemRecipeFailure {
-            reason,
-            left_name: Some(component.get_name().to_string()),
-            right_name: None,
-            actions,
-        }
-    }
-    pub fn new(
-        reason: String,
-        left: TransitionSystemPtr,
-        right: TransitionSystemPtr,
-        actions: Vec<String>,
-    ) -> Self {
-        let mut left_name = None;
-        let mut right_name = None;
-
-        if let Some(location) = left.get_initial_location() {
-            left_name = location.id.get_component_id()
-        }
-        if let Some(location) = right.get_initial_location() {
-            right_name = location.id.get_component_id()
-        }
-
-        SystemRecipeFailure {
-            reason,
-            left_name,
-            right_name,
-            actions,
-        }
+impl<T: Into<String>> From<T> for ExecutableQueryError {
+    fn from(failure: T) -> Self {
+        ExecutableQueryError::Custom(failure.into())
     }
 }
 
@@ -90,7 +44,7 @@ impl SystemRecipeFailure {
 pub fn create_executable_query<'a>(
     full_query: &Query,
     component_loader: &'a mut (dyn ComponentLoader + 'static),
-) -> Result<Box<dyn ExecutableQuery + 'a>, Box<dyn Error>> {
+) -> Result<Box<dyn ExecutableQuery + 'a>, ExecutableQueryError> {
     let mut dim: ClockIndex = 0;
 
     if let Some(query) = full_query.get_query() {
@@ -102,12 +56,14 @@ pub fn create_executable_query<'a>(
                 let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index)?;
                 }
 
+                let mut component_index = 0;
+
                 Ok(Box::new(RefinementExecutor {
-                sys1: left.compile(dim)?,
-                sys2: right.compile(dim)?,
+                sys1: left.compile_with_index(dim, &mut component_index)?,
+                sys2: right.compile_with_index(dim, &mut component_index)?,
             }))},
             QueryExpression::Reachability(automata, start, end) => {
                 let machine = get_system_recipe(automata, component_loader, &mut dim, &mut None);
@@ -144,16 +100,15 @@ pub fn create_executable_query<'a>(
                     query_expression,
                     component_loader,
                     &mut dim,
-                    &mut quotient_index
+                    &mut quotient_index,
                 );
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
                 Ok(Box::new(ConsistencyExecutor {
-                    recipe,
-                    dim
+                    system: recipe.compile(dim)?
                 }))
             },
             QueryExpression::Determinism(query_expression) => {
@@ -162,11 +117,11 @@ pub fn create_executable_query<'a>(
                     query_expression,
                     component_loader,
                     &mut dim,
-                    &mut quotient_index
+                    &mut quotient_index,
                 );
 
                 if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
                 Ok(Box::new(DeterminismExecutor {
@@ -180,11 +135,11 @@ pub fn create_executable_query<'a>(
                         query_expression,
                         component_loader,
                         &mut dim,
-                        &mut quotient_index
+                        &mut quotient_index,
                     );
 
                     if !component_loader.get_settings().disable_clock_reduction {
-                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
                     Ok(Box::new(
@@ -206,11 +161,10 @@ pub fn create_executable_query<'a>(
                         query_expression,
                         component_loader,
                         &mut dim,
-                        &mut quotient_index
-                    );
+                        &mut quotient_index,                    );
 
                     if !component_loader.get_settings().disable_clock_reduction {
-                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index.is_some())?;
+                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
                     Ok(Box::new(
@@ -226,7 +180,7 @@ pub fn create_executable_query<'a>(
             }
             ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
-            _ => bail!("Not yet setup to handle {:?}", query),
+            _ => bail!("Not yet setup to handle query"),
         }
     } else {
         bail!("No query was supplied for extraction")
@@ -243,23 +197,46 @@ pub enum SystemRecipe {
 
 impl SystemRecipe {
     pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+        let mut component_index = 0;
+        self._compile(dim + 1, &mut component_index)
+    }
+
+    pub fn compile_with_index(
+        self,
+        dim: ClockIndex,
+        component_index: &mut u32,
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+        self._compile(dim + 1, component_index)
+    }
+
+    fn _compile(
+        self,
+        dim: ClockIndex,
+        component_index: &mut u32,
+    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         match self {
-            SystemRecipe::Composition(left, right) => {
-                Composition::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
-            }
-            SystemRecipe::Conjunction(left, right) => {
-                Conjunction::new(left.compile(dim)?, right.compile(dim)?, dim + 1)
-            }
-            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
-                left.compile(dim)?,
-                right.compile(dim)?,
-                clock_index,
-                dim + 1,
+            SystemRecipe::Composition(left, right) => Composition::new(
+                left._compile(dim, component_index)?,
+                right._compile(dim, component_index)?,
+                dim,
             ),
-            SystemRecipe::Component(comp) => match CompiledComponent::compile(*comp, dim + 1) {
-                Ok(comp) => Ok(comp),
-                Err(err) => Err(err),
-            },
+            SystemRecipe::Conjunction(left, right) => Conjunction::new(
+                left._compile(dim, component_index)?,
+                right._compile(dim, component_index)?,
+                dim,
+            ),
+            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
+                left._compile(dim, component_index)?,
+                right._compile(dim, component_index)?,
+                clock_index,
+                dim,
+            ),
+            SystemRecipe::Component(comp) => {
+                match CompiledComponent::compile(*comp, dim, component_index) {
+                    Ok(comp) => Ok(comp),
+                    Err(err) => Err(err),
+                }
+            }
         }
     }
 
@@ -404,64 +381,118 @@ pub(crate) mod clock_reduction {
 
     /// Function for a "safer" clock reduction that handles both the dimension of the DBM and the quotient index if needed be
     /// # Arguments
-    /// `lhs`: The (main) `SystemRecipe` to clock reduce\n
-    /// `rhs`: An optional `SystemRecipe` used for multiple operands (Refinement)\n
+    /// `lhs`: The (main) [`SystemRecipe`] to clock reduce\n
+    /// `rhs`: An optional [`SystemRecipe`] used for multiple operands (Refinement)\n
     /// `dim`: A mutable reference to the DBMs dimension for updating\n
-    /// `has_quotient`: A boolean to indicate if there is a quotient clock to update
+    /// `quotient_clock`: The clock for the quotient (This is not reduced)
     /// # Returns
-    /// A `Result` used if the `SystemRecipe`(s) fail during compilation
+    /// A `Result` used if the [`SystemRecipe`](s) fail during compilation
     pub fn clock_reduce(
         lhs: &mut Box<SystemRecipe>,
-        mut rhs: Option<&mut Box<SystemRecipe>>,
+        rhs: Option<&mut Box<SystemRecipe>>,
         dim: &mut usize,
-        has_quotient: bool,
-    ) -> Result<(), String> {
-        let clocks = if let Some(ref mut r) = rhs {
-            intersect(
-                lhs.clone().compile(*dim)?.find_redundant_clocks(),
-                r.clone().compile(*dim)?.find_redundant_clocks(),
-            )
-        } else {
-            lhs.clone().compile(*dim)?.find_redundant_clocks()
-        };
+        quotient_clock: Option<ClockIndex>,
+    ) -> Result<(), SystemRecipeFailure> {
+        if *dim == 0 {
+            return Ok(());
+        } else if rhs.is_none() {
+            return clock_reduce_single(lhs, dim, quotient_clock);
+        }
+        let rhs = rhs.unwrap();
 
+        let (l_clocks, r_clocks) = filter_redundant_clocks(
+            lhs.clone().compile(*dim)?.find_redundant_clocks(),
+            rhs.clone().compile(*dim)?.find_redundant_clocks(),
+            quotient_clock,
+            lhs.get_components()
+                .iter()
+                .flat_map(|c| c.declarations.clocks.values().cloned())
+                .max()
+                .unwrap_or_default(),
+        );
+
+        debug!("Clocks to be reduced: {l_clocks:?} + {l_clocks:?}");
+        *dim -= l_clocks
+            .iter()
+            .chain(r_clocks.iter())
+            .fold(0, |acc, c| acc + c.clocks_removed_count());
+        debug!("New dimension: {dim}");
+
+        rhs.reduce_clocks(r_clocks);
+        lhs.reduce_clocks(l_clocks);
+        compress_component_decls(lhs.get_components(), Some(rhs.get_components()));
+        if quotient_clock.is_some() {
+            lhs.change_quotient(*dim);
+            rhs.change_quotient(*dim);
+        }
+
+        Ok(())
+    }
+
+    /// Clock reduces a "single_expression", such as consistency
+    /// # Arguments
+    ///
+    /// * `sys`: The [`SystemRecipe`] to clock reduce
+    /// * `dim`: the dimension of the system
+    /// * `quotient_clock`: The clock for the quotient (This is not reduced)
+    ///
+    /// returns: Result<(), SystemRecipeFailure>
+    fn clock_reduce_single(
+        sys: &mut Box<SystemRecipe>,
+        dim: &mut usize,
+        quotient_clock: Option<ClockIndex>,
+    ) -> Result<(), SystemRecipeFailure> {
+        let mut clocks = sys.clone().compile(*dim)?.find_redundant_clocks();
+        clocks.retain(|ins| ins.get_clock_index() != quotient_clock.unwrap_or_default());
         debug!("Clocks to be reduced: {clocks:?}");
         *dim -= clocks
             .iter()
             .fold(0, |acc, c| acc + c.clocks_removed_count());
         debug!("New dimension: {dim}");
-        if let Some(r) = rhs {
-            r.reduce_clocks(clocks.clone());
-            lhs.reduce_clocks(clocks);
-            compress_component_decls(lhs.get_components(), Some(r.get_components()));
-            if has_quotient {
-                lhs.change_quotient(*dim);
-                r.change_quotient(*dim);
-            }
-        } else {
-            lhs.reduce_clocks(clocks);
-            compress_component_decls(lhs.get_components(), None);
-            if has_quotient {
-                lhs.change_quotient(*dim);
-            }
+        sys.reduce_clocks(clocks);
+        compress_component_decls(sys.get_components(), None);
+        if quotient_clock.is_some() {
+            sys.change_quotient(*dim);
         }
         Ok(())
     }
 
-    fn intersect(
+    fn filter_redundant_clocks(
         lhs: Vec<ClockReductionInstruction>,
         rhs: Vec<ClockReductionInstruction>,
-    ) -> Vec<ClockReductionInstruction> {
-        lhs.iter()
-            .filter(|r| r.is_replace())
-            .chain(rhs.iter().filter(|r| r.is_replace()))
-            .chain(
-                lhs.iter()
-                    .filter(|r| !r.is_replace())
-                    .filter_map(|c| rhs.iter().filter(|r| !r.is_replace()).find(|rc| *rc == c)),
-            )
-            .cloned()
-            .collect()
+        quotient_clock: Option<ClockIndex>,
+        split_index: ClockIndex,
+    ) -> (
+        Vec<ClockReductionInstruction>,
+        Vec<ClockReductionInstruction>,
+    ) {
+        fn get_unique_redundant_clocks<P: Fn(ClockIndex) -> bool>(
+            l: Vec<ClockReductionInstruction>,
+            r: Vec<ClockReductionInstruction>,
+            quotient: ClockIndex,
+            bound_predicate: P,
+        ) -> Vec<ClockReductionInstruction> {
+            l.into_iter()
+                // Takes clock instructions that also occur in the rhs system
+                // This is done because the lhs also finds the redundant clocks from the rhs,
+                // so to ensure that it should be removed, we check if it occurs on both sides
+                // which would mean it can be removed
+                // e.g "A <= B", we can find clocks from B that are not used in A, so they are marked as remove
+                .filter(|ins| r.contains(ins))
+                // Takes all the clocks within the bounds of the given system
+                // This is done to ensure that we don't try to remove a clock from the rhs system
+                .filter(|ins| bound_predicate(ins.get_clock_index()))
+                // Removes the quotient clock
+                .filter(|ins| ins.get_clock_index() != quotient)
+                .collect()
+        }
+        let quotient_clock = quotient_clock.unwrap_or_default();
+        (
+            get_unique_redundant_clocks(lhs.clone(), rhs.clone(), quotient_clock, |c| {
+                c <= split_index
+            }),
+            get_unique_redundant_clocks(rhs, lhs, quotient_clock, |c| c > split_index),
+        )
     }
 
     fn compress_component_decls(

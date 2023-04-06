@@ -4,7 +4,7 @@ use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::State;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
-use crate::TransitionSystems::{CompositionType, LocationID, LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 use std::slice::Iter;
 
 /// This function takes a [`QueryExpression`], the system recipe, and the transitionsystem -
@@ -27,11 +27,12 @@ pub fn get_state(
                 _ => unreachable!(),
             };
         }
-
-        Ok(State::create(
-            build_location_tuple(&mut locations.iter(), machine, system)?,
+        let mut state = State::create(
+            build_location_tree(&mut locations.iter(), machine, system)?,
             create_zone_given_constraints(clock.as_deref(), system)?,
-        ))
+        );
+        state.apply_invariants();
+        Ok(state)
     } else {
         Err(format!(
             "The following information \"{}\" could not be used to create a State",
@@ -58,43 +59,40 @@ fn create_zone_given_constraints(
         .map_err(|clock| format!("Clock {} does not exist in the transition system", clock))
 }
 
-fn build_location_tuple(
+fn build_location_tree(
     locations: &mut Iter<&str>,
     machine: &SystemRecipe,
     system: &TransitionSystemPtr,
-) -> Result<LocationTuple, String> {
+) -> Result<LocationTree, String> {
     match machine {
         SystemRecipe::Composition(left, right) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::compose(
-                &build_location_tuple(locations, left, left_system)?,
-                &build_location_tuple(locations, right, right_system)?,
+            Ok(LocationTree::compose(
+                &build_location_tree(locations, left, left_system)?,
+                &build_location_tree(locations, right, right_system)?,
                 CompositionType::Composition,
             ))
         }
         SystemRecipe::Conjunction(left, right) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::compose(
-                &build_location_tuple(locations, left, left_system)?,
-                &build_location_tuple(locations, right, right_system)?,
+            Ok(LocationTree::compose(
+                &build_location_tree(locations, left, left_system)?,
+                &build_location_tree(locations, right, right_system)?,
                 CompositionType::Conjunction,
             ))
         }
         SystemRecipe::Quotient(left, right, ..) => {
             let (left_system, right_system) = system.get_children();
-            Ok(LocationTuple::merge_as_quotient(
-                &build_location_tuple(locations, left, left_system)?,
-                &build_location_tuple(locations, right, right_system)?,
+            Ok(LocationTree::merge_as_quotient(
+                &build_location_tree(locations, left, left_system)?,
+                &build_location_tree(locations, right, right_system)?,
             ))
         }
         SystemRecipe::Component(component) => match locations.next().unwrap().trim() {
             // It is ensured .next() will not give a None, since the number of location is same as number of component. This is also being checked in validate_reachability_input function, that is called before get_state
-            "_" => Ok(LocationTuple::build_any_location_tuple()),
+            "_" => Ok(LocationTree::build_any_location_tree()),
             str => system
-                .get_location(&LocationID::Simple {
-                    location_id: str.to_string(),
-                    component_id: Some(component.get_name().clone()),
-                })
+                .get_location(&LocationID::Simple(str.to_string()))
                 .ok_or(format!(
                     "Location {} does not exist in the component {}",
                     str,

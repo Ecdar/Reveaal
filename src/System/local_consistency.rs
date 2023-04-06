@@ -1,128 +1,38 @@
-use std::fmt;
-
 use edbm::zones::OwnedFederation;
 use log::warn;
 
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::State;
-use crate::TransitionSystems::{LocationID, TransitionSystem};
+use crate::System::query_failures::{ConsistencyFailure, DeterminismFailure};
+use crate::TransitionSystems::TransitionSystem;
 
-/// The result of a consistency check.
-/// If there was a failure, [ConsistencyFailure] will specify the failure.
-pub enum ConsistencyResult {
-    Success,
-    Failure(ConsistencyFailure),
-}
-
-impl fmt::Display for ConsistencyResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ConsistencyResult::Success => write!(f, "Succes"),
-            ConsistencyResult::Failure(_) => write!(f, "failure"),
-        }
-    }
-}
-/// The failure of a consistency check.
-/// Variants with [LocationID] are specific locations that cause the failure.
-#[derive(Debug)]
-pub enum ConsistencyFailure {
-    NoInitialLocation,
-    EmptyInitialState,
-    NotConsistentFrom(LocationID, String),
-    NotDeterministicFrom(LocationID, String),
-    NotDisjoint(SystemRecipeFailure),
-}
-
-impl fmt::Display for ConsistencyFailure {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ConsistencyFailure::NoInitialLocation => write!(f, "No Initial State"),
-            ConsistencyFailure::EmptyInitialState => write!(f, "Empty Initial State"),
-            ConsistencyFailure::NotConsistentFrom(location, action) => {
-                write!(
-                    f,
-                    "Not Consistent From {} Failing action {}",
-                    location, action
-                )
-            }
-            ConsistencyFailure::NotDeterministicFrom(location, action) => {
-                write!(
-                    f,
-                    "Not Deterministic From {} Failing action {}",
-                    location, action
-                )
-            }
-            ConsistencyFailure::NotDisjoint(srf) => {
-                write!(f, "Not Disjoint: {} {:?}", srf.reason, srf.actions)
-            }
-        }
-    }
-}
-
-/// The result of a determinism check.
-/// Failure includes the [LocationID].
-pub enum DeterminismResult {
-    Success,
-    //Failure should contain a DeterminsmFailure which should contain either a location + a string, or a SystemRecipeFailure
-    Failure(DeterminismFailure),
-}
-
-pub enum DeterminismFailure {
-    NotDeterministicFrom(LocationID, String),
-    NotDisjoint(SystemRecipeFailure),
-}
-
-impl fmt::Display for DeterminismResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            DeterminismResult::Success => write!(f, "Success"),
-            DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-                location,
-                action,
-            )) => {
-                write!(
-                    f,
-                    "Not Deterministic From {} failing action {}",
-                    location, action
-                )
-            }
-            DeterminismResult::Failure(DeterminismFailure::NotDisjoint(srf)) => {
-                write!(f, "Not Disjoint: {} {:?}", srf.reason, srf.actions)
-            }
-        }
-    }
-}
+use super::query_failures::{ConsistencyResult, DeterminismResult};
 
 ///Local consistency check WITH pruning.
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location().is_none() {
-        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialLocation);
-        //TODO: figure out whether we want empty TS to be consistent
-    }
-
-    let mut passed = vec![];
-    let state = system.get_initial_state();
-    if state.is_none() {
+        ConsistencyFailure::no_initial_state(system)
+    } else if let Some(mut state) = system.get_initial_state() {
+        let mut passed = vec![];
+        state.extrapolate_max_bounds(system);
+        consistency_least_helper(state, &mut passed, system)
+    } else {
         warn!("Empty initial state");
-        return ConsistencyResult::Failure(ConsistencyFailure::EmptyInitialState);
+        ConsistencyFailure::no_initial_state(system)
     }
-    let mut state = state.unwrap();
-    state.extrapolate_max_bounds(system);
-    consistency_least_helper(state, &mut passed, system)
 }
 
 ///Checks if a [TransitionSystem] is deterministic.
-pub fn is_deterministic(system: &dyn TransitionSystem) -> DeterminismResult {
+pub fn check_determinism(system: &dyn TransitionSystem) -> DeterminismResult {
     if system.get_initial_location().is_none() {
-        return DeterminismResult::Success;
+        return Ok(());
     }
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
-        return DeterminismResult::Success;
+        return Ok(());
     }
     let mut state = state.unwrap();
-    state.set_zone(OwnedFederation::universe(system.get_dim()));
+    state.update_zone(|_| OwnedFederation::universe(system.get_dim()));
     is_deterministic_helper(state, &mut passed, system)
 }
 
@@ -132,7 +42,7 @@ fn is_deterministic_helper(
     system: &dyn TransitionSystem,
 ) -> DeterminismResult {
     if state.is_contained_in_list(passed_list) {
-        return DeterminismResult::Success;
+        return Ok(());
     }
 
     passed_list.push(state.clone());
@@ -150,41 +60,30 @@ fn is_deterministic_helper(
                         state.get_location().id,
                         action
                     );
-                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-                        state.get_location().id.clone(),
-                        action,
-                    ));
+                    return DeterminismFailure::from(system, action, &state);
                 }
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
 
-                if let DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-                    location,
-                    action,
-                )) = is_deterministic_helper(new_state, passed_list, system)
-                {
-                    return DeterminismResult::Failure(DeterminismFailure::NotDeterministicFrom(
-                        location, action,
-                    ));
-                }
+                is_deterministic_helper(new_state, passed_list, system)?;
             }
         }
     }
-    DeterminismResult::Success
+    Ok(())
 }
 
 /// Local consistency check WITHOUT pruning
 #[allow(dead_code)]
 pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location().is_none() {
-        return ConsistencyResult::Failure(ConsistencyFailure::NoInitialLocation);
+        return ConsistencyFailure::no_initial_state(system);
     }
 
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
         warn!("Empty initial state");
-        return ConsistencyResult::Failure(ConsistencyFailure::EmptyInitialState);
+        return ConsistencyFailure::no_initial_state(system);
     }
     consistency_fully_helper(state.unwrap(), &mut passed, system)
 }
@@ -194,19 +93,14 @@ pub fn consistency_least_helper(
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
 ) -> ConsistencyResult {
-    let mut failing_action = String::new();
-
     if state.is_contained_in_list(passed_list) {
-        return ConsistencyResult::Success;
+        return Ok(());
     }
     if state.decorated_locations.is_universal() {
-        return ConsistencyResult::Success;
+        return Ok(());
     }
     if state.decorated_locations.is_inconsistent() {
-        return ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-            state.get_location().id.clone(),
-            failing_action,
-        ));
+        return ConsistencyFailure::inconsistent(system, &state);
     }
 
     passed_list.push(state.clone());
@@ -216,23 +110,14 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                if let ConsistencyResult::Failure(failure) =
-                    consistency_least_helper(new_state, passed_list, system)
-                {
-                    warn!(
-                        "Input \"{input}\" not consistent from {}",
-                        state.get_location().id
-                    );
-                    return ConsistencyResult::Failure(failure);
-                }
-            } else {
-                failing_action = input.clone();
+
+                consistency_least_helper(new_state, passed_list, system)?;
             }
         }
     }
 
     if state.zone_ref().can_delay_indefinitely() {
-        return ConsistencyResult::Success;
+        return Ok(());
     }
 
     for output in system.get_output_actions() {
@@ -240,21 +125,14 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                if let ConsistencyResult::Success =
-                    consistency_least_helper(new_state, passed_list, system)
-                {
-                    return ConsistencyResult::Success;
+                if let Ok(()) = consistency_least_helper(new_state, passed_list, system) {
+                    return Ok(());
                 }
-            } else {
-                failing_action = output.clone();
             }
         }
     }
     warn!("No saving outputs from {}", state.get_location().id);
-    ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-        state.get_location().id.clone(),
-        failing_action,
-    ))
+    ConsistencyFailure::inconsistent_from(system, &state)
 }
 
 #[allow(dead_code)]
@@ -263,10 +141,8 @@ fn consistency_fully_helper(
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
 ) -> ConsistencyResult {
-    let mut failing_action = String::new();
-
     if state.is_contained_in_list(passed_list) {
-        return ConsistencyResult::Success;
+        return Ok(());
     }
     passed_list.push(state.clone());
 
@@ -278,13 +154,7 @@ fn consistency_fully_helper(
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
-                if let ConsistencyResult::Failure(failure) =
-                    consistency_fully_helper(new_state, passed_list, system)
-                {
-                    return ConsistencyResult::Failure(failure);
-                }
-            } else {
-                failing_action = input.clone();
+                consistency_fully_helper(new_state, passed_list, system)?;
             }
         }
     }
@@ -301,26 +171,17 @@ fn consistency_fully_helper(
 
                 output_existed = true;
 
-                if let ConsistencyResult::Failure(failure) =
-                    consistency_fully_helper(new_state, passed_list, system)
-                {
-                    return ConsistencyResult::Failure(failure);
-                }
-            } else {
-                failing_action = output.clone();
+                consistency_fully_helper(new_state, passed_list, system)?;
             }
         }
     }
     if output_existed {
-        ConsistencyResult::Success
+        Ok(())
     } else {
         let last_state = passed_list.last().unwrap();
         match last_state.zone_ref().can_delay_indefinitely() {
-            false => ConsistencyResult::Failure(ConsistencyFailure::NotConsistentFrom(
-                last_state.get_location().id.clone(),
-                failing_action,
-            )),
-            true => ConsistencyResult::Success,
+            false => ConsistencyFailure::inconsistent_from(system, &state),
+            true => Ok(()),
         }
     }
 }

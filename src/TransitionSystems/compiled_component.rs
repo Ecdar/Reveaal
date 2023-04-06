@@ -1,40 +1,38 @@
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, State, Transition,
 };
-use crate::System::local_consistency::{self, ConsistencyResult, DeterminismResult};
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::System::local_consistency::{self};
+use crate::System::query_failures::{
+    ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
+};
+use crate::System::specifics::SpecificLocation;
+use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use super::common::CollectionOperation;
+use super::transition_system::ComponentInfoTree;
 use super::{CompositionType, LocationID};
 
 type Action = String;
 
 #[derive(Clone)]
-struct ComponentInfo {
-    name: String,
-    declarations: Declarations,
+pub struct ComponentInfo {
+    pub name: String,
+    pub id: u32,
+    pub declarations: Declarations,
     max_bounds: Bounds,
-}
-
-impl ComponentInfo {
-    pub fn _name(&self) -> &str {
-        self.name.as_ref()
-    }
 }
 
 #[derive(Clone)]
 pub struct CompiledComponent {
     inputs: HashSet<Action>,
     outputs: HashSet<Action>,
-    locations: HashMap<LocationID, LocationTuple>,
+    locations: HashMap<LocationID, LocationTree>,
     location_edges: HashMap<LocationID, Vec<(Action, Transition)>>,
-    initial_location: Option<LocationTuple>,
+    initial_location: Option<LocationTree>,
     comp_info: ComponentInfo,
     dim: ClockIndex,
 }
@@ -45,26 +43,19 @@ impl CompiledComponent {
         inputs: HashSet<String>,
         outputs: HashSet<String>,
         dim: ClockIndex,
+        id: u32,
     ) -> Result<Box<Self>, SystemRecipeFailure> {
-        if let Err(actions) = inputs.is_disjoint_action(&outputs) {
-            return Err(SystemRecipeFailure::new_from_component(
-                "Input is not disjoint from output".to_string(),
-                component,
-                actions,
-            ));
+        if !inputs.is_disjoint(&outputs) {
+            ActionFailure::not_disjoint_IO(&component.name, inputs.clone(), outputs.clone())
+                .map_err(|e| e.to_simple_failure(&component.name))?;
         }
 
-        let locations: HashMap<LocationID, LocationTuple> = component
+        let locations: HashMap<LocationID, LocationTree> = component
             .get_locations()
             .iter()
             .map(|loc| {
-                let tuple = LocationTuple::simple(
-                    loc,
-                    Some(component.get_name().to_owned()),
-                    component.get_declarations(),
-                    dim,
-                );
-                (tuple.id.clone(), tuple)
+                let loc = LocationTree::simple(loc, component.get_declarations(), dim);
+                (loc.id.clone(), loc)
             })
             .collect();
 
@@ -72,10 +63,7 @@ impl CompiledComponent {
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
         for edge in component.get_edges() {
-            let id = LocationID::Simple {
-                location_id: edge.source_location.clone(),
-                component_id: Some(component.get_name().to_owned()),
-            };
+            let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from(&component, edge, dim);
             location_edges
                 .get_mut(&id)
@@ -97,6 +85,7 @@ impl CompiledComponent {
                 name: component.name,
                 declarations: component.declarations,
                 max_bounds,
+                id,
             },
         }))
     }
@@ -104,11 +93,13 @@ impl CompiledComponent {
     pub fn compile(
         component: Component,
         dim: ClockIndex,
+        component_index: &mut u32,
     ) -> Result<Box<Self>, SystemRecipeFailure> {
         let inputs = HashSet::from_iter(component.get_input_actions());
         let outputs = HashSet::from_iter(component.get_output_actions());
-
-        Self::compile_with_actions(component, inputs, outputs, dim)
+        let index = *component_index;
+        *component_index += 1;
+        Self::compile_with_actions(component, inputs, outputs, dim, index)
     }
 
     fn _comp_info(&self) -> &ComponentInfo {
@@ -117,7 +108,7 @@ impl CompiledComponent {
 }
 
 impl TransitionSystem for CompiledComponent {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
             Bounds::new(self.get_dim())
         } else {
@@ -129,7 +120,7 @@ impl TransitionSystem for CompiledComponent {
         self.dim
     }
 
-    fn next_transitions(&self, locations: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, locations: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
@@ -165,11 +156,11 @@ impl TransitionSystem for CompiledComponent {
         self.inputs.union(&self.outputs).cloned().collect()
     }
 
-    fn get_initial_location(&self) -> Option<LocationTuple> {
+    fn get_initial_location(&self) -> Option<LocationTree> {
         self.initial_location.clone()
     }
 
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
+    fn get_all_locations(&self) -> Vec<LocationTree> {
         self.locations.values().cloned().collect()
     }
 
@@ -177,11 +168,11 @@ impl TransitionSystem for CompiledComponent {
         vec![&self.comp_info.declarations]
     }
 
-    fn is_deterministic(&self) -> DeterminismResult {
-        local_consistency::is_deterministic(self)
+    fn check_determinism(&self) -> DeterminismResult {
+        local_consistency::check_determinism(self)
     }
 
-    fn is_locally_consistent(&self) -> ConsistencyResult {
+    fn check_local_consistency(&self) -> ConsistencyResult {
         local_consistency::is_least_consistent(self)
     }
 
@@ -192,7 +183,7 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
-        unimplemented!()
+        unreachable!()
     }
 
     fn get_composition_type(&self) -> CompositionType {
@@ -203,11 +194,39 @@ impl TransitionSystem for CompiledComponent {
         self.comp_info.declarations.clone()
     }
 
-    fn get_location(&self, id: &LocationID) -> Option<LocationTuple> {
+    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
         self.locations.get(id).cloned()
     }
 
     fn component_names(&self) -> Vec<&str> {
         vec![&self.comp_info.name]
+    }
+
+    fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
+        ComponentInfoTree::Info(&self.comp_info)
+    }
+
+    fn to_string(&self) -> String {
+        self.comp_info.name.clone()
+    }
+
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
+        match target {
+            SpecificLocation::ComponentLocation { comp, location_id } => {
+                assert_eq!(comp.name, self.comp_info.name);
+                self.get_all_locations()
+                    .into_iter()
+                    .find(|loc| loc.id == LocationID::Simple(location_id.clone()))
+                    .ok_or_else(|| {
+                        format!(
+                            "Could not find location {} in component {}",
+                            location_id, self.comp_info.name
+                        )
+                    })
+            }
+            SpecificLocation::BranchLocation(_, _, _) | SpecificLocation::SpecialLocation(_) => {
+                unreachable!("Should not happen at the level of a component.")
+            }
+        }
     }
 }

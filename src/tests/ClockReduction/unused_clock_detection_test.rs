@@ -12,9 +12,12 @@ mod unused_clocks_tests {
             component_name,
         );
 
-        let compiled_component =
-            CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
-                .unwrap();
+        let compiled_component = CompiledComponent::compile(
+            component.clone(),
+            component.declarations.clocks.len() + 1,
+            &mut 0,
+        )
+        .unwrap();
 
         let clock_index = component
             .declarations
@@ -34,9 +37,12 @@ mod unused_clocks_tests {
             component_name,
         );
 
-        let compiled_component =
-            CompiledComponent::compile(component.clone(), component.declarations.clocks.len() + 1)
-                .unwrap();
+        let compiled_component = CompiledComponent::compile(
+            component.clone(),
+            component.declarations.clocks.len() + 1,
+            &mut 0,
+        )
+        .unwrap();
 
         let clock_index = component
             .declarations

@@ -1,13 +1,14 @@
 #[cfg(test)]
 mod test {
-    use crate::tests::refinement::Helper::xml_run_query;
-    use crate::System::executable_query::QueryResult;
-    use crate::System::local_consistency::DeterminismResult;
+    use crate::{
+        tests::refinement::Helper::xml_run_query,
+        System::query_failures::{DeterminismResult, QueryResult},
+    };
 
     static PATH: &str = "samples/xml/ConsTests.xml";
 
     fn convert_to_bool(result: DeterminismResult) -> bool {
-        matches!(result, DeterminismResult::Success)
+        matches!(result, Ok(()))
     }
 
     #[test]

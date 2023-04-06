@@ -1,52 +1,49 @@
 #[cfg(test)]
 
 mod test {
-    use crate::extract_system_rep::SystemRecipeFailure;
-    use crate::System::refine::{RefinementFailure, RefinementResult};
-    use crate::{tests::refinement::Helper::json_run_query, System::executable_query::QueryResult};
+    use crate::{
+        tests::refinement::Helper::json_run_query,
+        System::query_failures::{
+            ActionFailure, QueryResult, RefinementFailure, RefinementPrecondition,
+        },
+    };
 
     const PATH: &str = "samples/json/RefinementTests";
 
     #[test]
     fn not_empty_result_test() {
-        let actual = json_run_query(PATH, "refinement: A <= B");
+        let actual = json_run_query(PATH, "refinement: A <= B").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::NotEmptyResult(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
         ));
     }
 
     #[test]
     fn empty_transition2s_test() {
-        let actual = json_run_query(PATH, "refinement: A <= A2");
+        let actual = json_run_query(PATH, "refinement: A <= A2").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::EmptyTransition2s(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
         ));
     }
 
     #[test]
     fn cuts_delay_solutions_test() {
-        let actual = json_run_query(PATH, "refinement: A2 <= B2");
+        let actual = json_run_query(PATH, "refinement: A2 <= B2").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::CutsDelaySolutions(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::CutsDelaySolutions { .. }))
         ));
     }
 
     #[test]
     fn initial_state_test() {
-        let actual = json_run_query(PATH, "refinement: C <= D");
+        let actual = json_run_query(PATH, "refinement: C <= D").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::InitialState(
-                _
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::EmptyInitialState { .. },
             )))
         ));
     }
@@ -56,36 +53,36 @@ mod test {
         let actual = json_run_query(
             PATH,
             "refinement: notDisjointAndNotSubset1 <= notDisjointAndNotSubset2",
-        );
+        )
+        .unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(
-                RefinementFailure::NotDisjointAndNotSubset(_)
-            ))
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
+            )))
         ));
     }
 
     #[test]
     fn not_subset_test() {
-        let actual = json_run_query(PATH, "refinement: notSubset1 <= notSubset2");
+        let actual = json_run_query(PATH, "refinement: notSubset1 <= notSubset2")
+            .ok()
+            .unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::NotSubset))
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotSubset(_, _), _),
+            )))
         ));
     }
 
     #[test]
     fn not_disjoint_test() {
-        let actual = json_run_query(PATH, "refinement: disJoint2 <= disJoint1");
+        let actual = json_run_query(PATH, "refinement: disJoint2 <= disJoint1").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Refinement(RefinementResult::Failure(RefinementFailure::NotDisjoint(
-                SystemRecipeFailure {
-                    reason: _,
-                    left_name: _,
-                    right_name: _,
-                    actions: _
-                }
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
             ))),
         ));
     }

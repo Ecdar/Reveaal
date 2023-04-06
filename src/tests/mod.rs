@@ -14,5 +14,5 @@ pub mod system_recipe;
 
 /// The default settings for Testing
 pub const TEST_SETTINGS: Settings = Settings {
-    disable_clock_reduction: true,
+    disable_clock_reduction: false,
 };

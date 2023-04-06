@@ -1,12 +1,11 @@
 use edbm::util::constraints::ClockIndex;
 
-use crate::extract_system_rep::SystemRecipeFailure;
 use crate::ModelObjects::component::Transition;
-use crate::System::local_consistency::ConsistencyResult;
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::System::query_failures::{ActionFailure, SystemRecipeFailure};
+use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
-use super::common::{CollectionOperation, ComposedTransitionSystem};
+use super::common::ComposedTransitionSystem;
 use super::CompositionType;
 
 #[derive(Clone)]
@@ -37,13 +36,12 @@ impl Composition {
         let right_out = right.get_output_actions();
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
-        if let Err(actions) = left_out.is_disjoint_action(&right_out) {
-            return Err(SystemRecipeFailure::new(
-                "Invalid parallel composition, outputs are not disjoint".to_string(),
-                left,
-                right,
-                actions,
-            ));
+        if !left_out.is_disjoint(&right_out) {
+            return ActionFailure::not_disjoint(
+                (left.as_ref(), left_out),
+                (right.as_ref(), right_out),
+            )
+            .map_err(|e| e.to_rfcomp(left, right));
         }
 
         // Act_i = Act1_i \ Act2_o ∪ Act2_i \ Act1_o
@@ -77,7 +75,7 @@ impl Composition {
 }
 
 impl ComposedTransitionSystem for Composition {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();
@@ -110,18 +108,6 @@ impl ComposedTransitionSystem for Composition {
         unreachable!()
     }
 
-    fn is_locally_consistent(&self) -> ConsistencyResult {
-        if let ConsistencyResult::Success = self.left.is_locally_consistent() {
-            if let ConsistencyResult::Success = self.right.is_locally_consistent() {
-                ConsistencyResult::Success
-            } else {
-                self.right.is_locally_consistent()
-            }
-        } else {
-            self.left.is_locally_consistent()
-        }
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
     }
@@ -144,5 +130,10 @@ impl ComposedTransitionSystem for Composition {
 
     fn get_output_actions(&self) -> HashSet<String> {
         self.outputs.clone()
+    }
+
+    fn check_local_consistency(&self) -> crate::System::query_failures::ConsistencyResult {
+        self.left.check_local_consistency()?;
+        self.right.check_local_consistency()
     }
 }

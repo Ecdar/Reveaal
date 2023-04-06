@@ -114,6 +114,7 @@ pub struct ComponentContainer {
 impl ComponentLoader for ComponentContainer {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
+            assert_eq!(component_name, component.get_name());
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
@@ -212,6 +213,7 @@ impl ComponentLoader for JsonProjectLoader {
         }
 
         if let Some(component) = self.loaded_components.get(component_name) {
+            assert_eq!(component_name, component.get_name());
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
@@ -292,6 +294,7 @@ pub struct XmlProjectLoader {
 impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
+            assert_eq!(component_name, component.get_name());
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);

@@ -12,7 +12,7 @@ use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
-use crate::TransitionSystems::{LocationTuple, TransitionID};
+use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -90,7 +90,7 @@ impl Component {
         let vec: Vec<&Location> = self
             .get_locations()
             .iter()
-            .filter(|location| location.get_location_type() == &LocationType::Initial)
+            .filter(|location| location.get_location_type() == LocationType::Initial)
             .collect();
 
         vec.first().copied()
@@ -187,13 +187,8 @@ impl Component {
             .expect("Couldn't find clock with index")
             .to_owned();
         self.declarations.clocks.remove(&name);
-        self.declarations
-            .clocks
-            .values_mut()
-            .filter(|val| **val > index)
-            .for_each(|val| *val -= 1);
 
-        // Yeets from updates
+        // Removes from from updates
         self.edges
             .iter_mut()
             .filter(|e| e.update.is_some())
@@ -250,12 +245,12 @@ fn contain(channels: &[String], channel: &str) -> bool {
 /// this should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, Debug)]
 pub struct State {
-    pub decorated_locations: LocationTuple,
+    pub decorated_locations: LocationTree,
     zone_sentinel: Option<OwnedFederation>,
 }
 
 impl State {
-    pub fn create(decorated_locations: LocationTuple, zone: OwnedFederation) -> Self {
+    pub fn create(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
         State {
             decorated_locations,
             zone_sentinel: Some(zone),
@@ -267,7 +262,7 @@ impl State {
     }
 
     pub fn from_location(
-        decorated_locations: LocationTuple,
+        decorated_locations: LocationTree,
         dimensions: ClockIndex,
     ) -> Option<Self> {
         let mut fed = OwnedFederation::init(dimensions);
@@ -283,16 +278,28 @@ impl State {
         })
     }
 
+    pub fn apply_invariants(&mut self) {
+        let fed = self.take_zone();
+        let new_fed = self.decorated_locations.apply_invariants(fed);
+        self.set_zone(new_fed);
+    }
+
     pub fn zone_ref(&self) -> &OwnedFederation {
         self.zone_sentinel.as_ref().unwrap()
     }
 
-    pub fn take_zone(&mut self) -> OwnedFederation {
+    fn take_zone(&mut self) -> OwnedFederation {
         self.zone_sentinel.take().unwrap()
     }
 
-    pub fn set_zone(&mut self, zone: OwnedFederation) {
+    fn set_zone(&mut self, zone: OwnedFederation) {
         self.zone_sentinel = Some(zone);
+    }
+
+    pub fn update_zone(&mut self, update: impl FnOnce(OwnedFederation) -> OwnedFederation) {
+        let fed = self.take_zone();
+        let new_fed = update(fed);
+        self.set_zone(new_fed);
     }
 
     pub fn is_subset_of(&self, other: &Self) -> bool {
@@ -303,7 +310,7 @@ impl State {
         self.zone_ref().subset_eq(other.zone_ref())
     }
 
-    pub fn get_location(&self) -> &LocationTuple {
+    pub fn get_location(&self) -> &LocationTree {
         &self.decorated_locations
     }
 
@@ -314,13 +321,22 @@ impl State {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]
 pub enum LocationType {
     Normal,
     Initial,
     Universal,
     Inconsistent,
     Any,
+}
+
+impl LocationType {
+    pub fn combine(self, other: Self) -> Self {
+        match (self, other) {
+            (LocationType::Initial, LocationType::Initial) => LocationType::Initial,
+            _ => LocationType::Normal,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
@@ -349,8 +365,8 @@ impl Location {
     pub fn get_invariant(&self) -> &Option<BoolExpression> {
         &self.invariant
     }
-    pub fn get_location_type(&self) -> &LocationType {
-        &self.location_type
+    pub fn get_location_type(&self) -> LocationType {
+        self.location_type
     }
     pub fn get_urgency(&self) -> &String {
         &self.urgency
@@ -369,13 +385,13 @@ pub struct Transition {
     /// The ID of the transition, based on the edges it is created from.
     pub id: TransitionID,
     pub guard_zone: OwnedFederation,
-    pub target_locations: LocationTuple,
+    pub target_locations: LocationTree,
     pub updates: Vec<CompiledUpdate>,
 }
 
 impl Transition {
     /// Create a new transition not based on an edge with no identifier
-    pub fn new(target_locations: &LocationTuple, dim: ClockIndex) -> Transition {
+    pub fn new(target_locations: &LocationTree, dim: ClockIndex) -> Transition {
         Transition {
             id: TransitionID::None,
             guard_zone: OwnedFederation::universe(dim),
@@ -389,12 +405,7 @@ impl Transition {
 
         let target_loc_name = &edge.target_location;
         let target_loc = comp.get_location_by_name(target_loc_name);
-        let target_locations = LocationTuple::simple(
-            target_loc,
-            Some(comp.get_name().to_owned()),
-            comp.get_declarations(),
-            dim,
-        );
+        let target_locations = LocationTree::simple(target_loc, comp.get_declarations(), dim);
 
         let mut compiled_updates = vec![];
         if let Some(updates) = edge.get_update() {
@@ -447,7 +458,7 @@ impl Transition {
         for l in left {
             for r in right {
                 let target_locations =
-                    LocationTuple::compose(&l.target_locations, &r.target_locations, comp);
+                    LocationTree::compose(&l.target_locations, &r.target_locations, comp);
 
                 let guard_zone = l.guard_zone.clone().intersection(&r.guard_zone);
 
@@ -498,8 +509,8 @@ impl Transition {
     // TODO: will we ever need this method?
     #[allow(dead_code)]
     fn get_guard_from_allowed(
-        from_loc: &LocationTuple,
-        to_loc: &LocationTuple,
+        from_loc: &LocationTree,
+        to_loc: &LocationTree,
         updates: Vec<CompiledUpdate>,
         guard: Option<OwnedFederation>,
         dim: ClockIndex,
@@ -533,7 +544,7 @@ impl Transition {
         zone.intersection(&self.guard_zone)
     }
 
-    pub fn move_locations(&self, locations: &mut LocationTuple) {
+    pub fn move_locations(&self, locations: &mut LocationTree) {
         *locations = self.target_locations.clone();
     }
 

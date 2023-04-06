@@ -1,40 +1,39 @@
 use edbm::zones::OwnedFederation;
 
-use crate::component::LocationType;
+use super::query_failures::PathFailure;
+use super::specifics::SpecificPath;
 use crate::ModelObjects::component::{State, Transition};
-use crate::TransitionSystems::{LocationID, TransitionSystem};
+use crate::Simulation::decision::Decision;
+use crate::TransitionSystems::{LocationID, TransitionSystemPtr};
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
+use super::query_failures::PathResult;
+
 /// This holds the result of a reachability query
+#[derive(Debug, Clone)]
 pub struct Path {
-    pub path: Option<Vec<Transition>>,
-    pub was_reachable: bool,
+    pub path: Vec<Decision>,
 }
+
 // This holds which transition from which state (the destination_state of the previous_sub_path) we took to reach this state
 struct SubPath {
     previous_sub_path: Option<Rc<SubPath>>,
     destination_state: State,
-    transition: Option<Transition>,
+    transition: Option<(Transition, String)>,
 }
 
 fn is_trivially_unreachable(start_state: &State, end_state: &State) -> bool {
+    // If any of the zones are empty
+    if start_state.zone_ref().is_empty() || end_state.zone_ref().is_empty() {
+        return true;
+    }
+
     // If the end location has invariants and these do not have an intersection (overlap) with the zone of the end state of the query
     if let Some(invariants) = end_state.get_location().get_invariants() {
         if !end_state.zone_ref().has_intersection(invariants) {
             return true;
         }
-    }
-    // If the start state is a universal or inconsistent location and the end state isn't
-    // Since universal and inconsistent locations cannot reach other locations
-    if matches!(
-        start_state.decorated_locations.loc_type,
-        LocationType::Universal | LocationType::Inconsistent
-    ) && !start_state
-        .decorated_locations
-        .compare_partial_locations(&end_state.decorated_locations)
-    {
-        return true;
     }
 
     false
@@ -74,16 +73,21 @@ fn is_trivially_unreachable(start_state: &State, end_state: &State) -> bool {
 pub fn find_path(
     start_state: State,
     end_state: State,
-    system: &dyn TransitionSystem,
-) -> Result<Path, String> {
+    system: &TransitionSystemPtr,
+) -> Result<Path, PathFailure> {
     if is_trivially_unreachable(&start_state, &end_state) {
-        return Ok(Path {
-            path: None,
-            was_reachable: false,
-        });
+        return Err(PathFailure::Unreachable);
     }
 
-    Ok(reachability_search(&start_state, &end_state, system))
+    reachability_search(&start_state, &end_state, system)
+}
+
+pub fn find_specific_path(
+    start_state: State,
+    end_state: State,
+    system: &TransitionSystemPtr,
+) -> PathResult {
+    find_path(start_state, end_state, system).map(|p| SpecificPath::from_path(&p, system.as_ref()))
 }
 
 /// Currently runs a BFS search on the transition system.
@@ -93,13 +97,11 @@ pub fn find_path(
 fn reachability_search(
     start_state: &State,
     end_state: &State,
-    system: &dyn TransitionSystem,
-) -> Path {
+    system: &TransitionSystemPtr,
+) -> Result<Path, PathFailure> {
     // Apply the invariant of the start state to the start state
-    let mut start_clone = start_state.clone();
-    let start_zone = start_clone.take_zone();
-    let zone = start_clone.decorated_locations.apply_invariants(start_zone);
-    start_clone.set_zone(zone);
+    let mut start_state = start_state.clone();
+    start_state.apply_invariants();
 
     // hashmap linking every location to all its current zones
     let mut visited_states: HashMap<LocationID, Vec<OwnedFederation>> = HashMap::new();
@@ -112,21 +114,21 @@ fn reachability_search(
 
     // Push start state to visited state
     visited_states.insert(
-        start_clone.get_location().id.clone(),
-        vec![start_clone.zone_ref().clone()],
+        start_state.get_location().id.clone(),
+        vec![start_state.zone_ref().clone()],
     );
 
-    // Push state state to frontier
+    // Push initial state to frontier
     frontier_states.push_back(Rc::new(SubPath {
         previous_sub_path: None,
-        destination_state: start_clone,
+        destination_state: start_state.clone(),
         transition: None,
     }));
 
     // Take the first state from the frontier and explore it
     while let Some(sub_path) = frontier_states.pop_front() {
         if reached_end_state(&sub_path.destination_state, end_state) {
-            return make_path(sub_path);
+            return Ok(make_path(sub_path, start_state));
         }
 
         for action in &actions {
@@ -139,15 +141,13 @@ fn reachability_search(
                     &mut frontier_states,
                     &mut visited_states,
                     system,
+                    action,
                 );
             }
         }
     }
     // If nothing has been found, it is not reachable
-    Path {
-        path: None,
-        was_reachable: false,
-    }
+    Err(PathFailure::Unreachable)
 }
 
 fn reached_end_state(cur_state: &State, end_state: &State) -> bool {
@@ -162,11 +162,13 @@ fn take_transition(
     transition: &Transition,
     frontier_states: &mut VecDeque<Rc<SubPath>>,
     visited_states: &mut HashMap<LocationID, Vec<OwnedFederation>>,
-    system: &dyn TransitionSystem,
+    system: &TransitionSystemPtr,
+    action: &str,
 ) {
     let mut new_state = sub_path.destination_state.clone();
     if transition.use_transition(&mut new_state) {
-        new_state.extrapolate_max_bounds(system); // Ensures the bounds cant grow infinitely, avoiding infinite loops in an edge case TODO: does not take end state zone into account, leading to a very rare edge case
+        // TODO: bounds here are not always correct, they should take the added bounds from the target state into account
+        new_state.extrapolate_max_bounds(system.as_ref()); // Ensures the bounds cant grow infinitely, avoiding infinite loops
         let new_location_id = &new_state.get_location().id;
         let existing_zones = visited_states.entry(new_location_id.clone()).or_default();
         // If this location has not already been reached (explored) with a larger zone
@@ -182,7 +184,7 @@ fn take_transition(
             frontier_states.push_back(Rc::new(SubPath {
                 previous_sub_path: Some(Rc::clone(sub_path)),
                 destination_state: new_state,
-                transition: Some(transition.clone()),
+                transition: Some((transition.clone(), action.to_string())),
             }));
         }
     }
@@ -209,8 +211,8 @@ fn remove_existing_subsets_of_zone(
     existing_zones.retain(|existing_zone| !existing_zone.subset_eq(new_zone));
 }
 /// Makes the path from the last subpath
-fn make_path(mut sub_path: Rc<SubPath>) -> Path {
-    let mut path: Vec<Transition> = Vec::new();
+fn make_path(mut sub_path: Rc<SubPath>, start_state: State) -> Path {
+    let mut path: Vec<(Transition, String)> = Vec::new();
     // Traverse the subpaths to make the path (from end location to start location)
     while sub_path.previous_sub_path.is_some() {
         path.push(sub_path.transition.clone().unwrap());
@@ -218,9 +220,18 @@ fn make_path(mut sub_path: Rc<SubPath>) -> Path {
     }
     // Reverse the path since the transitions are in reverse order (now from start location to end location)
     path.reverse();
+    let mut state = start_state;
 
-    Path {
-        path: Some(path),
-        was_reachable: true,
+    let mut decisions = Vec::new();
+
+    for (transition, action) in path {
+        let decision = Decision::from_state_transition(state.clone(), &transition, action)
+            .expect("If the transition is in a path, it should lead to a non-empty state");
+
+        decisions.push(decision);
+
+        transition.use_transition(&mut state);
     }
+
+    Path { path: decisions }
 }
