@@ -1,13 +1,12 @@
 use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
-use crate::DataReader::parse_queries::Rule;
+use crate::parse_queries::{parse_to_system_expr, QueryParser};
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
     component::Component,
     extract_system_rep::get_system_recipe,
-    parse_queries::{build_expression_from_pair, QueryParser},
     ComponentLoader,
     DataReader::component_loader::ComponentContainer,
     ModelObjects::component::{Declarations, State, Transition},
@@ -265,13 +264,11 @@ pub fn component_loader_to_transition_system(
     loader: &mut dyn ComponentLoader,
     composition: &str,
 ) -> TransitionSystemPtr {
+    unimplemented!();
     let mut dimension = 0;
-    let composition = QueryParser::parse(Rule::expr, composition)
-        .unwrap()
-        .next()
-        .unwrap();
-    let composition = build_expression_from_pair(composition);
-    get_system_recipe(&composition, loader, &mut dimension, &mut None)
+    let sys_expr = parse_to_system_expr(composition).unwrap();
+    let sys_expr = todo!("Update to use SystemExpr");
+    get_system_recipe(&sys_expr, loader, &mut dimension, &mut None)
         .compile(dimension)
         .unwrap()
 }
