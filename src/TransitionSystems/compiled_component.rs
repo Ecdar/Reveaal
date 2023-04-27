@@ -62,6 +62,8 @@ impl CompiledComponent {
         let mut location_edges: HashMap<LocationID, Vec<(Action, Transition)>> =
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
+        log::debug!("decl for {:?}: {:?}", component.name, component.declarations);
+        log::debug!("Edges: {:?}", component.get_edges());
         for edge in component.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from(&component, edge, dim);

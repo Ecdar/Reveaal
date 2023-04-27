@@ -6,7 +6,6 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::ops;
-//use serde::de::Unexpected::Option;
 
 /// This file contains the nested enums used to represent systems on each side of refinement as well as all guards, updates etc
 /// note that the enum contains a box (pointer) to an object as they can only hold pointers to data on the heap
@@ -443,32 +442,32 @@ impl BoolExpression {
         }
     }
 
-    /// Replaces all occurrences of `ArithExpression::VarName(old)` with `new`
-
-    /// # Arguments
-    /// `old`: The `varname` to be replaced
-
-    /// `new`: The new varname
-    pub fn replace_varname(&mut self, old: &String, new: &String) {
+    pub fn remove_expr_with_name(&self, name: &str) -> New<Self> {
         match self {
-            BoolExpression::Parentheses(p) => p.replace_varname(old, new),
-            BoolExpression::AndOp(e1, e2) | BoolExpression::OrOp(e1, e2) => {
-                e1.replace_varname(old, new);
-                e2.replace_varname(old, new);
+            BoolExpression::Parentheses(p) => p.remove_expr_with_name(name),
+            BoolExpression::AndOp(l, r) |
+            BoolExpression::OrOp(l, r) => {
+                if l.get_varnames().contains(&name) {
+                    New::Changed(*r.to_owned())
+                } else if r.get_varnames().contains(&name) {
+                    New::Changed(*l.to_owned())
+                } else { New::Unchanged }
             }
-            BoolExpression::LessEQ(e1, e2)
-            | BoolExpression::GreatEQ(e1, e2)
-            | BoolExpression::LessT(e1, e2)
-            | BoolExpression::GreatT(e1, e2)
-            | BoolExpression::EQ(e1, e2) => {
-                e1.replace_varname(old, new);
-                e2.replace_varname(old, new);
+            BoolExpression::LessEQ(l, r) |
+            BoolExpression::GreatEQ(l, r) |
+            BoolExpression::LessT(l, r) |
+            BoolExpression::GreatT(l, r) |
+            BoolExpression::EQ(l, r) => {
+                if l.get_varnames().contains(&name) || r.get_varnames().contains(&name) {
+                    New::Removed
+                } else { New::Unchanged }
             }
-            BoolExpression::Bool(_) => (),
-            BoolExpression::Arithmetic(a) => a.replace_varname(old, new),
+            BoolExpression::Bool(_) => New::Unchanged,
+            BoolExpression::Arithmetic(a) => if a.get_varnames().contains(&name) {
+                New::Removed
+            } else { New::Unchanged },
         }
     }
-
     pub fn BLessEQ(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::LessEQ(Box::new(left), Box::new(right))
     }
@@ -487,6 +486,12 @@ impl BoolExpression {
     pub fn BPar(inner: BoolExpression) -> BoolExpression {
         inner
     }
+}
+
+pub enum New<T> {
+    Changed(T),
+    Unchanged,
+    Removed
 }
 
 fn var_from_naming(

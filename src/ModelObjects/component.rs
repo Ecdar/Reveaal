@@ -10,7 +10,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::representations::{BoolExpression, New};
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
@@ -191,17 +191,25 @@ impl Component {
         // Removes from from updates
         self.edges
             .iter_mut()
-            .filter(|e| e.update.is_some())
+            .filter(|e| e.update.is_some() || e.guard.is_some())
             .for_each(|e| {
-                if let Some((i, _)) = e
-                    .update
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .enumerate()
-                    .find(|(_, u)| u.variable == name)
+                if let Some(guard) = e
+                    .guard.as_mut()
                 {
-                    e.update.as_mut().unwrap().remove(i);
+                    // Remove
+                    match guard.remove_expr_with_name(&name) {
+                        New::Changed(g) => *guard = g,
+                        New::Unchanged => {}
+                        New::Removed => e.guard = None,
+                    }
+                }
+                if let Some(upd) = e.update.as_mut() {
+                    if let Some((i, _)) = upd.iter()
+                        .enumerate()
+                        .find(|(_, u)| u.variable == name)
+                    {
+                        e.update.as_mut().unwrap().remove(i);
+                    };
                 }
             });
         info!(
