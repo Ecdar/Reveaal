@@ -39,7 +39,6 @@ impl DeclarationProvider for Component {
     }
 }
 
-#[allow(dead_code)]
 impl Component {
     pub fn set_clock_indices(&mut self, indices: &mut ClockIndex) {
         self.declarations.set_clock_indices(*indices);
@@ -357,7 +356,6 @@ pub struct Location {
     pub urgency: String,
 }
 
-#[allow(dead_code)]
 impl Location {
     pub fn get_id(&self) -> &String {
         &self.id
@@ -504,31 +502,6 @@ impl Transition {
         }
 
         fed
-    }
-
-    // TODO: will we ever need this method?
-    #[allow(dead_code)]
-    fn get_guard_from_allowed(
-        from_loc: &LocationTree,
-        to_loc: &LocationTree,
-        updates: Vec<CompiledUpdate>,
-        guard: Option<OwnedFederation>,
-        dim: ClockIndex,
-    ) -> OwnedFederation {
-        let mut fed = match to_loc.get_invariants() {
-            Some(fed) => fed.clone(),
-            None => OwnedFederation::universe(dim),
-        };
-        for update in &updates {
-            fed = update.apply_as_guard(fed);
-        }
-        for update in &updates {
-            fed = update.apply_as_free(fed);
-        }
-        if let Some(g) = guard {
-            fed = fed.intersection(&g);
-        }
-        from_loc.apply_invariants(fed)
     }
 
     pub fn get_allowed_federation(&self) -> OwnedFederation {
@@ -718,7 +691,6 @@ pub struct Declarations {
     pub clocks: HashMap<String, ClockIndex>,
 }
 
-#[allow(dead_code)]
 impl Declarations {
     pub fn empty() -> Declarations {
         Declarations {

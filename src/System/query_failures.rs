@@ -169,7 +169,6 @@ pub enum QueryResult {
 pub type PathResult = Result<SpecificPath, PathFailure>;
 
 //TODO: add refinement Ok result
-#[allow(clippy::result_large_err)]
 pub type RefinementResult = Result<(), RefinementFailure>;
 
 pub type ConsistencyResult = Result<(), ConsistencyFailure>;
@@ -184,7 +183,6 @@ pub enum PathFailure {
 }
 
 /// Represents the different ways that a refinement query can fail
-#[allow(clippy::result_large_err)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RefinementFailure {
     /// The refinement failed for `system` because the right side cannot match left sides delay after taking `action` from `state`.
@@ -287,20 +285,19 @@ pub enum ActionFailure {
     /// The actions in the first [ActionSet] are not disjoint from the actions in the second [ActionSet].
     NotDisjoint(ActionSet, ActionSet),
 }
-#[allow(clippy::result_large_err)]
 impl ActionFailure {
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a disjoint from the actions in `actions2` from `sys2`.
     pub fn not_disjoint<T>(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
-    ) -> Result<T, ActionFailure> {
+    ) -> Result<T, Box<ActionFailure>> {
         let is_input1 = sys1.get_input_actions() == actions1;
         let is_input2 = sys2.get_input_actions() == actions2;
 
         debug_assert!(is_input1 || sys1.get_output_actions() == actions1);
         debug_assert!(is_input2 || sys2.get_output_actions() == actions2);
 
-        Err(ActionFailure::NotDisjoint(
+        Err(Box::new(ActionFailure::NotDisjoint(
             ActionSet {
                 system: sys1.to_string(),
                 actions: actions1,
@@ -311,7 +308,7 @@ impl ActionFailure {
                 actions: actions2,
                 is_input: is_input2,
             },
-        ))
+        )))
     }
 
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `inputs` are not a disjoint from the actions in `outputs`.
@@ -319,9 +316,9 @@ impl ActionFailure {
         name: impl Into<String>,
         inputs: HashSet<String>,
         outputs: HashSet<String>,
-    ) -> Result<(), ActionFailure> {
+    ) -> Result<(), Box<ActionFailure>> {
         let system = name.into();
-        Err(ActionFailure::NotDisjoint(
+        Err(Box::new(ActionFailure::NotDisjoint(
             ActionSet {
                 system: system.clone(),
                 actions: inputs,
@@ -332,21 +329,21 @@ impl ActionFailure {
                 actions: outputs,
                 is_input: false,
             },
-        ))
+        )))
     }
 
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a subset of the actions in `actions2` from `sys2`.
     pub fn not_subset(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
-    ) -> Result<(), ActionFailure> {
+    ) -> Result<(), Box<ActionFailure>> {
         let is_input1 = sys1.get_input_actions() == actions1;
         let is_input2 = sys2.get_input_actions() == actions2;
 
         debug_assert!(is_input1 || sys1.get_output_actions() == actions1);
         debug_assert!(is_input2 || sys2.get_output_actions() == actions2);
 
-        Err(ActionFailure::NotSubset(
+        Err(Box::new(ActionFailure::NotSubset(
             ActionSet {
                 system: sys1.to_string(),
                 actions: actions1,
@@ -357,7 +354,7 @@ impl ActionFailure {
                 actions: actions2,
                 is_input: is_input2,
             },
-        ))
+        )))
     }
 
     /// Converts this [ActionFailure] into a [RefinementPrecondition] given the two [TransitionSystem]s that failed.

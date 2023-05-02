@@ -74,7 +74,7 @@ pub mod test {
         comp2: &str,
     ) -> (ClockIndex, SystemRecipe) {
         let project_loader =
-            JsonProjectLoader::new(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
+            JsonProjectLoader::new_loader(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
 
         let mut component_loader = project_loader.to_comp_loader();
 
@@ -101,7 +101,7 @@ pub mod test {
         comp2: &str,
     ) -> TransitionSystemPtr {
         let project_loader =
-            JsonProjectLoader::new(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
+            JsonProjectLoader::new_loader(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
 
         let mut component_loader = project_loader.to_comp_loader();
 

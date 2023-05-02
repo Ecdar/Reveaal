@@ -215,17 +215,17 @@ impl SystemRecipe {
         component_index: &mut u32,
     ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         match self {
-            SystemRecipe::Composition(left, right) => Composition::new(
+            SystemRecipe::Composition(left, right) => Composition::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 dim,
             ),
-            SystemRecipe::Conjunction(left, right) => Conjunction::new(
+            SystemRecipe::Conjunction(left, right) => Conjunction::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 dim,
             ),
-            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
+            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 clock_index,

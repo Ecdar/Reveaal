@@ -85,7 +85,12 @@ impl PassedStateListExt for DepthFirstWaitingStateList {
     }
 }
 
-#[allow(clippy::new_without_default)]
+impl Default for DepthFirstWaitingStateList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DepthFirstWaitingStateList {
     pub fn new() -> Self {
         DepthFirstWaitingStateList {

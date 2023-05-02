@@ -73,7 +73,6 @@ fn is_deterministic_helper(
 }
 
 /// Local consistency check WITHOUT pruning
-#[allow(dead_code)]
 pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     if system.get_initial_location().is_none() {
         return ConsistencyFailure::no_initial_state(system);
@@ -135,7 +134,6 @@ pub fn consistency_least_helper(
     ConsistencyFailure::inconsistent_from(system, &state)
 }
 
-#[allow(dead_code)]
 fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,

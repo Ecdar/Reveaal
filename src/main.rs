@@ -80,9 +80,9 @@ fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<Quer
 
 fn get_project_loader(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
     if xml_parser::is_xml_project(&project_path) {
-        XmlProjectLoader::new(project_path, settings)
+        XmlProjectLoader::new_loader(project_path, settings)
     } else {
-        JsonProjectLoader::new(project_path, settings)
+        JsonProjectLoader::new_loader(project_path, settings)
     }
 }
 
