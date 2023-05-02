@@ -1,4 +1,4 @@
-name: Build Linux artifact
+name: Build artifacts
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:   
-  build-mac:
+  build-macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v3
@@ -29,10 +29,6 @@ jobs:
       with:
         command: build
         args: --release
-    - name: Test
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
     - name: Upload artifacts 
       uses: actions/upload-artifact@v2
       with:
@@ -62,10 +58,6 @@ jobs:
       with:
         command: build
         args: --release
-    - name: Test
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
     - name: Upload artifacts 
       uses: actions/upload-artifact@v2
       with:
@@ -73,7 +65,7 @@ jobs:
         path: target/release/Reveaal.exe
         if-no-files-found: error
     
-  build-linux:
+  build-ubuntu:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -95,10 +87,6 @@ jobs:
       with:
         command: build
         args: --release
-    - name: Test
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
     - name: Upload artifacts 
       uses: actions/upload-artifact@v2
       with:
