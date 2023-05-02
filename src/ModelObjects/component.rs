@@ -638,7 +638,7 @@ impl Edge {
 
     pub fn apply_guard(&self, decl: &Declarations, mut fed: OwnedFederation) -> OwnedFederation {
         if let Some(guards) = self.get_guard() {
-            fed = apply_constraints_to_state(guards, decl, fed).unwrap();
+            fed = apply_constraints_to_state(guards, decl, fed).expect("Failed to apply guard");
         };
 
         fed
