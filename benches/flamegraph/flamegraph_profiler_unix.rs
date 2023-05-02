@@ -26,7 +26,7 @@ impl<'a> Profiler for FlamegraphProfiler<'a> {
         std::fs::create_dir_all(benchmark_dir).expect("Could not create benchmark directory");
         let flamegraph_path = benchmark_dir.join("flamegraph.svg");
         let flamegraph_file =
-            File::create(&flamegraph_path).expect("Could not create the flamegraph file");
+            File::create(flamegraph_path).expect("Could not create the flamegraph file");
         self.active_profiler
             .take()
             .unwrap()

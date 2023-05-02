@@ -27,7 +27,7 @@ impl Composition {
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
         let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();

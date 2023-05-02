@@ -44,7 +44,7 @@ impl CompiledComponent {
         outputs: HashSet<String>,
         dim: ClockIndex,
         id: u32,
-    ) -> Result<Box<Self>, SystemRecipeFailure> {
+    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
         if !inputs.is_disjoint(&outputs) {
             ActionFailure::not_disjoint_IO(&component.name, inputs.clone(), outputs.clone())
                 .map_err(|e| e.to_simple_failure(&component.name))?;
@@ -94,7 +94,7 @@ impl CompiledComponent {
         component: Component,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<Box<Self>, SystemRecipeFailure> {
+    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
         let inputs = HashSet::from_iter(component.get_input_actions());
         let outputs = HashSet::from_iter(component.get_output_actions());
         let index = *component_index;

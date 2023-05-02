@@ -365,8 +365,11 @@ impl ActionFailure {
         self,
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
-    ) -> RefinementPrecondition {
-        RefinementPrecondition::ActionMismatch(self, System::refinement(sys1, sys2))
+    ) -> Box<RefinementPrecondition> {
+        Box::new(RefinementPrecondition::ActionMismatch(
+            self,
+            System::refinement(sys1, sys2),
+        ))
     }
 
     /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
@@ -398,11 +401,11 @@ impl ActionFailure {
         self,
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-    ) -> SystemRecipeFailure {
-        SystemRecipeFailure::Action(
+    ) -> Box<SystemRecipeFailure> {
+        Box::new(SystemRecipeFailure::Action(
             self,
             System::from2(left.as_ref(), right.as_ref(), SystemType::Composition),
-        )
+        ))
     }
 
     /// Converts this [ActionFailure] that occured during the construction of a [Conjunction](crate::TransitionSystems::Conjunction) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
@@ -410,11 +413,11 @@ impl ActionFailure {
         self,
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-    ) -> SystemRecipeFailure {
-        SystemRecipeFailure::Action(
+    ) -> Box<SystemRecipeFailure> {
+        Box::new(SystemRecipeFailure::Action(
             self,
             System::from2(left.as_ref(), right.as_ref(), SystemType::Conjunction),
-        )
+        ))
     }
 }
 
@@ -671,6 +674,12 @@ mod conversions {
     impl From<RefinementPrecondition> for RefinementFailure {
         fn from(failure: RefinementPrecondition) -> Self {
             RefinementFailure::Precondition(failure)
+        }
+    }
+
+    impl From<Box<RefinementPrecondition>> for RefinementFailure {
+        fn from(failure: Box<RefinementPrecondition>) -> Self {
+            RefinementFailure::Precondition(*failure)
         }
     }
 

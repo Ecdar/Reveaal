@@ -39,7 +39,7 @@ impl Quotient {
         S: TransitionSystemPtr,
         new_clock_index: ClockIndex,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
             ActionFailure::not_disjoint(
                 (S.as_ref(), S.get_output_actions()),

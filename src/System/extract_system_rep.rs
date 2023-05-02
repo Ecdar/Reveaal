@@ -27,9 +27,9 @@ pub enum ExecutableQueryError {
     Custom(String),
 }
 
-impl From<SystemRecipeFailure> for ExecutableQueryError {
-    fn from(failure: SystemRecipeFailure) -> Self {
-        ExecutableQueryError::SystemRecipeFailure(failure)
+impl From<Box<SystemRecipeFailure>> for ExecutableQueryError {
+    fn from(failure: Box<SystemRecipeFailure>) -> Self {
+        ExecutableQueryError::SystemRecipeFailure(*failure)
     }
 }
 
@@ -196,7 +196,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let mut component_index = 0;
         self._compile(dim + 1, &mut component_index)
     }
@@ -205,7 +205,7 @@ impl SystemRecipe {
         self,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         self._compile(dim + 1, component_index)
     }
 
@@ -213,7 +213,7 @@ impl SystemRecipe {
         self,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         match self {
             SystemRecipe::Composition(left, right) => Composition::new(
                 left._compile(dim, component_index)?,
@@ -232,10 +232,8 @@ impl SystemRecipe {
                 dim,
             ),
             SystemRecipe::Component(comp) => {
-                match CompiledComponent::compile(*comp, dim, component_index) {
-                    Ok(comp) => Ok(comp),
-                    Err(err) => Err(err),
-                }
+                CompiledComponent::compile(*comp, dim, component_index)
+                    .map(|comp| comp as TransitionSystemPtr)
             }
         }
     }
@@ -392,7 +390,7 @@ pub(crate) mod clock_reduction {
         rhs: Option<&mut Box<SystemRecipe>>,
         dim: &mut usize,
         quotient_clock: Option<ClockIndex>,
-    ) -> Result<(), SystemRecipeFailure> {
+    ) -> Result<(), Box<SystemRecipeFailure>> {
         if *dim == 0 {
             return Ok(());
         } else if rhs.is_none() {
@@ -441,7 +439,7 @@ pub(crate) mod clock_reduction {
         sys: &mut Box<SystemRecipe>,
         dim: &mut usize,
         quotient_clock: Option<ClockIndex>,
-    ) -> Result<(), SystemRecipeFailure> {
+    ) -> Result<(), Box<SystemRecipeFailure>> {
         let mut clocks = sys.clone().compile(*dim)?.find_redundant_clocks();
         clocks.retain(|ins| ins.get_clock_index() != quotient_clock.unwrap_or_default());
         debug!("Clocks to be reduced: {clocks:?}");
