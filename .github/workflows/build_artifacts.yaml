@@ -1,0 +1,107 @@
+name: Build Linux artifact
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:   
+  build-mac:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - uses: arduino/setup-protoc@v1.1.2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+    - name: Upload artifacts 
+      uses: actions/upload-artifact@v2
+      with:
+        name: reveaal-macos
+        path: target/release/Reveaal
+        if-no-files-found: error
+  
+  build-win:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - uses: arduino/setup-protoc@v1.1.2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+    - name: Upload artifacts 
+      uses: actions/upload-artifact@v2
+      with:
+        name: reveaal-windows
+        path: target/release/Reveaal.exe
+        if-no-files-found: error
+    
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - uses: arduino/setup-protoc@v1.1.2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+    - name: Upload artifacts 
+      uses: actions/upload-artifact@v2
+      with:
+        name: reveaal-ubuntu
+        path: target/release/Reveaal
+        if-no-files-found: error
