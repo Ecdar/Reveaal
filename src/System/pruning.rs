@@ -146,10 +146,8 @@ pub fn prune(
         new_comp.get_edges().len()
     );
 
-    match CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0) {
-        Ok(comp) => Ok(comp),
-        Err(e) => Err(format!("Pruning failed: {}", e)),
-    }
+    CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0)
+        .map_err(|e| format!("Pruning failed: {}", e))
 }
 
 fn add_inconsistent_parts_to_invariants(
