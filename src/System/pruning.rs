@@ -16,13 +16,12 @@ use std::collections::{HashMap, HashSet};
 use super::save_component::PruningStrategy;
 
 pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSystemPtr {
+    ts.precheck_sys_rep()
+        .expect("Cannot prune transitions system which is not least consistent");
+
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
     let comp = combine_components(&ts, PruningStrategy::NoPruning);
-
-    if ts.precheck_sys_rep().is_err() {
-        panic!("Trying to prune transitions system which is not least consistent")
-    }
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
