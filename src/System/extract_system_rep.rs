@@ -238,13 +238,13 @@ impl SystemRecipe {
         }
     }
 
-    /// Gets the count `Components`s in the `SystemRecipe`
-    pub fn count_component(&self) -> usize {
+    /// Gets the number of `Components`s in the `SystemRecipe`
+    pub fn get_component_count(&self) -> usize {
         match self {
             SystemRecipe::Composition(left, right)
             | SystemRecipe::Conjunction(left, right)
             | SystemRecipe::Quotient(left, right, _) => {
-                left.count_component() + right.count_component()
+                left.get_component_count() + right.get_component_count()
             }
             SystemRecipe::Component(_) => 1,
         }
@@ -358,7 +358,7 @@ fn validate_reachability_input(
     state: &QueryExpression,
 ) -> Result<(), String> {
     if let QueryExpression::State(loc_names, _) = state {
-        if loc_names.len() != machine.count_component() {
+        if loc_names.len() != machine.get_component_count() {
             return Err(
                 "The number of automata does not match the number of locations".to_string(),
             );
