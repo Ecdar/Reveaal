@@ -145,18 +145,3 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         ))
     }
 }
-
-pub trait CollectionOperation<T: Eq + std::hash::Hash> {
-    fn is_disjoint_action(&self, other: &HashSet<T>) -> Result<bool, Vec<String>>;
-}
-
-impl CollectionOperation<String> for HashSet<String> {
-    fn is_disjoint_action(&self, other: &HashSet<String>) -> Result<bool, Vec<String>> {
-        let out = self.intersection(other).cloned().collect::<Vec<String>>();
-        if !out.is_empty() {
-            Err(out)
-        } else {
-            Ok(true)
-        }
-    }
-}
