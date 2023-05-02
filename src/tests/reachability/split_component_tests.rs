@@ -99,6 +99,9 @@ mod reachability_search_algorithm_test {
         ];
     "Different structures 2")]
     fn split_component_invalid_input(path: Vec<TransitionID>) {
-        assert!(TransitionID::split_into_component_lists(&path).is_err(), "Expected error")
+        assert!(
+            TransitionID::split_into_component_lists(&path).is_err(),
+            "Expected error"
+        )
     }
 }
