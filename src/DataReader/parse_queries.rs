@@ -3,6 +3,8 @@ extern crate pest;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
 
+// Temporarily allow deprecated structs as they are fixed in a PR but not yet released
+#[allow(deprecated)]
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
@@ -109,6 +111,8 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
     }
 }
 
+// Temporarily allow deprecated functions as they are fixed in a PR but not yet released
+#[allow(deprecated)]
 pub fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
