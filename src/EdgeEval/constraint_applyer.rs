@@ -1,5 +1,7 @@
+use chrono::format;
 use edbm::util::constraints::{ClockIndex, Inequality};
 use edbm::zones::OwnedFederation;
+use simple_error::bail;
 
 use crate::component::Declarations;
 
@@ -67,7 +69,7 @@ fn apply_constraints_to_state_helper(
             }
             Ok(fed)
         }
-        _ => panic!("Unexpected BoolExpression"),
+        expr => Err(format!("Unexpected expression in guard: {:?}", expr)),
     }
 }
 
