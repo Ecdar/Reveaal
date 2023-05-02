@@ -18,7 +18,7 @@ pub struct QueryParser;
 ///For clarification see documentation on pest crate
 
 pub fn parse_to_query(query: &str) -> Vec<Query> {
-    let queries = parse_to_expression_tree(query).unwrap();
+    let queries = parse_to_expression_tree(query).expect("parsing the query should not fail");
     queries
         .into_iter()
         .map(|q| Query {
