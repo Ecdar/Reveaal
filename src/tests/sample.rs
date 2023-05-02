@@ -2,7 +2,7 @@
 mod samples {
     use crate::DataReader::component_loader::JsonProjectLoader;
 
-    static CONJUNCTION_SAMPLE: &str = "samples/json/Conjunction";
+    const CONJUNCTION_SAMPLE: &str = "samples/json/Conjunction";
 
     #[test]
     fn test_locations_T1() {
