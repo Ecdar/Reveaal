@@ -177,7 +177,7 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_initial_state(&self) -> Option<State> {
-        let init_loc = self.get_initial_location().unwrap();
+        let init_loc = self.get_initial_location()?;
 
         State::from_location(init_loc, self.dim)
     }

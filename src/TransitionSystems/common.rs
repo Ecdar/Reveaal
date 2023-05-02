@@ -114,7 +114,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     }
 
     fn get_initial_state(&self) -> Option<State> {
-        let init_loc = self.get_initial_location().unwrap();
+        let init_loc = self.get_initial_location()?;
         let mut zone = OwnedFederation::init(self.get_dim());
         zone = init_loc.apply_invariants(zone);
         if zone.is_empty() {
