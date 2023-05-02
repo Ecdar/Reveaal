@@ -25,13 +25,13 @@ pub enum SystemType {
 
 impl SystemType {
     /// Returns the string representation of the operator for this composition type
-    pub fn op(&self) -> String {
+    pub fn operator(&self) -> String {
         match self {
             Self::Quotient => r"\\",
             Self::Refinement => "<=",
             Self::Composition => "||",
             Self::Conjunction => "&&",
-            Self::Simple => panic!("Simple composition type should not be displayed"),
+            Self::Simple => unreachable!(),
         }
         .to_string()
     }
@@ -71,7 +71,7 @@ impl System {
         }
     }
     /// Creates a new system from two [TransitionSystem]s, `sys1` and `sys2`, and the type of the composition `sys_type`
-    pub fn from2(
+    pub fn from_composite_system(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
         sys_type: SystemType,
@@ -80,7 +80,7 @@ impl System {
             name: format!(
                 "{} {} {}",
                 sys1.to_string(),
-                sys_type.op(),
+                sys_type.operator(),
                 sys2.to_string()
             ),
             sys_type,
@@ -101,22 +101,13 @@ pub struct ActionSet {
 
 impl fmt::Display for ActionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let singular = false; //self.actions.len() == 1;
         let action_type = if self.is_input { "Input" } else { "Output" };
 
-        if singular {
-            write!(
-                f,
-                "{} {:?} in system '{}'",
-                action_type, self.actions, self.system
-            )
-        } else {
-            write!(
-                f,
-                "{}s {:?} in system '{}'",
-                action_type, self.actions, self.system
-            )
-        }
+        write!(
+            f,
+            "{} set {:?} in system '{}'",
+            action_type, self.actions, self.system
+        )
     }
 }
 
@@ -389,7 +380,7 @@ impl ActionFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
-            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
+            System::from_composite_system(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 
@@ -401,7 +392,7 @@ impl ActionFailure {
     ) -> Box<SystemRecipeFailure> {
         Box::new(SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), SystemType::Composition),
+            System::from_composite_system(left.as_ref(), right.as_ref(), SystemType::Composition),
         ))
     }
 
@@ -413,7 +404,7 @@ impl ActionFailure {
     ) -> Box<SystemRecipeFailure> {
         Box::new(SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), SystemType::Conjunction),
+            System::from_composite_system(left.as_ref(), right.as_ref(), SystemType::Conjunction),
         ))
     }
 }
@@ -499,7 +490,7 @@ impl ConsistencyFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(
             self,
-            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
+            System::from_composite_system(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 }

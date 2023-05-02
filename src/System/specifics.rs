@@ -263,7 +263,7 @@ impl fmt::Display for SpecificLocation {
                 write!(f, "{}.{}", comp.name, location_id)
             }
             SpecificLocation::BranchLocation(left, right, op) => {
-                write!(f, "({}{}{})", left, op.op(), right)
+                write!(f, "({}{}{})", left, op.operator(), right)
             }
             SpecificLocation::SpecialLocation(spec) => write!(f, "{}", spec),
         }
