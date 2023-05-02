@@ -16,7 +16,7 @@ pub struct Path {
     pub path: Vec<Decision>,
 }
 
-// This holds which transition from which state (the destination_state of the previous_sub_path) we took to reach this state
+/// This holds which transition from which state (the `destination_state` of the `previous_sub_path`) it took to reach this state
 struct SubPath {
     previous_sub_path: Option<Rc<SubPath>>,
     destination_state: State,
@@ -193,14 +193,11 @@ fn take_transition(
 /// Checks if this zone is redundant by being a subset of any other zone
 fn zone_subset_of_existing_zones(
     new_state: &OwnedFederation,
-    existing_states: &Vec<OwnedFederation>,
+    existing_states: &[OwnedFederation],
 ) -> bool {
-    for existing_state in existing_states {
-        if new_state.subset_eq(existing_state) {
-            return true;
-        }
-    }
-    false
+    existing_states
+        .iter()
+        .any(|existing_state| new_state.subset_eq(existing_state))
 }
 
 /// Removes everything in existing_zones that is a subset of zone
