@@ -2,7 +2,7 @@
 mod test {
     use crate::tests::refinement::Helper::json_refinement_check;
 
-    static PATH: &str = "samples/json/EcdarUniversity";
+    const PATH: &str = "samples/json/EcdarUniversity";
 
     #[test]
     fn testAdm2RefinesSelf() {

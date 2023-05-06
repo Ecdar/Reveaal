@@ -89,8 +89,8 @@ pub fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, ClockIndex
     clocks
 }
 
-fn collect_all_edges_and_locations<'a>(
-    representation: &'a TransitionSystemPtr,
+fn collect_all_edges_and_locations(
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
@@ -102,8 +102,8 @@ fn collect_all_edges_and_locations<'a>(
     }
 }
 
-fn collect_reachable_edges_and_locations<'a>(
-    representation: &'a TransitionSystemPtr,
+fn collect_reachable_edges_and_locations(
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
@@ -124,9 +124,9 @@ fn collect_reachable_edges_and_locations<'a>(
     }
 }
 
-fn collect_reachable_locations<'a>(
+fn collect_reachable_locations(
     location: &LocationTree,
-    representation: &'a TransitionSystemPtr,
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
 ) {
     for input in [true, false].iter() {

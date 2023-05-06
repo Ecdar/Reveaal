@@ -5,7 +5,7 @@ mod test {
         System::query_failures::{DeterminismResult, QueryResult},
     };
 
-    static PATH: &str = "samples/xml/ConsTests.xml";
+    const PATH: &str = "samples/xml/ConsTests.xml";
 
     fn convert_to_bool(result: DeterminismResult) -> bool {
         matches!(result, Ok(()))

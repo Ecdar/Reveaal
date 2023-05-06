@@ -9,8 +9,8 @@ mod refinements {
     use crate::ProtobufServer::ConcreteEcdarBackend;
     use tonic::Request;
 
-    //static CONJUN: &str = "samples/xml/conjun.xml";
-    static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
+    //const CONJUN: &str = "samples/xml/conjun.xml";
+    const ECDAR_UNI: &str = "samples/json/EcdarUniversity";
 
     #[tokio::test]
     async fn send_self_refinement_query() {

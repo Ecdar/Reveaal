@@ -2,7 +2,7 @@
 mod test {
     use crate::tests::refinement::Helper::json_refinement_check;
 
-    static PATH: &str = "samples/json/Unspec";
+    const PATH: &str = "samples/json/Unspec";
 
     #[test]
     fn testARefinesSelf() {

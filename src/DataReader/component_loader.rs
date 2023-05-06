@@ -250,8 +250,7 @@ impl ProjectLoader for JsonProjectLoader {
 }
 
 impl JsonProjectLoader {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
+    pub fn new_loader(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
         let system_declarations = json_reader::read_system_declarations(&project_path).unwrap();
         let queries = json_reader::read_queries(&project_path).unwrap();
 
@@ -329,8 +328,7 @@ impl ProjectLoader for XmlProjectLoader {
 }
 
 impl XmlProjectLoader {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
+    pub fn new_loader(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
         let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
 
         let mut map = HashMap::<String, Component>::new();

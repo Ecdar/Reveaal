@@ -1201,31 +1201,6 @@ enum Operation {
     None,
 }
 
-#[allow(dead_code)]
-impl Operation {
-    pub fn left(&self) -> Operation {
-        match self {
-            Operation::Dif(_) => Operation::Dif(false),
-            Operation::Add(_) => Operation::Add(false),
-            Operation::Mul(_) => Operation::Mul(false),
-            Operation::Div(_) => Operation::Div(false),
-            Operation::Mod(_) => Operation::Mod(false),
-            Operation::None => Operation::None,
-        }
-    }
-
-    pub fn right(&self) -> Operation {
-        match self {
-            Operation::Dif(_) => Operation::Dif(true),
-            Operation::Add(_) => Operation::Add(true),
-            Operation::Mul(_) => Operation::Mul(true),
-            Operation::Div(_) => Operation::Div(true),
-            Operation::Mod(_) => Operation::Mod(true),
-            Operation::None => Operation::None,
-        }
-    }
-}
-
 pub struct Clock {
     pub value: ClockIndex,
     pub negated: bool,

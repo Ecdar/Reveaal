@@ -43,7 +43,6 @@ impl StatePair {
         }
     }
 
-    #[allow(dead_code)]
     pub fn get_locations(&self, is_states1: bool) -> (&LocationTree, &LocationTree) {
         if is_states1 {
             (&self.locations1, &self.locations2)
@@ -52,7 +51,6 @@ impl StatePair {
         }
     }
 
-    #[allow(dead_code)]
     pub fn clone_zone(&self) -> OwnedFederation {
         self.ref_zone().clone()
     }

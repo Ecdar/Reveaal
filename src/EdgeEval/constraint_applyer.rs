@@ -67,7 +67,7 @@ fn apply_constraints_to_state_helper(
             }
             Ok(fed)
         }
-        _ => panic!("Unexpected BoolExpression"),
+        expr => Err(format!("Unexpected expression in guard: {:?}", expr)),
     }
 }
 
