@@ -10,7 +10,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::representations::{BoolExpression, New};
+use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
@@ -187,30 +187,42 @@ impl Component {
             .to_owned();
         self.declarations.clocks.remove(&name);
 
-        // Removes from from updates
+        // Removes from from updates and guards
         self.edges
             .iter_mut()
             .filter(|e| e.update.is_some() || e.guard.is_some())
             .for_each(|e| {
-                if let Some(guard) = e
-                    .guard.as_mut()
-                {
-                    // Remove
-                    match guard.remove_expr_with_name(&name) {
-                        New::Changed(g) => *guard = g,
-                        New::Unchanged => {}
-                        New::Removed => e.guard = None,
+                if let Some(guard) = e.guard.as_mut() {
+                    // The guard is overwritten to `false`. This can be done since we assume
+                    // that all edges with guards involving the given clock is not reachable
+                    // in some composite system.
+                    if guard.has_varname(&name) {
+                        *guard = BoolExpression::Bool(false);
                     }
                 }
+
                 if let Some(upd) = e.update.as_mut() {
-                    if let Some((i, _)) = upd.iter()
-                        .enumerate()
-                        .find(|(_, u)| u.variable == name)
-                    {
+                    if let Some((i, _)) = upd.iter().enumerate().find(|(_, u)| u.variable == name) {
                         e.update.as_mut().unwrap().remove(i);
                     };
                 }
             });
+
+        // Removes from from location invariants
+        self.locations
+            .iter_mut()
+            .filter(|l| l.invariant.is_some())
+            .for_each(|l| {
+                if let Some(invariant) = l.invariant.as_mut() {
+                    // The invariant is overwritten to `false`. This can be done since we assume
+                    // that all locations with invariants involving the given clock is not
+                    // reachable in some composite system.
+                    if invariant.has_varname(&name) {
+                        *invariant = BoolExpression::Bool(false);
+                    }
+                }
+            });
+
         info!(
             "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name

@@ -418,56 +418,22 @@ impl BoolExpression {
     }
 
     /// Finds the clock names used in the expression
-    pub fn get_varnames(&self) -> Vec<&str> {
+    pub fn has_varname(&self, name: &String) -> bool {
         match self {
-            BoolExpression::Parentheses(p) => p.get_varnames(),
-            BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => p1
-                .get_varnames()
-                .iter()
-                .chain(p2.get_varnames().iter())
-                .copied()
-                .collect(),
+            BoolExpression::Parentheses(p) => p.has_varname(name),
+            BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => {
+                p1.has_varname(name) || p2.has_varname(name)
+            }
             BoolExpression::LessEQ(a1, a2)
             | BoolExpression::GreatEQ(a1, a2)
             | BoolExpression::LessT(a1, a2)
             | BoolExpression::GreatT(a1, a2)
-            | BoolExpression::EQ(a1, a2) => a1
-                .get_varnames()
-                .iter()
-                .chain(a2.get_varnames().iter())
-                .copied()
-                .collect(),
-            BoolExpression::Bool(_) => vec![],
-            BoolExpression::Arithmetic(a) => a.get_varnames(),
+            | BoolExpression::EQ(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            BoolExpression::Bool(_) => false,
+            BoolExpression::Arithmetic(a) => a.has_varname(name),
         }
     }
 
-    pub fn remove_expr_with_name(&self, name: &str) -> New<Self> {
-        match self {
-            BoolExpression::Parentheses(p) => p.remove_expr_with_name(name),
-            BoolExpression::AndOp(l, r) |
-            BoolExpression::OrOp(l, r) => {
-                if l.get_varnames().contains(&name) {
-                    New::Changed(*r.to_owned())
-                } else if r.get_varnames().contains(&name) {
-                    New::Changed(*l.to_owned())
-                } else { New::Unchanged }
-            }
-            BoolExpression::LessEQ(l, r) |
-            BoolExpression::GreatEQ(l, r) |
-            BoolExpression::LessT(l, r) |
-            BoolExpression::GreatT(l, r) |
-            BoolExpression::EQ(l, r) => {
-                if l.get_varnames().contains(&name) || r.get_varnames().contains(&name) {
-                    New::Removed
-                } else { New::Unchanged }
-            }
-            BoolExpression::Bool(_) => New::Unchanged,
-            BoolExpression::Arithmetic(a) => if a.get_varnames().contains(&name) {
-                New::Removed
-            } else { New::Unchanged },
-        }
-    }
     pub fn BLessEQ(left: ArithExpression, right: ArithExpression) -> BoolExpression {
         BoolExpression::LessEQ(Box::new(left), Box::new(right))
     }
@@ -491,7 +457,7 @@ impl BoolExpression {
 pub enum New<T> {
     Changed(T),
     Unchanged,
-    Removed
+    Removed,
 }
 
 fn var_from_naming(
@@ -1022,21 +988,16 @@ impl ArithExpression {
     }
 
     /// Finds the clock names used in the expression
-    pub fn get_varnames(&self) -> Vec<&str> {
+    pub fn has_varname(&self, name: &String) -> bool {
         match self {
-            ArithExpression::Parentheses(p) => p.get_varnames(),
+            ArithExpression::Parentheses(p) => p.has_varname(name),
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
             | ArithExpression::Division(a1, a2)
-            | ArithExpression::Modulo(a1, a2) => a1
-                .get_varnames()
-                .iter()
-                .chain(a2.get_varnames().iter())
-                .copied()
-                .collect(),
-            ArithExpression::Clock(_) | ArithExpression::Int(_) => vec![],
-            ArithExpression::VarName(name) => vec![name.as_str()],
+            | ArithExpression::Modulo(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            ArithExpression::Clock(_) | ArithExpression::Int(_) => false,
+            ArithExpression::VarName(n) => name == n,
         }
     }
 

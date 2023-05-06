@@ -23,7 +23,7 @@ pub use ProtobufServer::start_grpc_server_with_tokio;
 
 /// The default settings
 pub const DEFAULT_SETTINGS: Settings = Settings {
-    disable_clock_reduction: false,
+    disable_clock_reduction: true,
 };
 
 #[macro_use]

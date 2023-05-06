@@ -109,6 +109,9 @@ pub trait TransitionSystem: DynClone {
 
     fn get_initial_location(&self) -> Option<LocationTree>;
 
+    /// Function to get all locations from a [`TransitionSystem`]
+    /// #### Warning
+    /// This function utilizes a lot of memory. Use with caution
     fn get_all_locations(&self) -> Vec<LocationTree>;
 
     fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
@@ -185,15 +188,6 @@ pub trait TransitionSystem: DynClone {
         let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::from_dim(self.get_dim());
         self.find_edges_and_nodes(self.get_initial_location().unwrap(), &mut graph);
 
-        log::debug!(
-            "All transitions:\n{}",
-            self.get_all_locations()
-                .into_iter()
-                .map(|l| l.id.get_unique_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-
         graph
     }
 
@@ -204,8 +198,6 @@ pub trait TransitionSystem: DynClone {
         let mut worklist = VecDeque::from([init_location]);
         let actions = self.get_actions();
         while let Some(location) = worklist.pop_front() {
-            // for location in init_location {
-            log::debug!("loc: {:?}", location.id.get_unique_string());
             //Constructs a node to represent this location and add it to the graph.
             let mut node: ClockAnalysisNode = ClockAnalysisNode {
                 invariant_dependencies: HashSet::new(),
@@ -226,9 +218,7 @@ pub trait TransitionSystem: DynClone {
 
             //Constructs an edge to represent each transition from this graph and add it to the graph.
             for action in &actions {
-                let transitions = self.next_transitions_if_available(&location, action);
-                //log::debug!("Trans: {transitions:?}");
-                for transition in transitions {
+                for transition in self.next_transitions_if_available(&location, action) {
                     let mut edge = ClockAnalysisEdge {
                         from: location.id.get_unique_string(),
                         to: transition.target_locations.id.get_unique_string(),
@@ -253,58 +243,7 @@ pub trait TransitionSystem: DynClone {
                         .contains_key(&transition.target_locations.id.get_unique_string())
                     {
                         worklist.push_back(transition.target_locations);
-                        //self.find_edges_and_nodes(&transition.target_locations, actions, graph);
                     }
-                }
-            }
-        }
-    }
-
-    fn find_edges_and_nodes_all(&self, graph: &mut ClockAnalysisGraph) {
-        let actions = self.get_actions();
-        for location in self.get_all_locations() {
-            log::debug!("loc: {:?}", location.id.get_unique_string());
-            //Constructs a node to represent this location and add it to the graph.
-            let mut node: ClockAnalysisNode = ClockAnalysisNode {
-                invariant_dependencies: HashSet::new(),
-                id: location.id.get_unique_string(),
-            };
-
-            //Finds clocks used in invariants in this location.
-            if let Some(invariant) = &location.invariant {
-                let conjunctions = invariant.minimal_constraints().conjunctions;
-                for conjunction in conjunctions {
-                    for constraint in conjunction.iter() {
-                        node.invariant_dependencies.insert(constraint.i);
-                        node.invariant_dependencies.insert(constraint.j);
-                    }
-                }
-            }
-            graph.nodes.insert(node.id.clone(), node);
-
-            //Constructs an edge to represent each transition from this graph and add it to the graph.
-            for action in &actions {
-                let transitions = self.next_transitions_if_available(&location, action);
-                //log::debug!("Trans: {transitions:?}");
-                for transition in transitions {
-                    let mut edge = ClockAnalysisEdge {
-                        from: location.id.get_unique_string(),
-                        to: transition.target_locations.id.get_unique_string(),
-                        guard_dependencies: HashSet::new(),
-                        updates: transition.updates,
-                        edge_type: action.to_string(),
-                    };
-
-                    //Finds clocks used in guards in this transition.
-                    let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
-                    for conjunction in &conjunctions {
-                        for constraint in conjunction.iter() {
-                            edge.guard_dependencies.insert(constraint.i);
-                            edge.guard_dependencies.insert(constraint.j);
-                        }
-                    }
-
-                    graph.edges.push(edge);
                 }
             }
         }
