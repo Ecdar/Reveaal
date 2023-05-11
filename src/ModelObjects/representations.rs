@@ -21,7 +21,6 @@ pub enum BoolExpression {
     GreatT(Box<ArithExpression>, Box<ArithExpression>),
     EQ(Box<ArithExpression>, Box<ArithExpression>),
     Bool(bool),
-    Arithmetic(Box<ArithExpression>),
 }
 
 impl BoolExpression {
@@ -60,9 +59,6 @@ impl BoolExpression {
                 Box::new(right.swap_clock_names(from_vars, to_vars)),
             ),
             BoolExpression::Bool(val) => BoolExpression::Bool(*val),
-            BoolExpression::Arithmetic(x) => {
-                BoolExpression::Arithmetic(Box::new(x.swap_clock_names(from_vars, to_vars)))
-            }
         }
     }
 
@@ -96,7 +92,6 @@ impl BoolExpression {
                 [left.encode_expr(), String::from("=="), right.encode_expr()].concat()
             }
             BoolExpression::Bool(boolean) => boolean.to_string(),
-            BoolExpression::Arithmetic(x) => x.encode_expr(),
         }
     }
 
@@ -267,7 +262,6 @@ impl BoolExpression {
                 right.swap_var_name(from_name, to_name);
             }
             BoolExpression::Bool(_) => {}
-            BoolExpression::Arithmetic(x) => x.swap_var_name(from_name, to_name),
         }
     }
 
@@ -392,7 +386,6 @@ impl BoolExpression {
                     }
                 }
             }
-            BoolExpression::Arithmetic(x) => **x = x.simplify().expect("Can't simplify"),
             BoolExpression::Bool(_) => {}
         }
 
@@ -424,7 +417,6 @@ impl BoolExpression {
                 .copied()
                 .collect(),
             BoolExpression::Bool(_) => vec![],
-            BoolExpression::Arithmetic(a) => a.get_varnames(),
         }
     }
 
@@ -449,7 +441,6 @@ impl BoolExpression {
                 e2.replace_varname(old, new);
             }
             BoolExpression::Bool(_) => (),
-            BoolExpression::Arithmetic(a) => a.replace_varname(old, new),
         }
     }
 
@@ -588,9 +579,6 @@ impl Display for BoolExpression {
                 } else {
                     write!(f, "{}", val.to_string().red())?;
                 }
-            }
-            BoolExpression::Arithmetic(x) => {
-                write!(f, "{}", x.encode_expr())?;
             }
         }
         Ok(())

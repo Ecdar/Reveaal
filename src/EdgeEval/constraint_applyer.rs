@@ -66,7 +66,6 @@ fn apply_constraints_to_state_helper(
             }
             Ok(fed)
         }
-        expr => Err(format!("Unexpected expression in guard: {:?}", expr)),
     }
 }
 
