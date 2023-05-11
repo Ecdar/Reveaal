@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::{ModelObjects::representations::QueryExpression, System::specifics::SpecialLocation};
+use crate::{ModelObjects::representations::SystemExpression, System::specifics::SpecialLocation};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum LocationID {
@@ -21,17 +21,9 @@ impl LocationID {
         // A bit of a hack but we use the parser get the a query expression from which we can
         // determine to composition types needed to construct the location ID
         // TODO: This is a bit of a hack, but it works for now.
-        let query = crate::DataReader::parse_queries::parse_to_expression_tree(&format!(
-            "consistency: {}",
-            string
-        ))
-        .unwrap()
-        .remove(0);
+        let system = crate::DataReader::parse_queries::parse_to_system_expr(string).unwrap();
 
-        match query {
-            QueryExpression::Consistency(x) => (*x).into(),
-            _ => unreachable!(),
-        }
+        system.into()
     }
 
     /// It check whether the [`LocationID`] is a partial location by search through [`LocationID`] structure and see if there is any [`LocationID::AnyLocation`]
@@ -66,24 +58,19 @@ impl LocationID {
     }
 }
 
-impl From<QueryExpression> for LocationID {
-    fn from(item: QueryExpression) -> Self {
+impl From<SystemExpression> for LocationID {
+    fn from(item: SystemExpression) -> Self {
         match item {
-            QueryExpression::Conjunction(left, right) => {
+            SystemExpression::Conjunction(left, right) => {
                 LocationID::Conjunction(Box::new((*left).into()), Box::new((*right).into()))
             }
-            QueryExpression::Composition(left, right) => {
+            SystemExpression::Composition(left, right) => {
                 LocationID::Composition(Box::new((*left).into()), Box::new((*right).into()))
             }
-            QueryExpression::Quotient(left, right) => {
+            SystemExpression::Quotient(left, right) => {
                 LocationID::Quotient(Box::new((*left).into()), Box::new((*right).into()))
             }
-            QueryExpression::Parentheses(inner) => (*inner).into(),
-            QueryExpression::VarName(name) => LocationID::Simple(name),
-            _ => panic!(
-                "Cannot convert queryexpression with {:?} to LocationID",
-                item
-            ),
+            SystemExpression::Component(name, _id) => LocationID::Simple(name),
         }
     }
 }

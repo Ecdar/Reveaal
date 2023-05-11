@@ -38,6 +38,7 @@ pub fn combine_components(
         },
         locations,
         edges,
+        special_id: None,
     }
 }
 

@@ -1262,43 +1262,274 @@ fn get_op(exp: &BoolExpression) -> Option<String> {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum QueryExpression {
-    Refinement(Box<QueryExpression>, Box<QueryExpression>),
-    Consistency(Box<QueryExpression>),
-    Reachability(
-        Box<QueryExpression>,
-        Box<Option<QueryExpression>>,
-        Box<QueryExpression>,
-    ),
-    State(Vec<Box<QueryExpression>>, Option<Box<BoolExpression>>),
-    LocName(String),
-    Implementation(Box<QueryExpression>),
-    Determinism(Box<QueryExpression>),
-    Specification(Box<QueryExpression>),
-    GetComponent(Box<QueryExpression>),
-    Prune(Box<QueryExpression>),
-    BisimMinimize(Box<QueryExpression>),
-    SaveAs(Box<QueryExpression>, String),
-    Conjunction(Box<QueryExpression>, Box<QueryExpression>),
-    Composition(Box<QueryExpression>, Box<QueryExpression>),
-    Quotient(Box<QueryExpression>, Box<QueryExpression>),
-    Possibly(Box<QueryExpression>),
-    Invariantly(Box<QueryExpression>),
-    EventuallyAlways(Box<QueryExpression>),
-    Potentially(Box<QueryExpression>),
-    Parentheses(Box<QueryExpression>),
-    ComponentExpression(Box<QueryExpression>, Box<QueryExpression>),
-    AndOp(Box<QueryExpression>, Box<QueryExpression>),
-    OrOp(Box<QueryExpression>, Box<QueryExpression>),
-    LessEQ(Box<QueryExpression>, Box<QueryExpression>),
-    GreatEQ(Box<QueryExpression>, Box<QueryExpression>),
-    LessT(Box<QueryExpression>, Box<QueryExpression>),
-    GreatT(Box<QueryExpression>, Box<QueryExpression>),
-    Not(Box<QueryExpression>),
-    VarName(String),
+    Refinement(SystemExpression, SystemExpression),
+    Consistency(SystemExpression),
+    Reachability {
+        system: SystemExpression,
+        from: Option<StateExpression>,
+        to: StateExpression,
+    },
+    Implementation(SystemExpression),
+    Determinism(SystemExpression),
+    Specification(SystemExpression),
+    GetComponent(SaveExpression),
+    Prune(SaveExpression),
+    BisimMinim(SaveExpression),
+}
+
+#[derive(Debug, Clone)]
+pub struct SaveExpression {
+    pub system: SystemExpression,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum StateExpression {
+    LEQ(OperandExpression, OperandExpression),
+    GEQ(OperandExpression, OperandExpression),
+    EQ(OperandExpression, OperandExpression),
+    LT(OperandExpression, OperandExpression),
+    GT(OperandExpression, OperandExpression),
+    AND(Vec<StateExpression>),
+    OR(Vec<StateExpression>),
+    Location(ComponentVariable),
+    NOT(Box<StateExpression>),
     Bool(bool),
-    Int(i32),
+}
+
+#[derive(Debug, Clone)]
+pub enum OperandExpression {
+    Number(i32),
+    Clock(ComponentVariable),
+    Difference(Box<OperandExpression>, Box<OperandExpression>),
+    Sum(Box<OperandExpression>, Box<OperandExpression>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComponentVariable {
+    /// Fx. `"A[Temp].x"` -> `"A"`
+    pub component: String,
+    /// Fx. `"A[Temp].x"` -> `Some("Temp")` or `"A.x"` -> `None`
+    pub special_id: Option<String>,
+    /// Fx. `"A[Temp].x"` -> `"x"`
+    pub variable: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum SystemExpression {
+    /// Fx. `"A[Temp]"` -> `Component("A", Some("Temp"))`
+    /// Fx. `"A"` -> `Component("A", None)`
+    Component(String, Option<String>),
+    Quotient(Box<SystemExpression>, Box<SystemExpression>),
+    Composition(Box<SystemExpression>, Box<SystemExpression>),
+    Conjunction(Box<SystemExpression>, Box<SystemExpression>),
+}
+
+impl SystemExpression {
+    pub fn pretty_string(&self) -> String {
+        match self {
+            SystemExpression::Component(name, Some(id)) => format!("{}[{}]", name, id),
+            SystemExpression::Component(name, None) => name.clone(),
+            SystemExpression::Quotient(left, right) => {
+                format!("({} \\\\ {})", left.pretty_string(), right.pretty_string())
+            }
+            SystemExpression::Composition(left, right) => {
+                format!("({} || {})", left.pretty_string(), right.pretty_string())
+            }
+            SystemExpression::Conjunction(left, right) => {
+                format!("({} && {})", left.pretty_string(), right.pretty_string())
+            }
+        }
+    }
+}
+
+impl SaveExpression {
+    pub fn pretty_string(&self) -> String {
+        match &self.name {
+            Some(name) => format!("{} save-as {}", name, self.system.pretty_string()),
+            None => format!("{}", self.system.pretty_string()),
+        }
+    }
+}
+
+impl OperandExpression {
+    pub fn to_arith_expression(
+        &self,
+        comps: &Vec<&crate::component::Component>,
+    ) -> Result<ArithExpression, String> {
+        match self {
+            OperandExpression::Number(n) => Ok(ArithExpression::Int(*n)),
+            OperandExpression::Clock(ComponentVariable {
+                component,
+                special_id,
+                variable,
+            }) => {
+                let comp = comps
+                    .iter()
+                    .find(|c| c.name == *component && c.special_id == *special_id)
+                    .ok_or_else(|| format!("Component '{}' not found", component))?;
+                let clock_id = comp
+                    .declarations
+                    .get_clock_index_by_name(variable)
+                    .ok_or_else(|| {
+                        format!(
+                            "Clock '{}' not found for component '{}'",
+                            variable, component
+                        )
+                    })?;
+
+                Ok(ArithExpression::Clock(*clock_id))
+            }
+            OperandExpression::Difference(left, right) => Ok(ArithExpression::Difference(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            OperandExpression::Sum(left, right) => Ok(ArithExpression::Addition(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+        }
+    }
+    pub fn pretty_string(&self) -> String {
+        match self {
+            OperandExpression::Number(n) => format!("{}", n),
+            OperandExpression::Clock(ComponentVariable {
+                component,
+                special_id: None,
+                variable,
+            }) => format!("{}.{}", component, variable),
+            OperandExpression::Clock(ComponentVariable {
+                component,
+                special_id: Some(id),
+                variable,
+            }) => format!("{}[{}].{}", component, id, variable),
+            OperandExpression::Difference(left, right) => {
+                format!("{} - {}", left.pretty_string(), right.pretty_string())
+            }
+            OperandExpression::Sum(left, right) => {
+                format!("{} + {}", left.pretty_string(), right.pretty_string())
+            }
+        }
+    }
+}
+
+impl StateExpression {
+    pub fn to_bool_expression(
+        &self,
+        comps: &Vec<&crate::component::Component>,
+    ) -> Result<BoolExpression, String> {
+        match self {
+            StateExpression::LEQ(left, right) => Ok(BoolExpression::LessEQ(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            StateExpression::GEQ(left, right) => Ok(BoolExpression::GreatEQ(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            StateExpression::EQ(left, right) => Ok(BoolExpression::EQ(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            StateExpression::LT(left, right) => Ok(BoolExpression::LessT(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            StateExpression::GT(left, right) => Ok(BoolExpression::GreatT(
+                Box::new(left.to_arith_expression(comps)?),
+                Box::new(right.to_arith_expression(comps)?),
+            )),
+            StateExpression::AND(exprs) => {
+                let mut exprs = exprs
+                    .iter()
+                    .map(|e| e.to_bool_expression(comps))
+                    .collect::<Result<Vec<BoolExpression>, _>>()?
+                    .into_iter();
+                let first = exprs
+                    .next()
+                    .expect("AND expression must have at least one operand");
+                Ok(exprs.fold(first, |acc, e| {
+                    BoolExpression::AndOp(Box::new(acc), Box::new(e))
+                }))
+            }
+            StateExpression::OR(exprs) => {
+                let mut exprs = exprs
+                    .iter()
+                    .map(|e| e.to_bool_expression(comps))
+                    .collect::<Result<Vec<BoolExpression>, _>>()?
+                    .into_iter();
+                let first = exprs
+                    .next()
+                    .expect("OR expression must have at least one operand");
+                Ok(exprs.fold(first, |acc, e| {
+                    BoolExpression::OrOp(Box::new(acc), Box::new(e))
+                }))
+            }
+            StateExpression::NOT(expr) => {
+                unimplemented!("NOT expressions are not supported yet")
+            }
+            StateExpression::Location(_) => {
+                // Locations here should just be ignored
+                Ok(BoolExpression::Bool(true))
+            }
+            StateExpression::Bool(b) => Ok(BoolExpression::Bool(*b)),
+        }
+    }
+    pub fn pretty_string(&self) -> String {
+        match self {
+            StateExpression::LEQ(left, right) => {
+                format!("{} <= {}", left.pretty_string(), right.pretty_string())
+            }
+            StateExpression::GEQ(left, right) => {
+                format!("{} >= {}", left.pretty_string(), right.pretty_string())
+            }
+            StateExpression::EQ(left, right) => {
+                format!("{} == {}", left.pretty_string(), right.pretty_string())
+            }
+            StateExpression::LT(left, right) => {
+                format!("{} < {}", left.pretty_string(), right.pretty_string())
+            }
+            StateExpression::GT(left, right) => {
+                format!("{} > {}", left.pretty_string(), right.pretty_string())
+            }
+            StateExpression::AND(exprs) => {
+                let mut s = "(".to_string();
+                for (i, expr) in exprs.iter().enumerate() {
+                    if i > 0 {
+                        s.push_str(" && ");
+                    }
+                    s.push_str(&expr.pretty_string());
+                }
+                s.push_str(")");
+                s
+            }
+            StateExpression::OR(exprs) => {
+                let mut s = "(".to_string();
+                for (i, expr) in exprs.iter().enumerate() {
+                    if i > 0 {
+                        s.push_str(" || ");
+                    }
+                    s.push_str(&expr.pretty_string());
+                }
+                s.push_str(")");
+                s
+            }
+            StateExpression::Location(ComponentVariable {
+                component,
+                special_id: None,
+                variable,
+            }) => format!("{}.{}", component, variable),
+            StateExpression::Location(ComponentVariable {
+                component,
+                special_id: Some(id),
+                variable,
+            }) => format!("{}[{}].{}", component, id, variable),
+            StateExpression::NOT(expr) => format!("!({})", expr.pretty_string()),
+            StateExpression::Bool(b) => format!("{}", b),
+        }
+    }
 }
 
 impl QueryExpression {
@@ -1309,15 +1540,15 @@ impl QueryExpression {
                 left.pretty_string(),
                 right.pretty_string()
             ),
-            QueryExpression::Reachability(automata, start, end) => {
+            QueryExpression::Reachability { system, from, to } => {
                 format!(
-                    "reachability: {} -> {}; {}",
-                    automata.pretty_string(),
-                    match start.as_ref() {
+                    "reachability: {} @ {} -> {}",
+                    system.pretty_string(),
+                    match from {
                         Some(expr) => expr.pretty_string(),
-                        None => "".to_string(),
+                        None => "init".to_string(),
                     },
-                    end.pretty_string()
+                    to.pretty_string()
                 )
             }
             QueryExpression::Consistency(system) => {
@@ -1326,43 +1557,21 @@ impl QueryExpression {
             QueryExpression::GetComponent(comp) => {
                 format!("get-component: {}", comp.pretty_string())
             }
-            QueryExpression::SaveAs(system, name) => {
-                format!("{} save-as {}", system.pretty_string(), name.clone())
-            }
-            QueryExpression::Conjunction(left, right) => {
-                format!("{} && {}", left.pretty_string(), right.pretty_string())
-            }
-            QueryExpression::Composition(left, right) => {
-                format!("{} || {}", left.pretty_string(), right.pretty_string())
-            }
-            QueryExpression::Quotient(left, right) => {
-                format!("{} \\\\ {}", left.pretty_string(), right.pretty_string())
-            }
             QueryExpression::Prune(comp) => {
                 format!("prune: {}", comp.pretty_string())
             }
-            QueryExpression::Parentheses(system) => format!("({})", system.pretty_string()),
-            QueryExpression::VarName(name) | QueryExpression::LocName(name) => name.clone(),
-            QueryExpression::State(locs, clock) => {
-                format!(
-                    "[{}]({})",
-                    locs.iter()
-                        .enumerate()
-                        .map(|loc| {
-                            if loc.0 == 0 {
-                                loc.1.pretty_string()
-                            } else {
-                                format!(", {}", loc.1.pretty_string())
-                            }
-                        })
-                        .collect::<String>(),
-                    clock
-                        .clone()
-                        .map_or_else(|| "".to_string(), |c| format!("{}", c))
-                        .replace(" && ", ", ")
-                )
+            QueryExpression::BisimMinim(comp) => {
+                format!("bisim-minim: {}", comp.pretty_string())
             }
-            _ => panic!("Rule not implemented yet {:?}", self),
+            QueryExpression::Implementation(system) => {
+                format!("implementation: {}", system.pretty_string())
+            }
+            QueryExpression::Determinism(system) => {
+                format!("determinism: {}", system.pretty_string())
+            }
+            QueryExpression::Specification(system) => {
+                format!("specification: {}", system.pretty_string())
+            }
         }
     }
 }

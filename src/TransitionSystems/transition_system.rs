@@ -1,6 +1,6 @@
 use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
-use crate::parse_queries::{parse_to_system_expr, QueryParser};
+use crate::parse_queries::parse_to_system_expr;
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
@@ -13,7 +13,6 @@ use crate::{
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
-use pest::Parser;
 use std::collections::hash_map::Entry;
 use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
@@ -121,17 +120,6 @@ pub trait TransitionSystem: DynClone {
     fn precheck_sys_rep(&self) -> ConsistencyResult {
         self.check_determinism()?;
         self.check_local_consistency()
-    }
-    fn get_combined_decls(&self) -> Declarations {
-        let mut clocks = HashMap::new();
-        let mut ints = HashMap::new();
-
-        for decl in self.get_decls() {
-            clocks.extend(decl.clocks.clone());
-            ints.extend(decl.ints.clone())
-        }
-
-        Declarations { ints, clocks }
     }
 
     fn check_determinism(&self) -> DeterminismResult;
@@ -264,10 +252,8 @@ pub fn component_loader_to_transition_system(
     loader: &mut dyn ComponentLoader,
     composition: &str,
 ) -> TransitionSystemPtr {
-    unimplemented!();
     let mut dimension = 0;
     let sys_expr = parse_to_system_expr(composition).unwrap();
-    let sys_expr = todo!("Update to use SystemExpr");
     get_system_recipe(&sys_expr, loader, &mut dimension, &mut None)
         .compile(dimension)
         .unwrap()

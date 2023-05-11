@@ -31,6 +31,7 @@ pub struct Component {
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
+    pub special_id: Option<String>,
 }
 
 impl DeclarationProvider for Component {
@@ -41,6 +42,10 @@ impl DeclarationProvider for Component {
 
 #[allow(dead_code)]
 impl Component {
+    pub fn set_special_id(&mut self, id: Option<String>) {
+        self.special_id = id;
+    }
+
     pub fn set_clock_indices(&mut self, indices: &mut ClockIndex) {
         self.declarations.set_clock_indices(*indices);
         *indices += self.declarations.get_clock_count();

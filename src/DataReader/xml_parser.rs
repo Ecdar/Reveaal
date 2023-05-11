@@ -71,6 +71,7 @@ fn parse_xml<R: Read>(
                     .unwrap(),
             ),
             edges,
+            special_id: None,
         };
         xml_components.push(comp);
     }

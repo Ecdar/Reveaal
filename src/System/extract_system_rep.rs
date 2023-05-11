@@ -1,13 +1,13 @@
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::component::Component;
 use crate::ModelObjects::queries::Query;
-use crate::ModelObjects::representations::QueryExpression;
+use crate::ModelObjects::representations::{QueryExpression, SystemExpression, SaveExpression};
 use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::System::extract_state::get_state;
-use std::collections::HashMap;
+use std::collections::{HashMap};
 
 use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -65,14 +65,12 @@ pub fn create_executable_query<'a>(
                 sys1: left.compile_with_index(dim, &mut component_index)?,
                 sys2: right.compile_with_index(dim, &mut component_index)?,
             }))},
-            QueryExpression::Reachability(automata, start, end) => {
-                let machine = get_system_recipe(automata, component_loader, &mut dim, &mut None);
+            QueryExpression::Reachability { system, from, to } => {
+                let machine = get_system_recipe(system, component_loader, &mut dim, &mut None);
                 let transition_system = machine.clone().compile(dim)?;
 
-                validate_reachability_input(&machine, end)?;
                 // Assign the start state to the initial state of the transition system if no start state is given by the query
-                let start_state: State = if let Some(state) = start.as_ref() {
-                    validate_reachability_input(&machine, state)?;
+                let start_state: State = if let Some(state) = from.as_ref() {
                     let state = get_state(state, &machine, &transition_system).map_err(|err| format!("Invalid Start state: {}",err))?;
                     if state.get_location().id.is_partial_location() {
                         return Err("Start state is a partial state, which it must not be".into())
@@ -86,7 +84,7 @@ pub fn create_executable_query<'a>(
                     }
                 };
 
-                let end_state: State = get_state(end, &machine, &transition_system).map_err(|err| format!("Invalid End state: {}",err))?;
+                let end_state: State = get_state(to, &machine, &transition_system).map_err(|err| format!("Invalid End state: {}",err))?;
 
                 Ok(Box::new(ReachabilityExecutor {
                     transition_system,
@@ -128,11 +126,10 @@ pub fn create_executable_query<'a>(
                     system: recipe.compile(dim)?,
                 }))
             },
-            QueryExpression::GetComponent(save_as_expression) => {
-                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
+            QueryExpression::GetComponent(SaveExpression { system, name }) => {
                     let mut quotient_index = None;
                     let mut recipe = get_system_recipe(
-                        query_expression,
+                        system,
                         component_loader,
                         &mut dim,
                         &mut quotient_index,
@@ -145,38 +142,33 @@ pub fn create_executable_query<'a>(
                     Ok(Box::new(
                         GetComponentExecutor {
                             system: recipe.compile(dim)?,
-                            comp_name: comp_name.clone(),
+                            comp_name: name.clone().unwrap_or("Unnamed".to_string()),
                             component_loader,
                         }
                     ))
-                }else{
-                    bail!("Unexpected expression type")
-                }
+                
             }
             ,
-            QueryExpression::Prune(save_as_expression) => {
-                if let QueryExpression::SaveAs(query_expression, comp_name) = save_as_expression.as_ref() {
-                    let mut quotient_index = None;
-                    let mut recipe = get_system_recipe(
-                        query_expression,
-                        component_loader,
-                        &mut dim,
-                        &mut quotient_index,                    );
+            QueryExpression::Prune(SaveExpression { system, name }) => {
+                let mut quotient_index = None;
+                let mut recipe = get_system_recipe(
+                    system,
+                    component_loader,
+                    &mut dim,
+                    &mut quotient_index,                    );
 
-                    if !component_loader.get_settings().disable_clock_reduction {
-                        clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
-                    }
-
-                    Ok(Box::new(
-                        GetComponentExecutor {
-                            system: pruning::prune_system(recipe.compile(dim)?, dim),
-                            comp_name: comp_name.clone(),
-                            component_loader
-                        }
-                    ))
-                }else{
-                    bail!("Unexpected expression type")
+                if !component_loader.get_settings().disable_clock_reduction {
+                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
+
+                Ok(Box::new(
+                    GetComponentExecutor {
+                        system: pruning::prune_system(recipe.compile(dim)?, dim),
+                        comp_name: name.clone().unwrap_or("Unnamed".to_string()),
+                        component_loader
+                    }
+                ))
+                
             }
             ,
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
@@ -196,6 +188,37 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
+    // pub fn check_for_duplicated_names(&self) -> Result<(), String> {
+    //     let mut names = HashSet::new();
+    //     self._check_for_duplicated_names(&mut names)
+    // }
+
+    // pub fn _check_for_duplicated_names(&self, names: &mut HashSet<(String, Option<String>)>) -> Result<(), String> {
+    //     match self {
+    //         SystemRecipe::Composition(left, right) => {
+    //             left._check_for_duplicated_names(names)?;
+    //             right._check_for_duplicated_names(names)
+    //         }
+    //         SystemRecipe::Conjunction(left, right) => {
+    //             left._check_for_duplicated_names(names)?;
+    //             right._check_for_duplicated_names(names)
+    //         }
+    //         SystemRecipe::Quotient(left, right, _) => {
+    //             left._check_for_duplicated_names(names)?;
+    //             right._check_for_duplicated_names(names)
+    //         }
+    //         SystemRecipe::Component(component) => {
+    //             let name = (component.name.clone(), component.special_id.clone());
+    //             if names.contains(&name) {
+    //                 Err(format!("Component name {:?} is duplicated", name))
+    //             } else {
+    //                 names.insert(name);
+    //                 Ok(())
+    //             }
+    //         }
+    //     }
+    // }
+
     pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
         let mut component_index = 0;
         self._compile(dim + 1, &mut component_index)
@@ -254,7 +277,7 @@ impl SystemRecipe {
 
     ///Applies the clock-reduction
     fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
-        let mut comps = self.get_components();
+        let mut comps = self.get_components_mut();
         for redundant in clock_instruction {
             match redundant {
                 ClockReductionInstruction::RemoveClock { clock_index } => comps
@@ -278,7 +301,20 @@ impl SystemRecipe {
     }
 
     /// Gets all components in `SystemRecipe`
-    fn get_components(&mut self) -> Vec<&mut Component> {
+    fn get_components_mut(&mut self) -> Vec<&mut Component> {
+        match self {
+            SystemRecipe::Composition(left, right)
+            | SystemRecipe::Conjunction(left, right)
+            | SystemRecipe::Quotient(left, right, _) => {
+                let mut o = left.get_components_mut();
+                o.extend(right.get_components_mut());
+                o
+            }
+            SystemRecipe::Component(c) => vec![c],
+        }
+    }
+
+    pub fn get_components(&self) -> Vec<&Component> {
         match self {
             SystemRecipe::Composition(left, right)
             | SystemRecipe::Conjunction(left, right)
@@ -290,6 +326,7 @@ impl SystemRecipe {
             SystemRecipe::Component(c) => vec![c],
         }
     }
+
     fn change_quotient(&mut self, index: ClockIndex) {
         match self {
             SystemRecipe::Composition(l, r) | SystemRecipe::Conjunction(l, r) => {
@@ -307,24 +344,21 @@ impl SystemRecipe {
 }
 
 pub fn get_system_recipe(
-    side: &QueryExpression,
+    side: &SystemExpression,
     component_loader: &mut dyn ComponentLoader,
     clock_index: &mut ClockIndex,
     quotient_index: &mut Option<ClockIndex>,
 ) -> Box<SystemRecipe> {
     match side {
-        QueryExpression::Parentheses(expression) => {
-            get_system_recipe(expression, component_loader, clock_index, quotient_index)
-        }
-        QueryExpression::Composition(left, right) => Box::new(SystemRecipe::Composition(
+        SystemExpression::Composition(left, right) => Box::new(SystemRecipe::Composition(
             get_system_recipe(left, component_loader, clock_index, quotient_index),
             get_system_recipe(right, component_loader, clock_index, quotient_index),
         )),
-        QueryExpression::Conjunction(left, right) => Box::new(SystemRecipe::Conjunction(
+        SystemExpression::Conjunction(left, right) => Box::new(SystemRecipe::Conjunction(
             get_system_recipe(left, component_loader, clock_index, quotient_index),
             get_system_recipe(right, component_loader, clock_index, quotient_index),
         )),
-        QueryExpression::Quotient(left, right) => {
+        SystemExpression::Quotient(left, right) => {
             let left = get_system_recipe(left, component_loader, clock_index, quotient_index);
             let right = get_system_recipe(right, component_loader, clock_index, quotient_index);
 
@@ -341,38 +375,15 @@ pub fn get_system_recipe(
 
             Box::new(SystemRecipe::Quotient(left, right, q_index))
         }
-        QueryExpression::VarName(name) => {
+        SystemExpression::Component(name, id) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
+            component.set_special_id(id.clone());
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
         }
-        QueryExpression::SaveAs(comp, _) => {
-            get_system_recipe(comp, component_loader, clock_index, &mut None)
-        }
-        _ => panic!("Got unexpected query side: {:?}", side),
     }
-}
-
-fn validate_reachability_input(
-    machine: &SystemRecipe,
-    state: &QueryExpression,
-) -> Result<(), String> {
-    if let QueryExpression::State(loc_names, _) = state {
-        if loc_names.len() != machine.count_component() {
-            return Err(
-                "The number of automata does not match the number of locations".to_string(),
-            );
-        }
-    } else {
-        return Err(format!(
-            "Expected QueryExpression::State but got {:?}",
-            state
-        ));
-    }
-
-    Ok(())
 }
 
 /// Module containing a "safer" function for clock reduction, along with some helper functions
@@ -404,7 +415,7 @@ pub(crate) mod clock_reduction {
             lhs.clone().compile(*dim)?.find_redundant_clocks(),
             rhs.clone().compile(*dim)?.find_redundant_clocks(),
             quotient_clock,
-            lhs.get_components()
+            lhs.get_components_mut()
                 .iter()
                 .flat_map(|c| c.declarations.clocks.values().cloned())
                 .max()
@@ -420,7 +431,7 @@ pub(crate) mod clock_reduction {
 
         rhs.reduce_clocks(r_clocks);
         lhs.reduce_clocks(l_clocks);
-        compress_component_decls(lhs.get_components(), Some(rhs.get_components()));
+        compress_component_decls(lhs.get_components_mut(), Some(rhs.get_components_mut()));
         if quotient_clock.is_some() {
             lhs.change_quotient(*dim);
             rhs.change_quotient(*dim);
@@ -450,7 +461,7 @@ pub(crate) mod clock_reduction {
             .fold(0, |acc, c| acc + c.clocks_removed_count());
         debug!("New dimension: {dim}");
         sys.reduce_clocks(clocks);
-        compress_component_decls(sys.get_components(), None);
+        compress_component_decls(sys.get_components_mut(), None);
         if quotient_clock.is_some() {
             sys.change_quotient(*dim);
         }
