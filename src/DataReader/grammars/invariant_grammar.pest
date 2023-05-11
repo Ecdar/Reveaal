@@ -23,6 +23,6 @@ string = ${ "\"" ~ inner ~ "\"" }
 inner = @{ char* }
 char = {!("\"") ~ ANY}
 
-operator = { ">=" | "<=" | "<" | ">" }
+operator = { ">=" | "<=" | "==" | "<" | ">" }
 
 WHITESPACE = _{ " " | "\n" | "\r\n" | "\t"}

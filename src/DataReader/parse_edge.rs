@@ -23,14 +23,13 @@ pub enum EdgeAttribute {
     Guard(BoolExpression),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, std::cmp::PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Update {
     pub variable: String,
     #[serde(serialize_with = "encode_boolexpr")]
     pub expression: BoolExpression,
 }
 
-#[allow(dead_code)]
 impl Update {
     pub fn get_expression(&self) -> &BoolExpression {
         &self.expression
@@ -64,7 +63,7 @@ impl Update {
     }
 }
 
-pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Error<Rule>> {
+pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<Error<Rule>>> {
     let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)
         .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
     let pair = pairs.next().unwrap();

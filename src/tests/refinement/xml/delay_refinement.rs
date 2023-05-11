@@ -2,8 +2,8 @@
 mod test {
     use crate::tests::refinement::Helper::xml_refinement_check;
 
-    static PATH: &str = "samples/xml/delayRefinement.xml";
-    static PATH_2: &str = "samples/xml/loop.xml";
+    const PATH: &str = "samples/xml/delayRefinement.xml";
+    const PATH_2: &str = "samples/xml/loop.xml";
 
     // Self Refinements
     #[test]

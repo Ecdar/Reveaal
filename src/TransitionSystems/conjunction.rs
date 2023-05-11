@@ -2,8 +2,9 @@ use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::component::Transition;
 use crate::System::local_consistency;
+use crate::System::query_failures::{ActionFailure, ConsistencyResult, SystemRecipeFailure};
 use crate::TransitionSystems::{
-    CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr,
+    CompositionType, LocationTree, TransitionSystem, TransitionSystemPtr,
 };
 use std::collections::hash_set::HashSet;
 
@@ -19,20 +20,31 @@ pub struct Conjunction {
 }
 
 impl Conjunction {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(
+    /// Creates a new [TransitionSystem] that is the conjunction of `left` and `right`.
+    pub fn new_ts(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, String> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
 
         let right_in = right.get_input_actions();
         let right_out = right.get_output_actions();
 
-        if !(left_in.is_disjoint(&right_out) && left_out.is_disjoint(&right_in)) {
-            return Err("Invalid conjunction, outputs and inputs are not disjoint".to_string());
+        if !left_in.is_disjoint(&right_out) {
+            return ActionFailure::not_disjoint(
+                (left.as_ref(), left_in),
+                (right.as_ref(), right_out),
+            )
+            .map_err(|e| e.to_rfconj(left, right));
+        }
+        if !left_out.is_disjoint(&right_in) {
+            return ActionFailure::not_disjoint(
+                (left.as_ref(), left_out),
+                (right.as_ref(), right_in),
+            )
+            .map_err(|e| e.to_rfconj(left, right));
         }
 
         let outputs = left
@@ -54,15 +66,14 @@ impl Conjunction {
             outputs,
             dim,
         });
-        if !local_consistency::is_least_consistent(ts.as_ref()) {
-            return Err("Conjunction is empty after pruning".to_string());
-        }
+        local_consistency::is_least_consistent(ts.as_ref())
+            .map_err(|e| e.to_recipe_failure(ts.as_ref()))?;
         Ok(ts)
     }
 }
 
 impl ComposedTransitionSystem for Conjunction {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();
@@ -74,12 +85,16 @@ impl ComposedTransitionSystem for Conjunction {
         Transition::combinations(&left, &right, CompositionType::Conjunction)
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        true // By definition from the Conjunction::new()
+    fn check_local_consistency(&self) -> ConsistencyResult {
+        Ok(()) // By definition from the Conjunction::new()
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
+    }
+
+    fn get_children_mut(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
+        (&mut self.left, &mut self.right)
     }
 
     fn get_composition_type(&self) -> CompositionType {

@@ -1,16 +1,19 @@
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
-use log::{debug, warn};
+use log::debug;
 
 use crate::EdgeEval::updater::CompiledUpdate;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{Location, LocationType, State, Transition};
+use crate::ModelObjects::component::{State, Transition};
+use crate::System::query_failures::{
+    ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
+};
+use crate::System::specifics::{SpecialLocation, SpecificLocation};
 use edbm::util::bounds::Bounds;
 
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
-
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionID, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
+use std::vec;
 
 use super::CompositionType;
 
@@ -20,8 +23,8 @@ pub struct Quotient {
     S: TransitionSystemPtr,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-    universal_location: Location,
-    inconsistent_location: Location,
+    universal_location: LocationTree,
+    inconsistent_location: LocationTree,
     decls: Declarations,
     quotient_clock_index: ClockIndex,
     new_input_name: String,
@@ -29,49 +32,24 @@ pub struct Quotient {
     dim: ClockIndex,
 }
 
-static INCONSISTENT_LOC_NAME: &str = "Inconsistent";
-static UNIVERSAL_LOC_NAME: &str = "Universal";
 impl Quotient {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(
+    /// Create a new [TransitionSystem] that is the quotient of `T` and `S`.
+    pub fn new_ts(
         T: TransitionSystemPtr,
         S: TransitionSystemPtr,
         new_clock_index: ClockIndex,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, String> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
-            return Err(format!(
-                "s_out and t_in not disjoint in quotient! s_out: {:?} t_in {:?}",
-                S.get_output_actions(),
-                T.get_input_actions()
-            ));
+            ActionFailure::not_disjoint(
+                (S.as_ref(), S.get_output_actions()),
+                (T.as_ref(), T.get_input_actions()),
+            )
+            .map_err(|e| e.to_rfq(&T, &S))?;
         }
 
-        if !T.precheck_sys_rep() {
-            return Err("T (left) must be least consistent for quotient".to_string());
-        }
-
-        if !S.precheck_sys_rep() {
-            return Err("S (right) must be least consistent for quotient".to_string());
-        }
-
-        let universal_location = Location {
-            id: UNIVERSAL_LOC_NAME.to_string(),
-            invariant: None,
-            location_type: LocationType::Universal,
-            urgency: "".to_string(),
-        };
-
-        let inconsistent_location = Location {
-            id: INCONSISTENT_LOC_NAME.to_string(),
-            // xnew <= 0
-            invariant: Some(BoolExpression::LessEQ(
-                Box::new(ArithExpression::VarName("quotient_xnew".to_string())),
-                Box::new(ArithExpression::Int(0)),
-            )),
-            location_type: LocationType::Inconsistent,
-            urgency: "".to_string(),
-        };
+        T.precheck_sys_rep().map_err(|e| e.to_rfq(&T, &S))?;
+        S.precheck_sys_rep().map_err(|e| e.to_rfq(&T, &S))?;
 
         let mut inputs: HashSet<String> = T
             .get_input_actions()
@@ -124,8 +102,8 @@ impl Quotient {
             S,
             inputs,
             outputs,
-            universal_location,
-            inconsistent_location,
+            universal_location: LocationTree::universal(),
+            inconsistent_location: LocationTree::error(dim, new_clock_index),
             decls,
             quotient_clock_index: new_clock_index,
             new_input_name,
@@ -136,7 +114,7 @@ impl Quotient {
 }
 
 impl TransitionSystem for Quotient {
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
             let mut b = Bounds::new(self.get_dim());
             b.add_upper(self.quotient_clock_index, 0);
@@ -153,14 +131,17 @@ impl TransitionSystem for Quotient {
         }
     }
 
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn get_dim(&self) -> ClockIndex {
+        self.dim
+    }
+
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
         let is_input = self.inputs_contain(action);
 
         let mut transitions = vec![];
 
         //Rules [universal] and [inconsistent]
-
         if location.is_inconsistent() {
             //Rule 10
             if is_input {
@@ -184,11 +165,6 @@ impl TransitionSystem for Quotient {
         let t = self.T.next_transitions_if_available(loc_t, action);
         let s = self.S.next_transitions_if_available(loc_s, action);
 
-        let inconsistent_location =
-            LocationTuple::simple(&self.inconsistent_location, &self.decls, self.dim);
-        let universal_location =
-            LocationTuple::simple(&self.universal_location, &self.decls, self.dim);
-
         //Rule 1
         if self.S.actions_contain(action) && self.T.actions_contain(action) {
             for t_transition in &t {
@@ -208,6 +184,10 @@ impl TransitionSystem for Quotient {
                     updates.append(&mut s_transition.updates.clone());
 
                     transitions.push(Transition {
+                        id: TransitionID::Quotient(
+                            vec![t_transition.id.clone()],
+                            vec![s_transition.id.clone()],
+                        ),
                         guard_zone,
                         target_locations,
                         updates,
@@ -225,6 +205,7 @@ impl TransitionSystem for Quotient {
                 let target_locations = merge(loc_t, &s_transition.target_locations);
                 let updates = s_transition.updates.clone();
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(Vec::new(), vec![s_transition.id.clone()]),
                     guard_zone,
                     target_locations,
                     updates,
@@ -245,8 +226,9 @@ impl TransitionSystem for Quotient {
             let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
+                id: TransitionID::Quotient(Vec::new(), s.iter().map(|t| t.id.clone()).collect()),
                 guard_zone: (!inv_l_s) + (!g_s),
-                target_locations: universal_location,
+                target_locations: self.universal_location.clone(),
                 updates: vec![],
             });
         } else {
@@ -254,8 +236,9 @@ impl TransitionSystem for Quotient {
             let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
 
             transitions.push(Transition {
+                id: TransitionID::None,
                 guard_zone: !inv_l_s,
-                target_locations: universal_location,
+                target_locations: self.universal_location.clone(),
                 updates: vec![],
             });
         }
@@ -282,8 +265,12 @@ impl TransitionSystem for Quotient {
                 }];
 
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(
+                        t.iter().map(|t| t.id.clone()).collect(),
+                        vec![s_transition.id.clone()],
+                    ),
                     guard_zone,
-                    target_locations: inconsistent_location.clone(),
+                    target_locations: self.inconsistent_location.clone(),
                     updates,
                 })
             }
@@ -301,8 +288,9 @@ impl TransitionSystem for Quotient {
             }];
 
             transitions.push(Transition {
+                id: TransitionID::None,
                 guard_zone,
-                target_locations: inconsistent_location,
+                target_locations: self.inconsistent_location.clone(),
                 updates,
             })
         }
@@ -317,6 +305,7 @@ impl TransitionSystem for Quotient {
                 let updates = t_transition.updates.clone();
 
                 transitions.push(Transition {
+                    id: TransitionID::Quotient(vec![t_transition.id.clone()], Vec::new()),
                     guard_zone,
                     target_locations,
                     updates,
@@ -329,28 +318,6 @@ impl TransitionSystem for Quotient {
             .filter(|e| !e.guard_zone.is_empty())
             .collect()
     }
-
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
-        let mut location_tuples = vec![];
-
-        let left = self.T.get_all_locations();
-        let right = self.S.get_all_locations();
-        for loc_t in &left {
-            for loc_s in &right {
-                let location = merge(loc_t, loc_s);
-                location_tuples.push(location);
-            }
-        }
-
-        let inconsistent =
-            LocationTuple::simple(&self.inconsistent_location, &self.decls, self.dim);
-        let universal = LocationTuple::simple(&self.universal_location, &self.decls, self.dim);
-
-        location_tuples.push(inconsistent);
-        location_tuples.push(universal);
-
-        location_tuples
-    }
     fn get_input_actions(&self) -> HashSet<String> {
         self.inputs.clone()
     }
@@ -360,12 +327,30 @@ impl TransitionSystem for Quotient {
     fn get_actions(&self) -> HashSet<String> {
         self.inputs.union(&self.outputs).cloned().collect()
     }
-    fn get_initial_location(&self) -> Option<LocationTuple> {
+    fn get_initial_location(&self) -> Option<LocationTree> {
         let (t, s) = self.get_children();
         Some(merge(
             &t.get_initial_location()?,
             &s.get_initial_location()?,
         ))
+    }
+
+    fn get_all_locations(&self) -> Vec<LocationTree> {
+        let mut location_trees = vec![];
+
+        let left = self.T.get_all_locations();
+        let right = self.S.get_all_locations();
+        for loc_t in &left {
+            for loc_s in &right {
+                let location = merge(loc_t, loc_s);
+                location_trees.push(location);
+            }
+        }
+
+        location_trees.push(self.inconsistent_location.clone());
+        location_trees.push(self.universal_location.clone());
+
+        location_trees
     }
 
     fn get_decls(&self) -> Vec<&Declarations> {
@@ -375,26 +360,14 @@ impl TransitionSystem for Quotient {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> bool {
-        if !self.is_deterministic() {
-            warn!("Not deterministic");
-            return false;
-        }
-
-        if !self.is_locally_consistent() {
-            warn!("Not consistent");
-            return false;
-        }
-
-        true
+    fn check_determinism(&self) -> DeterminismResult {
+        self.T.check_determinism()?;
+        self.S.check_determinism()
     }
 
-    fn is_deterministic(&self) -> bool {
-        self.T.is_deterministic() && self.S.is_deterministic()
-    }
-
-    fn is_locally_consistent(&self) -> bool {
-        self.T.is_locally_consistent() && self.S.is_locally_consistent()
+    fn check_local_consistency(&self) -> ConsistencyResult {
+        self.S.check_local_consistency()?;
+        self.T.check_local_consistency()
     }
 
     fn get_initial_state(&self) -> Option<State> {
@@ -411,21 +384,34 @@ impl TransitionSystem for Quotient {
         CompositionType::Quotient
     }
 
-    fn get_dim(&self) -> ClockIndex {
-        self.dim
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
+        match target {
+            SpecificLocation::BranchLocation(left, right, _) => {
+                let left = self.T.construct_location_tree(*left)?;
+                let right = self.S.construct_location_tree(*right)?;
+                Ok(merge(&left, &right))
+            }
+            SpecificLocation::SpecialLocation(SpecialLocation::Universal) => {
+                Ok(self.universal_location.clone())
+            }
+            SpecificLocation::SpecialLocation(SpecialLocation::Error) => {
+                Ok(self.inconsistent_location.clone())
+            }
+            SpecificLocation::ComponentLocation { .. } => unreachable!("Should not occur"),
+        }
     }
 }
 
-fn merge(t: &LocationTuple, s: &LocationTuple) -> LocationTuple {
-    LocationTuple::merge_as_quotient(t, s)
+fn merge(t: &LocationTree, s: &LocationTree) -> LocationTree {
+    LocationTree::merge_as_quotient(t, s)
 }
 
-fn get_allowed_fed(from: &LocationTuple, transition: &Transition) -> OwnedFederation {
+fn get_allowed_fed(from: &LocationTree, transition: &Transition) -> OwnedFederation {
     let fed = transition.get_allowed_federation();
     from.apply_invariants(fed)
 }
 
-fn get_invariant(loc: &LocationTuple, dim: ClockIndex) -> OwnedFederation {
+fn get_invariant(loc: &LocationTree, dim: ClockIndex) -> OwnedFederation {
     match loc.get_invariants() {
         Some(inv) => inv.clone(),
         None => OwnedFederation::universe(dim),

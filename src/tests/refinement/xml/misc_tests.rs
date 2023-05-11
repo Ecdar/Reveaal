@@ -2,7 +2,7 @@
 mod test {
     use crate::tests::refinement::Helper::xml_refinement_check;
 
-    static PATH: &str = "samples/xml/misc_test.xml";
+    const PATH: &str = "samples/xml/misc_test.xml";
 
     #[test]
     fn GuardParanRefinesSelf() {
