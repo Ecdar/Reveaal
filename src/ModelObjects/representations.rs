@@ -1324,7 +1324,7 @@ impl SaveExpression {
     pub fn pretty_string(&self) -> String {
         match &self.name {
             Some(name) => format!("{} save-as {}", name, self.system.pretty_string()),
-            None => format!("{}", self.system.pretty_string()),
+            None => self.system.pretty_string(),
         }
     }
 }
@@ -1442,7 +1442,7 @@ impl StateExpression {
                     BoolExpression::OrOp(Box::new(acc), Box::new(e))
                 }))
             }
-            StateExpression::NOT(expr) => {
+            StateExpression::NOT(_expr) => {
                 unimplemented!("NOT expressions are not supported yet")
             }
             StateExpression::Location(_) => {
@@ -1477,7 +1477,7 @@ impl StateExpression {
                     }
                     s.push_str(&expr.pretty_string());
                 }
-                s.push_str(")");
+                s.push(')');
                 s
             }
             StateExpression::OR(exprs) => {
@@ -1488,7 +1488,7 @@ impl StateExpression {
                     }
                     s.push_str(&expr.pretty_string());
                 }
-                s.push_str(")");
+                s.push(')');
                 s
             }
             StateExpression::Location(ComponentVariable {

@@ -1,11 +1,9 @@
 #[cfg(test)]
 mod reachability_parser_clock_variable_validation {
-    use std::iter::once;
 
     use crate::{
         tests::reachability::helper_functions::reachability_test_helper_functions,
-        ModelObjects::representations::{QueryExpression, StateExpression, SystemExpression},
-        System,
+        ModelObjects::representations::SystemExpression, System,
     };
     use test_case::test_case;
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";

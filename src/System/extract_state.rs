@@ -86,11 +86,11 @@ fn get_locations(expr: &StateExpression) -> Result<Vec<ComponentVariable>, Strin
         }
         StateExpression::Location(loc) => Ok(vec![loc.clone()]),
         StateExpression::NOT(expr) => {
-            if get_locations(expr)?.len() > 0 {
-                return Err(format!(
+            if !get_locations(expr)?.is_empty() {
+                Err(format!(
                     "We do not support negations of locations: {:?}",
                     expr
-                ));
+                ))
             } else {
                 Ok(Vec::new())
             }
@@ -105,7 +105,7 @@ fn create_zone_given_constraints(
 ) -> Result<OwnedFederation, String> {
     let fed = OwnedFederation::universe(system.get_dim());
     let unused_decl = Declarations::empty();
-    apply_constraints_to_state(&constraints, &unused_decl, fed)
+    apply_constraints_to_state(constraints, &unused_decl, fed)
 }
 
 fn build_location_tree(
