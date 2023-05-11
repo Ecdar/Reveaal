@@ -4,7 +4,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 
 use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
 
-use crate::{DataReader::serialization::encode_boolexpr, ModelObjects::component::Declarations};
+use crate::{DataReader::serialization::encode_arithexpr, ModelObjects::component::Declarations};
 use edbm::util::constraints::ClockIndex;
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;
@@ -36,12 +36,12 @@ pub enum EdgeAttribute {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Update {
     pub variable: String,
-    #[serde(serialize_with = "encode_boolexpr")]
-    pub expression: BoolExpression,
+    #[serde(serialize_with = "encode_arithexpr")]
+    pub expression: ArithExpression,
 }
 
 impl Update {
-    pub fn get_expression(&self) -> &BoolExpression {
+    pub fn get_expression(&self) -> &ArithExpression {
         &self.expression
     }
 
@@ -118,8 +118,9 @@ pub fn parse_updates(input: &str) -> Result<Vec<Update>, String> {
 fn parse_update(pair: pest::iterators::Pair<Rule>) -> Update {
     let mut inner_pairs = pair.into_inner();
     let variable = inner_pairs.next().unwrap().as_str().to_string();
-    let expression = parse_arith_expr(inner_pairs.next().unwrap());
-    let expression = BoolExpression::Arithmetic(Box::new(expression));
+    let expression = parse_arith_expr(inner_pairs.next().unwrap())
+        .simplify()
+        .expect("Error simplifying update");
 
     Update {
         variable,
