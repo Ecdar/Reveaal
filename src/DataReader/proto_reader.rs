@@ -36,13 +36,21 @@ pub fn proto_decision_to_decision(
     proto_decision: ProtoDecision,
     system: &TransitionSystemPtr,
 ) -> Decision {
-    let proto_state: ProtoState = proto_decision.source.unwrap();
+    let proto_state: ProtoState = proto_decision
+        .source
+        .expect("A decision must have a source state.");
     let state = proto_state_to_state(proto_state, system);
 
-    let next_proto_state = proto_decision.destination.unwrap();
+    let next_proto_state = proto_decision
+        .destination
+        .expect("A decision must have a destination state.");
     let next_state = proto_state_to_state(next_proto_state, system);
 
     let action = proto_decision.action;
+    assert!(
+        !action.is_empty(),
+        "A decision must have an action specified."
+    );
 
     Decision {
         state,

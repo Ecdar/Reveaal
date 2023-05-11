@@ -16,13 +16,12 @@ use std::collections::{HashMap, HashSet};
 use super::save_component::PruningStrategy;
 
 pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSystemPtr {
+    ts.precheck_sys_rep()
+        .expect("Cannot prune transitions system which is not least consistent");
+
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
     let comp = combine_components(&ts, PruningStrategy::NoPruning);
-
-    if ts.precheck_sys_rep().is_err() {
-        panic!("Trying to prune transitions system which is not least consistent")
-    }
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
@@ -147,10 +146,8 @@ pub fn prune(
         new_comp.get_edges().len()
     );
 
-    match CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0) {
-        Ok(comp) => Ok(comp),
-        Err(e) => Err(format!("Pruning failed: {}", e)),
-    }
+    CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0)
+        .map_err(|e| format!("Pruning failed: {}", e))
 }
 
 fn add_inconsistent_parts_to_invariants(

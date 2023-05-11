@@ -16,7 +16,7 @@ use futures::StreamExt;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 
-static PATH: &str = "samples/json/EcdarUniversity";
+const PATH: &str = "samples/json/EcdarUniversity";
 
 const NUM_OF_REQUESTS: u32 = 512;
 

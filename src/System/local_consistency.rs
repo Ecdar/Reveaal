@@ -9,9 +9,7 @@ use super::query_failures::{ConsistencyResult, DeterminismResult};
 
 ///Local consistency check WITH pruning.
 pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
-    if system.get_initial_location().is_none() {
-        ConsistencyFailure::no_initial_state(system)
-    } else if let Some(mut state) = system.get_initial_state() {
+    if let Some(mut state) = system.get_initial_state() {
         let mut passed = vec![];
         state.extrapolate_max_bounds(system);
         consistency_least_helper(state, &mut passed, system)
@@ -23,9 +21,6 @@ pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
 
 ///Checks if a [TransitionSystem] is deterministic.
 pub fn check_determinism(system: &dyn TransitionSystem) -> DeterminismResult {
-    if system.get_initial_location().is_none() {
-        return Ok(());
-    }
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
@@ -73,12 +68,7 @@ fn is_deterministic_helper(
 }
 
 /// Local consistency check WITHOUT pruning
-#[allow(dead_code)]
 pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
-    if system.get_initial_location().is_none() {
-        return ConsistencyFailure::no_initial_state(system);
-    }
-
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
@@ -135,7 +125,6 @@ pub fn consistency_least_helper(
     ConsistencyFailure::inconsistent_from(system, &state)
 }
 
-#[allow(dead_code)]
 fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,
