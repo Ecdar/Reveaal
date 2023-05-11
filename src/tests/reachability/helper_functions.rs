@@ -22,9 +22,9 @@ pub mod reachability_test_helper_functions {
         folder_path: &str,
     ) -> (Box<SystemRecipe>, Box<dyn TransitionSystem>) {
         let mut comp_loader = if xml_parser::is_xml_project(folder_path) {
-            XmlProjectLoader::new(folder_path.to_string(), crate::tests::TEST_SETTINGS)
+            XmlProjectLoader::new_loader(folder_path.to_string(), crate::tests::TEST_SETTINGS)
         } else {
-            JsonProjectLoader::new(folder_path.to_string(), crate::tests::TEST_SETTINGS)
+            JsonProjectLoader::new_loader(folder_path.to_string(), crate::tests::TEST_SETTINGS)
         }
         .to_comp_loader();
         let mut dim: ClockIndex = 0;

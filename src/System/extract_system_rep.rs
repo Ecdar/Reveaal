@@ -27,9 +27,9 @@ pub enum ExecutableQueryError {
     Custom(String),
 }
 
-impl From<SystemRecipeFailure> for ExecutableQueryError {
-    fn from(failure: SystemRecipeFailure) -> Self {
-        ExecutableQueryError::SystemRecipeFailure(failure)
+impl From<Box<SystemRecipeFailure>> for ExecutableQueryError {
+    fn from(failure: Box<SystemRecipeFailure>) -> Self {
+        ExecutableQueryError::SystemRecipeFailure(*failure)
     }
 }
 
@@ -188,38 +188,7 @@ pub enum SystemRecipe {
 }
 
 impl SystemRecipe {
-    // pub fn check_for_duplicated_names(&self) -> Result<(), String> {
-    //     let mut names = HashSet::new();
-    //     self._check_for_duplicated_names(&mut names)
-    // }
-
-    // pub fn _check_for_duplicated_names(&self, names: &mut HashSet<(String, Option<String>)>) -> Result<(), String> {
-    //     match self {
-    //         SystemRecipe::Composition(left, right) => {
-    //             left._check_for_duplicated_names(names)?;
-    //             right._check_for_duplicated_names(names)
-    //         }
-    //         SystemRecipe::Conjunction(left, right) => {
-    //             left._check_for_duplicated_names(names)?;
-    //             right._check_for_duplicated_names(names)
-    //         }
-    //         SystemRecipe::Quotient(left, right, _) => {
-    //             left._check_for_duplicated_names(names)?;
-    //             right._check_for_duplicated_names(names)
-    //         }
-    //         SystemRecipe::Component(component) => {
-    //             let name = (component.name.clone(), component.special_id.clone());
-    //             if names.contains(&name) {
-    //                 Err(format!("Component name {:?} is duplicated", name))
-    //             } else {
-    //                 names.insert(name);
-    //                 Ok(())
-    //             }
-    //         }
-    //     }
-    // }
-
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let mut component_index = 0;
         self._compile(dim + 1, &mut component_index)
     }
@@ -228,7 +197,7 @@ impl SystemRecipe {
         self,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         self._compile(dim + 1, component_index)
     }
 
@@ -236,40 +205,38 @@ impl SystemRecipe {
         self,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         match self {
-            SystemRecipe::Composition(left, right) => Composition::new(
+            SystemRecipe::Composition(left, right) => Composition::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 dim,
             ),
-            SystemRecipe::Conjunction(left, right) => Conjunction::new(
+            SystemRecipe::Conjunction(left, right) => Conjunction::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 dim,
             ),
-            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new(
+            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new_ts(
                 left._compile(dim, component_index)?,
                 right._compile(dim, component_index)?,
                 clock_index,
                 dim,
             ),
             SystemRecipe::Component(comp) => {
-                match CompiledComponent::compile(*comp, dim, component_index) {
-                    Ok(comp) => Ok(comp),
-                    Err(err) => Err(err),
-                }
+                CompiledComponent::compile(*comp, dim, component_index)
+                    .map(|comp| comp as TransitionSystemPtr)
             }
         }
     }
 
-    /// Gets the count `Components`s in the `SystemRecipe`
-    pub fn count_component(&self) -> usize {
+    /// Gets the number of `Components`s in the `SystemRecipe`
+    pub fn get_component_count(&self) -> usize {
         match self {
             SystemRecipe::Composition(left, right)
             | SystemRecipe::Conjunction(left, right)
             | SystemRecipe::Quotient(left, right, _) => {
-                left.count_component() + right.count_component()
+                left.get_component_count() + right.get_component_count()
             }
             SystemRecipe::Component(_) => 1,
         }
@@ -403,7 +370,7 @@ pub(crate) mod clock_reduction {
         rhs: Option<&mut Box<SystemRecipe>>,
         dim: &mut usize,
         quotient_clock: Option<ClockIndex>,
-    ) -> Result<(), SystemRecipeFailure> {
+    ) -> Result<(), Box<SystemRecipeFailure>> {
         if *dim == 0 {
             return Ok(());
         } else if rhs.is_none() {
@@ -452,7 +419,7 @@ pub(crate) mod clock_reduction {
         sys: &mut Box<SystemRecipe>,
         dim: &mut usize,
         quotient_clock: Option<ClockIndex>,
-    ) -> Result<(), SystemRecipeFailure> {
+    ) -> Result<(), Box<SystemRecipeFailure>> {
         let mut clocks = sys.clone().compile(*dim)?.find_redundant_clocks();
         clocks.retain(|ins| ins.get_clock_index() != quotient_clock.unwrap_or_default());
         debug!("Clocks to be reduced: {clocks:?}");

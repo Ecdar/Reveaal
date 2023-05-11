@@ -3,7 +3,7 @@ use reveaal::tests::refinement::Helper::json_run_query;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 
-static PATH: &str = "samples/json/EcdarUniversity";
+const PATH: &str = "samples/json/EcdarUniversity";
 
 fn bench_reachability(c: &mut Criterion, query: &str) {
     c.bench_function(query, |b| b.iter(|| json_run_query(PATH, query)));

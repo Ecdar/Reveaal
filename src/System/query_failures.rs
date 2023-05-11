@@ -25,13 +25,13 @@ pub enum SystemType {
 
 impl SystemType {
     /// Returns the string representation of the operator for this composition type
-    pub fn op(&self) -> String {
+    pub fn operator(&self) -> String {
         match self {
             Self::Quotient => r"\\",
             Self::Refinement => "<=",
             Self::Composition => "||",
             Self::Conjunction => "&&",
-            Self::Simple => panic!("Simple composition type should not be displayed"),
+            Self::Simple => unreachable!(),
         }
         .to_string()
     }
@@ -71,7 +71,7 @@ impl System {
         }
     }
     /// Creates a new system from two [TransitionSystem]s, `sys1` and `sys2`, and the type of the composition `sys_type`
-    pub fn from2(
+    pub fn from_composite_system(
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
         sys_type: SystemType,
@@ -80,7 +80,7 @@ impl System {
             name: format!(
                 "{} {} {}",
                 sys1.to_string(),
-                sys_type.op(),
+                sys_type.operator(),
                 sys2.to_string()
             ),
             sys_type,
@@ -101,22 +101,13 @@ pub struct ActionSet {
 
 impl fmt::Display for ActionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let singular = false; //self.actions.len() == 1;
         let action_type = if self.is_input { "Input" } else { "Output" };
 
-        if singular {
-            write!(
-                f,
-                "{} {:?} in system '{}'",
-                action_type, self.actions, self.system
-            )
-        } else {
-            write!(
-                f,
-                "{}s {:?} in system '{}'",
-                action_type, self.actions, self.system
-            )
-        }
+        write!(
+            f,
+            "{} set {:?} in system '{}'",
+            action_type, self.actions, self.system
+        )
     }
 }
 
@@ -169,7 +160,6 @@ pub enum QueryResult {
 pub type PathResult = Result<SpecificPath, PathFailure>;
 
 //TODO: add refinement Ok result
-#[allow(clippy::result_large_err)]
 pub type RefinementResult = Result<(), RefinementFailure>;
 
 pub type ConsistencyResult = Result<(), ConsistencyFailure>;
@@ -184,7 +174,6 @@ pub enum PathFailure {
 }
 
 /// Represents the different ways that a refinement query can fail
-#[allow(clippy::result_large_err)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RefinementFailure {
     /// The refinement failed for `system` because the right side cannot match left sides delay after taking `action` from `state`.
@@ -287,20 +276,19 @@ pub enum ActionFailure {
     /// The actions in the first [ActionSet] are not disjoint from the actions in the second [ActionSet].
     NotDisjoint(ActionSet, ActionSet),
 }
-#[allow(clippy::result_large_err)]
 impl ActionFailure {
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a disjoint from the actions in `actions2` from `sys2`.
     pub fn not_disjoint<T>(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
-    ) -> Result<T, ActionFailure> {
+    ) -> Result<T, Box<ActionFailure>> {
         let is_input1 = sys1.get_input_actions() == actions1;
         let is_input2 = sys2.get_input_actions() == actions2;
 
         debug_assert!(is_input1 || sys1.get_output_actions() == actions1);
         debug_assert!(is_input2 || sys2.get_output_actions() == actions2);
 
-        Err(ActionFailure::NotDisjoint(
+        Err(Box::new(ActionFailure::NotDisjoint(
             ActionSet {
                 system: sys1.to_string(),
                 actions: actions1,
@@ -311,7 +299,7 @@ impl ActionFailure {
                 actions: actions2,
                 is_input: is_input2,
             },
-        ))
+        )))
     }
 
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `inputs` are not a disjoint from the actions in `outputs`.
@@ -319,9 +307,9 @@ impl ActionFailure {
         name: impl Into<String>,
         inputs: HashSet<String>,
         outputs: HashSet<String>,
-    ) -> Result<(), ActionFailure> {
+    ) -> Result<(), Box<ActionFailure>> {
         let system = name.into();
-        Err(ActionFailure::NotDisjoint(
+        Err(Box::new(ActionFailure::NotDisjoint(
             ActionSet {
                 system: system.clone(),
                 actions: inputs,
@@ -332,21 +320,21 @@ impl ActionFailure {
                 actions: outputs,
                 is_input: false,
             },
-        ))
+        )))
     }
 
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `actions1` from `sys1` are not a subset of the actions in `actions2` from `sys2`.
     pub fn not_subset(
         (sys1, actions1): (&dyn TransitionSystem, HashSet<String>),
         (sys2, actions2): (&dyn TransitionSystem, HashSet<String>),
-    ) -> Result<(), ActionFailure> {
+    ) -> Result<(), Box<ActionFailure>> {
         let is_input1 = sys1.get_input_actions() == actions1;
         let is_input2 = sys2.get_input_actions() == actions2;
 
         debug_assert!(is_input1 || sys1.get_output_actions() == actions1);
         debug_assert!(is_input2 || sys2.get_output_actions() == actions2);
 
-        Err(ActionFailure::NotSubset(
+        Err(Box::new(ActionFailure::NotSubset(
             ActionSet {
                 system: sys1.to_string(),
                 actions: actions1,
@@ -357,7 +345,7 @@ impl ActionFailure {
                 actions: actions2,
                 is_input: is_input2,
             },
-        ))
+        )))
     }
 
     /// Converts this [ActionFailure] into a [RefinementPrecondition] given the two [TransitionSystem]s that failed.
@@ -365,8 +353,11 @@ impl ActionFailure {
         self,
         sys1: &dyn TransitionSystem,
         sys2: &dyn TransitionSystem,
-    ) -> RefinementPrecondition {
-        RefinementPrecondition::ActionMismatch(self, System::refinement(sys1, sys2))
+    ) -> Box<RefinementPrecondition> {
+        Box::new(RefinementPrecondition::ActionMismatch(
+            self,
+            System::refinement(sys1, sys2),
+        ))
     }
 
     /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
@@ -389,7 +380,7 @@ impl ActionFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
-            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
+            System::from_composite_system(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 
@@ -398,11 +389,11 @@ impl ActionFailure {
         self,
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-    ) -> SystemRecipeFailure {
-        SystemRecipeFailure::Action(
+    ) -> Box<SystemRecipeFailure> {
+        Box::new(SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), SystemType::Composition),
-        )
+            System::from_composite_system(left.as_ref(), right.as_ref(), SystemType::Composition),
+        ))
     }
 
     /// Converts this [ActionFailure] that occured during the construction of a [Conjunction](crate::TransitionSystems::Conjunction) into a [SystemRecipeFailure] given the two [TransitionSystem]s that failed.
@@ -410,11 +401,11 @@ impl ActionFailure {
         self,
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
-    ) -> SystemRecipeFailure {
-        SystemRecipeFailure::Action(
+    ) -> Box<SystemRecipeFailure> {
+        Box::new(SystemRecipeFailure::Action(
             self,
-            System::from2(left.as_ref(), right.as_ref(), SystemType::Conjunction),
-        )
+            System::from_composite_system(left.as_ref(), right.as_ref(), SystemType::Conjunction),
+        ))
     }
 }
 
@@ -499,7 +490,7 @@ impl ConsistencyFailure {
     pub fn to_rfq(self, T: &TransitionSystemPtr, S: &TransitionSystemPtr) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(
             self,
-            System::from2(T.as_ref(), S.as_ref(), SystemType::Quotient),
+            System::from_composite_system(T.as_ref(), S.as_ref(), SystemType::Quotient),
         )
     }
 }
@@ -671,6 +662,12 @@ mod conversions {
     impl From<RefinementPrecondition> for RefinementFailure {
         fn from(failure: RefinementPrecondition) -> Self {
             RefinementFailure::Precondition(failure)
+        }
+    }
+
+    impl From<Box<RefinementPrecondition>> for RefinementFailure {
+        fn from(failure: Box<RefinementPrecondition>) -> Self {
+            RefinementFailure::Precondition(*failure)
         }
     }
 

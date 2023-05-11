@@ -420,7 +420,7 @@ fn prepare_init_state(
 fn check_preconditions(
     sys1: &TransitionSystemPtr,
     sys2: &TransitionSystemPtr,
-) -> Result<(), RefinementPrecondition> {
+) -> Result<(), Box<RefinementPrecondition>> {
     sys1.precheck_sys_rep()
         .map_err(|e| e.to_precondition(sys1.as_ref(), sys2.as_ref()))?;
     sys2.precheck_sys_rep()

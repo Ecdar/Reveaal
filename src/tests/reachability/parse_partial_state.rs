@@ -47,7 +47,7 @@ mod reachability_parse_partial_state {
     "partial start state and complex composition")]
     fn query_parser_reject_partial_start(parser_input: &str) {
         let mut comp_loader =
-            JsonProjectLoader::new(String::from(FOLDER_PATH), crate::tests::TEST_SETTINGS)
+            JsonProjectLoader::new_loader(String::from(FOLDER_PATH), crate::tests::TEST_SETTINGS)
                 .to_comp_loader();
         // Make query:
         let q = parse_queries::parse_to_query(parser_input);
