@@ -1,7 +1,11 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use reveaal::tests::refinement::Helper::json_refinement_check;
 
-static PATH: &str = "samples/json/EcdarUniversity";
+pub mod flamegraph;
+
+use flamegraph::flamegraph_profiler::FlamegraphProfiler;
+
+const PATH: &str = "samples/json/EcdarUniversity";
 
 fn bench_refinement(c: &mut Criterion, query: &str) {
     c.bench_function(query, |b| {
@@ -54,6 +58,10 @@ fn not_refinement(c: &mut Criterion) {
     bench_non_refinement(c, "Adm2 || Researcher <= Spec // Machine");
 }
 
-criterion_group!(benches, self_refinement, refinement, not_refinement);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().with_profiler(FlamegraphProfiler::new(100));
+    targets = self_refinement, refinement, not_refinement,
+}
 
 criterion_main!(benches);

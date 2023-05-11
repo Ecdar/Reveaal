@@ -1,9 +1,14 @@
 extern crate pest;
-use crate::ModelObjects::queries::Query;
-use crate::ModelObjects::representations::QueryExpression;
 
+use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
+
+// Temporarily allow deprecated structs as they are fixed in a PR but not yet released
+#[allow(deprecated)]
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
+
+use super::parse_invariant::parse;
 
 #[derive(Parser)]
 #[grammar = "DataReader/grammars/query_grammar.pest"]
@@ -13,7 +18,7 @@ pub struct QueryParser;
 ///For clarification see documentation on pest crate
 
 pub fn parse_to_query(query: &str) -> Vec<Query> {
-    let queries = parse_to_expression_tree(query);
+    let queries = parse_to_expression_tree(query).expect("parsing the query should not fail");
     queries
         .into_iter()
         .map(|q| Query {
@@ -23,19 +28,19 @@ pub fn parse_to_query(query: &str) -> Vec<Query> {
         .collect()
 }
 
-pub fn parse_to_expression_tree(edge_attribute_str: &str) -> Vec<QueryExpression> {
-    let mut pairs = QueryParser::parse(Rule::queries, edge_attribute_str)
-        .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
+pub fn parse_to_expression_tree(edge_attribute_str: &str) -> Result<Vec<QueryExpression>, String> {
+    let mut pairs = match QueryParser::parse(Rule::queries, edge_attribute_str) {
+        Ok(pairs) => pairs,
+        Err(e) => return Err(format!("Could not parse as rule with error: {}", e)),
+    };
     let pair = pairs.next().unwrap();
     let mut queries = vec![];
     match pair.as_rule() {
         Rule::queries => {
             build_queries(pair, &mut queries);
-            queries
+            Ok(queries)
         }
-        err => {
-            panic!("Unable to match query string as rule: {:?}", err)
-        }
+        err => Err(format!("Unable to match query string as rule: {:?}", err)),
     }
 }
 
@@ -69,6 +74,7 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
 
     match pair.as_rule() {
         Rule::refinement => build_refinement_from_pair(pair),
+        Rule::reachability => build_reachability_from_pair(pair),
         Rule::getComponent => {
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::GetComponent(Box::new(build_expression_from_pair(inner_pair)))
@@ -81,7 +87,6 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::BisimMinimize(Box::new(build_expression_from_pair(inner_pair)))
         }
-
         Rule::consistency => {
             let inner_pair = pair.into_inner().next().unwrap();
             QueryExpression::Consistency(Box::new(build_expression_from_pair(inner_pair)))
@@ -106,7 +111,9 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
     }
 }
 
-fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
+// Temporarily allow deprecated functions as they are fixed in a PR but not yet released
+#[allow(deprecated)]
+pub fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),
         Rule::parenthesizedExp => {
@@ -169,6 +176,52 @@ fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpress
             build_expression_from_pair(inner_pair)
         }
         unknown => panic!("Got unknown pair: {:?}", unknown),
+    }
+}
+
+fn build_state_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
+    let mut inner_pair = pair.clone().into_inner();
+    let locPair = inner_pair.next().unwrap();
+
+    let mut loc_names: Vec<Box<QueryExpression>> = Vec::new();
+    for loc_name in locPair.as_str().split(',') {
+        loc_names.push(Box::new(QueryExpression::LocName(
+            loc_name.trim().to_string(),
+        )));
+    }
+
+    let clock_pair = inner_pair.next().unwrap();
+
+    // In the following line of code, we build a BoolExprssion based on the clock constraints defined for the given location.
+    // To make BoolExprssion we use the InvariantParser parser instead.
+    // Becuase clocks is defined as c1&&c2... in the InvariantParser we replace ',' to match the format e.g., e.g., "x>0,y<5" => "x>0&&y<5"
+    let invariant_version: Option<Box<BoolExpression>> = if clock_pair.as_str().trim() != "" {
+        let clock_string = clock_pair.as_str().trim().to_string().replace(',', "&&");
+        let invariant_version = parse(&clock_string).expect("");
+        Some(Box::new(invariant_version))
+    } else {
+        None
+    };
+
+    match pair.as_rule() {
+        Rule::state => QueryExpression::State(loc_names, invariant_version),
+        err => panic!("Unable to match: {:?} as rule loc or clocks", err),
+    }
+}
+
+fn build_reachability_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
+    let mut inner_pair = pair.into_inner();
+    let automata = build_expression_from_pair(inner_pair.next().unwrap());
+    let state = build_state_from_pair(inner_pair.next().unwrap());
+
+    if let Some(pair) = inner_pair.next() {
+        QueryExpression::Reachability(
+            Box::new(automata),
+            Box::new(Some(state)),
+            Box::new(build_state_from_pair(pair)),
+        )
+    } else {
+        QueryExpression::Reachability(Box::new(automata), Box::new(None), Box::new(state))
     }
 }
 

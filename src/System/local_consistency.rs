@@ -2,39 +2,32 @@ use edbm::zones::OwnedFederation;
 use log::warn;
 
 use crate::ModelObjects::component::State;
+use crate::System::query_failures::{ConsistencyFailure, DeterminismFailure};
 use crate::TransitionSystems::TransitionSystem;
 
-//Local consistency check WITH pruning
-pub fn is_least_consistent(system: &dyn TransitionSystem) -> bool {
-    if system.get_initial_location() == None {
-        return false; //TODO: figure out whether we want empty TS to be consistent
-    }
+use super::query_failures::{ConsistencyResult, DeterminismResult};
 
-    let mut passed = vec![];
-    let state = system.get_initial_state();
-    if state.is_none() {
+///Local consistency check WITH pruning.
+pub fn is_least_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
+    if let Some(mut state) = system.get_initial_state() {
+        let mut passed = vec![];
+        state.extrapolate_max_bounds(system);
+        consistency_least_helper(state, &mut passed, system)
+    } else {
         warn!("Empty initial state");
-        return false;
+        ConsistencyFailure::no_initial_state(system)
     }
-    let mut state = state.unwrap();
-    state.extrapolate_max_bounds(system);
-    consistency_least_helper(state, &mut passed, system)
 }
 
-pub fn is_deterministic(system: &dyn TransitionSystem) -> bool {
-    if system.get_initial_location() == None {
-        return true;
-    }
-
+///Checks if a [TransitionSystem] is deterministic.
+pub fn check_determinism(system: &dyn TransitionSystem) -> DeterminismResult {
     let mut passed = vec![];
-
     let state = system.get_initial_state();
     if state.is_none() {
-        return true;
+        return Ok(());
     }
     let mut state = state.unwrap();
-    state.set_zone(OwnedFederation::universe(system.get_dim()));
-
+    state.update_zone(|_| OwnedFederation::universe(system.get_dim()));
     is_deterministic_helper(state, &mut passed, system)
 }
 
@@ -42,9 +35,9 @@ fn is_deterministic_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> DeterminismResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return Ok(());
     }
 
     passed_list.push(state.clone());
@@ -53,41 +46,34 @@ fn is_deterministic_helper(
         let mut location_fed = OwnedFederation::empty(system.get_dim());
         for transition in &system.next_transitions(&state.decorated_locations, &action) {
             let mut new_state = state.clone();
-
             if transition.use_transition(&mut new_state) {
                 let mut allowed_fed = transition.get_allowed_federation();
                 allowed_fed = state.decorated_locations.apply_invariants(allowed_fed);
                 if allowed_fed.has_intersection(&location_fed) {
                     warn!(
-                        "Not deterministic from location {}",
-                        state.get_location().id
+                        "Not deterministic from location {} failing action {}",
+                        state.get_location().id,
+                        action
                     );
-                    return false;
+                    return DeterminismFailure::from(system, action, &state);
                 }
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);
-                if !is_deterministic_helper(new_state, passed_list, system) {
-                    return false;
-                }
+
+                is_deterministic_helper(new_state, passed_list, system)?;
             }
         }
     }
-
-    true
+    Ok(())
 }
 
 /// Local consistency check WITHOUT pruning
-#[allow(dead_code)]
-pub fn is_fully_consistent(system: &dyn TransitionSystem) -> bool {
-    if system.get_initial_location() == None {
-        return false;
-    }
-
+pub fn is_fully_consistent(system: &dyn TransitionSystem) -> ConsistencyResult {
     let mut passed = vec![];
     let state = system.get_initial_state();
     if state.is_none() {
         warn!("Empty initial state");
-        return false;
+        return ConsistencyFailure::no_initial_state(system);
     }
     consistency_fully_helper(state.unwrap(), &mut passed, system)
 }
@@ -96,15 +82,15 @@ pub fn consistency_least_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> ConsistencyResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return Ok(());
     }
     if state.decorated_locations.is_universal() {
-        return true;
+        return Ok(());
     }
     if state.decorated_locations.is_inconsistent() {
-        return false;
+        return ConsistencyFailure::inconsistent(system, &state);
     }
 
     passed_list.push(state.clone());
@@ -114,19 +100,14 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-                if !consistency_least_helper(new_state, passed_list, system) {
-                    warn!(
-                        "Input \"{input}\" not consistent from {}",
-                        state.get_location().id
-                    );
-                    return false;
-                }
+
+                consistency_least_helper(new_state, passed_list, system)?;
             }
         }
     }
 
     if state.zone_ref().can_delay_indefinitely() {
-        return true;
+        return Ok(());
     }
 
     for output in system.get_output_actions() {
@@ -134,26 +115,23 @@ pub fn consistency_least_helper(
             let mut new_state = state.clone();
             if transition.use_transition(&mut new_state) {
                 new_state.extrapolate_max_bounds(system);
-
-                if consistency_least_helper(new_state, passed_list, system) {
-                    return true;
+                if let Ok(()) = consistency_least_helper(new_state, passed_list, system) {
+                    return Ok(());
                 }
             }
         }
     }
     warn!("No saving outputs from {}", state.get_location().id);
-
-    false
+    ConsistencyFailure::inconsistent_from(system, &state)
 }
 
-#[allow(dead_code)]
 fn consistency_fully_helper(
     state: State,
     passed_list: &mut Vec<State>,
     system: &dyn TransitionSystem,
-) -> bool {
+) -> ConsistencyResult {
     if state.is_contained_in_list(passed_list) {
-        return true;
+        return Ok(());
     }
     passed_list.push(state.clone());
 
@@ -165,10 +143,7 @@ fn consistency_fully_helper(
                 if new_state.is_subset_of(&state) {
                     continue;
                 }
-
-                if !consistency_fully_helper(new_state, passed_list, system) {
-                    return false;
-                }
+                consistency_fully_helper(new_state, passed_list, system)?;
             }
         }
     }
@@ -184,20 +159,18 @@ fn consistency_fully_helper(
                 }
 
                 output_existed = true;
-                if !consistency_fully_helper(new_state, passed_list, system) {
-                    return false;
-                }
+
+                consistency_fully_helper(new_state, passed_list, system)?;
             }
         }
     }
-
     if output_existed {
-        true
+        Ok(())
     } else {
-        passed_list
-            .last()
-            .unwrap()
-            .zone_ref()
-            .can_delay_indefinitely()
+        let last_state = passed_list.last().unwrap();
+        match last_state.zone_ref().can_delay_indefinitely() {
+            false => ConsistencyFailure::inconsistent_from(system, &state),
+            true => Ok(()),
+        }
     }
 }

@@ -1,8 +1,8 @@
 use edbm::util::constraints::ClockIndex;
 
 use crate::ModelObjects::component::Transition;
-
-use crate::TransitionSystems::{LocationTuple, TransitionSystem, TransitionSystemPtr};
+use crate::System::query_failures::{ActionFailure, SystemRecipeFailure};
+use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 
 use super::common::ComposedTransitionSystem;
@@ -22,12 +22,12 @@ pub struct Composition {
 }
 
 impl Composition {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(
+    /// Creates a new [TransitionSystem] that is the composition of `left` and `right`.
+    pub fn new_ts(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, String> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
         let left_actions = left_in.union(&left_out).cloned().collect::<HashSet<_>>();
@@ -37,7 +37,11 @@ impl Composition {
         let right_actions = right_in.union(&right_out).cloned().collect::<HashSet<_>>();
 
         if !left_out.is_disjoint(&right_out) {
-            return Err("Invalid parallel composition, outputs are not disjoint".to_string());
+            return ActionFailure::not_disjoint(
+                (left.as_ref(), left_out),
+                (right.as_ref(), right_out),
+            )
+            .map_err(|e| e.to_rfcomp(left, right));
         }
 
         // Act_i = Act1_i \ Act2_o ∪ Act2_i \ Act1_o
@@ -71,7 +75,7 @@ impl Composition {
 }
 
 impl ComposedTransitionSystem for Composition {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
         assert!(self.actions_contain(action));
 
         let loc_left = location.get_left();
@@ -104,12 +108,12 @@ impl ComposedTransitionSystem for Composition {
         unreachable!()
     }
 
-    fn is_locally_consistent(&self) -> bool {
-        self.left.is_locally_consistent() && self.right.is_locally_consistent()
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
+    }
+
+    fn get_children_mut(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr) {
+        (&mut self.left, &mut self.right)
     }
 
     fn get_composition_type(&self) -> CompositionType {
@@ -126,5 +130,10 @@ impl ComposedTransitionSystem for Composition {
 
     fn get_output_actions(&self) -> HashSet<String> {
         self.outputs.clone()
+    }
+
+    fn check_local_consistency(&self) -> crate::System::query_failures::ConsistencyResult {
+        self.left.check_local_consistency()?;
+        self.right.check_local_consistency()
     }
 }

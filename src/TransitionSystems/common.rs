@@ -7,16 +7,22 @@ use edbm::{
 };
 use log::warn;
 
-use crate::ModelObjects::component::{Declarations, State, Transition};
+use crate::{
+    ModelObjects::component::{Declarations, State, Transition},
+    System::{query_failures::DeterminismResult, specifics::SpecificLocation},
+};
+use crate::{System::query_failures::ConsistencyResult, TransitionSystems::CompositionType};
 
-use super::{CompositionType, LocationTuple, TransitionSystem, TransitionSystemPtr};
+use super::{LocationTree, TransitionSystem, TransitionSystemPtr};
 
-pub trait ComposedTransitionSystem: DynClone {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition>;
+pub(super) trait ComposedTransitionSystem: DynClone {
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition>;
 
-    fn is_locally_consistent(&self) -> bool;
+    fn check_local_consistency(&self) -> ConsistencyResult;
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr);
+
+    fn get_children_mut(&mut self) -> (&mut TransitionSystemPtr, &mut TransitionSystemPtr);
 
     fn get_composition_type(&self) -> CompositionType;
 
@@ -30,16 +36,30 @@ pub trait ComposedTransitionSystem: DynClone {
 clone_trait_object!(ComposedTransitionSystem);
 
 impl<T: ComposedTransitionSystem> TransitionSystem for T {
-    fn next_transitions(&self, location: &LocationTuple, action: &str) -> Vec<Transition> {
-        self.next_transitions(location, action)
+    fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
+        let (left, right) = self.get_children();
+        let loc_l = loc.get_left();
+        let loc_r = loc.get_right();
+        let mut bounds_l = left.get_local_max_bounds(loc_l);
+        let bounds_r = right.get_local_max_bounds(loc_r);
+        bounds_l.add_bounds(&bounds_r);
+        bounds_l
     }
 
+    fn get_dim(&self) -> ClockIndex {
+        self.get_dim()
+    }
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
+        self.next_transitions(location, action)
+    }
     fn get_input_actions(&self) -> HashSet<String> {
         self.get_input_actions()
     }
+
     fn get_output_actions(&self) -> HashSet<String> {
         self.get_output_actions()
     }
+
     fn get_actions(&self) -> HashSet<String> {
         self.get_input_actions()
             .union(&self.get_output_actions())
@@ -47,28 +67,32 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             .collect()
     }
 
-    fn get_local_max_bounds(&self, loc: &LocationTuple) -> Bounds {
-        if loc.is_universal() || loc.is_inconsistent() {
-            Bounds::new(self.get_dim())
-        } else {
-            let (left, right) = self.get_children();
-            let loc_l = loc.get_left();
-            let loc_r = loc.get_right();
-            let mut bounds_l = left.get_local_max_bounds(loc_l);
-            let bounds_r = right.get_local_max_bounds(loc_r);
-            bounds_l.add_bounds(&bounds_r);
-            bounds_l
-        }
-    }
-
-    fn get_initial_location(&self) -> Option<LocationTuple> {
+    fn get_initial_location(&self) -> Option<LocationTree> {
         let (left, right) = self.get_children();
         let l = left.get_initial_location()?;
         let r = right.get_initial_location()?;
 
-        Some(LocationTuple::compose(&l, &r, self.get_composition_type()))
+        Some(LocationTree::compose(&l, &r, self.get_composition_type()))
     }
 
+    fn get_all_locations(&self) -> Vec<LocationTree> {
+        let (left, right) = self.get_children();
+        let mut location_trees = vec![];
+        let left = left.get_all_locations();
+        let right = right.get_all_locations();
+        for loc1 in &left {
+            for loc2 in &right {
+                location_trees.push(LocationTree::compose(
+                    loc1,
+                    loc2,
+                    self.get_composition_type(),
+                ));
+            }
+        }
+        location_trees
+    }
+
+    /// Returns the declarations of both children.
     fn get_decls(&self) -> Vec<&Declarations> {
         let (left, right) = self.get_children();
 
@@ -77,26 +101,20 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         comps
     }
 
-    fn precheck_sys_rep(&self) -> bool {
-        if !self.is_deterministic() {
-            warn!("Not deterministic");
-            return false;
-        }
-
-        if !self.is_locally_consistent() {
-            warn!("Not consistent");
-            return false;
-        }
-        true
+    fn check_determinism(&self) -> DeterminismResult {
+        let (left, right) = self.get_children();
+        left.check_determinism()?;
+        right.check_determinism()
     }
 
-    fn is_deterministic(&self) -> bool {
+    fn check_local_consistency(&self) -> ConsistencyResult {
         let (left, right) = self.get_children();
-        left.is_deterministic() && right.is_deterministic()
+        left.check_local_consistency()?;
+        right.check_local_consistency()
     }
 
     fn get_initial_state(&self) -> Option<State> {
-        let init_loc = self.get_initial_location().unwrap();
+        let init_loc = self.get_initial_location()?;
         let mut zone = OwnedFederation::init(self.get_dim());
         zone = init_loc.apply_invariants(zone);
         if zone.is_empty() {
@@ -107,36 +125,23 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
         Some(State::create(init_loc, zone))
     }
 
-    fn get_dim(&self) -> ClockIndex {
-        self.get_dim()
-    }
-
-    fn get_all_locations(&self) -> Vec<LocationTuple> {
-        let (left, right) = self.get_children();
-        let mut location_tuples = vec![];
-        let left = left.get_all_locations();
-        let right = right.get_all_locations();
-        for loc1 in &left {
-            for loc2 in &right {
-                location_tuples.push(LocationTuple::compose(
-                    loc1,
-                    loc2,
-                    self.get_composition_type(),
-                ));
-            }
-        }
-        location_tuples
-    }
-
-    fn is_locally_consistent(&self) -> bool {
-        self.is_locally_consistent()
-    }
-
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         self.get_children()
     }
 
     fn get_composition_type(&self) -> CompositionType {
         self.get_composition_type()
+    }
+
+    fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
+        let (left, right) = self.get_children();
+        let (t_left, t_right) = target.split();
+        let loc_l = left.construct_location_tree(t_left)?;
+        let loc_r = right.construct_location_tree(t_right)?;
+        Ok(LocationTree::compose(
+            &loc_l,
+            &loc_r,
+            self.get_composition_type(),
+        ))
     }
 }

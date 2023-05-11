@@ -1,12 +1,12 @@
 use edbm::zones::OwnedFederation;
 
-use crate::TransitionSystems::{LocationTuple, TransitionSystemPtr};
+use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StatePair {
-    pub locations1: LocationTuple,
-    pub locations2: LocationTuple,
+    pub locations1: LocationTree,
+    pub locations2: LocationTree,
     /// The sentinel (Option) allows us to take ownership of the internal fed from a mutable reference
     zone_sentinel: Option<OwnedFederation>,
 }
@@ -14,8 +14,8 @@ pub struct StatePair {
 impl StatePair {
     pub fn create(
         dimensions: usize,
-        locations1: LocationTuple,
-        locations2: LocationTuple,
+        locations1: LocationTree,
+        locations2: LocationTree,
     ) -> StatePair {
         let zone = OwnedFederation::init(dimensions);
 
@@ -26,16 +26,16 @@ impl StatePair {
         }
     }
 
-    pub fn get_locations1(&self) -> &LocationTuple {
+    pub fn get_locations1(&self) -> &LocationTree {
         &self.locations1
     }
 
-    pub fn get_locations2(&self) -> &LocationTuple {
+    pub fn get_locations2(&self) -> &LocationTree {
         &self.locations2
     }
 
     //Used to allow borrowing both states as mutable
-    pub fn get_mut_states(&mut self, is_states1: bool) -> (&mut LocationTuple, &mut LocationTuple) {
+    pub fn get_mut_states(&mut self, is_states1: bool) -> (&mut LocationTree, &mut LocationTree) {
         if is_states1 {
             (&mut self.locations1, &mut self.locations2)
         } else {
@@ -43,8 +43,7 @@ impl StatePair {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn get_locations(&self, is_states1: bool) -> (&LocationTuple, &LocationTuple) {
+    pub fn get_locations(&self, is_states1: bool) -> (&LocationTree, &LocationTree) {
         if is_states1 {
             (&self.locations1, &self.locations2)
         } else {
@@ -52,7 +51,6 @@ impl StatePair {
         }
     }
 
-    #[allow(dead_code)]
     pub fn clone_zone(&self) -> OwnedFederation {
         self.ref_zone().clone()
     }

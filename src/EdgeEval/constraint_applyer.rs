@@ -9,7 +9,7 @@ pub fn apply_constraints_to_state(
     guard: &BoolExpression,
     decls: &Declarations,
     fed: OwnedFederation,
-) -> OwnedFederation {
+) -> Result<OwnedFederation, String> {
     apply_constraints_to_state_helper(guard, decls, fed)
 }
 
@@ -17,57 +17,57 @@ fn apply_constraints_to_state_helper(
     guard: &BoolExpression,
     decls: &Declarations,
     fed: OwnedFederation,
-) -> OwnedFederation {
+) -> Result<OwnedFederation, String> {
     if fed.is_empty() {
-        return fed;
+        return Ok(fed);
     }
     use Inequality::*;
     match guard {
         BoolExpression::AndOp(left, right) => {
-            let fed = apply_constraints_to_state_helper(left, decls, fed);
+            let fed = apply_constraints_to_state_helper(left, decls, fed)?;
             apply_constraints_to_state_helper(right, decls, fed)
         }
         BoolExpression::OrOp(left, right) => {
             let clone = fed.clone();
-            let fed1 = apply_constraints_to_state_helper(left, decls, fed);
-            let fed2 = apply_constraints_to_state_helper(right, decls, clone);
-            fed1 + fed2
+            let fed1 = apply_constraints_to_state_helper(left, decls, fed)?;
+            let fed2 = apply_constraints_to_state_helper(right, decls, clone)?;
+            Ok(fed1 + fed2)
         }
         BoolExpression::LessEQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls).unwrap();
+            let (i, j, c) = get_indices(left, right, decls)?;
             // i-j<=c
-            fed.constrain(i, j, LE(c))
+            Ok(fed.constrain(i, j, LE(c)))
         }
         BoolExpression::GreatEQ(left, right) => {
-            let (i, j, c) = get_indices(right, left, decls).unwrap();
+            let (i, j, c) = get_indices(right, left, decls)?;
             // j-i <= -c -> c <= i-j
-            fed.constrain(i, j, LE(c))
+            Ok(fed.constrain(i, j, LE(c)))
         }
         BoolExpression::EQ(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls).unwrap();
+            let (i, j, c) = get_indices(left, right, decls)?;
             // i-j <= c && j-i <= -c -> c <= i-j
 
             // TODO: maybe use fed.constrain_many(...)
-            fed.constrain(i, j, LE(c)).constrain(j, i, LE(-c))
+            Ok(fed.constrain(i, j, LE(c)).constrain(j, i, LE(-c)))
         }
         BoolExpression::LessT(left, right) => {
-            let (i, j, c) = get_indices(left, right, decls).unwrap();
+            let (i, j, c) = get_indices(left, right, decls)?;
             // i-j < c
-            fed.constrain(i, j, LS(c))
+            Ok(fed.constrain(i, j, LS(c)))
         }
         BoolExpression::GreatT(left, right) => {
-            let (i, j, c) = get_indices(right, left, decls).unwrap();
+            let (i, j, c) = get_indices(right, left, decls)?;
             // j-i < -c -> c < i-j
-            fed.constrain(i, j, LS(c))
+            Ok(fed.constrain(i, j, LS(c)))
         }
         BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, fed),
         BoolExpression::Bool(val) => {
             if !*val {
-                return fed.set_empty();
+                return Ok(fed.set_empty());
             }
-            fed
+            Ok(fed)
         }
-        _ => panic!("Unexpected BoolExpression"),
+        expr => Err(format!("Unexpected expression in guard: {:?}", expr)),
     }
 }
 
@@ -77,8 +77,8 @@ fn get_indices(
     right: &ArithExpression,
     d: &Declarations,
 ) -> Result<(ClockIndex, ClockIndex, i32), String> {
-    let left = &(replace_vars(left, d).simplify())?;
-    let right = &(replace_vars(right, d).simplify())?;
+    let left = &(replace_vars(left, d)?.simplify())?;
+    let right = &(replace_vars(right, d)?.simplify())?;
     let (clocks_left, clocks_right) = (left.clock_var_count(), right.clock_var_count());
 
     if clocks_left + clocks_right == 0 {
@@ -95,24 +95,24 @@ fn get_indices(
     let result: Result<(ClockIndex, ClockIndex, i32), String> = match (clocks_left, clocks_right) {
         (1, 1) => {
             let (c1, c2) = (
-                get_clock_val(left, d, 1, false)?.0,
-                get_clock_val(right, d, 1, false)?.0,
+                get_clock_val(left, 1, false)?.0,
+                get_clock_val(right, 1, false)?.0,
             );
             combine_clocks(c1, c2, constant, true)
         }
         (2, 0) => {
-            let (c1, c2) = get_clock_val(left, d, 2, false)?;
+            let (c1, c2) = get_clock_val(left, 2, false)?;
             combine_clocks(c1, c2.unwrap(), constant, false)
         }
         (0, 2) => {
-            let (mut c1, c2) = get_clock_val(right, d, 2, false)?;
+            let (mut c1, c2) = get_clock_val(right, 2, false)?;
             let mut c2 = c2.unwrap();
             c1.invert();
             c2.invert();
             combine_clocks(c1, c2, constant, false)
         }
         (1, 0) => {
-            let c = get_clock_val(left, d, 1, false)?.0;
+            let c = get_clock_val(left, 1, false)?.0;
             if c.negated {
                 Ok((0, c.value, constant))
             } else {
@@ -120,7 +120,7 @@ fn get_indices(
             }
         }
         (0, 1) => {
-            let c = get_clock_val(right, d, 1, false)?.0;
+            let c = get_clock_val(right, 1, false)?.0;
             if !c.negated {
                 Ok((0, c.value, constant))
             } else {
@@ -132,34 +132,41 @@ fn get_indices(
     result
 }
 
-fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> ArithExpression {
+fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> Result<ArithExpression, String> {
     //let mut out = expr.clone();
     match expr {
         ArithExpression::Parentheses(inner) => replace_vars(inner, decls),
-        ArithExpression::Difference(l, r) => {
-            ArithExpression::ADif(replace_vars(l, decls), replace_vars(r, decls))
-        }
-        ArithExpression::Addition(l, r) => {
-            ArithExpression::AAdd(replace_vars(l, decls), replace_vars(r, decls))
-        }
-        ArithExpression::Multiplication(l, r) => {
-            ArithExpression::AMul(replace_vars(l, decls), replace_vars(r, decls))
-        }
-        ArithExpression::Division(l, r) => {
-            ArithExpression::ADiv(replace_vars(l, decls), replace_vars(r, decls))
-        }
-        ArithExpression::Modulo(l, r) => {
-            ArithExpression::AMod(replace_vars(l, decls), replace_vars(r, decls))
-        }
-        ArithExpression::Clock(x) => ArithExpression::Clock(*x),
+        ArithExpression::Difference(l, r) => Ok(ArithExpression::ADif(
+            replace_vars(l, decls)?,
+            replace_vars(r, decls)?,
+        )),
+        ArithExpression::Addition(l, r) => Ok(ArithExpression::AAdd(
+            replace_vars(l, decls)?,
+            replace_vars(r, decls)?,
+        )),
+        ArithExpression::Multiplication(l, r) => Ok(ArithExpression::AMul(
+            replace_vars(l, decls)?,
+            replace_vars(r, decls)?,
+        )),
+        ArithExpression::Division(l, r) => Ok(ArithExpression::ADiv(
+            replace_vars(l, decls)?,
+            replace_vars(r, decls)?,
+        )),
+        ArithExpression::Modulo(l, r) => Ok(ArithExpression::AMod(
+            replace_vars(l, decls)?,
+            replace_vars(r, decls)?,
+        )),
+        ArithExpression::Clock(x) => Ok(ArithExpression::Clock(*x)),
         ArithExpression::VarName(name) => {
             if let Some(x) = decls.get_clocks().get(name.as_str()).copied() {
-                ArithExpression::Clock(x)
+                Ok(ArithExpression::Clock(x))
+            } else if let Some(x) = decls.get_ints().get(name.as_str()).copied() {
+                Ok(ArithExpression::Int(x))
             } else {
-                ArithExpression::Int(decls.get_ints().get(name.as_str()).copied().unwrap())
+                Err(name.to_string())
             }
         }
-        ArithExpression::Int(i) => ArithExpression::Int(*i),
+        ArithExpression::Int(i) => Ok(ArithExpression::Int(*i)),
     }
 }
 
@@ -194,14 +201,13 @@ fn combine_clocks(
 
 fn get_clock_val(
     expression: &ArithExpression,
-    decls: &Declarations,
     count: i32,
     negated: bool,
 ) -> Result<(Clock, Option<Clock>), String> {
     let mut nxt_expr: Option<&ArithExpression> = None;
     let mut nxt_negated = false;
     let val = match expression {
-        ArithExpression::Parentheses(inner) => get_clock_val(inner, decls, count, negated)?.0,
+        ArithExpression::Parentheses(inner) => get_clock_val(inner, count, negated)?.0,
         ArithExpression::Difference(l, r) => {
             if let ArithExpression::Clock(x) = **l {
                 nxt_expr = Some(&**r);
@@ -237,7 +243,7 @@ fn get_clock_val(
     if count > 1 {
         Ok((
             val,
-            Some(get_clock_val(nxt_expr.unwrap(), decls, count - 1, nxt_negated)?.0),
+            Some(get_clock_val(nxt_expr.unwrap(), count - 1, nxt_negated)?.0),
         ))
     } else {
         Ok((val, None))

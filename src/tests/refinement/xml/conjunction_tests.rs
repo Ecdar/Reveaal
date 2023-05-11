@@ -2,7 +2,7 @@
 mod test {
     use crate::tests::refinement::Helper::xml_refinement_check;
 
-    static PATH: &str = "samples/xml/conjun.xml";
+    const PATH: &str = "samples/xml/conjun.xml";
 
     #[test]
     fn P0ConjP1RefP2() {

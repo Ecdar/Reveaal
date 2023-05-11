@@ -7,7 +7,7 @@ pub mod ProtobufServer;
 pub mod Simulation;
 pub mod System;
 pub mod TransitionSystems;
-pub(crate) mod logging;
+pub mod logging;
 pub mod tests;
 
 pub use crate::DataReader::component_loader::{
@@ -15,11 +15,16 @@ pub use crate::DataReader::component_loader::{
 };
 pub use crate::DataReader::{parse_queries, xml_parser};
 pub use crate::ModelObjects::queries::Query;
+use crate::ProtobufServer::services::query_request::Settings;
 pub use crate::System::extract_system_rep;
 pub use ModelObjects::component;
 pub use ModelObjects::queries;
 pub use ProtobufServer::start_grpc_server_with_tokio;
-pub use System::executable_query::QueryResult;
+
+/// The default settings
+pub const DEFAULT_SETTINGS: Settings = Settings {
+    disable_clock_reduction: false,
+};
 
 #[macro_use]
 extern crate pest_derive;
