@@ -26,13 +26,13 @@ pub mod util {
             let mut comp_loader = project_loader.to_comp_loader();
             (
                 extract_system_rep::get_system_recipe(
-                    expr.as_ref(),
+                    &expr.system,
                     &mut *comp_loader,
                     &mut dim,
                     &mut None,
                 ),
                 extract_system_rep::get_system_recipe(
-                    expr.as_ref(),
+                    &expr.system,
                     &mut *comp_loader,
                     &mut dim,
                     &mut None,

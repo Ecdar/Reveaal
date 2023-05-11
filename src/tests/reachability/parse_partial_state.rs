@@ -5,29 +5,27 @@ mod reachability_parse_partial_state {
         parse_queries,
         tests::reachability::helper_functions::reachability_test_helper_functions,
         JsonProjectLoader,
-        ModelObjects::representations::QueryExpression,
-        System::{self},
+        ModelObjects::representations::SystemExpression,
+        System,
     };
     use test_case::test_case;
 
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";
 
-    #[test_case("_", true;
+    #[test_case("true", true;
     "State gets parsed as partial")]
-    #[test_case("L20", false;
+    #[test_case("Adm2.L20", false;
     "State gets parsed as not partial")]
     fn query_parser_checks_invalid_locations(location_str: &str, expect_partial: bool) {
-        let mock_model = Box::new(QueryExpression::VarName("Adm2".to_string()));
+        let mock_model = SystemExpression::Component("Adm2".to_string(), None);
+
         let (machine, system) =
             reachability_test_helper_functions::create_system_recipe_and_machine(
-                *mock_model,
+                mock_model,
                 FOLDER_PATH,
             );
 
-        let mock_state = Box::new(QueryExpression::State(
-            reachability_test_helper_functions::string_to_locations(location_str),
-            None,
-        ));
+        let mock_state = reachability_test_helper_functions::string_to_state_expr(location_str);
 
         let result = System::extract_state::get_state(&mock_state, &machine, &system);
 
@@ -41,14 +39,12 @@ mod reachability_parse_partial_state {
         }
     }
 
-    #[test_case("reachability: Adm2 -> [_](); [L20]()";
-    "no partial start state and one component")]
-    #[test_case("reachability: Adm2 && Adm2 -> [L21, _](); [L20, L21]()";
+    #[test_case("reachability: Adm2 @ true -> Adm2.L20";
+    "partial start state and one component")]
+    #[test_case("reachability: Adm2[1] && Adm2[2] @ Adm2[1].L21 -> Adm2[1].L20 && Adm2[2].L21";
     "partial start state and two components")]
-    #[test_case("reachability: Adm2 && Adm2 && Adm2 && Adm2 && Adm2 -> [L20, L20, _, L21, L20](); [L20, L21, L20, L21, L20]()";
+    #[test_case("reachability: Adm2[1] && Adm2[2] && Adm2[3] && Adm2[4] && Adm2[5] @ Adm2[1].L20 -> Adm2[2].L21";
     "partial start state and complex composition")]
-    #[test_case("reachability: Adm2 -> [_](); [_]()";
-    "Both end and start are partial")]
     fn query_parser_reject_partial_start(parser_input: &str) {
         let mut comp_loader =
             JsonProjectLoader::new(String::from(FOLDER_PATH), crate::tests::TEST_SETTINGS)

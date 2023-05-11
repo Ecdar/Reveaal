@@ -12,26 +12,41 @@ fn bench_reachability(c: &mut Criterion, query: &str) {
 fn reachability_benchmarking(c: &mut Criterion) {
     bench_reachability(
         c,
-        "reachability: Machine || Researcher -> [L5, L6](); [L4, L9]()",
+        "reachability: Machine || Researcher @ Machine.L5 && Researcher.L6 -> Machine.L4 && Researcher.L9",
     );
     bench_reachability(
         c,
-        "reachability: Administration || Machine || Researcher -> [L3, L5, L9](); [L0, L5, U0]()",
+        "reachability: Administration || Machine || Researcher @ Administration.L3 && Machine.L5 && Researcher.L9 -> Administration.L0 && Machine.L5 && Researcher.U0",
     );
     bench_reachability(
         c,
-        "reachability: Administration || Machine || Researcher -> [L0, L5, U0](); [L3, L5, L9]()",
+        "reachability: Administration || Machine || Researcher @ Administration.L0 && Machine.L5 && Researcher.U0 -> Administration.L3 && Machine.L5 && Researcher.L9",
     );
-    bench_reachability(c, "reachability: Machine -> [L5](y<6); [L4](y<=6)");
-    bench_reachability(c, "reachability: Machine -> [L5](); [L4](y>7)");
-    bench_reachability(c, "reachability: Machine -> [L4](y<=6); [L5](y>=4)");
-    bench_reachability(c, "reachability: Machine -> [L5](y<1); [L5](y<2)");
-    bench_reachability(c, "reachability: Machine -> [L5](); [L5]()");
     bench_reachability(
         c,
-        "reachability: Machine || Researcher -> [L5, U0](); [L5, L7]()",
+        "reachability: Machine @ Machine.L5 && Machine.y<6 -> Machine.L4 && Machine.y<=6",
     );
-    bench_reachability(c, "reachability: Researcher -> [U0](); [L7]()");
+    bench_reachability(
+        c,
+        "reachability: Machine @ Machine.L5 -> Machine.L4 && Machine.y>7",
+    );
+    bench_reachability(
+        c,
+        "reachability: Machine @ Machine.L4 && Machine.y<=6 -> Machine.L5 && Machine.y>=4",
+    );
+    bench_reachability(
+        c,
+        "reachability: Machine @ Machine.L5 && Machine.y<1 -> Machine.L5 && Machine.y<2",
+    );
+    bench_reachability(c, "reachability: Machine @ Machine.L5 -> Machine.L5");
+    bench_reachability(
+        c,
+        "reachability: Machine || Researcher @ Machine.L5 && Researcher.U0 -> Machine.L5 && Researcher.L7",
+    );
+    bench_reachability(
+        c,
+        "reachability: Researcher @ Researcher.U0 -> Researcher.L7",
+    );
 }
 
 criterion_group! {
