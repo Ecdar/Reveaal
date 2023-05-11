@@ -60,7 +60,6 @@ fn apply_constraints_to_state_helper(
             // j-i < -c -> c < i-j
             Ok(fed.constrain(i, j, LS(c)))
         }
-        BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, fed),
         BoolExpression::Bool(val) => {
             if !*val {
                 return Ok(fed.set_empty());

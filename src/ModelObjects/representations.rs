@@ -13,7 +13,6 @@ use std::ops;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum BoolExpression {
-    Parentheses(Box<BoolExpression>),
     AndOp(Box<BoolExpression>, Box<BoolExpression>),
     OrOp(Box<BoolExpression>, Box<BoolExpression>),
     LessEQ(Box<ArithExpression>, Box<ArithExpression>),
@@ -60,9 +59,6 @@ impl BoolExpression {
                 Box::new(left.swap_clock_names(from_vars, to_vars)),
                 Box::new(right.swap_clock_names(from_vars, to_vars)),
             ),
-            BoolExpression::Parentheses(body) => {
-                BoolExpression::Parentheses(Box::new(body.swap_clock_names(from_vars, to_vars)))
-            }
             BoolExpression::Bool(val) => BoolExpression::Bool(*val),
             BoolExpression::Arithmetic(x) => {
                 BoolExpression::Arithmetic(Box::new(x.swap_clock_names(from_vars, to_vars)))
@@ -98,9 +94,6 @@ impl BoolExpression {
             }
             BoolExpression::EQ(left, right) => {
                 [left.encode_expr(), String::from("=="), right.encode_expr()].concat()
-            }
-            BoolExpression::Parentheses(expr) => {
-                [String::from("("), expr.encode_expr(), String::from(")")].concat()
             }
             BoolExpression::Bool(boolean) => boolean.to_string(),
             BoolExpression::Arithmetic(x) => x.encode_expr(),
@@ -253,9 +246,6 @@ impl BoolExpression {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
             }
-            BoolExpression::Parentheses(inner) => {
-                inner.swap_var_name(from_name, to_name);
-            }
             BoolExpression::LessEQ(left, right) => {
                 left.swap_var_name(from_name, to_name);
                 right.swap_var_name(from_name, to_name);
@@ -311,7 +301,6 @@ impl BoolExpression {
                 left.iterate_constraints(function);
                 right.iterate_constraints(function);
             }
-            BoolExpression::Parentheses(expr) => expr.iterate_constraints(function),
             BoolExpression::GreatEQ(left, right) => function(left, right),
             BoolExpression::LessEQ(left, right) => function(left, right),
             BoolExpression::LessT(left, right) => function(left, right),
@@ -356,9 +345,6 @@ impl BoolExpression {
                     BoolExpression::Bool(false) => value = Some((**left).clone()),
                     _ => {}
                 }
-            }
-            BoolExpression::Parentheses(inner) => {
-                value = Some((**inner).clone());
             }
 
             BoolExpression::LessEQ(l, r) => {
@@ -421,7 +407,6 @@ impl BoolExpression {
     /// Finds the clock names used in the expression
     pub fn get_varnames(&self) -> Vec<&str> {
         match self {
-            BoolExpression::Parentheses(p) => p.get_varnames(),
             BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => p1
                 .get_varnames()
                 .iter()
@@ -451,7 +436,6 @@ impl BoolExpression {
     /// `new`: The new varname
     pub fn replace_varname(&mut self, old: &String, new: &String) {
         match self {
-            BoolExpression::Parentheses(p) => p.replace_varname(old, new),
             BoolExpression::AndOp(e1, e2) | BoolExpression::OrOp(e1, e2) => {
                 e1.replace_varname(old, new);
                 e2.replace_varname(old, new);
@@ -562,35 +546,26 @@ impl Display for BoolExpression {
                     _ => {}
                 }
 
-                let l_clone = left.clone();
                 let l = match **left {
-                    BoolExpression::OrOp(_, _) => BoolExpression::Parentheses(l_clone),
-                    _ => *l_clone,
+                    BoolExpression::OrOp(_, _) => format!("({})", left),
+                    _ => format!("{}", left),
                 };
-                let r_clone = right.clone();
                 let r = match **right {
-                    BoolExpression::OrOp(_, _) => BoolExpression::Parentheses(r_clone),
-                    _ => *r_clone,
+                    BoolExpression::OrOp(_, _) => format!("({})", right),
+                    _ => format!("{}", right),
                 };
                 write!(f, "{} && {}", l, r)?;
             }
             BoolExpression::OrOp(left, right) => {
-                let l_clone = left.clone();
                 let l = match **left {
-                    BoolExpression::AndOp(_, _) => BoolExpression::Parentheses(l_clone),
-                    _ => *l_clone,
+                    BoolExpression::AndOp(_, _) => format!("({})", left),
+                    _ => format!("{}", left),
                 };
-                let r_clone = right.clone();
                 let r = match **right {
-                    BoolExpression::AndOp(_, _) => BoolExpression::Parentheses(r_clone),
-                    _ => *r_clone,
+                    BoolExpression::AndOp(_, _) => format!("({})", right),
+                    _ => format!("{}", right),
                 };
                 write!(f, "{} || {}", l, r)?;
-            }
-            BoolExpression::Parentheses(expr) => {
-                let l_par = "(".to_string().yellow();
-                let r_par = ")".to_string().yellow();
-                write!(f, "{}{}{}", l_par, expr, r_par)?;
             }
             BoolExpression::GreatEQ(left, right) => {
                 write!(f, "{}≥{}", left, right)?;
