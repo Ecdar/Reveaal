@@ -599,7 +599,6 @@ impl Display for BoolExpression {
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum ArithExpression {
-    Parentheses(Box<ArithExpression>),
     Difference(Box<ArithExpression>, Box<ArithExpression>),
     Addition(Box<ArithExpression>, Box<ArithExpression>),
     Multiplication(Box<ArithExpression>, Box<ArithExpression>),
@@ -644,7 +643,6 @@ impl ArithExpression {
                 ArithExpression::VarName(new_name)
             },
             ArithExpression::Int(val) => ArithExpression::Int(*val),
-            ArithExpression::Parentheses(inner) => inner.swap_clock_names(from_vars, to_vars),
         }
     }
 
@@ -668,7 +666,6 @@ impl ArithExpression {
             ArithExpression::Clock(_) => [String::from("??")].concat(),
             ArithExpression::VarName(var) => var.clone(),
             ArithExpression::Int(num) => num.to_string(),
-            ArithExpression::Parentheses(inner) => format!("({})", inner.encode_expr()),
         }
     }
 
@@ -718,7 +715,6 @@ impl ArithExpression {
                 }
             }
             ArithExpression::Int(_) => {}
-            ArithExpression::Parentheses(inner) => inner.swap_var_name(from_name, to_name),
         }
     }
 
@@ -762,7 +758,6 @@ impl ArithExpression {
         F: FnMut(&ArithExpression, &ArithExpression),
     {
         match self {
-            ArithExpression::Parentheses(inner) => inner.iterate_constraints(function),
             ArithExpression::Difference(left, right) => function(left, right),
             ArithExpression::Addition(left, right) => function(left, right),
             ArithExpression::Multiplication(left, right) => function(left, right),
@@ -827,7 +822,6 @@ impl ArithExpression {
     ) -> Result<Option<(ArithExpression, Operation)>, String> {
         let mut switch: Option<ArithExpression> = None;
         let out = match self {
-            ArithExpression::Parentheses(inner) => inner.move_clock_and_vars(prev_op)?,
             ArithExpression::Clock(x) => {
                 switch = Some(ArithExpression::Int(0));
                 Some((ArithExpression::Clock(*x), prev_op))
@@ -940,9 +934,6 @@ impl ArithExpression {
         let mut changed = false;
         let mut value: Option<ArithExpression> = None;
         match self {
-            ArithExpression::Parentheses(inner) => {
-                value = Some((**inner).clone());
-            }
             ArithExpression::Difference(l, r) => {
                 changed = l.simplify_helper() | r.simplify_helper();
                 if let (ArithExpression::Int(x), ArithExpression::Int(y)) = (l.as_ref(), r.as_ref())
@@ -994,7 +985,6 @@ impl ArithExpression {
     /// Finds the clock names used in the expression
     pub fn get_varnames(&self) -> Vec<&str> {
         match self {
-            ArithExpression::Parentheses(p) => p.get_varnames(),
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
@@ -1018,7 +1008,6 @@ impl ArithExpression {
     /// `new`: The new varname
     pub fn replace_varname(&mut self, old: &String, new: &String) {
         match self {
-            ArithExpression::Parentheses(p) => p.replace_varname(old, new),
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
@@ -1040,7 +1029,6 @@ impl ArithExpression {
         match self {
             ArithExpression::Clock(_) => 1,
             ArithExpression::VarName(_) => 1,
-            ArithExpression::Parentheses(inner) => inner.clock_var_count(),
             ArithExpression::Difference(l, r)
             | ArithExpression::Addition(l, r)
             | ArithExpression::Multiplication(l, r)
@@ -1126,11 +1114,6 @@ impl ArithExpression {
 impl Display for ArithExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ArithExpression::Parentheses(expr) => {
-                let l_par = "(".to_string().yellow();
-                let r_par = ")".to_string().yellow();
-                write!(f, "{}{}{}", l_par, expr, r_par)?;
-            }
             ArithExpression::Clock(id) => {
                 write!(f, "{}", format!("c:{}", id).magenta())?;
             }

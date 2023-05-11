@@ -134,7 +134,6 @@ fn get_indices(
 fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> Result<ArithExpression, String> {
     //let mut out = expr.clone();
     match expr {
-        ArithExpression::Parentheses(inner) => replace_vars(inner, decls),
         ArithExpression::Difference(l, r) => Ok(ArithExpression::ADif(
             replace_vars(l, decls)?,
             replace_vars(r, decls)?,
@@ -174,7 +173,6 @@ fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
         ArithExpression::Int(x) => *x,
         ArithExpression::Clock(_) => 0,
         ArithExpression::VarName(name) => decls.get_ints().get(name).copied().unwrap_or(0),
-        ArithExpression::Parentheses(x) => get_const(x, decls),
         ArithExpression::Difference(l, r) => get_const(l, decls) - get_const(r, decls),
         ArithExpression::Addition(l, r) => get_const(l, decls) + get_const(r, decls),
         ArithExpression::Multiplication(l, r) => get_const(l, decls) * get_const(r, decls),
@@ -206,7 +204,6 @@ fn get_clock_val(
     let mut nxt_expr: Option<&ArithExpression> = None;
     let mut nxt_negated = false;
     let val = match expression {
-        ArithExpression::Parentheses(inner) => get_clock_val(inner, count, negated)?.0,
         ArithExpression::Difference(l, r) => {
             if let ArithExpression::Clock(x) = **l {
                 nxt_expr = Some(&**r);
