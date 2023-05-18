@@ -16,7 +16,6 @@ use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
 use itertools::Itertools;
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
