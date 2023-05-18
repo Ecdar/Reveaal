@@ -30,7 +30,7 @@ fn is_trivially_unreachable(start_state: &State, end_state: &State) -> bool {
     }
 
     // If the end location has invariants and these do not have an intersection (overlap) with the zone of the end state of the query
-    if let Some(invariants) = end_state.get_location().get_invariants() {
+    if let Some(invariants) = end_state.decorated_locations.get_invariants() {
         if !end_state.zone_ref().has_intersection(invariants) {
             return true;
         }
@@ -114,7 +114,7 @@ fn reachability_search(
 
     // Push start state to visited state
     visited_states.insert(
-        start_state.get_location().id.clone(),
+        start_state.decorated_locations.id.clone(),
         vec![start_state.zone_ref().clone()],
     );
 
@@ -152,8 +152,8 @@ fn reachability_search(
 
 fn reached_end_state(cur_state: &State, end_state: &State) -> bool {
     cur_state
-        .get_location()
-        .compare_partial_locations(end_state.get_location())
+        .decorated_locations
+        .compare_partial_locations(&end_state.decorated_locations)
         && cur_state.zone_ref().has_intersection(end_state.zone_ref())
 }
 
@@ -169,7 +169,7 @@ fn take_transition(
     if transition.use_transition(&mut new_state) {
         // TODO: bounds here are not always correct, they should take the added bounds from the target state into account
         new_state.extrapolate_max_bounds(system.as_ref()); // Ensures the bounds cant grow infinitely, avoiding infinite loops
-        let new_location_id = &new_state.get_location().id;
+        let new_location_id = &new_state.decorated_locations.id;
         let existing_zones = visited_states.entry(new_location_id.clone()).or_default();
         // If this location has not already been reached (explored) with a larger zone
         if !zone_subset_of_existing_zones(new_state.zone_ref(), existing_zones) {

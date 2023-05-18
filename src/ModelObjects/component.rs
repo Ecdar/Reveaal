@@ -48,14 +48,6 @@ impl Component {
         *indices += self.declarations.get_clock_count();
     }
 
-    ///Start of basic methods for manipulating fields
-    pub fn get_name(&self) -> &String {
-        &self.name
-    }
-    pub fn get_locations(&self) -> &Vec<Location> {
-        &self.locations
-    }
-
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
             .locations
@@ -68,15 +60,6 @@ impl Component {
         } else {
             panic!("Unable to retrieve location based on id: {}", name)
         }
-    }
-    pub fn get_edges(&self) -> &Vec<Edge> {
-        &self.edges
-    }
-    pub fn get_mut_edges(&mut self) -> &mut Vec<Edge> {
-        &mut self.edges
-    }
-    pub fn add_edges(&mut self, edges: &mut Vec<Edge>) {
-        self.edges.append(edges);
     }
 
     pub fn get_input_actions(&self) -> Vec<String> {
@@ -132,7 +115,7 @@ impl Component {
     /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
     pub fn remake_edge_ids(&mut self) {
         // Give all edges a name
-        for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
+        for (index, edge) in self.edges.iter_mut().enumerate() {
             edge.id = format!("E{}", index);
         }
     }
@@ -276,10 +259,6 @@ impl State {
         }
 
         self.zone_ref().subset_eq(other.zone_ref())
-    }
-
-    pub fn get_location(&self) -> &LocationTree {
-        &self.decorated_locations
     }
 
     pub fn extrapolate_max_bounds(&mut self, system: &dyn TransitionSystem) {

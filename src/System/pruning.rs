@@ -24,7 +24,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
     let comp = combine_components(&ts, PruningStrategy::NoPruning);
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
-    input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
+    input_map.insert(comp.name.clone(), inputs.iter().cloned().collect());
 
     let result = prune(&comp, dim, inputs, outputs);
 
@@ -142,8 +142,8 @@ pub fn prune(
 
     debug!(
         "Pruned component from {} edges to {} edges",
-        comp.get_edges().len(),
-        new_comp.get_edges().len()
+        comp.edges.len(),
+        new_comp.edges.len()
     );
 
     CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0)
@@ -309,7 +309,7 @@ fn predt_of_all_outputs(
     let mut incons_fed = inconsistent_part;
     for other_edge in context
         .comp
-        .get_edges()
+        .edges
         .iter()
         .filter(|e| e.source_location == source_loc.id && e.sync_type == SyncType::Output)
     {

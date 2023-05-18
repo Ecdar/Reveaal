@@ -95,8 +95,7 @@ fn build_location_tree(
                 .get_location(&LocationID::Simple(str.to_string()))
                 .ok_or(format!(
                     "Location {} does not exist in the component {}",
-                    str,
-                    component.get_name()
+                    str, component.name
                 )),
         },
     }

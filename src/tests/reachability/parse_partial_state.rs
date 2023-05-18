@@ -33,7 +33,7 @@ mod reachability_parse_partial_state {
 
         if let Ok(end_state) = result {
             assert_eq!(
-                end_state.get_location().id.is_partial_location(),
+                end_state.decorated_locations.id.is_partial_location(),
                 expect_partial
             );
         } else {

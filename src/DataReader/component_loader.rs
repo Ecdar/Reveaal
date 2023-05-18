@@ -114,7 +114,7 @@ pub struct ComponentContainer {
 impl ComponentLoader for ComponentContainer {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
+            assert_eq!(component_name, component.name);
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
@@ -150,10 +150,10 @@ impl ComponentContainer {
     pub fn from_components(components: Vec<Component>) -> ComponentContainer {
         let mut comp_hashmap = HashMap::<String, Component>::new();
         for mut component in components {
-            log::trace!("Adding comp {} to container", component.get_name());
+            log::trace!("Adding comp {} to container", component.name);
             let inputs: Vec<_> = component.get_input_actions();
             input_enabler::make_input_enabled(&mut component, &inputs);
-            comp_hashmap.insert(component.get_name().to_string(), component);
+            comp_hashmap.insert(component.name.to_string(), component);
         }
         ComponentContainer::new(Arc::new(comp_hashmap))
     }
@@ -213,7 +213,7 @@ impl ComponentLoader for JsonProjectLoader {
         }
 
         if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
+            assert_eq!(component_name, component.name);
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
@@ -223,7 +223,7 @@ impl ComponentLoader for JsonProjectLoader {
     fn save_component(&mut self, component: Component) {
         component_to_json_file(&self.project_path, &component);
         self.loaded_components
-            .insert(component.get_name().clone(), component);
+            .insert(component.name.clone(), component);
     }
 
     fn get_settings(&self) -> &Settings {
@@ -268,7 +268,7 @@ impl JsonProjectLoader {
 
         let opt_inputs = self
             .get_declarations()
-            .get_component_inputs(component.get_name());
+            .get_component_inputs(&component.name);
         if let Some(inputs) = opt_inputs {
             input_enabler::make_input_enabled(&mut component, inputs);
         }
@@ -293,7 +293,7 @@ pub struct XmlProjectLoader {
 impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> &Component {
         if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
+            assert_eq!(component_name, component.name);
             component
         } else {
             panic!("The component '{}' could not be retrieved", component_name);
@@ -333,12 +333,12 @@ impl XmlProjectLoader {
 
         let mut map = HashMap::<String, Component>::new();
         for mut component in comps {
-            let opt_inputs = system_declarations.get_component_inputs(component.get_name());
+            let opt_inputs = system_declarations.get_component_inputs(&component.name);
             if let Some(opt_inputs) = opt_inputs {
                 input_enabler::make_input_enabled(&mut component, opt_inputs);
             }
 
-            let name = String::from(component.get_name());
+            let name = String::from(&component.name);
             map.insert(name, component);
         }
 

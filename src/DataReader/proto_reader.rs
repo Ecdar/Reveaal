@@ -187,8 +187,7 @@ mod tests {
             "Zones are not equal"
         );
         assert_eq!(
-            *state1.get_location(),
-            *state2.get_location(),
+            state1.decorated_locations, state2.decorated_locations,
             "Location trees are not equal"
         );
     }

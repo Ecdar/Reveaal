@@ -9,10 +9,10 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
     let dimension = component.declarations.get_clock_count() + 1;
     let mut new_edges: Vec<component::Edge> = vec![];
     let input_edges = component
-        .get_edges()
+        .edges
         .iter()
         .filter(|edge| edge.sync_type == component::SyncType::Input);
-    for location in component.get_locations() {
+    for location in &component.locations {
         let mut location_inv_zone = OwnedFederation::universe(dimension);
 
         if let Some(invariant) = &location.invariant {
@@ -91,5 +91,5 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
         }
     }
 
-    component.add_edges(&mut new_edges);
+    component.edges.append(&mut new_edges);
 }

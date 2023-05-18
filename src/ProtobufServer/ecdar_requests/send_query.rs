@@ -131,11 +131,11 @@ fn parse_xml_components(xml: &str) -> Vec<Component> {
 fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
-        trace!("Adding comp {} to container", component.get_name());
+        trace!("Adding comp {} to container", component.name);
 
         let inputs: Vec<_> = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);
-        comp_hashmap.insert(component.get_name().to_string(), component);
+        comp_hashmap.insert(component.name.to_string(), component);
     }
     comp_hashmap
 }

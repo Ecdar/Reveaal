@@ -51,7 +51,7 @@ impl CompiledComponent {
         }
 
         let locations: HashMap<LocationID, LocationTree> = component
-            .get_locations()
+            .locations
             .iter()
             .map(|loc| {
                 let loc = LocationTree::simple(loc, component.get_declarations(), dim);
@@ -67,8 +67,8 @@ impl CompiledComponent {
             component.name,
             component.declarations
         );
-        log::debug!("Edges: {:?}", component.get_edges());
-        for edge in component.get_edges() {
+        log::debug!("Edges: {:?}", component.edges);
+        for edge in &component.edges {
             let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from(&component, edge, dim);
             location_edges
