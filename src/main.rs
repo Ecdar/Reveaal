@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 use clap::{load_yaml, App};
-use reveaal::logging::setup_logger;
+use reveaal::logging::{get_messages, setup_logger};
 use reveaal::System::query_failures::QueryResult;
 
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
-    extract_system_rep, parse_queries, start_grpc_server_with_tokio, xml_parser, ComponentLoader,
-    JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
+    extract_system_rep, msg, parse_queries, start_grpc_server_with_tokio, xml_parser,
+    ComponentLoader, JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
 };
 use std::env;
 
@@ -15,6 +15,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from(yaml).get_matches();
     setup_logger().unwrap();
+    /*
+       msg!(1, subject: "testing", msg: "gamer".to_string());
+       msg!("gamer");
+       msg!("testing", msg: "gamer".to_string());
+       msg!(1, subject: "testing", msg: "gamer{}", 3);
+       println!("{:?}", get_messages().unwrap());
+       println!("{:?}", get_messages().unwrap());
+       println!("{:?}", get_messages().unwrap());
+       println!("{:?}", get_messages().unwrap());
+    */
+
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
         let thread_count: usize = match matches.value_of("thread_number") {
             Some(num_of_threads) => num_of_threads
@@ -32,6 +43,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         start_using_cli(&matches);
     }
+    println!("{:?}", get_messages().unwrap());
+    println!("{:?}", get_messages().unwrap());
 
     Ok(())
 }

@@ -10,6 +10,7 @@ use crate::EdgeEval::updater::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
+use crate::msg;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
@@ -163,6 +164,9 @@ impl Component {
             "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name
         ); // Should be changed in the future to be the information logger
+
+        msg!("Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
+            self.name)
     }
 
     /// Replaces duplicate clock with a new
@@ -183,10 +187,16 @@ impl Component {
             let old = *index;
             *index = global_index;
             // TODO: Maybe log the global clock name instead of index
+
             info!(
                 "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
                 self.name
-            ); // Should be changed in the future to be the information logger
+            );
+
+            msg!("Clock Reduction",
+                msg: "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
+                self.name
+            );
         }
     }
 }
