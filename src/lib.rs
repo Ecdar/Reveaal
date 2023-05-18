@@ -34,8 +34,14 @@ pub fn set_server(is_server: bool) {
     }
 }
 
+#[cfg(not(test))]
 fn is_server() -> bool {
     unsafe { IS_SERVER.expect("Server or CLI never specified") }
+}
+
+#[cfg(test)]
+fn is_server() -> bool {
+    false
 }
 
 #[macro_use]
