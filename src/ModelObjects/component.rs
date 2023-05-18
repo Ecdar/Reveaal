@@ -199,7 +199,9 @@ impl Component {
                 if let Some(guard) = e.guard.as_mut().filter(|g| g.has_varname(&name)) {
                     *guard = BoolExpression::Bool(false);
                 }
-                e.update.as_mut().unwrap().retain(|u| u.variable != name);
+                if let Some(inv) = e.update.as_mut() {
+                    inv.retain(|u| u.variable != name);
+                }
             });
 
         // Removes from from location invariants
