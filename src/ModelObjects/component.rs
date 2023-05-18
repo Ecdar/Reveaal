@@ -14,10 +14,12 @@ use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
+use itertools::Itertools;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::iter::FromIterator;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -53,9 +55,6 @@ impl Component {
     pub fn get_locations(&self) -> &Vec<Location> {
         &self.locations
     }
-    pub fn get_mut_locations(&mut self) -> &mut Vec<Location> {
-        &mut self.locations
-    }
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
@@ -76,59 +75,26 @@ impl Component {
     pub fn get_mut_edges(&mut self) -> &mut Vec<Edge> {
         &mut self.edges
     }
-    pub fn add_edge(&mut self, edge: Edge) {
-        self.edges.push(edge);
-    }
     pub fn add_edges(&mut self, edges: &mut Vec<Edge>) {
         self.edges.append(edges);
     }
-    pub fn get_mut_declaration(&mut self) -> &mut Declarations {
-        &mut self.declarations
-    }
-
-    pub fn get_initial_location(&self) -> Option<&Location> {
-        let vec: Vec<&Location> = self
-            .get_locations()
-            .iter()
-            .filter(|location| location.get_location_type() == LocationType::Initial)
-            .collect();
-
-        vec.first().copied()
-    }
-
-    pub fn get_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in self.get_edges() {
-            actions.push(edge.get_sync().clone());
-        }
-
-        actions
-    }
 
     pub fn get_input_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in &self.edges {
-            if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
-                if edge.get_sync() == "*" {
-                    continue;
-                };
-                actions.push(edge.get_sync().clone());
-            }
-        }
-        actions
+        self.get_specific_actions(SyncType::Input)
     }
 
     pub fn get_output_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in &self.edges {
-            if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
-                if edge.get_sync() == "*" {
-                    continue;
-                };
-                actions.push(edge.get_sync().clone());
-            }
-        }
-        actions
+        self.get_specific_actions(SyncType::Output)
+    }
+
+    fn get_specific_actions(&self, sync_type: SyncType) -> Vec<String> {
+        Vec::from_iter(
+            self.edges
+                .iter()
+                .filter(|e| e.sync_type == sync_type && e.sync != "*")
+                .map(|e| e.sync.clone())
+                .unique(),
+        )
     }
 
     // End of basic methods
@@ -138,7 +104,7 @@ impl Component {
         for (clock_name, clock_id) in &self.declarations.clocks {
             let mut max_bound = 0;
             for edge in &self.edges {
-                if let Some(guard) = edge.get_guard() {
+                if let Some(guard) = &edge.guard {
                     let new_bound = guard.get_max_constant(*clock_id, clock_name);
                     if max_bound < new_bound {
                         max_bound = new_bound;
@@ -147,7 +113,7 @@ impl Component {
             }
 
             for location in &self.locations {
-                if let Some(inv) = location.get_invariant() {
+                if let Some(inv) = &location.invariant {
                     let new_bound = inv.get_max_constant(*clock_id, clock_name);
                     if max_bound < new_bound {
                         max_bound = new_bound;
@@ -161,11 +127,6 @@ impl Component {
         }
 
         max_bounds
-    }
-
-    /// Find [`Edge`] in the component given the edges `id`.
-    pub fn find_edge_from_id(&self, id: &str) -> Option<&Edge> {
-        self.get_edges().iter().find(|e| e.id.contains(id))
     }
 
     /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
@@ -245,10 +206,6 @@ impl Component {
             ); // Should be changed in the future to be the information logger
         }
     }
-}
-
-fn contain(channels: &[String], channel: &str) -> bool {
-    channels.iter().any(|c| c == channel)
 }
 
 /// FullState is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
@@ -368,21 +325,6 @@ pub struct Location {
     pub urgency: String,
 }
 
-impl Location {
-    pub fn get_id(&self) -> &String {
-        &self.id
-    }
-    pub fn get_invariant(&self) -> &Option<BoolExpression> {
-        &self.invariant
-    }
-    pub fn get_location_type(&self) -> LocationType {
-        self.location_type
-    }
-    pub fn get_urgency(&self) -> &String {
-        &self.urgency
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum SyncType {
     Input,
@@ -418,7 +360,7 @@ impl Transition {
         let target_locations = LocationTree::simple(target_loc, comp.get_declarations(), dim);
 
         let mut compiled_updates = vec![];
-        if let Some(updates) = edge.get_update() {
+        if let Some(updates) = &edge.update {
             compiled_updates.extend(
                 updates
                     .iter()
@@ -614,7 +556,6 @@ pub struct Edge {
     pub sync: String,
 }
 
-const TRUE: BoolExpression = BoolExpression::Bool(true);
 impl fmt::Display for Edge {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_fmt(format_args!(
@@ -626,7 +567,7 @@ impl fmt::Display for Edge {
                 SyncType::Output => "!",
             },
             self.target_location,
-            self.guard.as_ref().unwrap_or(&TRUE),
+            self.guard.as_ref().unwrap_or(&BoolExpression::default()),
             self.update
         ))?;
         Ok(())
@@ -639,7 +580,7 @@ impl Edge {
         decl: &Declarations, //Will eventually be mutable
         mut fed: OwnedFederation,
     ) -> OwnedFederation {
-        if let Some(updates) = self.get_update() {
+        if let Some(updates) = &self.update {
             for update in updates {
                 fed = update.compiled(decl).apply(fed);
             }
@@ -649,46 +590,11 @@ impl Edge {
     }
 
     pub fn apply_guard(&self, decl: &Declarations, mut fed: OwnedFederation) -> OwnedFederation {
-        if let Some(guards) = self.get_guard() {
+        if let Some(guards) = &self.guard {
             fed = apply_constraints_to_state(guards, decl, fed).expect("Failed to apply guard");
         };
 
         fed
-    }
-
-    pub fn get_source_location(&self) -> &String {
-        &self.source_location
-    }
-
-    pub fn get_target_location(&self) -> &String {
-        &self.target_location
-    }
-
-    pub fn get_sync_type(&self) -> &SyncType {
-        &self.sync_type
-    }
-
-    pub fn get_guard(&self) -> &Option<BoolExpression> {
-        &self.guard
-    }
-
-    pub fn get_update(&self) -> &Option<Vec<parse_edge::Update>> {
-        &self.update
-    }
-
-    pub fn get_sync(&self) -> &String {
-        &self.sync
-    }
-
-    pub fn get_update_clocks(&self) -> Vec<&str> {
-        let mut clock_vec = vec![];
-        if let Some(updates) = self.get_update() {
-            for u in updates {
-                clock_vec.push(u.get_variable_name())
-            }
-        }
-
-        clock_vec
     }
 }
 
@@ -711,24 +617,8 @@ impl Declarations {
         }
     }
 
-    pub fn get_ints(&self) -> &HashMap<String, i32> {
-        &self.ints
-    }
-
-    pub fn get_mut_ints(&mut self) -> &mut HashMap<String, i32> {
-        &mut self.ints
-    }
-
-    pub fn get_clocks(&self) -> &HashMap<String, ClockIndex> {
-        &self.clocks
-    }
-
     pub fn get_clock_count(&self) -> usize {
         self.clocks.len()
-    }
-
-    pub fn get_max_clock_index(&self) -> ClockIndex {
-        *self.clocks.values().max().unwrap_or(&0)
     }
 
     pub fn set_clock_indices(&mut self, start_index: ClockIndex) {
@@ -737,23 +627,8 @@ impl Declarations {
         }
     }
 
-    pub fn update_clock_indices(&mut self, start_index: ClockIndex, old_offset: ClockIndex) {
-        for (_, v) in self.clocks.iter_mut() {
-            *v -= old_offset;
-            *v += start_index;
-        }
-    }
-
-    pub fn reset_clock_indices(&mut self) {
-        let mut i = 1;
-        for (_, v) in self.clocks.iter_mut() {
-            *v = i;
-            i += 1;
-        }
-    }
-
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
-        self.get_clocks().get(name)
+        self.clocks.get(name)
     }
 
     /// Gets the name of a given `ClockIndex`.
