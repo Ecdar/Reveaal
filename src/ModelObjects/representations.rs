@@ -454,12 +454,6 @@ impl BoolExpression {
     }
 }
 
-pub enum New<T> {
-    Changed(T),
-    Unchanged,
-    Removed,
-}
-
 fn var_from_naming(
     naming: &HashMap<ClockIndex, String>,
     index: ClockIndex,

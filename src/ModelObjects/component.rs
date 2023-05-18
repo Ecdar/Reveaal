@@ -18,6 +18,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
@@ -192,36 +193,25 @@ impl Component {
             .iter_mut()
             .filter(|e| e.update.is_some() || e.guard.is_some())
             .for_each(|e| {
-                if let Some(guard) = e.guard.as_mut() {
-                    // The guard is overwritten to `false`. This can be done since we assume
-                    // that all edges with guards involving the given clock is not reachable
-                    // in some composite system.
-                    if guard.has_varname(&name) {
-                        *guard = BoolExpression::Bool(false);
-                    }
+                // The guard is overwritten to `false`. This can be done since we assume
+                // that all edges with guards involving the given clock is not reachable
+                // in some composite system.
+                if let Some(guard) = e.guard.as_mut().filter(|g| g.has_varname(&name)) {
+                    *guard = BoolExpression::Bool(false);
                 }
-
-                if let Some(upd) = e.update.as_mut() {
-                    if let Some((i, _)) = upd.iter().enumerate().find(|(_, u)| u.variable == name) {
-                        e.update.as_mut().unwrap().remove(i);
-                    };
-                }
+                e.update.as_mut().unwrap().retain(|u| u.variable != name);
             });
 
         // Removes from from location invariants
-        self.locations
-            .iter_mut()
-            .filter(|l| l.invariant.is_some())
-            .for_each(|l| {
-                if let Some(invariant) = l.invariant.as_mut() {
-                    // The invariant is overwritten to `false`. This can be done since we assume
-                    // that all locations with invariants involving the given clock is not
-                    // reachable in some composite system.
-                    if invariant.has_varname(&name) {
-                        *invariant = BoolExpression::Bool(false);
-                    }
-                }
-            });
+        // The invariants containing the clock are overwritten to `false`.
+        // This can be done since we assume that all locations with invariants involving
+        // the given clock is not reachable in some composite system.
+        self.locations.retain(|l| {
+            l.invariant
+                .as_ref()
+                .filter(|i| i.has_varname(&name))
+                .is_none()
+        });
 
         info!(
             "Removed Clock '{name}' (index {index}) has been removed from component {}",
