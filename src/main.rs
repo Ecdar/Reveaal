@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 use clap::{load_yaml, App};
-use reveaal::logging::{get_messages, setup_logger};
+use reveaal::logging::setup_logger;
 use reveaal::System::query_failures::QueryResult;
 
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
-    extract_system_rep, msg, parse_queries, set_server, start_grpc_server_with_tokio, xml_parser,
+    extract_system_rep, parse_queries, set_server, start_grpc_server_with_tokio, xml_parser,
     ComponentLoader, JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
 };
 use std::env;

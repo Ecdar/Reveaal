@@ -5,25 +5,26 @@ use log::SetLoggerError;
 use once_cell::sync::Lazy;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::sync::Mutex;
 use std::thread;
 use std::thread::ThreadId;
-//use std::time::Duration;
+
+#[cfg(feature = "logging")]
+fn colored_level(level: log::Level) -> ColoredString {
+    match level {
+        log::Level::Error => level.to_string().red(),
+        log::Level::Warn => level.to_string().yellow(),
+        log::Level::Info => level.to_string().cyan(),
+        log::Level::Debug => level.to_string().blue(),
+        log::Level::Trace => level.to_string().magenta(),
+    }
+}
 
 #[cfg(feature = "logging")]
 /// Sets up the logging
 pub fn setup_logger() -> Result<(), SetLoggerError> {
-    fn colored_level(level: log::Level) -> ColoredString {
-        match level {
-            log::Level::Error => level.to_string().red(),
-            log::Level::Warn => level.to_string().yellow(),
-            log::Level::Info => level.to_string().cyan(),
-            log::Level::Debug => level.to_string().blue(),
-            log::Level::Trace => level.to_string().magenta(),
-        }
-    }
-
     env_logger::Builder::from_env(env_logger::Env::default())
         .format(|buf, record| {
             writeln!(
@@ -45,13 +46,9 @@ macro_rules! msg { //TODO: Maybe format the information when not server
         if $crate::is_server() {
             $crate::logging::__set_info__($crate::logging::__as_information__($severity, $subject, $msg));
         } else {
-            //println!("{:?}", $crate::logging::__as_information__($severity, $subject, $msg));
-            let lvl = match $severity {
-                0 => log::Level::Info,
-                1 => log::Level::Warn,
-                _ => unreachable!(),
-            };
-            log::log!(lvl, "{:?}", $crate::logging::__as_information__($severity, $subject, $msg));
+            //let lvl = $crate::logging::__severity__($severity);
+            //log::log!(lvl, "{}", $crate::logging::__as_information__($severity, $subject, $msg));
+            println!("{}", $crate::logging::__as_information__($severity, $subject, $msg));
         }
     });
 
@@ -63,6 +60,28 @@ macro_rules! msg { //TODO: Maybe format the information when not server
 
     ($msg:expr) => (msg!(0, subject: "general", msg: $msg.to_string()));
     ($($msg:tt)+) => (msg!(0, subject: "general", msg: format_args!($($msg)+).to_string()));
+}
+
+#[doc(hidden)]
+pub fn __severity__(severity: i32) -> log::Level {
+    match severity {
+        0 => log::Level::Info,
+        1 => log::Level::Warn,
+        _ => unreachable!(),
+    }
+}
+
+impl Display for Information {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{} {}: {}] - {}",
+            Local::now().format("%H:%M:%S").to_string().cyan(),
+            colored_level(__severity__(self.serverity)),
+            self.subject,
+            self.message
+        )
+    }
 }
 
 #[doc(hidden)]
@@ -89,11 +108,10 @@ pub fn __set_info__(info: Information) {
 
 //static mut TEMP: i32 = 10;
 
-/// Function to get information messages
-///
+/// Function to get information messages.
 /// ### Info
 /// Will always return `None` when Reveaal is run through the CLI, only use as server.
-pub fn get_messages() -> Option<Vec<Information>> {
+pub fn get_messages() -> Vec<Information> {
     //println!("{:?}", thread::current().name());
     /*
     unsafe {
@@ -109,5 +127,9 @@ pub fn get_messages() -> Option<Vec<Information>> {
     }
     */
 
-    __MESSAGES__.lock().unwrap().remove(&thread::current().id())
+    __MESSAGES__
+        .lock()
+        .unwrap()
+        .remove(&thread::current().id())
+        .unwrap_or_default()
 }
