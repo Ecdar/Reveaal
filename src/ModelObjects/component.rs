@@ -166,7 +166,7 @@ impl Component {
         ); // Should be changed in the future to be the information logger
 
         msg!("Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
-            self.name)
+            self.name);
     }
 
     /// Replaces duplicate clock with a new

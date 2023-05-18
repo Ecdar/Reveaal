@@ -40,8 +40,20 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 }
 
 #[macro_export]
-macro_rules! msg { //TODO: Check for server or not; if server, save in table, otherwise use info (for now) --- thread::current().id()
-    ($severity:expr, subject: $subject:expr, msg: $msg:expr) => ($crate::logging::__set_info__($severity, $subject, $msg));
+macro_rules! msg { //TODO: Maybe format the information when not server
+    ($severity:expr, subject: $subject:expr, msg: $msg:expr) => ({
+        if $crate::is_server() {
+            $crate::logging::__set_info__($crate::logging::__as_information__($severity, $subject, $msg));
+        } else {
+            //println!("{:?}", $crate::logging::__as_information__($severity, $subject, $msg));
+            let lvl = match $severity {
+                0 => log::Level::Info,
+                1 => log::Level::Warn,
+                _ => unreachable!(),
+            };
+            log::log!(lvl, "{:?}", $crate::logging::__as_information__($severity, $subject, $msg));
+        }
+    });
 
 
     ($severity:expr, subject: $subject:expr, msg: $($msg:tt)+) => (msg!($severity, subject: $subject, msg: format_args!($($msg)+).to_string()));
@@ -56,25 +68,31 @@ macro_rules! msg { //TODO: Check for server or not; if server, save in table, ot
 #[doc(hidden)]
 static __MESSAGES__: Lazy<Mutex<HashMap<ThreadId, Vec<Information>>>> = Lazy::new(Mutex::default);
 
-/// Gets messages saved for other clients (through gRPC)
 #[doc(hidden)]
-pub fn __set_info__(severity: i32, subject: &str, message: String) {
-    let msg = Information {
+pub fn __as_information__(severity: i32, subject: &str, message: String) -> Information {
+    Information {
         serverity: severity,
         subject: subject.to_string(),
         message,
-    };
+    }
+}
 
+#[doc(hidden)]
+pub fn __set_info__(info: Information) {
     match __MESSAGES__.lock().unwrap().entry(thread::current().id()) {
-        Entry::Occupied(mut o) => o.get_mut().push(msg),
+        Entry::Occupied(mut o) => o.get_mut().push(info),
         Entry::Vacant(v) => {
-            v.insert(vec![msg]);
+            v.insert(vec![info]);
         }
     };
 }
 
 //static mut TEMP: i32 = 10;
 
+/// Function to get information messages
+///
+/// ### Info
+/// Will always return `None` when Reveaal is run through the CLI, only use as server.
 pub fn get_messages() -> Option<Vec<Information>> {
     //println!("{:?}", thread::current().name());
     /*

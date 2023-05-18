@@ -5,7 +5,7 @@ use reveaal::System::query_failures::QueryResult;
 
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
-    extract_system_rep, msg, parse_queries, start_grpc_server_with_tokio, xml_parser,
+    extract_system_rep, msg, parse_queries, set_server, start_grpc_server_with_tokio, xml_parser,
     ComponentLoader, JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
 };
 use std::env;
@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     */
 
     if let Some(ip_endpoint) = matches.value_of("endpoint") {
+        set_server(true);
         let thread_count: usize = match matches.value_of("thread_number") {
             Some(num_of_threads) => num_of_threads
                 .parse()
@@ -41,10 +42,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         start_grpc_server_with_tokio(ip_endpoint, cache_count, thread_count)?;
     } else {
+        set_server(false);
         start_using_cli(&matches);
     }
-    println!("{:?}", get_messages().unwrap());
-    println!("{:?}", get_messages().unwrap());
+    //println!("{:?}", get_messages().unwrap());
+    //println!("{:?}", get_messages().unwrap());
 
     Ok(())
 }

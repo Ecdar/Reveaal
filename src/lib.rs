@@ -26,6 +26,18 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     disable_clock_reduction: true,
 };
 
+static mut IS_SERVER: Option<bool> = None;
+
+pub fn set_server(is_server: bool) {
+    unsafe {
+        IS_SERVER = Some(is_server);
+    }
+}
+
+fn is_server() -> bool {
+    unsafe { IS_SERVER.expect("Server or CLI never specified") }
+}
+
 #[macro_use]
 extern crate pest_derive;
 extern crate colored;
