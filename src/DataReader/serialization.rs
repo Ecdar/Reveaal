@@ -1,8 +1,9 @@
 use crate::DataReader::parse_edge;
 use crate::DataReader::parse_invariant;
-use crate::ModelObjects::component::{
-    Component, Declarations, Edge, Location, LocationType, SyncType,
-};
+use crate::ModelObjects::component::{Component, Declarations};
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::edge::SyncType;
+use crate::ModelObjects::location::{Location, LocationType};
 use crate::ModelObjects::representations;
 use crate::Simulation::graph_layout::layout_dummy_component;
 use edbm::util::constraints::ClockIndex;

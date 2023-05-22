@@ -2,8 +2,8 @@ use edbm::zones::OwnedFederation;
 
 use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::State;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
+use crate::ModelObjects::state::State;
 use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 use std::slice::Iter;
 

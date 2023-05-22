@@ -1,5 +1,9 @@
 pub mod component;
+pub mod edge;
+pub mod location;
 pub mod queries;
 pub mod representations;
+pub mod state;
 pub mod statepair;
 pub mod system_declarations;
+pub mod transition;

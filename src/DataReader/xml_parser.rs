@@ -1,8 +1,12 @@
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
-use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::location::LocationType;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
-use crate::ModelObjects::{component, queries, representations, system_declarations};
+use crate::ModelObjects::{
+    component, edge, location, queries, representations, system_declarations,
+};
+use crate::ModelObjects::{component::Declarations, edge::SyncType};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -83,10 +87,10 @@ fn parse_xml<R: Read>(
     (xml_components, system_declarations, vec![])
 }
 
-fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<component::Location> {
-    let mut locations: Vec<component::Location> = vec![];
+fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<location::Location> {
+    let mut locations: Vec<location::Location> = vec![];
     for loc in xml_locations {
-        let location = component::Location {
+        let location = location::Location {
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
                 Some(x) => match parse_invariant::parse(x.text()) {
@@ -108,7 +112,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
 }
 
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
-    let mut edges: Vec<component::Edge> = vec![];
+    let mut edges: Vec<edge::Edge> = vec![];
     for e in xml_edges {
         let mut guard: Option<representations::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
@@ -137,7 +141,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                 _ => {}
             }
         }
-        let edge = component::Edge {
+        let edge = edge::Edge {
             id: "NotImplemented".to_string(), // We do not support edge IDs for XML right now.
             source_location: e
                 .find("source")

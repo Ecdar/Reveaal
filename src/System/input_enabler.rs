@@ -3,15 +3,16 @@ use edbm::zones::OwnedFederation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
+use crate::ModelObjects::edge::{Edge, SyncType};
 use crate::ModelObjects::representations::BoolExpression;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
     let dimension = component.declarations.get_clock_count() + 1;
-    let mut new_edges: Vec<component::Edge> = vec![];
+    let mut new_edges: Vec<Edge> = vec![];
     let input_edges = component
         .get_edges()
         .iter()
-        .filter(|edge| *edge.get_sync_type() == component::SyncType::Input);
+        .filter(|edge| *edge.get_sync_type() == SyncType::Input);
     for location in component.get_locations() {
         let mut location_inv_zone = OwnedFederation::universe(dimension);
 
@@ -76,11 +77,11 @@ pub fn make_input_enabled(component: &mut component::Component, inputs: &[String
                 continue;
             }
 
-            new_edges.push(component::Edge {
+            new_edges.push(Edge {
                 id: format!("input_{}_{}", location.get_id(), input),
                 source_location: location.get_id().to_string(),
                 target_location: location.get_id().to_string(),
-                sync_type: component::SyncType::Input,
+                sync_type: SyncType::Input,
                 guard: BoolExpression::from_disjunction(
                     &result_federation.minimal_constraints(),
                     component.get_declarations().get_clocks(),
