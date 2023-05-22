@@ -125,11 +125,11 @@ impl TransitionSystem for CompiledComponent {
         let is_input = self.inputs_contain(action);
 
         if locations.is_universal() {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         if locations.is_inconsistent() && is_input {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         let mut transitions = vec![];
