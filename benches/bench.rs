@@ -5,7 +5,7 @@ pub mod flamegraph;
 
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 
-static PATH: &str = "samples/json/EcdarUniversity";
+const PATH: &str = "samples/json/EcdarUniversity";
 
 fn bench_refinement(c: &mut Criterion, query: &str) {
     c.bench_function(query, |b| {

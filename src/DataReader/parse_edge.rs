@@ -30,7 +30,6 @@ pub struct Update {
     pub expression: BoolExpression,
 }
 
-#[allow(dead_code)]
 impl Update {
     pub fn get_expression(&self) -> &BoolExpression {
         &self.expression

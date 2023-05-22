@@ -3,6 +3,8 @@ extern crate pest;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
 
+// Temporarily allow deprecated structs as they are fixed in a PR but not yet released
+#[allow(deprecated)]
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
@@ -16,7 +18,7 @@ pub struct QueryParser;
 ///For clarification see documentation on pest crate
 
 pub fn parse_to_query(query: &str) -> Vec<Query> {
-    let queries = parse_to_expression_tree(query).unwrap();
+    let queries = parse_to_expression_tree(query).expect("parsing the query should not fail");
     queries
         .into_iter()
         .map(|q| Query {
@@ -109,6 +111,8 @@ pub fn build_query_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpressi
     }
 }
 
+// Temporarily allow deprecated functions as they are fixed in a PR but not yet released
+#[allow(deprecated)]
 pub fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
     match pair.as_rule() {
         Rule::term => build_term_from_pair(pair),

@@ -11,7 +11,7 @@ use reveaal::{
 };
 use tonic::Response;
 
-static PATH: &str = "samples/json/EcdarUniversity";
+const PATH: &str = "samples/json/EcdarUniversity";
 
 fn create_step_request(
     component_names: &[&str],

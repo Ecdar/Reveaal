@@ -33,13 +33,13 @@ pub struct Quotient {
 }
 
 impl Quotient {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(
+    /// Create a new [TransitionSystem] that is the quotient of `T` and `S`.
+    pub fn new_ts(
         T: TransitionSystemPtr,
         S: TransitionSystemPtr,
         new_clock_index: ClockIndex,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         if !S.get_output_actions().is_disjoint(&T.get_input_actions()) {
             ActionFailure::not_disjoint(
                 (S.as_ref(), S.get_output_actions()),
