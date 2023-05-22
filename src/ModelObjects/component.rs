@@ -160,13 +160,6 @@ impl Component {
                 .is_none()
         });
 
-        /*
-        info!(
-            "Removed Clock '{name}' (index {index}) has been removed from component {}",
-            self.name
-        );
-        */
-
         msg!(information::Severity::Info, subject: "Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name);
     }
@@ -189,13 +182,6 @@ impl Component {
             let old = *index;
             *index = global_index;
             // TODO: Maybe log the global clock name instead of index
-            /*
-                       info!(
-                           "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
-                           self.name
-                       );
-            */
-
             msg!(information::Severity::Info, subject: "Clock Reduction",
                 msg: "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
                 self.name
