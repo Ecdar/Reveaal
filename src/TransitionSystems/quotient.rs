@@ -373,7 +373,7 @@ impl TransitionSystem for Quotient {
     fn get_initial_state(&self) -> Option<State> {
         let init_loc = self.get_initial_location()?;
         let zone = OwnedFederation::init(self.dim);
-        Some(State::create(init_loc, zone))
+        Some(State::new(init_loc, zone))
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {

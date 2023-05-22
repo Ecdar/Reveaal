@@ -139,7 +139,7 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
     let initial_locations_1 = initial_locations_1.unwrap();
     let initial_locations_2 = initial_locations_2.unwrap();
 
-    let mut initial_pair = StatePair::create(
+    let mut initial_pair = StatePair::from_locations(
         dimensions,
         initial_locations_1.clone(),
         initial_locations_2.clone(),
