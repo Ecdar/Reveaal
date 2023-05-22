@@ -41,7 +41,7 @@ fn is_server() -> bool {
 
 #[cfg(test)]
 fn is_server() -> bool {
-    false
+    true
 }
 
 #[macro_use]

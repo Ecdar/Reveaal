@@ -1,4 +1,4 @@
-use crate::ProtobufServer::services::query_response::Information;
+use crate::ProtobufServer::services::query_response::{information, Information};
 use chrono::Local;
 use colored::{ColoredString, Colorize};
 use log::SetLoggerError;
@@ -12,19 +12,17 @@ use std::thread;
 use std::thread::ThreadId;
 
 #[cfg(feature = "logging")]
-fn colored_level(level: log::Level) -> ColoredString {
-    match level {
-        log::Level::Error => level.to_string().red(),
-        log::Level::Warn => level.to_string().yellow(),
-        log::Level::Info => level.to_string().cyan(),
-        log::Level::Debug => level.to_string().blue(),
-        log::Level::Trace => level.to_string().magenta(),
-    }
-}
-
-#[cfg(feature = "logging")]
 /// Sets up the logging
 pub fn setup_logger() -> Result<(), SetLoggerError> {
+    fn colored_level(level: log::Level) -> ColoredString {
+        match level {
+            log::Level::Error => level.to_string().red(),
+            log::Level::Warn => level.to_string().yellow(),
+            log::Level::Info => level.to_string().cyan(),
+            log::Level::Debug => level.to_string().blue(),
+            log::Level::Trace => level.to_string().magenta(),
+        }
+    }
     env_logger::Builder::from_env(env_logger::Env::default())
         .format(|buf, record| {
             writeln!(
@@ -62,22 +60,18 @@ macro_rules! msg { //TODO: Maybe format the information when not server
     ($($msg:tt)+) => (msg!(0, subject: "general", msg: format_args!($($msg)+).to_string()));
 }
 
-#[doc(hidden)]
-pub fn __severity__(severity: i32) -> log::Level {
-    match severity {
-        0 => log::Level::Info,
-        1 => log::Level::Warn,
-        _ => unreachable!(),
-    }
-}
-
 impl Display for Information {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let lvl = match information::Severity::from_i32(self.severity) {
+            Some(s @ information::Severity::Warning) => s.as_str_name().yellow(),
+            Some(s @ information::Severity::Info) => s.as_str_name().cyan(),
+            None => panic!("Couldn't parse severity"),
+        };
         write!(
             f,
             "[{} {}: {}] - {}",
             Local::now().format("%H:%M:%S").to_string().cyan(),
-            colored_level(__severity__(self.serverity)),
+            lvl,
             self.subject,
             self.message
         )
@@ -90,7 +84,7 @@ static __MESSAGES__: Lazy<Mutex<HashMap<ThreadId, Vec<Information>>>> = Lazy::ne
 #[doc(hidden)]
 pub fn __as_information__(severity: i32, subject: &str, message: String) -> Information {
     Information {
-        serverity: severity,
+        severity,
         subject: subject.to_string(),
         message,
     }
@@ -106,30 +100,46 @@ pub fn __set_info__(info: Information) {
     };
 }
 
-//static mut TEMP: i32 = 10;
-
 /// Function to get information messages.
 /// ### Info
 /// Will always return `None` when Reveaal is run through the CLI, only use as server.
 pub fn get_messages() -> Vec<Information> {
-    //println!("{:?}", thread::current().name());
-    /*
-    unsafe {
-        println!("{}", TEMP);
-    }
-    thread::spawn(|| unsafe {
-        TEMP = 20;
-        println!("{}", TEMP);
-    });
-    thread::sleep(Duration::from_millis(1000));
-    unsafe {
-        println!("{}", TEMP);
-    }
-    */
-
     __MESSAGES__
         .lock()
         .unwrap()
         .remove(&thread::current().id())
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::logging::get_messages;
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn multithreading_msg_test() {
+        msg!("{:?}", thread::current().id());
+        for _ in 1..=10 {
+            thread::spawn(|| {
+                msg!("{:?}", thread::current().id());
+                thread::sleep(Duration::from_millis(100));
+                let msgs = get_messages();
+                assert_eq!(msgs.len(), 1);
+                assert_eq!(get_messages().len(), 0);
+                assert_eq!(
+                    msgs.first().unwrap().message,
+                    format!("{:?}", thread::current().id())
+                );
+            });
+        }
+        thread::sleep(Duration::from_millis(200));
+        let msgs = get_messages();
+        assert_eq!(msgs.len(), 1);
+        assert_eq!(get_messages().len(), 0);
+        assert_eq!(
+            msgs.first().unwrap().message,
+            format!("{:?}", thread::current().id())
+        );
+    }
 }
