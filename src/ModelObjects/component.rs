@@ -12,6 +12,7 @@ use edbm::util::constraints::ClockIndex;
 
 use crate::msg;
 use crate::ModelObjects::representations::BoolExpression;
+use crate::ProtobufServer::services::query_response::information;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
 use edbm::zones::OwnedFederation;
@@ -166,7 +167,7 @@ impl Component {
         );
         */
 
-        msg!("Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
+        msg!(information::Severity::Info, subject: "Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name);
     }
 
@@ -195,7 +196,7 @@ impl Component {
                        );
             */
 
-            msg!("Clock Reduction",
+            msg!(information::Severity::Info, subject: "Clock Reduction",
                 msg: "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
                 self.name
             );

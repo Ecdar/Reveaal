@@ -35,11 +35,11 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 macro_rules! msg {
     ($severity:expr, subject: $subject:expr, msg: $msg:expr) => ({
         if $crate::is_server() {
-            $crate::logging::message::__set_info__($crate::logging::message::__as_information__($severity, $subject, $msg));
+            $crate::logging::message::__set_info__($crate::logging::message::__as_information__($severity.into(), $subject, $msg));
         } else {
             //let lvl = $crate::logging::__severity__($severity);
             //log::log!(lvl, "{}", $crate::logging::__as_information__($severity, $subject, $msg));
-            println!("{}", $crate::logging::message::__as_information__($severity, $subject, $msg));
+            println!("{}", $crate::logging::message::__as_information__($severity.into(), $subject, $msg));
         }
     });
 
