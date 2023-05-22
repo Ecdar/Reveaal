@@ -1,3 +1,4 @@
+use log::warn;
 use lru::LruCache;
 
 use crate::component::Component;
@@ -60,6 +61,11 @@ impl ModelCache {
     ///
     /// * `components_hash` - A hash of the components
     pub fn get_model(&self, user_id: i32, components_hash: u32) -> Option<ComponentContainer> {
+        if components_hash == 0 {
+            warn!("The component has no hash (0), so we assume it should not be cached.");
+            return None;
+        }
+
         let mut cache = self.cache.lock().unwrap();
 
         let components = cache.get(&user_id);
@@ -87,6 +93,11 @@ impl ModelCache {
         components_hash: u32,
         container_components: Arc<ComponentsMap>,
     ) -> ComponentContainer {
+        if components_hash == 0 {
+            warn!("The component has no hash (0), so we assume it should not be cached.");
+            return ComponentContainer::new(container_components);
+        }
+
         self.cache.lock().unwrap().put(
             user_id,
             ComponentTuple {
