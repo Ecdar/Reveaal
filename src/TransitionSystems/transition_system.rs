@@ -256,7 +256,7 @@ pub fn components_to_transition_system(
     components: Vec<Component>,
     composition: &str,
 ) -> TransitionSystemPtr {
-    let mut component_container = ComponentContainer::from_components(components);
+    let mut component_container = ComponentContainer::from(components);
     component_loader_to_transition_system(&mut component_container, composition)
 }
 

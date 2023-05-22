@@ -407,7 +407,7 @@ impl Transition {
         }
     }
 
-    pub fn from(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
+    pub fn from_component_and_edge(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
         //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;

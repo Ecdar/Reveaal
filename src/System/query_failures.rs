@@ -505,7 +505,7 @@ pub struct DeterminismFailure {
 
 impl DeterminismFailure {
     /// Creates a new [DeterminismFailure] from a `system`, `action`, and `state`.
-    pub fn from(
+    pub fn from_system_and_action(
         system: &dyn TransitionSystem,
         action: impl Into<String>,
         state: &State,
