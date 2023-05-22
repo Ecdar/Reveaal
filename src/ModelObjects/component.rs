@@ -327,8 +327,17 @@ impl State {
 
     pub fn extrapolate_max_bounds(&mut self, system: &dyn TransitionSystem) {
         let bounds = system.get_local_max_bounds(&self.decorated_locations);
-        let zone = self.take_zone().extrapolate_max_bounds(&bounds);
-        self.set_zone(zone);
+        self.update_zone(|zone| zone.extrapolate_max_bounds(&bounds))
+    }
+
+    pub fn extrapolate_max_bounds_with_extra_bounds(
+        &mut self,
+        system: &dyn TransitionSystem,
+        extra_bounds: &Bounds,
+    ) {
+        let mut bounds = system.get_local_max_bounds(&self.decorated_locations);
+        bounds.add_bounds(extra_bounds);
+        self.update_zone(|zone| zone.extrapolate_max_bounds(&bounds))
     }
 }
 
