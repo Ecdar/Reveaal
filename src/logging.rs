@@ -1,15 +1,8 @@
-use crate::ProtobufServer::services::query_response::{information, Information};
 use chrono::Local;
 use colored::{ColoredString, Colorize};
 use log::SetLoggerError;
-use once_cell::sync::Lazy;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::io::Write;
-use std::sync::Mutex;
 use std::thread;
-use std::thread::ThreadId;
 
 #[cfg(feature = "logging")]
 /// Sets up the logging
@@ -39,14 +32,14 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 }
 
 #[macro_export]
-macro_rules! msg { //TODO: Maybe format the information when not server
+macro_rules! msg {
     ($severity:expr, subject: $subject:expr, msg: $msg:expr) => ({
         if $crate::is_server() {
-            $crate::logging::__set_info__($crate::logging::__as_information__($severity, $subject, $msg));
+            $crate::logging::message::__set_info__($crate::logging::message::__as_information__($severity, $subject, $msg));
         } else {
             //let lvl = $crate::logging::__severity__($severity);
             //log::log!(lvl, "{}", $crate::logging::__as_information__($severity, $subject, $msg));
-            println!("{}", $crate::logging::__as_information__($severity, $subject, $msg));
+            println!("{}", $crate::logging::message::__as_information__($severity, $subject, $msg));
         }
     });
 
@@ -60,86 +53,101 @@ macro_rules! msg { //TODO: Maybe format the information when not server
     ($($msg:tt)+) => (msg!(0, subject: "general", msg: format_args!($($msg)+).to_string()));
 }
 
-impl Display for Information {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let lvl = match information::Severity::from_i32(self.severity) {
-            Some(s @ information::Severity::Warning) => s.as_str_name().yellow(),
-            Some(s @ information::Severity::Info) => s.as_str_name().cyan(),
-            None => panic!("Couldn't parse severity"),
-        };
-        write!(
-            f,
-            "[{} {}: {}] - {}",
-            Local::now().format("%H:%M:%S").to_string().cyan(),
-            lvl,
-            self.subject,
-            self.message
-        )
-    }
-}
-
-#[doc(hidden)]
-static __MESSAGES__: Lazy<Mutex<HashMap<ThreadId, Vec<Information>>>> = Lazy::new(Mutex::default);
-
-#[doc(hidden)]
-pub fn __as_information__(severity: i32, subject: &str, message: String) -> Information {
-    Information {
-        severity,
-        subject: subject.to_string(),
-        message,
-    }
-}
-
-#[doc(hidden)]
-pub fn __set_info__(info: Information) {
-    match __MESSAGES__.lock().unwrap().entry(thread::current().id()) {
-        Entry::Occupied(mut o) => o.get_mut().push(info),
-        Entry::Vacant(v) => {
-            v.insert(vec![info]);
-        }
-    };
-}
-
 /// Function to get information messages.
 /// ### Info
 /// Will always return `None` when Reveaal is run through the CLI, only use as server.
-pub fn get_messages() -> Vec<Information> {
-    __MESSAGES__
+pub fn get_messages() -> Vec<crate::ProtobufServer::services::query_response::Information> {
+    message::__MESSAGES__
         .lock()
         .unwrap()
         .remove(&thread::current().id())
         .unwrap_or_default()
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::logging::get_messages;
+#[doc(hidden)]
+pub mod message {
+    use crate::ProtobufServer::services::query_response::{information, Information};
+    use chrono::Local;
+    use colored::Colorize;
+    use once_cell::sync::Lazy;
+    use std::collections::hash_map::Entry;
+    use std::collections::HashMap;
+    use std::fmt::{Display, Formatter};
+    use std::sync::Mutex;
     use std::thread;
-    use std::time::Duration;
+    use std::thread::ThreadId;
 
-    #[test]
-    fn multithreading_msg_test() {
-        msg!("{:?}", thread::current().id());
-        for _ in 1..=10 {
-            thread::spawn(|| {
-                msg!("{:?}", thread::current().id());
-                thread::sleep(Duration::from_millis(100));
-                let msgs = get_messages();
-                assert_eq!(msgs.len(), 1);
-                assert_eq!(get_messages().len(), 0);
-                assert_eq!(
-                    msgs.first().unwrap().message,
-                    format!("{:?}", thread::current().id())
-                );
-            });
+    impl Display for Information {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            let lvl = match information::Severity::from_i32(self.severity) {
+                Some(s @ information::Severity::Warning) => s.as_str_name().yellow(),
+                Some(s @ information::Severity::Info) => s.as_str_name().cyan(),
+                None => panic!("Couldn't parse severity"),
+            };
+            write!(
+                f,
+                "[{} {}: {}] - {}",
+                Local::now().format("%H:%M:%S").to_string().cyan(),
+                lvl,
+                self.subject,
+                self.message
+            )
         }
-        thread::sleep(Duration::from_millis(200));
-        let msgs = get_messages();
-        assert_eq!(msgs.len(), 1);
-        assert_eq!(get_messages().len(), 0);
-        assert_eq!(
-            msgs.first().unwrap().message,
-            format!("{:?}", thread::current().id())
-        );
+    }
+
+    #[doc(hidden)]
+    pub static __MESSAGES__: Lazy<Mutex<HashMap<ThreadId, Vec<Information>>>> =
+        Lazy::new(Mutex::default);
+
+    #[doc(hidden)]
+    pub fn __as_information__(severity: i32, subject: &str, message: String) -> Information {
+        Information {
+            severity,
+            subject: subject.to_string(),
+            message,
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn __set_info__(info: Information) {
+        match __MESSAGES__.lock().unwrap().entry(thread::current().id()) {
+            Entry::Occupied(mut o) => o.get_mut().push(info),
+            Entry::Vacant(v) => {
+                v.insert(vec![info]);
+            }
+        };
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::logging::get_messages;
+        use std::thread;
+        use std::time::Duration;
+
+        #[test]
+        fn multithreading_msg_test() {
+            msg!("{:?}", thread::current().id());
+            for _ in 1..=10 {
+                thread::spawn(|| {
+                    msg!("{:?}", thread::current().id());
+                    thread::sleep(Duration::from_millis(100));
+                    let msgs = get_messages();
+                    assert_eq!(msgs.len(), 1);
+                    assert_eq!(get_messages().len(), 0);
+                    assert_eq!(
+                        msgs.first().unwrap().message,
+                        format!("{:?}", thread::current().id())
+                    );
+                });
+            }
+            thread::sleep(Duration::from_millis(200));
+            let msgs = get_messages();
+            assert_eq!(msgs.len(), 1);
+            assert_eq!(get_messages().len(), 0);
+            assert_eq!(
+                msgs.first().unwrap().message,
+                format!("{:?}", thread::current().id())
+            );
+        }
     }
 }
