@@ -69,7 +69,6 @@ pub mod message {
     use crate::ProtobufServer::services::query_response::{information, Information};
     use chrono::Local;
     use colored::Colorize;
-    use once_cell::sync::Lazy;
     use std::collections::hash_map::Entry;
     use std::collections::HashMap;
     use std::fmt::{Display, Formatter};
@@ -95,10 +94,9 @@ pub mod message {
         }
     }
 
-    #[doc(hidden)]
-    pub static __MESSAGES__: Lazy<Mutex<HashMap<ThreadId, Vec<Information>>>> =
-        Lazy::new(Mutex::default);
-
+    lazy_static! {
+        pub static ref __MESSAGES__: Mutex<HashMap<ThreadId, Vec<Information>>> = Mutex::default();
+    }
     #[doc(hidden)]
     pub fn __as_information__(severity: i32, subject: &str, message: String) -> Information {
         Information {

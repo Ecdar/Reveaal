@@ -48,6 +48,7 @@ fn is_server() -> bool {
 extern crate pest_derive;
 extern crate colored;
 extern crate core;
+extern crate lazy_static;
 extern crate serde;
 extern crate serde_xml_rs;
 extern crate simple_error;
