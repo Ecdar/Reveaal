@@ -208,12 +208,11 @@ impl Component {
         // The invariants containing the clock are overwritten to `false`.
         // This can be done since we assume that all locations with invariants involving
         // the given clock is not reachable in some composite system.
-        self.locations.retain(|l| {
-            l.invariant
-                .as_ref()
-                .filter(|i| i.has_varname(&name))
-                .is_none()
-        });
+        self.locations
+            .iter_mut()
+            .filter_map(|l| l.invariant.as_mut())
+            .filter(|i| i.has_varname(&name))
+            .for_each(|i| *i = BoolExpression::Bool(false));
 
         info!(
             "Removed Clock '{name}' (index {index}) has been removed from component {}",
