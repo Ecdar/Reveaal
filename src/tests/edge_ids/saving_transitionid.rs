@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod saving_transitionid_test {
-    use crate::System::save_component::{combine_components, PruningStrategy};
+    use crate::System::save_component::{combine_automata, PruningStrategy};
     use crate::{
         tests::reachability::helper_functions::reachability_test_helper_functions,
         ModelObjects::representations::QueryExpression,
@@ -42,7 +42,7 @@ mod saving_transitionid_test {
             FOLDER_PATH,
         );
 
-        let mut comp = combine_components(&system, PruningStrategy::NoPruning);
+        let mut comp = combine_automata(&system, PruningStrategy::NoPruning);
 
         comp.remake_edge_ids();
 

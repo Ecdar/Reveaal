@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod test {
     use crate::extract_system_rep::SystemRecipe;
-    use crate::DataReader::json_reader::read_json_component;
+    use crate::DataReader::json_reader::read_json_automaton;
     use crate::System::input_enabler;
     use crate::TransitionSystems::transition_system::ClockReductionInstruction;
     use crate::TransitionSystems::TransitionSystemPtr;
@@ -14,8 +14,8 @@ pub mod test {
     pub fn read_json_component_and_process(
         project_path: &str,
         component_name: &str,
-    ) -> component::Component {
-        let mut component = read_json_component(project_path, component_name);
+    ) -> component::Automaton {
+        let mut component = read_json_automaton(project_path, component_name);
         let inputs = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);
         component
@@ -79,8 +79,8 @@ pub mod test {
         let mut component_loader = project_loader.to_comp_loader();
 
         let mut next_clock_index: usize = 0;
-        let mut component1 = component_loader.get_component(comp1).clone();
-        let mut component2 = component_loader.get_component(comp2).clone();
+        let mut component1 = component_loader.get_automaton(comp1).clone();
+        let mut component2 = component_loader.get_automaton(comp2).clone();
 
         component1.set_clock_indices(&mut next_clock_index);
         component2.set_clock_indices(&mut next_clock_index);
@@ -88,8 +88,8 @@ pub mod test {
         let dimensions =
             component1.declarations.clocks.len() + component2.declarations.clocks.len();
 
-        let sr_component1 = Box::new(SystemRecipe::Component(Box::new(component1)));
-        let sr_component2 = Box::new(SystemRecipe::Component(Box::new(component2)));
+        let sr_component1 = Box::new(SystemRecipe::Automaton(Box::new(component1)));
+        let sr_component2 = Box::new(SystemRecipe::Automaton(Box::new(component2)));
 
         let conjunction = SystemRecipe::Conjunction(sr_component1, sr_component2);
         (dimensions, conjunction)
@@ -106,8 +106,8 @@ pub mod test {
         let mut component_loader = project_loader.to_comp_loader();
 
         let mut next_clock_index: usize = 0;
-        let mut component1 = component_loader.get_component(comp1).clone();
-        let mut component2 = component_loader.get_component(comp2).clone();
+        let mut component1 = component_loader.get_automaton(comp1).clone();
+        let mut component2 = component_loader.get_automaton(comp2).clone();
 
         component1.set_clock_indices(&mut next_clock_index);
         component2.set_clock_indices(&mut next_clock_index);
@@ -115,8 +115,8 @@ pub mod test {
         let dimensions =
             component1.declarations.clocks.len() + component2.declarations.clocks.len();
 
-        let sr_component1 = Box::new(SystemRecipe::Component(Box::new(component1)));
-        let sr_component2 = Box::new(SystemRecipe::Component(Box::new(component2)));
+        let sr_component1 = Box::new(SystemRecipe::Automaton(Box::new(component1)));
+        let sr_component2 = Box::new(SystemRecipe::Automaton(Box::new(component2)));
 
         let conjunction = SystemRecipe::Composition(sr_component1, sr_component2);
 

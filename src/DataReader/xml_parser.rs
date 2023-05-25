@@ -1,8 +1,10 @@
+use crate::component::{Automaton, Location};
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
+use crate::ModelObjects::queries;
+use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
-use crate::ModelObjects::{component, queries, representations, system_declarations};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -17,11 +19,7 @@ pub fn is_xml_project(project_path: &str) -> bool {
 ///Used to parse systems described in xml
 pub(crate) fn parse_xml_from_file(
     fileName: &str,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+) -> (Vec<Automaton>, SystemDeclarations, Vec<queries::Query>) {
     //Open file and read xml
     let file = File::open(fileName).unwrap();
     let reader = BufReader::new(file);
@@ -31,40 +29,30 @@ pub(crate) fn parse_xml_from_file(
 
 pub(crate) fn parse_xml_from_str(
     xml: &str,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+) -> (Vec<Automaton>, SystemDeclarations, Vec<queries::Query>) {
     let reader = BufReader::new(xml.as_bytes());
 
     parse_xml(reader)
 }
 
-fn parse_xml<R: Read>(
-    xml_data: R,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+fn parse_xml<R: Read>(xml_data: R) -> (Vec<Automaton>, SystemDeclarations, Vec<queries::Query>) {
     let root = Element::from_reader(xml_data).unwrap();
 
-    //storage of components
-    let mut xml_components: Vec<component::Component> = vec![];
+    //storage of automata
+    let mut xml_automata: Vec<Automaton> = vec![];
 
-    for xml_comp in root.find_all("template") {
-        let declarations = match xml_comp.find("declaration") {
+    for xml_automaton in root.find_all("template") {
+        let declarations = match xml_automaton.find("declaration") {
             Some(e) => parse_declarations(e.text()),
             None => parse_declarations(""),
         };
-        let edges = collect_edges(xml_comp.find_all("transition"));
-        let comp = component::Component {
-            name: xml_comp.find("name").unwrap().text().parse().unwrap(),
+        let edges = collect_edges(xml_automaton.find_all("transition"));
+        let comp = Automaton {
+            name: xml_automaton.find("name").unwrap().text().parse().unwrap(),
             declarations,
             locations: collect_locations(
-                xml_comp.find_all("location"),
-                xml_comp
+                xml_automaton.find_all("location"),
+                xml_automaton
                     .find("init")
                     .expect("No initial location")
                     .get_attr("ref")
@@ -72,7 +60,7 @@ fn parse_xml<R: Read>(
             ),
             edges,
         };
-        xml_components.push(comp);
+        xml_automata.push(comp);
     }
 
     let system_declarations = SystemDeclarations {
@@ -80,13 +68,13 @@ fn parse_xml<R: Read>(
         declarations: decode_sync_type(root.find("system").unwrap().text()),
     };
 
-    (xml_components, system_declarations, vec![])
+    (xml_automata, system_declarations, vec![])
 }
 
-fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<component::Location> {
-    let mut locations: Vec<component::Location> = vec![];
+fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<Location> {
+    let mut locations: Vec<Location> = vec![];
     for loc in xml_locations {
-        let location = component::Location {
+        let location = Location {
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
                 Some(x) => match parse_invariant::parse(x.text()) {
@@ -108,7 +96,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
 }
 
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
-    let mut edges: Vec<component::Edge> = vec![];
+    let mut edges: Vec<Edge> = vec![];
     for e in xml_edges {
         let mut guard: Option<representations::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
@@ -137,7 +125,7 @@ fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
                 _ => {}
             }
         }
-        let edge = component::Edge {
+        let edge = Edge {
             id: "NotImplemented".to_string(), // We do not support edge IDs for XML right now.
             source_location: e
                 .find("source")
@@ -219,9 +207,9 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
     let decls: Vec<String> = global_decl.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut output_actions: HashMap<String, Vec<String>> = HashMap::new();
-    let mut components: Vec<String> = vec![];
+    let mut automata: Vec<String> = vec![];
 
-    let mut component_names: Vec<String> = vec![];
+    let mut automata_names: Vec<String> = vec![];
 
     for declaration in &decls {
         //skip comments
@@ -231,32 +219,32 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
 
         if !declaration.trim().is_empty() {
             if first_run {
-                let component_decls = declaration;
+                let automata_decls = declaration;
 
-                component_names = component_decls
+                automata_names = automata_decls
                     .split(' ')
                     .map(|s| s.chars().filter(|c| !c.is_whitespace()).collect())
                     .collect();
 
-                if component_names[0] == "system" {
+                if automata_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
-                    for name in component_names.iter_mut().skip(1) {
+                    for name in automata_names.iter_mut().skip(1) {
                         let s = name.replace(',', "");
                         let s_cleaned = s.replace(';', "");
                         *name = s_cleaned.clone();
-                        components.push(s_cleaned);
+                        automata.push(s_cleaned);
                     }
                     first_run = false;
                 } else {
-                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)
+                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", automata_names)
                 }
             }
 
             let split_string: Vec<String> = declaration.split(' ').map(|s| s.into()).collect();
             if split_string[0].as_str() == "IO" {
-                let component_name = split_string[1].clone();
+                let automaton_name = split_string[1].clone();
 
-                if component_names.contains(&component_name) {
+                if automata_names.contains(&automaton_name) {
                     for split_str in split_string.iter().skip(2) {
                         let mut s = split_str.replace('{', "");
                         s = s.replace('\r', "");
@@ -269,19 +257,19 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                             }
                             if action.ends_with('?') {
                                 let r = action.replace('?', "");
-                                if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
+                                if let Some(Channel_vec) = input_actions.get_mut(&automaton_name) {
                                     Channel_vec.push(r)
                                 } else {
                                     let Channel_vec = vec![r];
-                                    input_actions.insert(component_name.clone(), Channel_vec);
+                                    input_actions.insert(automaton_name.clone(), Channel_vec);
                                 }
                             } else if action.ends_with('!') {
                                 let r = action.replace('!', "");
-                                if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
+                                if let Some(Channel_vec) = output_actions.get_mut(&automaton_name) {
                                     Channel_vec.push(r.clone())
                                 } else {
                                     let Channel_vec = vec![r.clone()];
-                                    output_actions.insert(component_name.clone(), Channel_vec);
+                                    output_actions.insert(automaton_name.clone(), Channel_vec);
                                 }
                             } else {
                                 panic!("Channel type not defined for Channel {:?}", action)
@@ -289,13 +277,13 @@ fn decode_sync_type(global_decl: &str) -> SystemSpecification {
                         }
                     }
                 } else {
-                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    panic!("Was not able to find automaton name: {:?} in declared automata names: {:?}", automaton_name, automata_names)
                 }
             }
         }
     }
     SystemSpecification {
-        components,
+        automata,
         input_actions,
         output_actions,
     }

@@ -13,7 +13,7 @@ pub enum TransitionID {
 }
 
 impl TransitionID {
-    /// Returns a vector of transitionIDs for all components involved in the transition
+    /// Returns a vector of transitionIDs for all automata involved in the transition
     /// For example
     /// ```
     /// use crate::reveaal::TransitionSystems::TransitionID;
@@ -23,7 +23,7 @@ impl TransitionID {
     /// let leaves = id.get_leaves();
     /// assert_eq!(leaves, vec![vec![TransitionID::Simple("a".to_string())], vec![TransitionID::Simple("b".to_string())]])
     /// ```
-    /// Leaves will be {{a}, {b}}, as a is from the first component and b is from the second component
+    /// Leaves will be `{{a}, {b}}`, as `a` is from the first automaton and `b` is from the second automaton
     pub fn get_leaves(&self) -> Vec<Vec<TransitionID>> {
         let mut result = Vec::new();
         self.get_leaves_helper(&mut result, 0);
@@ -61,7 +61,7 @@ impl TransitionID {
         }
     }
 
-    /// Takes a path of TransitionIDs, and splits them into seperate paths for each component
+    /// Takes a path of TransitionIDs, and splits them into seperate paths for each automaton
     /// For example
     /// ```
     /// use crate::reveaal::TransitionSystems::TransitionID;
@@ -74,8 +74,8 @@ impl TransitionID {
     ///             Box::new(TransitionID::Simple("c".to_string())),
     ///             Box::new(TransitionID::Simple("d".to_string())))
     ///     ];
-    ///  let component_paths = TransitionID::split_into_component_lists(&path);
-    ///  assert_eq!(component_paths, Ok(
+    ///  let automta_paths = TransitionID::split_into_automata_lists(&path);
+    ///  assert_eq!(automta_paths, Ok(
     ///     vec![
     ///         vec![
     ///             vec![TransitionID::Simple("a".to_string())],
@@ -84,8 +84,8 @@ impl TransitionID {
     ///             vec![TransitionID::Simple("b".to_string())],
     ///             vec![TransitionID::Simple("d".to_string())]]]));
     /// ```
-    /// component_paths will be {{a, c}, {b, d}}, representing the paths for the two components
-    pub fn split_into_component_lists(
+    /// `automata_paths` will be `{{a, c}, {b, d}}`, representing the paths for the two automata
+    pub fn split_into_automata_lists(
         path: &Vec<TransitionID>,
     ) -> Result<Vec<Vec<Vec<TransitionID>>>, String> {
         if path.is_empty() {
@@ -97,11 +97,11 @@ impl TransitionID {
 
         for transitionID in path {
             let leaves = transitionID.get_leaves();
-            for (componentIndex, transition) in leaves.iter().enumerate() {
+            for (automaton_index, transition) in leaves.iter().enumerate() {
                 if leaves.len() != amount {
-                    return Err(format!("Could not split into components because first transition has {} components but {:?} has {} components", amount, leaves, leaves.len()));
+                    return Err(format!("Could not split into automata because first transition has {} automata but {:?} has {} automata", amount, leaves, leaves.len()));
                 }
-                paths[componentIndex].push(
+                paths[automaton_index].push(
                     transition
                         .iter()
                         .cloned()

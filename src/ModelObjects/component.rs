@@ -2,7 +2,7 @@ use crate::DataReader::parse_edge;
 
 use crate::DataReader::serialization::{
     decode_declarations, decode_guard, decode_invariant, decode_location_type, decode_sync,
-    decode_sync_type, decode_update, DummyComponent, DummyEdge, DummyLocation,
+    decode_sync_type, decode_update, DummyAutomaton, DummyEdge, DummyLocation,
 };
 
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
@@ -18,10 +18,12 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-/// The basic struct used to represent components read from either Json or xml
+
+/// The basic struct used to represent automata read from either Json or xml.
+/// It acts as the automata-representation in the code
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
-#[serde(into = "DummyComponent")]
-pub struct Component {
+#[serde(into = "DummyAutomaton")]
+pub struct Automaton {
     pub name: String,
 
     #[serde(
@@ -33,13 +35,13 @@ pub struct Component {
     pub edges: Vec<Edge>,
 }
 
-impl DeclarationProvider for Component {
+impl DeclarationProvider for Automaton {
     fn get_declarations(&self) -> &Declarations {
         &self.declarations
     }
 }
 
-impl Component {
+impl Automaton {
     pub fn set_clock_indices(&mut self, indices: &mut ClockIndex) {
         self.declarations.set_clock_indices(*indices);
         *indices += self.declarations.get_clock_count();
@@ -162,12 +164,12 @@ impl Component {
         max_bounds
     }
 
-    /// Find [`Edge`] in the component given the edges `id`.
+    /// Find [`Edge`] in the automaton given the edges `id`.
     pub fn find_edge_from_id(&self, id: &str) -> Option<&Edge> {
         self.get_edges().iter().find(|e| e.id.contains(id))
     }
 
-    /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
+    /// Redoes the automatons Edge IDs by giving them new unique IDs based on their index.
     pub fn remake_edge_ids(&mut self) {
         // Give all edges a name
         for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
@@ -204,7 +206,7 @@ impl Component {
                 }
             });
         info!(
-            "Removed Clock '{name}' (index {index}) has been removed from component {}",
+            "Removed Clock '{name}' (index {index}) has been removed from automaton {}",
             self.name
         ); // Should be changed in the future to be the information logger
     }
@@ -228,7 +230,7 @@ impl Component {
             *index = global_index;
             // TODO: Maybe log the global clock name instead of index
             info!(
-                "Replaced Clock '{name}' (index {old}) with {global_index} in component {}",
+                "Replaced Clock '{name}' (index {old}) with {global_index} in automaton {}",
                 self.name
             ); // Should be changed in the future to be the information logger
         }
@@ -386,7 +388,7 @@ pub enum SyncType {
     Output,
 }
 
-/// Represents a single transition from taking edges in multiple components
+/// Represents a single transition from taking edges in multiple automata
 #[derive(Debug, Clone)]
 pub struct Transition {
     /// The ID of the transition, based on the edges it is created from.
@@ -407,7 +409,7 @@ impl Transition {
         }
     }
 
-    pub fn from(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
+    pub fn from(comp: &Automaton, edge: &Edge, dim: ClockIndex) -> Transition {
         //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
@@ -531,7 +533,7 @@ impl Transition {
     }
 
     pub fn combine_edge_guards(
-        edges: &Vec<(&Component, &Edge)>,
+        edges: &Vec<(&Automaton, &Edge)>,
         dim: ClockIndex,
     ) -> OwnedFederation {
         let mut fed = OwnedFederation::universe(dim);
@@ -585,7 +587,7 @@ impl fmt::Display for Transition {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyEdge")]
 pub struct Edge {
-    /// Uniquely identifies the edge within its component
+    /// Uniquely identifies the edge within its automaton
     pub id: String,
     #[serde(rename = "sourceLocation")]
     pub source_location: String,

@@ -7,7 +7,7 @@ pub mod util {
     use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::query_failures::ConsistencyResult;
     use crate::System::refine;
-    use crate::System::save_component::combine_components;
+    use crate::System::save_component::combine_automata;
     use crate::System::save_component::PruningStrategy;
     use edbm::util::constraints::ClockIndex;
 
@@ -47,9 +47,9 @@ pub mod util {
         if new_comp.is_err() {
             return;
         }
-        let new_comp = combine_components(&new_comp.unwrap(), PruningStrategy::NoPruning);
+        let new_comp = combine_automata(&new_comp.unwrap(), PruningStrategy::NoPruning);
 
-        let new_comp = SystemRecipe::Component(Box::new(new_comp))
+        let new_comp = SystemRecipe::Automaton(Box::new(new_comp))
             .compile(dim)
             .unwrap();
         //TODO:: if it can fail unwrap should be replaced.

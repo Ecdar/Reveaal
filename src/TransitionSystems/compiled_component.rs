@@ -1,5 +1,5 @@
 use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, State, Transition,
+    Automaton, DeclarationProvider, Declarations, State, Transition,
 };
 use crate::System::local_consistency::{self};
 use crate::System::query_failures::{
@@ -27,7 +27,7 @@ pub struct ComponentInfo {
 }
 
 #[derive(Clone)]
-pub struct CompiledComponent {
+pub struct SimpleTransitionSystem {
     inputs: HashSet<Action>,
     outputs: HashSet<Action>,
     locations: HashMap<LocationID, LocationTree>,
@@ -37,24 +37,24 @@ pub struct CompiledComponent {
     dim: ClockIndex,
 }
 
-impl CompiledComponent {
+impl SimpleTransitionSystem {
     pub fn compile_with_actions(
-        component: Component,
+        automaton: Automaton,
         inputs: HashSet<String>,
         outputs: HashSet<String>,
         dim: ClockIndex,
         id: u32,
     ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
         if !inputs.is_disjoint(&outputs) {
-            ActionFailure::not_disjoint_IO(&component.name, inputs.clone(), outputs.clone())
-                .map_err(|e| e.to_simple_failure(&component.name))?;
+            ActionFailure::not_disjoint_IO(&automaton.name, inputs.clone(), outputs.clone())
+                .map_err(|e| e.to_simple_failure(&automaton.name))?;
         }
 
-        let locations: HashMap<LocationID, LocationTree> = component
+        let locations: HashMap<LocationID, LocationTree> = automaton
             .get_locations()
             .iter()
             .map(|loc| {
-                let loc = LocationTree::simple(loc, component.get_declarations(), dim);
+                let loc = LocationTree::simple(loc, automaton.get_declarations(), dim);
                 (loc.id.clone(), loc)
             })
             .collect();
@@ -62,9 +62,9 @@ impl CompiledComponent {
         let mut location_edges: HashMap<LocationID, Vec<(Action, Transition)>> =
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
-        for edge in component.get_edges() {
+        for edge in automaton.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
-            let transition = Transition::from(&component, edge, dim);
+            let transition = Transition::from(&automaton, edge, dim);
             location_edges
                 .get_mut(&id)
                 .unwrap()
@@ -73,8 +73,8 @@ impl CompiledComponent {
 
         let initial_location = locations.values().find(|loc| loc.is_initial()).cloned();
 
-        let max_bounds = component.get_max_bounds(dim);
-        Ok(Box::new(CompiledComponent {
+        let max_bounds = automaton.get_max_bounds(dim);
+        Ok(Box::new(SimpleTransitionSystem {
             inputs,
             outputs,
             locations,
@@ -82,8 +82,8 @@ impl CompiledComponent {
             initial_location,
             dim,
             comp_info: ComponentInfo {
-                name: component.name,
-                declarations: component.declarations,
+                name: automaton.name,
+                declarations: automaton.declarations,
                 max_bounds,
                 id,
             },
@@ -91,15 +91,15 @@ impl CompiledComponent {
     }
 
     pub fn compile(
-        component: Component,
+        automaton: Automaton,
         dim: ClockIndex,
-        component_index: &mut u32,
+        automaton_index: &mut u32,
     ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
-        let inputs = HashSet::from_iter(component.get_input_actions());
-        let outputs = HashSet::from_iter(component.get_output_actions());
-        let index = *component_index;
-        *component_index += 1;
-        Self::compile_with_actions(component, inputs, outputs, dim, index)
+        let inputs = HashSet::from_iter(automaton.get_input_actions());
+        let outputs = HashSet::from_iter(automaton.get_output_actions());
+        let index = *automaton_index;
+        *automaton_index += 1;
+        Self::compile_with_actions(automaton, inputs, outputs, dim, index)
     }
 
     fn _comp_info(&self) -> &ComponentInfo {
@@ -107,7 +107,7 @@ impl CompiledComponent {
     }
 }
 
-impl TransitionSystem for CompiledComponent {
+impl TransitionSystem for SimpleTransitionSystem {
     fn get_local_max_bounds(&self, loc: &LocationTree) -> Bounds {
         if loc.is_universal() || loc.is_inconsistent() {
             Bounds::new(self.get_dim())
@@ -198,7 +198,7 @@ impl TransitionSystem for CompiledComponent {
         self.locations.get(id).cloned()
     }
 
-    fn component_names(&self) -> Vec<&str> {
+    fn automata_names(&self) -> Vec<&str> {
         vec![&self.comp_info.name]
     }
 
@@ -212,20 +212,23 @@ impl TransitionSystem for CompiledComponent {
 
     fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {
         match target {
-            SpecificLocation::ComponentLocation { comp, location_id } => {
+            SpecificLocation::AutomatonLocation {
+                automaton: comp,
+                location_id,
+            } => {
                 assert_eq!(comp.name, self.comp_info.name);
                 self.get_all_locations()
                     .into_iter()
                     .find(|loc| loc.id == LocationID::Simple(location_id.clone()))
                     .ok_or_else(|| {
                         format!(
-                            "Could not find location {} in component {}",
+                            "Could not find location {} in automaton {}",
                             location_id, self.comp_info.name
                         )
                     })
             }
             SpecificLocation::BranchLocation(_, _, _) | SpecificLocation::SpecialLocation(_) => {
-                unreachable!("Should not happen at the level of a component.")
+                unreachable!("Should not happen at the level of a automaton.")
             }
         }
     }

@@ -1,5 +1,5 @@
-use crate::DataReader::component_loader::ComponentLoader;
-use crate::ModelObjects::component::Component;
+use crate::DataReader::component_loader::AutomataLoader;
+use crate::ModelObjects::component::Automaton;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::representations::QueryExpression;
 use crate::System::executable_query::{
@@ -10,7 +10,7 @@ use crate::System::extract_state::get_state;
 use std::collections::HashMap;
 
 use crate::TransitionSystems::{
-    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
+    Composition, Conjunction, Quotient, SimpleTransitionSystem, TransitionSystemPtr,
 };
 
 use super::query_failures::SystemRecipeFailure;
@@ -39,11 +39,11 @@ impl<T: Into<String>> From<T> for ExecutableQueryError {
     }
 }
 
-/// This function fetches the appropriate components based on the structure of the query and makes the enum structure match the query
-/// this function also handles setting up the correct indices for clocks based on the amount of components in each system representation
+/// This function fetches the appropriate automata based on the structure of the query and makes the enum structure match the query
+/// this function also handles setting up the correct indices for clocks based on the amount of automata in each system representation
 pub fn create_executable_query<'a>(
     full_query: &Query,
-    component_loader: &'a mut (dyn ComponentLoader + 'static),
+    automata_loader: &'a mut (dyn AutomataLoader + 'static),
 ) -> Result<Box<dyn ExecutableQuery + 'a>, ExecutableQueryError> {
     let mut dim: ClockIndex = 0;
 
@@ -52,21 +52,21 @@ pub fn create_executable_query<'a>(
             QueryExpression::Refinement(left_side, right_side) => {
                 let mut quotient_index = None;
 
-                let mut left = get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
-                let mut right = get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
+                let mut left = get_system_recipe(left_side, automata_loader, &mut dim, &mut quotient_index);
+                let mut right = get_system_recipe(right_side, automata_loader, &mut dim, &mut quotient_index);
 
-                if !component_loader.get_settings().disable_clock_reduction {
+                if !automata_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut left, Some(&mut right), &mut dim, quotient_index)?;
                 }
 
-                let mut component_index = 0;
+                let mut automaton_index = 0;
 
                 Ok(Box::new(RefinementExecutor {
-                sys1: left.compile_with_index(dim, &mut component_index)?,
-                sys2: right.compile_with_index(dim, &mut component_index)?,
+                sys1: left.compile_with_index(dim, &mut automaton_index)?,
+                sys2: right.compile_with_index(dim, &mut automaton_index)?,
             }))},
             QueryExpression::Reachability(automata, start, end) => {
-                let machine = get_system_recipe(automata, component_loader, &mut dim, &mut None);
+                let machine = get_system_recipe(automata, automata_loader, &mut dim, &mut None);
                 let transition_system = machine.clone().compile(dim)?;
 
                 validate_reachability_input(&machine, end)?;
@@ -98,12 +98,12 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let mut recipe = get_system_recipe(
                     query_expression,
-                    component_loader,
+                    automata_loader,
                     &mut dim,
                     &mut quotient_index,
                 );
 
-                if !component_loader.get_settings().disable_clock_reduction {
+                if !automata_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
@@ -115,12 +115,12 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let mut recipe = get_system_recipe(
                     query_expression,
-                    component_loader,
+                    automata_loader,
                     &mut dim,
                     &mut quotient_index,
                 );
 
-                if !component_loader.get_settings().disable_clock_reduction {
+                if !automata_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                 }
 
@@ -133,12 +133,12 @@ pub fn create_executable_query<'a>(
                     let mut quotient_index = None;
                     let mut recipe = get_system_recipe(
                         query_expression,
-                        component_loader,
+                        automata_loader,
                         &mut dim,
                         &mut quotient_index,
                     );
 
-                    if !component_loader.get_settings().disable_clock_reduction {
+                    if !automata_loader.get_settings().disable_clock_reduction {
                         clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
@@ -146,7 +146,7 @@ pub fn create_executable_query<'a>(
                         GetComponentExecutor {
                             system: recipe.compile(dim)?,
                             comp_name: comp_name.clone(),
-                            component_loader,
+                            automata_loader,
                         }
                     ))
                 }else{
@@ -159,11 +159,11 @@ pub fn create_executable_query<'a>(
                     let mut quotient_index = None;
                     let mut recipe = get_system_recipe(
                         query_expression,
-                        component_loader,
+                        automata_loader,
                         &mut dim,
                         &mut quotient_index,                    );
 
-                    if !component_loader.get_settings().disable_clock_reduction {
+                    if !automata_loader.get_settings().disable_clock_reduction {
                         clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
                     }
 
@@ -171,7 +171,7 @@ pub fn create_executable_query<'a>(
                         GetComponentExecutor {
                             system: pruning::prune_system(recipe.compile(dim)?, dim),
                             comp_name: comp_name.clone(),
-                            component_loader
+                            automata_loader
                         }
                     ))
                 }else{
@@ -192,67 +192,67 @@ pub enum SystemRecipe {
     Composition(Box<SystemRecipe>, Box<SystemRecipe>),
     Conjunction(Box<SystemRecipe>, Box<SystemRecipe>),
     Quotient(Box<SystemRecipe>, Box<SystemRecipe>, ClockIndex),
-    Component(Box<Component>),
+    Automaton(Box<Automaton>),
 }
 
 impl SystemRecipe {
     pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
-        let mut component_index = 0;
-        self._compile(dim + 1, &mut component_index)
+        let mut automaton_index = 0;
+        self._compile(dim + 1, &mut automaton_index)
     }
 
     pub fn compile_with_index(
         self,
         dim: ClockIndex,
-        component_index: &mut u32,
+        automaton_index: &mut u32,
     ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
-        self._compile(dim + 1, component_index)
+        self._compile(dim + 1, automaton_index)
     }
 
     fn _compile(
         self,
         dim: ClockIndex,
-        component_index: &mut u32,
+        automaton_index: &mut u32,
     ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         match self {
             SystemRecipe::Composition(left, right) => Composition::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
+                left._compile(dim, automaton_index)?,
+                right._compile(dim, automaton_index)?,
                 dim,
             ),
             SystemRecipe::Conjunction(left, right) => Conjunction::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
+                left._compile(dim, automaton_index)?,
+                right._compile(dim, automaton_index)?,
                 dim,
             ),
             SystemRecipe::Quotient(left, right, clock_index) => Quotient::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
+                left._compile(dim, automaton_index)?,
+                right._compile(dim, automaton_index)?,
                 clock_index,
                 dim,
             ),
-            SystemRecipe::Component(comp) => {
-                CompiledComponent::compile(*comp, dim, component_index)
+            SystemRecipe::Automaton(comp) => {
+                SimpleTransitionSystem::compile(*comp, dim, automaton_index)
                     .map(|comp| comp as TransitionSystemPtr)
             }
         }
     }
 
-    /// Gets the number of `Components`s in the `SystemRecipe`
-    pub fn get_component_count(&self) -> usize {
+    /// Gets the number of [`Automaton`] in the [`SystemRecipe`]
+    pub fn get_automata_count(&self) -> usize {
         match self {
             SystemRecipe::Composition(left, right)
             | SystemRecipe::Conjunction(left, right)
             | SystemRecipe::Quotient(left, right, _) => {
-                left.get_component_count() + right.get_component_count()
+                left.get_automata_count() + right.get_automata_count()
             }
-            SystemRecipe::Component(_) => 1,
+            SystemRecipe::Automaton(_) => 1,
         }
     }
 
     ///Applies the clock-reduction
     fn reduce_clocks(&mut self, clock_instruction: Vec<ClockReductionInstruction>) {
-        let mut comps = self.get_components();
+        let mut comps = self.get_automata();
         for redundant in clock_instruction {
             match redundant {
                 ClockReductionInstruction::RemoveClock { clock_index } => comps
@@ -260,7 +260,7 @@ impl SystemRecipe {
                     .find(|c| c.declarations.clocks.values().any(|ci| *ci == clock_index))
                     .unwrap_or_else(|| {
                         panic!(
-                            "A component could not be found for clock index {}",
+                            "An automaton could not be found for clock index {}",
                             clock_index
                         )
                     })
@@ -275,17 +275,17 @@ impl SystemRecipe {
         }
     }
 
-    /// Gets all components in `SystemRecipe`
-    fn get_components(&mut self) -> Vec<&mut Component> {
+    /// Gets all automata in [`SystemRecipe`]
+    fn get_automata(&mut self) -> Vec<&mut Automaton> {
         match self {
             SystemRecipe::Composition(left, right)
             | SystemRecipe::Conjunction(left, right)
             | SystemRecipe::Quotient(left, right, _) => {
-                let mut o = left.get_components();
-                o.extend(right.get_components());
+                let mut o = left.get_automata();
+                o.extend(right.get_automata());
                 o
             }
-            SystemRecipe::Component(c) => vec![c],
+            SystemRecipe::Automaton(c) => vec![c],
         }
     }
     fn change_quotient(&mut self, index: ClockIndex) {
@@ -299,32 +299,32 @@ impl SystemRecipe {
                 l.change_quotient(index);
                 r.change_quotient(index);
             }
-            SystemRecipe::Component(_) => (),
+            SystemRecipe::Automaton(_) => (),
         }
     }
 }
 
 pub fn get_system_recipe(
     side: &QueryExpression,
-    component_loader: &mut dyn ComponentLoader,
+    automata_loader: &mut dyn AutomataLoader,
     clock_index: &mut ClockIndex,
     quotient_index: &mut Option<ClockIndex>,
 ) -> Box<SystemRecipe> {
     match side {
         QueryExpression::Parentheses(expression) => {
-            get_system_recipe(expression, component_loader, clock_index, quotient_index)
+            get_system_recipe(expression, automata_loader, clock_index, quotient_index)
         }
         QueryExpression::Composition(left, right) => Box::new(SystemRecipe::Composition(
-            get_system_recipe(left, component_loader, clock_index, quotient_index),
-            get_system_recipe(right, component_loader, clock_index, quotient_index),
+            get_system_recipe(left, automata_loader, clock_index, quotient_index),
+            get_system_recipe(right, automata_loader, clock_index, quotient_index),
         )),
         QueryExpression::Conjunction(left, right) => Box::new(SystemRecipe::Conjunction(
-            get_system_recipe(left, component_loader, clock_index, quotient_index),
-            get_system_recipe(right, component_loader, clock_index, quotient_index),
+            get_system_recipe(left, automata_loader, clock_index, quotient_index),
+            get_system_recipe(right, automata_loader, clock_index, quotient_index),
         )),
         QueryExpression::Quotient(left, right) => {
-            let left = get_system_recipe(left, component_loader, clock_index, quotient_index);
-            let right = get_system_recipe(right, component_loader, clock_index, quotient_index);
+            let left = get_system_recipe(left, automata_loader, clock_index, quotient_index);
+            let right = get_system_recipe(right, automata_loader, clock_index, quotient_index);
 
             let q_index = match quotient_index {
                 Some(q_i) => *q_i,
@@ -340,14 +340,14 @@ pub fn get_system_recipe(
             Box::new(SystemRecipe::Quotient(left, right, q_index))
         }
         QueryExpression::VarName(name) => {
-            let mut component = component_loader.get_component(name).clone();
-            component.set_clock_indices(clock_index);
-            debug!("{} Clocks: {:?}", name, component.declarations.clocks);
+            let mut automaton = automata_loader.get_automaton(name).clone();
+            automaton.set_clock_indices(clock_index);
+            debug!("{} Clocks: {:?}", name, automaton.declarations.clocks);
 
-            Box::new(SystemRecipe::Component(Box::new(component)))
+            Box::new(SystemRecipe::Automaton(Box::new(automaton)))
         }
         QueryExpression::SaveAs(comp, _) => {
-            get_system_recipe(comp, component_loader, clock_index, &mut None)
+            get_system_recipe(comp, automata_loader, clock_index, &mut None)
         }
         _ => panic!("Got unexpected query side: {:?}", side),
     }
@@ -358,7 +358,7 @@ fn validate_reachability_input(
     state: &QueryExpression,
 ) -> Result<(), String> {
     if let QueryExpression::State(loc_names, _) = state {
-        if loc_names.len() != machine.get_component_count() {
+        if loc_names.len() != machine.get_automata_count() {
             return Err(
                 "The number of automata does not match the number of locations".to_string(),
             );
@@ -402,7 +402,7 @@ pub(crate) mod clock_reduction {
             lhs.clone().compile(*dim)?.find_redundant_clocks(),
             rhs.clone().compile(*dim)?.find_redundant_clocks(),
             quotient_clock,
-            lhs.get_components()
+            lhs.get_automata()
                 .iter()
                 .flat_map(|c| c.declarations.clocks.values().cloned())
                 .max()
@@ -418,7 +418,7 @@ pub(crate) mod clock_reduction {
 
         rhs.reduce_clocks(r_clocks);
         lhs.reduce_clocks(l_clocks);
-        compress_component_decls(lhs.get_components(), Some(rhs.get_components()));
+        compress_automata_decls(lhs.get_automata(), Some(rhs.get_automata()));
         if quotient_clock.is_some() {
             lhs.change_quotient(*dim);
             rhs.change_quotient(*dim);
@@ -448,7 +448,7 @@ pub(crate) mod clock_reduction {
             .fold(0, |acc, c| acc + c.clocks_removed_count());
         debug!("New dimension: {dim}");
         sys.reduce_clocks(clocks);
-        compress_component_decls(sys.get_components(), None);
+        compress_automata_decls(sys.get_automata(), None);
         if quotient_clock.is_some() {
             sys.change_quotient(*dim);
         }
@@ -493,10 +493,7 @@ pub(crate) mod clock_reduction {
         )
     }
 
-    fn compress_component_decls(
-        mut comps: Vec<&mut Component>,
-        other: Option<Vec<&mut Component>>,
-    ) {
+    fn compress_automata_decls(mut comps: Vec<&mut Automaton>, other: Option<Vec<&mut Automaton>>) {
         let mut seen: HashMap<ClockIndex, ClockIndex> = HashMap::new();
         let mut l: Vec<&mut ClockIndex> = comps
             .iter_mut()

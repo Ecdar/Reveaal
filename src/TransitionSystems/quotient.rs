@@ -397,7 +397,7 @@ impl TransitionSystem for Quotient {
             SpecificLocation::SpecialLocation(SpecialLocation::Error) => {
                 Ok(self.inconsistent_location.clone())
             }
-            SpecificLocation::ComponentLocation { .. } => unreachable!("Should not occur"),
+            SpecificLocation::AutomatonLocation { .. } => unreachable!("Should not occur"),
         }
     }
 }

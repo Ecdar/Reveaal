@@ -98,34 +98,34 @@ impl SpecificPath {
     }
 }
 
-/// Intermediate representation of a component instance. `id` is used to distinguish different instances of the same components in a system.
+/// Intermediate representation of a automaton instance. `id` is used to distinguish different instances of the same automata in a system.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SpecificComp {
+pub struct SpecificAutomaton {
     pub name: String,
     pub id: u32,
 }
 
-impl SpecificComp {
+impl SpecificAutomaton {
     pub fn new(name: String, id: u32) -> Self {
         Self { name, id }
     }
 }
 
-/// Intermediate representation of an [edge](crate::ModelObjects::component::Edge) in a component instance.
+/// Intermediate representation of an [edge](crate::ModelObjects::component::Edge) in an automaton instance.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificEdge {
-    pub comp: SpecificComp,
+    pub comp: SpecificAutomaton,
     pub edge_id: String,
 }
 
 impl SpecificEdge {
     pub fn new(
-        component_name: impl Into<String>,
+        automaton_name: impl Into<String>,
         edge_id: impl Into<String>,
-        component_id: u32,
+        automaton_id: u32,
     ) -> Self {
         Self {
-            comp: SpecificComp::new(component_name.into(), component_id),
+            comp: SpecificAutomaton::new(automaton_name.into(), automaton_id),
             edge_id: edge_id.into(),
         }
     }
@@ -172,9 +172,9 @@ impl SpecificConjunction {
 pub enum SpecificClockVar {
     /// The zero clock.
     Zero,
-    /// A clock in a component instance.
-    ComponentClock(SpecificClock),
-    /// A clock without a component instance. E.g. a quotient clock.
+    /// A clock in an automaton instance.
+    AutomatonClock(SpecificClock),
+    /// A clock without an automaton instance. E.g. a quotient clock.
     SystemClock(ClockIndex),
 }
 
@@ -196,7 +196,7 @@ impl SpecificConstraint {
             match clock {
                 0 => SpecificClockVar::Zero,
                 _ => match sys.get(&clock) {
-                    Some(c) => SpecificClockVar::ComponentClock(c.clone()),
+                    Some(c) => SpecificClockVar::AutomatonClock(c.clone()),
                     None => SpecificClockVar::SystemClock(clock),
                 },
             }
@@ -219,12 +219,12 @@ pub struct SpecificState {
 }
 
 /// Intermediate representation of a [LocationID](crate::TransitionSystems::location_id::LocationID) in a system.
-/// It is a binary tree with either [component](SpecificComp) locations or [special](SpecialLocation) locations at the leaves.
+/// It is a binary tree with either [automaton](SpecificAutomaton) locations or [special](SpecialLocation) locations at the leaves.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificLocation {
-    /// A location in a component instance.
-    ComponentLocation {
-        comp: SpecificComp,
+    /// A location in a automaton instance.
+    AutomatonLocation {
+        automaton: SpecificAutomaton,
         location_id: String,
     },
     /// A branch with two child locations.
@@ -235,12 +235,12 @@ pub enum SpecificLocation {
 
 impl SpecificLocation {
     pub fn new(
-        component_name: impl Into<String>,
+        automaton_name: impl Into<String>,
         location_id: impl Into<String>,
-        component_id: u32,
+        automaton_id: u32,
     ) -> Self {
-        Self::ComponentLocation {
-            comp: SpecificComp::new(component_name.into(), component_id),
+        Self::AutomatonLocation {
+            automaton: SpecificAutomaton::new(automaton_name.into(), automaton_id),
             location_id: location_id.into(),
         }
     }
@@ -259,7 +259,10 @@ impl SpecificLocation {
 impl fmt::Display for SpecificLocation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SpecificLocation::ComponentLocation { comp, location_id } => {
+            SpecificLocation::AutomatonLocation {
+                automaton: comp,
+                location_id,
+            } => {
                 write!(f, "{}.{}", comp.name, location_id)
             }
             SpecificLocation::BranchLocation(left, right, op) => {
@@ -329,15 +332,15 @@ impl fmt::Display for SpecificState {
     }
 }
 
-/// Intermediate representation of a clock name in a specific [component instance](SpecificComp).
+/// Intermediate representation of a clock name in a specific [automaton instance](SpecificAutomaton).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpecificClock {
     pub name: String,
-    pub comp: SpecificComp,
+    pub comp: SpecificAutomaton,
 }
 
 impl SpecificClock {
-    pub fn new(name: String, comp: SpecificComp) -> Self {
+    pub fn new(name: String, comp: SpecificAutomaton) -> Self {
         Self { name, comp }
     }
 }
@@ -355,7 +358,7 @@ pub fn specific_clock_comp_map(sys: &dyn TransitionSystem) -> HashMap<ClockIndex
                         clock_id,
                         SpecificClock::new(
                             clock.clone(),
-                            SpecificComp::new(comp.name.clone(), comp.id),
+                            SpecificAutomaton::new(comp.name.clone(), comp.id),
                         ),
                     )
                 })
@@ -410,8 +413,8 @@ pub fn specific_location(location_id: &LocationID, sys: &dyn TransitionSystem) -
             }
             LocationID::Simple(loc_id) => {
                 let info = infos.info();
-                SpecificLocation::ComponentLocation {
-                    comp: SpecificComp::new(info.name.clone(), info.id),
+                SpecificLocation::AutomatonLocation {
+                    automaton: SpecificAutomaton::new(info.name.clone(), info.id),
                     location_id: loc_id.clone(),
                 }
             }

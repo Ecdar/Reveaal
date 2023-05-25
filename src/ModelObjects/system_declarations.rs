@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::component::Automaton;
 use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
@@ -18,33 +18,35 @@ impl SystemDeclarations {
         &mut self.declarations
     }
 
-    pub fn get_component_inputs(&self, comp_name: &str) -> Option<&Vec<String>> {
-        self.get_declarations().get_input_actions().get(comp_name)
+    pub fn get_automaton_inputs(&self, automaton_name: &str) -> Option<&Vec<String>> {
+        self.get_declarations()
+            .get_input_actions()
+            .get(automaton_name)
     }
 
-    pub fn add_component(&mut self, comp: &Component) {
+    pub fn add_automaton(&mut self, automaton: &Automaton) {
         self.declarations
             .input_actions
-            .insert(comp.get_name().clone(), comp.get_input_actions());
+            .insert(automaton.get_name().clone(), automaton.get_input_actions());
         self.declarations
             .output_actions
-            .insert(comp.get_name().clone(), comp.get_output_actions());
+            .insert(automaton.get_name().clone(), automaton.get_output_actions());
     }
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SystemSpecification {
-    pub(crate) components: Vec<String>,
+    pub(crate) automata: Vec<String>,
     pub(crate) input_actions: HashMap<String, Vec<String>>,
     pub(crate) output_actions: HashMap<String, Vec<String>>,
 }
 
 impl SystemSpecification {
-    pub fn get_components(&self) -> &Vec<String> {
-        &self.components
+    pub fn get_automata(&self) -> &Vec<String> {
+        &self.automata
     }
-    pub fn get_mut_components(&mut self) -> &mut Vec<String> {
-        &mut self.components
+    pub fn get_mut_automata(&mut self) -> &mut Vec<String> {
+        &mut self.automata
     }
     pub fn get_input_actions(&self) -> &HashMap<String, Vec<String>> {
         &self.input_actions
@@ -70,9 +72,9 @@ where
     let decls: Vec<String> = s.split('\n').map(|s| s.into()).collect();
     let mut input_actions: HashMap<String, Vec<String>> = HashMap::new();
     let mut output_actions: HashMap<String, Vec<String>> = HashMap::new();
-    let mut components: Vec<String> = vec![];
+    let mut automata: Vec<String> = vec![];
 
-    let mut component_names: Vec<String> = vec![];
+    let mut automata_names: Vec<String> = vec![];
 
     for declaration in &decls {
         //skip comments
@@ -82,29 +84,29 @@ where
 
         if !declaration.is_empty() {
             if first_run {
-                let component_decls = &declaration;
-                debug!("Comp decls: {component_decls}");
-                component_names = component_decls.split(' ').map(|s| s.into()).collect();
+                let automaton_decls = &declaration;
+                debug!("Automaton decls: {automaton_decls}");
+                automata_names = automaton_decls.split(' ').map(|s| s.into()).collect();
 
-                if component_names[0] == "system" {
+                if automata_names[0] == "system" {
                     //do not include element 0 as that is the system keyword
-                    for name in component_names.iter_mut().skip(1) {
+                    for name in automata_names.iter_mut().skip(1) {
                         let s = name.replace(',', "");
                         let s_cleaned = s.replace(';', "");
                         *name = s_cleaned.clone();
-                        components.push(s_cleaned);
+                        automata.push(s_cleaned);
                     }
                     first_run = false;
                 } else {
-                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", component_names)
+                    panic!("Unexpected format of system declarations. Missing system in beginning of {:?}", automata_names)
                 }
             }
 
             let split_string: Vec<String> = declaration.split(' ').map(|s| s.into()).collect();
             if split_string[0].as_str() == "IO" {
-                let component_name = split_string[1].clone();
+                let automaton_name = split_string[1].clone();
 
-                if component_names.contains(&component_name) {
+                if automata_names.contains(&automaton_name) {
                     for split_str in split_string.iter().skip(2) {
                         let s = split_str.replace('{', "");
                         let p = s.replace('}', "");
@@ -115,19 +117,19 @@ where
                             }
                             if action.ends_with('?') {
                                 let r = action.replace('?', "");
-                                if let Some(Channel_vec) = input_actions.get_mut(&component_name) {
+                                if let Some(Channel_vec) = input_actions.get_mut(&automaton_name) {
                                     Channel_vec.push(r)
                                 } else {
                                     let Channel_vec = vec![r];
-                                    input_actions.insert(component_name.clone(), Channel_vec);
+                                    input_actions.insert(automaton_name.clone(), Channel_vec);
                                 }
                             } else if action.ends_with('!') {
                                 let r = action.replace('!', "");
-                                if let Some(Channel_vec) = output_actions.get_mut(&component_name) {
+                                if let Some(Channel_vec) = output_actions.get_mut(&automaton_name) {
                                     Channel_vec.push(r.clone())
                                 } else {
                                     let Channel_vec = vec![r.clone()];
-                                    output_actions.insert(component_name.clone(), Channel_vec);
+                                    output_actions.insert(automaton_name.clone(), Channel_vec);
                                 }
                             } else {
                                 panic!("Channel type not defined for Channel {:?}", action)
@@ -135,13 +137,13 @@ where
                         }
                     }
                 } else {
-                    panic!("Was not able to find component name: {:?} in declared component names: {:?}", component_name, component_names)
+                    panic!("Was not able to find automaton name: {:?} in declared automata names: {:?}", automaton_name, automata_names)
                 }
             }
         }
     }
     Ok(SystemSpecification {
-        components,
+        automata,
         input_actions,
         output_actions,
     })

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fmt};
 
 use crate::{
-    component::{Component, State},
+    component::{Automaton, State},
     ModelObjects::statepair::StatePair,
     TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr},
 };
@@ -19,7 +19,7 @@ pub enum SystemType {
     Composition,
     /// A conjunction of two systems
     Conjunction,
-    /// A simple component, not composed with anything else
+    /// A simple automaton, not composed with anything else
     Simple,
 }
 
@@ -44,12 +44,12 @@ impl fmt::Display for SystemType {
             Self::Refinement => write!(f, "Refinement"),
             Self::Composition => write!(f, "Composition"),
             Self::Conjunction => write!(f, "Conjunction"),
-            Self::Simple => write!(f, "Component"),
+            Self::Simple => write!(f, "Automaton"),
         }
     }
 }
 
-/// Represents a system of components as a [String] `name` and the type of the highest level composition `sys_type`
+/// Represents a system of automata as a [String] `name` and the type of the highest level composition `sys_type`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct System {
     pub name: String,
@@ -88,7 +88,7 @@ impl System {
     }
 }
 
-/// Represents a set of actions in a system of components. The system is represented by a [String] `system`,
+/// Represents a set of actions in a system of automata. The system is represented by a [String] `system`,
 /// along with the `actions` and whether the actions are all inputs (`is_input`) or all outputs (`!is_input`).
 ///
 /// For representing a single action, see [Action].
@@ -111,7 +111,7 @@ impl fmt::Display for ActionSet {
     }
 }
 
-/// Represents a single action in a system of components. The system is represented by a [String] `system`,
+/// Represents a single action in a system of automata. The system is represented by a [String] `system`,
 /// along with the `action` and whether the action is an input (`is_input`).
 ///
 /// For representing a set of actions, see [ActionSet].
@@ -151,8 +151,8 @@ pub enum QueryResult {
     Consistency(ConsistencyResult),
     /// A determinism query returned a success or failure, see [DeterminismResult].
     Determinism(DeterminismResult),
-    /// A get components query returned a new component.
-    GetComponent(Component),
+    /// A `get-component` query returned a new automaton.
+    GetComponent(Automaton),
     /// The query resulted in an unclassified error.
     CustomError(String),
 }

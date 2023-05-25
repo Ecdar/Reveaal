@@ -1,4 +1,4 @@
-use crate::DataReader::serialization::DummyComponent;
+use crate::DataReader::serialization::DummyAutomaton;
 use force_graph::{DefaultNodeIdx, ForceGraph, NodeData};
 use log::info;
 use rand::Rng;
@@ -10,14 +10,14 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-/// Configuration for component generation //TODO: use GRPC to set.
+/// Configuration for automaton generation //TODO: use GRPC to set.
 #[derive(Debug, Deserialize)]
 struct Config {
-    /// Padding of sides of component
+    /// Padding of sides of automaton
     padding: f32,
     /// Square space needed for each location
     location_space: f32,
-    /// Maximal aspect ratio of the component
+    /// Maximal aspect ratio of the automaton
     max_ratio: f32,
     location_mass: f32,
     edge_mass: f32,
@@ -62,7 +62,8 @@ struct Data {
     pub nail_number: usize,
 }
 
-pub fn layout_dummy_component(comp: &mut DummyComponent) {
+/// Automaton module
+pub fn layout_dummy_automaton(comp: &mut DummyAutomaton) {
     let config = get_config();
 
     // Compute the grid size
@@ -206,7 +207,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
         }
     });
 
-    // Set the component shape
+    // Set the automaton shape
     comp.width = grid_size * ratio_x + config.padding;
     comp.height = grid_size * ratio_y + config.padding;
 
@@ -214,7 +215,7 @@ pub fn layout_dummy_component(comp: &mut DummyComponent) {
     comp.x = -comp.width / 2.0;
     comp.y = -comp.height / 2.0;
 
-    // Choose a random color for the component
+    // Choose a random color for the automaton
     let color = rng.gen_range(0..10);
     comp.color = color.to_string();
 
