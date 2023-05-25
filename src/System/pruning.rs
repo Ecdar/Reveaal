@@ -3,14 +3,17 @@ use edbm::zones::OwnedFederation;
 use log::{debug, trace};
 
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, Edge, Location, SyncType,
-};
+use crate::ModelObjects::component::Automaton;
+use crate::ModelObjects::component::DeclarationProvider;
+use crate::ModelObjects::component::Declarations;
+use crate::ModelObjects::edge::SyncType;
 use crate::ModelObjects::representations::BoolExpression;
-use crate::System::save_component::combine_components;
+use crate::System::save_component::combine_automata;
 use crate::TransitionSystems::TransitionSystemPtr;
-use crate::TransitionSystems::{CompiledComponent, LocationTree};
+use crate::TransitionSystems::{LocationTree, SimpleTransitionSystem};
 
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::location::Location;
 use std::collections::{HashMap, HashSet};
 
 use super::save_component::PruningStrategy;
@@ -21,7 +24,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
 
     let inputs = ts.get_input_actions();
     let outputs = ts.get_output_actions();
-    let comp = combine_components(&ts, PruningStrategy::NoPruning);
+    let comp = combine_automata(&ts, PruningStrategy::NoPruning);
 
     let mut input_map: HashMap<String, Vec<String>> = HashMap::new();
     input_map.insert(comp.get_name().clone(), inputs.iter().cloned().collect());
@@ -32,7 +35,7 @@ pub fn prune_system(ts: TransitionSystemPtr, dim: ClockIndex) -> TransitionSyste
 }
 
 struct PruneContext {
-    comp: Component,
+    comp: Automaton,
     inconsistent_locs: Vec<String>,
     inconsistent_parts: HashMap<String, OwnedFederation>,
     passed_pairs: Vec<(String, OwnedFederation)>,
@@ -79,17 +82,17 @@ impl PruneContext {
         }
     }
 
-    fn finish(self) -> (Component, HashMap<String, OwnedFederation>) {
+    fn finish(self) -> (Automaton, HashMap<String, OwnedFederation>) {
         (self.comp, self.inconsistent_parts)
     }
 }
 
 pub fn prune(
-    comp: &Component,
+    comp: &Automaton,
     dim: ClockIndex,
     inputs: HashSet<String>,
     outputs: HashSet<String>,
-) -> Result<Box<CompiledComponent>, String> {
+) -> Result<Box<SimpleTransitionSystem>, String> {
     let new_comp = comp.clone();
     let inconsistent_locs: Vec<_> = new_comp
         .locations
@@ -141,17 +144,17 @@ pub fn prune(
     add_inconsistent_parts_to_invariants(&mut new_comp, incons_parts, dim);
 
     debug!(
-        "Pruned component from {} edges to {} edges",
+        "Pruned automaton from {} edges to {} edges",
         comp.get_edges().len(),
         new_comp.get_edges().len()
     );
 
-    CompiledComponent::compile_with_actions(new_comp, inputs, outputs, dim, 0)
+    SimpleTransitionSystem::compile_with_actions(new_comp, inputs, outputs, dim, 0)
         .map_err(|e| format!("Pruning failed: {}", e))
 }
 
 fn add_inconsistent_parts_to_invariants(
-    comp: &mut Component,
+    comp: &mut Automaton,
     incons_parts: HashMap<String, OwnedFederation>,
     dim: ClockIndex,
 ) {
@@ -490,7 +493,7 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) {
 
 fn is_immediately_inconsistent(
     location: &Location,
-    comp: &Component,
+    comp: &Automaton,
     dimensions: ClockIndex,
 ) -> bool {
     let loc = LocationTree::simple(location, &comp.declarations, dimensions);

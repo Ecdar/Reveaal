@@ -5,7 +5,7 @@ use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep::create_executable_query;
 use crate::System::query_failures::QueryResult;
-use crate::TransitionSystems::transition_system::component_loader_to_transition_system;
+use crate::TransitionSystems::transition_system::automata_loader_to_transition_system;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 fn try_setup_logging() {
@@ -72,5 +72,5 @@ pub fn json_get_system(PATH: &str, COMP: &str) -> TransitionSystemPtr {
     let project_loader =
         JsonProjectLoader::new_loader(String::from(PATH), crate::tests::TEST_SETTINGS);
     let mut loader = project_loader.to_comp_loader();
-    component_loader_to_transition_system(&mut *loader, COMP)
+    automata_loader_to_transition_system(&mut *loader, COMP)
 }

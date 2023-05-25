@@ -1,9 +1,8 @@
-use crate::{
-    component::{State, Transition},
-    TransitionSystems::TransitionSystemPtr,
-};
+use crate::ModelObjects::state::State;
+use crate::ModelObjects::transition::Transition;
+use crate::TransitionSystems::TransitionSystemPtr;
 
-/// Represent a decision in a any composition of components: In the current `state` [`State`] we have decided to take this `action` [`String`].
+/// Represent a decision in a any composition of automata: In the current `state` [`State`] we have decided to take this `action` [`String`].
 #[derive(Debug, Clone)]
 pub struct Decision {
     pub state: State,

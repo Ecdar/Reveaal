@@ -74,10 +74,7 @@ mod reachability_search_algorithm_test {
         ];
     "Path")]
     fn split_component_test(path: Vec<TransitionID>, expected: Vec<Vec<Vec<TransitionID>>>) {
-        assert_eq!(
-            TransitionID::split_into_component_lists(&path),
-            Ok(expected)
-        );
+        assert_eq!(TransitionID::split_into_automata_lists(&path), Ok(expected));
     }
 
     #[test_case(
@@ -100,7 +97,7 @@ mod reachability_search_algorithm_test {
     "Different structures 2")]
     fn split_component_invalid_input(path: Vec<TransitionID>) {
         assert!(
-            TransitionID::split_into_component_lists(&path).is_err(),
+            TransitionID::split_into_automata_lists(&path).is_err(),
             "Expected error"
         )
     }

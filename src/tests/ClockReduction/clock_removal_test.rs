@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod clock_removal_tests {
-    use crate::component::Component;
+    use crate::component::Automaton;
     use crate::extract_system_rep::{clock_reduction, SystemRecipe};
     use crate::tests::refinement::Helper::json_run_query;
-    use crate::DataReader::json_reader::read_json_component;
-    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
+    use crate::DataReader::json_reader::read_json_automaton;
+    use crate::TransitionSystems::{SimpleTransitionSystem, TransitionSystem};
     use std::collections::HashSet;
 
     #[test]
@@ -14,7 +14,7 @@ pub mod clock_removal_tests {
         check_declarations_unused_clocks_are_removed("Component3", "c");
     }
 
-    impl Component {
+    impl Automaton {
         fn fit_decls(&mut self, index: edbm::util::constraints::ClockIndex) {
             self.declarations
                 .clocks
@@ -25,7 +25,7 @@ pub mod clock_removal_tests {
     }
 
     fn check_declarations_unused_clocks_are_removed(component_name: &str, clock: &str) {
-        let mut component = read_json_component(
+        let mut component = read_json_automaton(
             "samples/json/ClockReductionTest/UnusedClock",
             component_name,
         );
@@ -38,7 +38,7 @@ pub mod clock_removal_tests {
         component.remove_clock(clock_index);
         component.fit_decls(clock_index);
 
-        let clock_reduced_compiled_component = CompiledComponent::compile(
+        let clock_reduced_compiled_component = SimpleTransitionSystem::compile(
             component.clone(),
             component.declarations.clocks.len() + 1,
             &mut 0,
@@ -52,7 +52,7 @@ pub mod clock_removal_tests {
 
     #[test]
     fn test_check_declarations_duplicated_clocks_are_removed() {
-        let mut component = read_json_component(
+        let mut component = read_json_automaton(
             "samples/json/ClockReductionTest/RedundantClocks",
             "Component1",
         );
@@ -66,7 +66,7 @@ pub mod clock_removal_tests {
 
         component.replace_clock(*clock_1_index, &duplicate_clocks_index);
 
-        let clock_reduced_compiled_component = CompiledComponent::compile(
+        let clock_reduced_compiled_component = SimpleTransitionSystem::compile(
             component.clone(),
             component.declarations.clocks.len() + 1,
             &mut 0,
@@ -84,7 +84,7 @@ pub mod clock_removal_tests {
     fn test_no_used_clock() {
         const PATH: &str = "samples/json/AG";
 
-        let comp = read_json_component(PATH, "A");
+        let comp = read_json_automaton(PATH, "A");
 
         let mut dim = comp.declarations.clocks.len();
         assert_eq!(
@@ -92,7 +92,7 @@ pub mod clock_removal_tests {
             "As of writing these tests, this component has 4 unused clocks"
         );
 
-        let recipe = SystemRecipe::Component(Box::from(comp));
+        let recipe = SystemRecipe::Automaton(Box::from(comp));
         clock_reduction::clock_reduce(&mut Box::from(recipe), None, &mut dim, None).unwrap();
         assert_eq!(dim, 0, "After removing the clocks, the dim should be 0");
 
@@ -106,9 +106,9 @@ pub mod clock_removal_tests {
     fn test_no_used_clock_multi() {
         const PATH: &str = "samples/json/AG";
         let mut dim = 0;
-        let mut lhs = read_json_component(PATH, "A");
+        let mut lhs = read_json_automaton(PATH, "A");
         lhs.set_clock_indices(&mut dim);
-        let mut rhs = read_json_component(PATH, "A");
+        let mut rhs = read_json_automaton(PATH, "A");
         rhs.set_clock_indices(&mut dim);
 
         assert_eq!(
@@ -120,8 +120,8 @@ pub mod clock_removal_tests {
             8
         );
 
-        let l = SystemRecipe::Component(Box::from(lhs));
-        let r = SystemRecipe::Component(Box::from(rhs));
+        let l = SystemRecipe::Automaton(Box::from(lhs));
+        let r = SystemRecipe::Automaton(Box::from(rhs));
         clock_reduction::clock_reduce(&mut Box::from(l), Some(&mut Box::from(r)), &mut dim, None)
             .unwrap();
         assert_eq!(dim, 0, "After removing the clocks, the dim should be 0");

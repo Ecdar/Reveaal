@@ -1,10 +1,11 @@
 use crate::DataReader::parse_edge;
 use crate::DataReader::parse_invariant;
-use crate::ModelObjects::component::{
-    Component, Declarations, Edge, Location, LocationType, SyncType,
-};
+use crate::ModelObjects::component::{Automaton, Declarations};
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::edge::SyncType;
+use crate::ModelObjects::location::{Location, LocationType};
 use crate::ModelObjects::representations;
-use crate::Simulation::graph_layout::layout_dummy_component;
+use crate::Simulation::graph_layout::layout_dummy_automaton;
 use edbm::util::constraints::ClockIndex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -92,7 +93,7 @@ impl From<Edge> for DummyEdge {
 }
 
 #[derive(Serialize)]
-pub struct DummyComponent {
+pub struct DummyAutomaton {
     pub name: String,
 
     #[serde(
@@ -112,9 +113,9 @@ pub struct DummyComponent {
     pub height: f32,
 }
 
-impl From<Component> for DummyComponent {
-    fn from(item: Component) -> Self {
-        let mut comp = DummyComponent {
+impl From<Automaton> for DummyAutomaton {
+    fn from(item: Automaton) -> Self {
+        let mut comp = DummyAutomaton {
             name: item.name,
             declarations: item.declarations,
             locations: item.locations.into_iter().map(|l| l.into()).collect(),
@@ -128,7 +129,7 @@ impl From<Component> for DummyComponent {
             height: 0.0,
         };
 
-        layout_dummy_component(&mut comp);
+        layout_dummy_automaton(&mut comp);
 
         comp
     }

@@ -1,4 +1,4 @@
-use crate::ModelObjects::component;
+use crate::component::Automaton;
 use crate::ModelObjects::queries;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
 use serde::de::DeserializeOwned;
@@ -20,29 +20,29 @@ pub fn read_system_declarations(project_path: &str) -> Option<SystemDeclarations
     match read_json::<SystemDeclarations>(&sysdecl_path) {
         Ok(sys_decls) => Some(sys_decls),
         Err(error) => panic!(
-            "We got error {}, and could not parse json file {} to component",
+            "We got error {}, and could not parse json file {} to automaton",
             error, &sysdecl_path
         ),
     }
 }
 
-pub fn read_json_component(project_path: &str, component_name: &str) -> component::Component {
-    let component_path = format!(
+pub fn read_json_automaton(project_path: &str, automaton_name: &str) -> Automaton {
+    let automaton_path = format!(
         "{0}{1}Components{1}{2}.json",
         project_path,
         std::path::MAIN_SEPARATOR,
-        component_name
+        automaton_name
     );
 
-    let component: component::Component = match read_json(&component_path) {
+    let automaton: Automaton = match read_json(&automaton_path) {
         Ok(json) => json,
         Err(error) => panic!(
-            "We got error {}, and could not parse json file {} to component",
-            error, component_path
+            "We got error {}, and could not parse json file {} to automaton",
+            error, automaton_path
         ),
     };
 
-    component
+    automaton
 }
 
 //Input:File name
@@ -60,7 +60,7 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
     Ok(json_file)
 }
 
-pub fn json_to_component(json_str: &str) -> Result<component::Component, serde_json::Error> {
+pub fn json_to_automaton(json_str: &str) -> Result<Automaton, serde_json::Error> {
     serde_json::from_str(json_str)
 }
 

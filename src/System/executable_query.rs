@@ -1,8 +1,8 @@
-use crate::DataReader::component_loader::ComponentLoader;
-use crate::ModelObjects::component::State;
+use crate::AutomataLoader;
+use crate::ModelObjects::state::State;
 use crate::System::reachability;
 use crate::System::refine;
-use crate::System::save_component::combine_components;
+use crate::System::save_component::combine_automata;
 use crate::TransitionSystems::TransitionSystemPtr;
 
 use super::query_failures::PathFailure;
@@ -36,7 +36,7 @@ impl QueryResult {
             QueryResult::Determinism(Err(_)) => not_satisfied(query_str),
 
             QueryResult::GetComponent(_) => {
-                println!("{} -- Component succesfully created", query_str)
+                println!("{} -- Automaton successfully created", query_str)
             }
             QueryResult::CustomError(_) => println!("{} -- Failed", query_str),
             QueryResult::RecipeFailure(_) => not_satisfied(query_str),
@@ -102,17 +102,17 @@ impl ExecutableQuery for ReachabilityExecutor {
 pub struct GetComponentExecutor<'a> {
     pub system: TransitionSystemPtr,
     pub comp_name: String,
-    pub component_loader: &'a mut dyn ComponentLoader,
+    pub automata_loader: &'a mut dyn AutomataLoader,
 }
 
 impl<'a> ExecutableQuery for GetComponentExecutor<'a> {
     fn execute(self: Box<Self>) -> QueryResult {
-        let mut comp = combine_components(&self.system, PruningStrategy::Reachable);
+        let mut comp = combine_automata(&self.system, PruningStrategy::Reachable);
         comp.name = self.comp_name;
 
         comp.remake_edge_ids();
 
-        self.component_loader.save_component(comp.clone());
+        self.automata_loader.save_automaton(comp.clone());
 
         QueryResult::GetComponent(comp)
     }

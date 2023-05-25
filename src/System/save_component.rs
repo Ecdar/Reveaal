@@ -1,5 +1,6 @@
-use crate::component::LocationType;
-use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
+use crate::ModelObjects::component::{Automaton, Declarations};
+use crate::ModelObjects::edge::SyncType;
+use crate::ModelObjects::location::{Location, LocationType};
 use crate::ModelObjects::representations::BoolExpression;
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashMap;
@@ -9,13 +10,11 @@ pub enum PruningStrategy {
     NoPruning,
 }
 
+use crate::ModelObjects::edge::Edge;
 use edbm::util::constraints::ClockIndex;
 use PruningStrategy::*;
 
-pub fn combine_components(
-    system: &TransitionSystemPtr,
-    reachability: PruningStrategy,
-) -> Component {
+pub fn combine_automata(system: &TransitionSystemPtr, reachability: PruningStrategy) -> Automaton {
     let mut location_trees = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
@@ -30,7 +29,7 @@ pub fn combine_components(
 
     let locations = get_locations_from_trees(&location_trees, &clocks);
 
-    Component {
+    Automaton {
         name: "".to_string(),
         declarations: Declarations {
             ints: HashMap::new(),

@@ -2,8 +2,8 @@ use edbm::zones::OwnedFederation;
 
 use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::State;
 use crate::ModelObjects::representations::{BoolExpression, QueryExpression};
+use crate::ModelObjects::state::State;
 use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 use std::slice::Iter;
 
@@ -88,15 +88,15 @@ fn build_location_tree(
                 &build_location_tree(locations, right, right_system)?,
             ))
         }
-        SystemRecipe::Component(component) => match locations.next().unwrap().trim() {
-            // It is ensured .next() will not give a None, since the number of location is same as number of component. This is also being checked in validate_reachability_input function, that is called before get_state
+        SystemRecipe::Automaton(automaton) => match locations.next().unwrap().trim() {
+            // It is ensured .next() will not give a None, since the number of location is same as number of automata. This is also being checked in validate_reachability_input function, that is called before get_state
             "_" => Ok(LocationTree::build_any_location_tree()),
             str => system
                 .get_location(&LocationID::Simple(str.to_string()))
                 .ok_or(format!(
-                    "Location {} does not exist in the component {}",
+                    "Location {} does not exist in the automaton {}",
                     str,
-                    component.get_name()
+                    automaton.get_name()
                 )),
         },
     }

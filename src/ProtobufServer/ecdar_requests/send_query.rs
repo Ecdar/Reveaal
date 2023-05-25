@@ -1,6 +1,6 @@
 use crate::extract_system_rep::ExecutableQueryError;
 use crate::DataReader::component_loader::ModelCache;
-use crate::DataReader::json_writer::component_to_json;
+use crate::DataReader::json_writer::automaton_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::queries::Query;
 use crate::ProtobufServer::ecdar_requests::request_util::get_or_insert_model;
@@ -39,36 +39,36 @@ impl ConcreteEcdarBackend {
         let query = parse_query(&query_request)?;
         let user_id = query_request.user_id;
 
-        let mut component_container = get_or_insert_model(
+        let mut automata_container = get_or_insert_model(
             &mut model_cache,
             user_id,
             components_info.components_hash,
             proto_components,
         );
-        component_container.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
+        automata_container.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
 
-        let out =
-            match extract_system_rep::create_executable_query(&query, &mut component_container) {
-                Ok(query) => {
-                    let result = query.execute();
-                    Ok(QueryResponse {
-                        query_id: query_request.query_id,
-                        info: vec![], // TODO: Should be logs
-                        result: Some(result.into()),
-                    })
-                }
-                Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
-                    "Creation of query failed: {}",
-                    e
-                ))),
-                Err(ExecutableQueryError::SystemRecipeFailure(failure)) => {
-                    Ok(QueryResponse {
-                        query_id: query_request.query_id,
-                        info: vec![], // TODO: Should be logs
-                        result: Some(failure.into()),
-                    })
-                }
-            };
+        let out = match extract_system_rep::create_executable_query(&query, &mut automata_container)
+        {
+            Ok(query) => {
+                let result = query.execute();
+                Ok(QueryResponse {
+                    query_id: query_request.query_id,
+                    info: vec![], // TODO: Should be logs
+                    result: Some(result.into()),
+                })
+            }
+            Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
+                "Creation of query failed: {}",
+                e
+            ))),
+            Err(ExecutableQueryError::SystemRecipeFailure(failure)) => {
+                Ok(QueryResponse {
+                    query_id: query_request.query_id,
+                    info: vec![], // TODO: Should be logs
+                    result: Some(failure.into()),
+                })
+            }
+        };
         out
     }
 }
@@ -97,8 +97,8 @@ impl From<QueryResult> for ProtobufResult {
             QueryResult::Determinism(Err(fail)) => fail.into(),
             QueryResult::Reachability(Err(fail)) => fail.into(),
 
-            QueryResult::GetComponent(comp) => ProtobufResult::Component(ProtobufComponent {
-                rep: Some(Rep::Json(component_to_json(&comp))),
+            QueryResult::GetComponent(automaton) => ProtobufResult::Component(ProtobufComponent {
+                rep: Some(Rep::Json(automaton_to_json(&automaton))),
             }),
 
             QueryResult::RecipeFailure(recipe) => recipe.into(),

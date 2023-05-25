@@ -4,7 +4,8 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::component::{Component, Declarations, State};
+use crate::component::{Automaton, Declarations};
+use crate::ModelObjects::state::State;
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
@@ -14,14 +15,14 @@ use crate::Simulation::decision::Decision;
 use crate::System::specifics::SpecificLocation;
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 
-use super::component_loader::parse_components_if_some;
+use super::component_loader::parse_automata_if_some;
 
-/// Borrows a [`ComponentsInfo`] and returns the corresponding [`Vec`] of [`Component`]s.
-pub fn components_info_to_components(components_info: &ComponentsInfo) -> Vec<Component> {
+/// Borrows a [`ComponentsInfo`] and returns the corresponding [`Vec`] of [`Automaton`].
+pub fn components_info_to_automata(components_info: &ComponentsInfo) -> Vec<Automaton> {
     components_info
         .components
         .iter()
-        .flat_map(parse_components_if_some)
+        .flat_map(parse_automata_if_some)
         .flatten()
         .collect()
 }
@@ -126,7 +127,7 @@ fn proto_zone_to_owned_federation(
     // Get the vector of conjunctions from the proto
     let proto_conjunctions = proto_zone.conjunctions;
 
-    // Generate map from component index to declarations (include component name for sanity check)
+    // Generate map from automaton index to declarations (include automaton name for sanity check)
     let infos = system.comp_infos();
     let map = infos
         .iter()

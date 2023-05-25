@@ -2,15 +2,17 @@ use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
+use crate::ModelObjects::state::State;
+use crate::ModelObjects::transition::Transition;
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
-    component::Component,
+    component::Automaton,
     extract_system_rep::get_system_recipe,
     parse_queries::{build_expression_from_pair, QueryParser},
-    ComponentLoader,
-    DataReader::component_loader::ComponentContainer,
-    ModelObjects::component::{Declarations, State, Transition},
+    AutomataLoader,
+    DataReader::component_loader::AutomataContainer,
+    ModelObjects::component::Declarations,
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
@@ -166,15 +168,15 @@ pub trait TransitionSystem: DynClone {
         format!("({} {} {})", left.to_string(), comp, right.to_string())
     }
 
-    /// Returns a [`Vec`] of all component names in a given [`TransitionSystem`].
-    fn component_names(&self) -> Vec<&str> {
+    /// Returns a [`Vec`] of all automata names in a given [`TransitionSystem`].
+    fn automata_names(&self) -> Vec<&str> {
         let children = self.get_children();
         let left_child = children.0;
         let right_child = children.1;
         left_child
-            .component_names()
+            .automata_names()
             .into_iter()
-            .chain(right_child.component_names().into_iter())
+            .chain(right_child.automata_names().into_iter())
             .collect()
     }
 
@@ -251,18 +253,18 @@ pub trait TransitionSystem: DynClone {
     fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String>;
 }
 
-/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some `components`.
-pub fn components_to_transition_system(
-    components: Vec<Component>,
+/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some automata.
+pub fn automata_to_transition_system(
+    automata: Vec<Automaton>,
     composition: &str,
 ) -> TransitionSystemPtr {
-    let mut component_container = ComponentContainer::from_components(components);
-    component_loader_to_transition_system(&mut component_container, composition)
+    let mut automata_container = AutomataContainer::from_automata(automata);
+    automata_loader_to_transition_system(&mut automata_container, composition)
 }
 
-/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some components in a [`ComponentLoader`].
-pub fn component_loader_to_transition_system(
-    loader: &mut dyn ComponentLoader,
+/// Returns a [`TransitionSystemPtr`] equivalent to a `composition` of some automata in a [`AutomataLoader`].
+pub fn automata_loader_to_transition_system(
+    loader: &mut dyn AutomataLoader,
     composition: &str,
 ) -> TransitionSystemPtr {
     let mut dimension = 0;

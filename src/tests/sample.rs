@@ -10,7 +10,7 @@ mod samples {
             CONJUNCTION_SAMPLE.to_string(),
             crate::tests::TEST_SETTINGS,
         );
-        let t1 = project_loader.get_component("Test1");
+        let t1 = project_loader.get_automaton("Test1");
 
         assert_eq!(t1.get_name(), "Test1");
         assert_eq!(t1.get_locations().len(), 2);
@@ -22,7 +22,7 @@ mod samples {
             CONJUNCTION_SAMPLE.to_string(),
             crate::tests::TEST_SETTINGS,
         );
-        let t2 = project_loader.get_component("Test2");
+        let t2 = project_loader.get_automaton("Test2");
 
         assert_eq!(t2.get_name(), "Test2");
         assert_eq!(t2.get_locations().len(), 2);
@@ -34,7 +34,7 @@ mod samples {
             CONJUNCTION_SAMPLE.to_string(),
             crate::tests::TEST_SETTINGS,
         );
-        let t3 = project_loader.get_component("Test3");
+        let t3 = project_loader.get_automaton("Test3");
 
         assert_eq!(t3.get_name(), "Test3");
         assert_eq!(t3.get_locations().len(), 3);
@@ -48,7 +48,7 @@ mod samples {
         );
 
         for i in 1..12 {
-            let t = project_loader.get_component(&format!("Test{}", i).to_string());
+            let t = project_loader.get_automaton(&format!("Test{}", i).to_string());
 
             assert_eq!(t.name, format!("Test{}", i));
         }

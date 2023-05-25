@@ -12,7 +12,7 @@ use crate::ProtobufServer::services::{
 };
 use crate::System::query_failures::*;
 use crate::System::specifics::{
-    SpecialLocation, SpecificClock, SpecificClockVar, SpecificComp, SpecificConjunction,
+    SpecialLocation, SpecificAutomaton, SpecificClock, SpecificClockVar, SpecificConjunction,
     SpecificConstraint, SpecificDecision, SpecificDisjunction, SpecificEdge, SpecificLocation,
     SpecificPath, SpecificState,
 };
@@ -45,10 +45,13 @@ impl From<SpecificLocation> for LocationTree {
                     },
                 ))),
             },
-            SpecificLocation::ComponentLocation { comp, location_id } => LocationTree {
+            SpecificLocation::AutomatonLocation {
+                automaton,
+                location_id,
+            } => LocationTree {
                 node_type: Some(NodeType::LeafLocation(LeafLocation {
                     id: location_id,
-                    component_instance: Some(comp.into()),
+                    component_instance: Some(automaton.into()),
                 })),
             },
             SpecificLocation::SpecialLocation(kind) => LocationTree {
@@ -79,8 +82,8 @@ impl From<LocationTree> for SpecificLocation {
 
                 SpecificLocation::BranchLocation(left, right, sys_type)
             }
-            NodeType::LeafLocation(leaf) => SpecificLocation::ComponentLocation {
-                comp: leaf.component_instance.unwrap().into(),
+            NodeType::LeafLocation(leaf) => SpecificLocation::AutomatonLocation {
+                automaton: leaf.component_instance.unwrap().into(),
                 location_id: leaf.id,
             },
             NodeType::SpecialLocation(special) => match special {
@@ -92,20 +95,20 @@ impl From<LocationTree> for SpecificLocation {
     }
 }
 
-impl From<SpecificComp> for ProtoSpecificComponent {
-    fn from(comp: SpecificComp) -> Self {
+impl From<SpecificAutomaton> for ProtoSpecificComponent {
+    fn from(automaton: SpecificAutomaton) -> Self {
         ProtoSpecificComponent {
-            component_name: comp.name,
-            component_index: comp.id,
+            component_name: automaton.name,
+            component_index: automaton.id,
         }
     }
 }
 
-impl From<ProtoSpecificComponent> for SpecificComp {
-    fn from(comp: ProtoSpecificComponent) -> Self {
-        SpecificComp {
-            name: comp.component_name,
-            id: comp.component_index,
+impl From<ProtoSpecificComponent> for SpecificAutomaton {
+    fn from(automaton: ProtoSpecificComponent) -> Self {
+        SpecificAutomaton {
+            name: automaton.component_name,
+            id: automaton.component_index,
         }
     }
 }
@@ -148,7 +151,7 @@ impl From<SpecificClockVar> for ProtoClock {
             SpecificClockVar::Zero => Self {
                 clock: Some(ProtoClockEnum::ZeroClock(Default::default())),
             },
-            SpecificClockVar::ComponentClock(clock) => Self {
+            SpecificClockVar::AutomatonClock(clock) => Self {
                 clock: Some(ProtoClockEnum::ComponentClock(clock.into())),
             },
             SpecificClockVar::SystemClock(clock_index) => Self {

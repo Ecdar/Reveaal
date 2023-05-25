@@ -1,18 +1,18 @@
 #[cfg(test)]
 mod unused_clocks_tests {
     use crate::tests::ClockReduction::helper::test::assert_unused_clock_in_clock_reduction_instruction_vec;
-    use crate::DataReader::json_reader::read_json_component;
-    use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
+    use crate::DataReader::json_reader::read_json_automaton;
+    use crate::TransitionSystems::{SimpleTransitionSystem, TransitionSystem};
 
     /// Loads the sample in `samples/json/ClockReductionTest/UnusedClockWithCycle` which contains
     /// unused clocks. It then tests that these clocks are located correctly.
     fn unused_clocks_with_cycles(component_name: &str, unused_clock: &str) {
-        let component = read_json_component(
+        let component = read_json_automaton(
             "samples/json/ClockReductionTest/UnusedClockWithCycle",
             component_name,
         );
 
-        let compiled_component = CompiledComponent::compile(
+        let compiled_component = SimpleTransitionSystem::compile(
             component.clone(),
             component.declarations.clocks.len() + 1,
             &mut 0,
@@ -32,12 +32,12 @@ mod unused_clocks_tests {
     /// Loads the sample in `samples/json/ClockReductionTest/UnusedClock` which contains
     /// unused clocks. It then tests that these clocks are located correctly.
     fn unused_clock(component_name: &str, unused_clock: &str) {
-        let component = read_json_component(
+        let component = read_json_automaton(
             "samples/json/ClockReductionTest/UnusedClock",
             component_name,
         );
 
-        let compiled_component = CompiledComponent::compile(
+        let compiled_component = SimpleTransitionSystem::compile(
             component.clone(),
             component.declarations.clocks.len() + 1,
             &mut 0,

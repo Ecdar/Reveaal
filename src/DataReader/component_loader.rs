@@ -1,10 +1,10 @@
 use log::warn;
 use lru::LruCache;
 
-use crate::component::Component;
+use crate::component::Automaton;
 use crate::xml_parser;
 use crate::DataReader::json_reader;
-use crate::DataReader::json_writer::component_to_json_file;
+use crate::DataReader::json_writer::automaton_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
 use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::system_declarations::SystemDeclarations;
@@ -15,26 +15,26 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-use super::proto_reader::components_info_to_components;
+use super::proto_reader::components_info_to_automata;
 
-type ComponentsMap = HashMap<String, Component>;
+type AutomataMap = HashMap<String, Automaton>;
 
-struct ComponentTuple {
-    components_hash: u32,
-    components_map: Arc<ComponentsMap>,
+struct AutomataTuple {
+    automata_hash: u32,
+    automata_map: Arc<AutomataMap>,
 }
 
 /// A struct used for caching the models.
 #[derive(Debug, Clone)]
 pub struct ModelCache {
     // TODO: A concurrent lru may be faster to use and cause less prone to lock contention.
-    cache: Arc<Mutex<LruCache<i32, ComponentTuple>>>,
+    cache: Arc<Mutex<LruCache<i32, AutomataTuple>>>,
 }
 
 impl Default for ModelCache {
     fn default() -> Self {
         Self {
-            cache: Arc::new(Mutex::new(LruCache::<i32, ComponentTuple>::new(
+            cache: Arc::new(Mutex::new(LruCache::<i32, AutomataTuple>::new(
                 NonZeroUsize::new(100).unwrap(),
             ))),
         }
@@ -49,7 +49,7 @@ impl ModelCache {
     /// * `cache_size` - A number representing the number of users that can be cached simultaneusly.
     pub fn new(cache_size: usize) -> Self {
         Self {
-            cache: Arc::new(Mutex::new(LruCache::<i32, ComponentTuple>::new(
+            cache: Arc::new(Mutex::new(LruCache::<i32, AutomataTuple>::new(
                 NonZeroUsize::new(cache_size).unwrap(),
             ))),
         }
@@ -59,21 +59,21 @@ impl ModelCache {
     ///
     /// # Arguments
     ///
-    /// * `components_hash` - A hash of the components
-    pub fn get_model(&self, user_id: i32, components_hash: u32) -> Option<ComponentContainer> {
-        if components_hash == 0 {
-            warn!("The component has no hash (0), so we assume it should not be cached.");
+    /// * `automata_hash` - A hash of the automata
+    pub fn get_model(&self, user_id: i32, automata_hash: u32) -> Option<AutomataContainer> {
+        if automata_hash == 0 {
+            warn!("The automaton has no hash (0), so we assume it should not be cached.");
             return None;
         }
 
         let mut cache = self.cache.lock().unwrap();
 
-        let components = cache.get(&user_id);
+        let automata = cache.get(&user_id);
 
-        components.and_then(|component_pair| {
-            if component_pair.components_hash == components_hash {
-                Some(ComponentContainer::new(Arc::clone(
-                    &component_pair.components_map,
+        automata.and_then(|automata_pair| {
+            if automata_pair.automata_hash == automata_hash {
+                Some(AutomataContainer::new(Arc::clone(
+                    &automata_pair.automata_map,
                 )))
             } else {
                 None
@@ -85,53 +85,53 @@ impl ModelCache {
     ///
     /// # Arguments
     ///
-    /// * `components_hash` - A hash of the components
-    /// * `container_components` - The `ComponentContainer's` loaded components (aka Model) to be cached.
+    /// * `automata_hash` - A hash of the automata
+    /// * `container_automata` - The `AutomataContainer's` loaded automata (aka Model) to be cached.
     pub fn insert_model(
         &mut self,
         user_id: i32,
-        components_hash: u32,
-        container_components: Arc<ComponentsMap>,
-    ) -> ComponentContainer {
-        if components_hash == 0 {
-            warn!("The component has no hash (0), so we assume it should not be cached.");
-            return ComponentContainer::new(container_components);
+        automata_hash: u32,
+        container_automata: Arc<AutomataMap>,
+    ) -> AutomataContainer {
+        if automata_hash == 0 {
+            warn!("The automaton has no hash (0), so we assume it should not be cached.");
+            return AutomataContainer::new(container_automata);
         }
 
         self.cache.lock().unwrap().put(
             user_id,
-            ComponentTuple {
-                components_hash,
-                components_map: Arc::clone(&container_components),
+            AutomataTuple {
+                automata_hash,
+                automata_map: Arc::clone(&container_automata),
             },
         );
 
-        ComponentContainer::new(container_components)
+        AutomataContainer::new(container_automata)
     }
 }
 
-pub trait ComponentLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component;
-    fn save_component(&mut self, component: Component);
+pub trait AutomataLoader {
+    fn get_automaton(&mut self, automaton_name: &str) -> &Automaton;
+    fn save_automaton(&mut self, automaton: Automaton);
     fn get_settings(&self) -> &Settings;
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct ComponentContainer {
-    pub loaded_components: Arc<ComponentsMap>,
+pub struct AutomataContainer {
+    pub loaded_automata: Arc<AutomataMap>,
     settings: Option<Settings>,
 }
 
-impl ComponentLoader for ComponentContainer {
-    fn get_component(&mut self, component_name: &str) -> &Component {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
-            component
+impl AutomataLoader for AutomataContainer {
+    fn get_automaton(&mut self, automaton_name: &str) -> &Automaton {
+        if let Some(automaton) = self.loaded_automata.get(automaton_name) {
+            assert_eq!(automaton_name, automaton.get_name());
+            automaton
         } else {
-            panic!("The component '{}' could not be retrieved", component_name);
+            panic!("The automaton '{}' could not be retrieved", automaton_name);
         }
     }
-    fn save_component(&mut self, _component: Component) {
+    fn save_automaton(&mut self, _automaton: Automaton) {
         //Intentionally left blank (no-op func)
     }
 
@@ -140,33 +140,33 @@ impl ComponentLoader for ComponentContainer {
     }
 }
 
-impl ComponentContainer {
-    pub fn new(map: Arc<ComponentsMap>) -> Self {
-        ComponentContainer {
-            loaded_components: map,
+impl AutomataContainer {
+    pub fn new(map: Arc<AutomataMap>) -> Self {
+        AutomataContainer {
+            loaded_automata: map,
             settings: None,
         }
     }
 
-    /// Creates a [`ComponentContainer`] from a [`services::ComponentsInfo`].
+    /// Creates a [`AutomataContainer`] from a [`services::ComponentsInfo`].
     pub fn from_info(
         components_info: &services::ComponentsInfo,
-    ) -> Result<ComponentContainer, tonic::Status> {
-        let components = components_info_to_components(components_info);
-        let component_container = Self::from_components(components);
-        Ok(component_container)
+    ) -> Result<AutomataContainer, tonic::Status> {
+        let automata = components_info_to_automata(components_info);
+        let automata_container = Self::from_automata(automata);
+        Ok(automata_container)
     }
 
-    /// Creates a [`ComponentContainer`] from a [`Vec`] of [`Component`]s
-    pub fn from_components(components: Vec<Component>) -> ComponentContainer {
-        let mut comp_hashmap = HashMap::<String, Component>::new();
-        for mut component in components {
-            log::trace!("Adding comp {} to container", component.get_name());
-            let inputs: Vec<_> = component.get_input_actions();
-            input_enabler::make_input_enabled(&mut component, &inputs);
-            comp_hashmap.insert(component.get_name().to_string(), component);
+    /// Creates a [`AutomataContainer`] from a [`Vec`] of [`Automaton`]s
+    pub fn from_automata(automata: Vec<Automaton>) -> AutomataContainer {
+        let mut comp_hashmap = HashMap::<String, Automaton>::new();
+        for mut automaton in automata {
+            log::trace!("Adding comp {} to container", automaton.get_name());
+            let inputs: Vec<_> = automaton.get_input_actions();
+            input_enabler::make_input_enabled(&mut automaton, &inputs);
+            comp_hashmap.insert(automaton.get_name().to_string(), automaton);
         }
-        ComponentContainer::new(Arc::new(comp_hashmap))
+        AutomataContainer::new(Arc::new(comp_hashmap))
     }
 
     /// Sets the settings
@@ -175,66 +175,66 @@ impl ComponentContainer {
     }
 }
 
-pub fn parse_components_if_some(
+pub fn parse_automata_if_some(
     proto_component: &services::Component,
-) -> Result<Vec<Component>, tonic::Status> {
+) -> Result<Vec<Automaton>, tonic::Status> {
     if let Some(rep) = &proto_component.rep {
         match rep {
-            services::component::Rep::Json(json) => parse_json_component(json),
-            services::component::Rep::Xml(xml) => Ok(parse_xml_components(xml)),
+            services::component::Rep::Json(json) => parse_json_automaton(json),
+            services::component::Rep::Xml(xml) => Ok(parse_xml_automata(xml)),
         }
     } else {
         Ok(vec![])
     }
 }
 
-fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
-    match json_reader::json_to_component(json) {
+fn parse_json_automaton(json: &str) -> Result<Vec<Automaton>, tonic::Status> {
+    match json_reader::json_to_automaton(json) {
         Ok(comp) => Ok(vec![comp]),
         Err(_) => Err(tonic::Status::invalid_argument(
-            "Failed to parse json component",
+            "Failed to parse json automaton",
         )),
     }
 }
 
-fn parse_xml_components(xml: &str) -> Vec<Component> {
+fn parse_xml_automata(xml: &str) -> Vec<Automaton> {
     let (comps, _, _) = xml_parser::parse_xml_from_str(xml);
     comps
 }
 
-pub trait ProjectLoader: ComponentLoader {
+pub trait ProjectLoader: AutomataLoader {
     fn get_declarations(&self) -> &SystemDeclarations;
     fn get_queries(&self) -> &Vec<Query>;
     fn get_project_path(&self) -> &str;
-    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader>;
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn AutomataLoader>;
 }
 
 pub struct JsonProjectLoader {
     project_path: String,
-    loaded_components: ComponentsMap,
+    loaded_automata: AutomataMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
     settings: Settings,
 }
 
-impl ComponentLoader for JsonProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component {
-        if !self.is_component_loaded(component_name) {
-            self.load_component(component_name);
+impl AutomataLoader for JsonProjectLoader {
+    fn get_automaton(&mut self, automaton_name: &str) -> &Automaton {
+        if !self.is_automaton_loaded(automaton_name) {
+            self.load_automaton(automaton_name);
         }
 
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
-            component
+        if let Some(automaton) = self.loaded_automata.get(automaton_name) {
+            assert_eq!(automaton_name, automaton.get_name());
+            automaton
         } else {
-            panic!("The component '{}' could not be retrieved", component_name);
+            panic!("The automaton '{}' could not be retrieved", automaton_name);
         }
     }
 
-    fn save_component(&mut self, component: Component) {
-        component_to_json_file(&self.project_path, &component);
-        self.loaded_components
-            .insert(component.get_name().clone(), component);
+    fn save_automaton(&mut self, automaton: Automaton) {
+        automaton_to_json_file(&self.project_path, &automaton);
+        self.loaded_automata
+            .insert(automaton.get_name().clone(), automaton);
     }
 
     fn get_settings(&self) -> &Settings {
@@ -255,7 +255,7 @@ impl ProjectLoader for JsonProjectLoader {
         &self.project_path
     }
 
-    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader> {
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn AutomataLoader> {
         self
     }
 }
@@ -267,52 +267,52 @@ impl JsonProjectLoader {
 
         Box::new(JsonProjectLoader {
             project_path,
-            loaded_components: HashMap::new(),
+            loaded_automata: HashMap::new(),
             system_declarations,
             queries,
             settings,
         })
     }
 
-    fn load_component(&mut self, component_name: &str) {
-        let mut component = json_reader::read_json_component(&self.project_path, component_name);
+    fn load_automaton(&mut self, automaton_name: &str) {
+        let mut automaton = json_reader::read_json_automaton(&self.project_path, automaton_name);
 
         let opt_inputs = self
             .get_declarations()
-            .get_component_inputs(component.get_name());
+            .get_automaton_inputs(automaton.get_name());
         if let Some(inputs) = opt_inputs {
-            input_enabler::make_input_enabled(&mut component, inputs);
+            input_enabler::make_input_enabled(&mut automaton, inputs);
         }
 
-        self.loaded_components
-            .insert(String::from(component_name), component);
+        self.loaded_automata
+            .insert(String::from(automaton_name), automaton);
     }
 
-    fn is_component_loaded(&self, component_name: &str) -> bool {
-        self.loaded_components.contains_key(component_name)
+    fn is_automaton_loaded(&self, automaton_name: &str) -> bool {
+        self.loaded_automata.contains_key(automaton_name)
     }
 }
 
 pub struct XmlProjectLoader {
     project_path: String,
-    loaded_components: ComponentsMap,
+    loaded_automata: AutomataMap,
     system_declarations: SystemDeclarations,
     queries: Vec<Query>,
     settings: Settings,
 }
 
-impl ComponentLoader for XmlProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> &Component {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.get_name());
-            component
+impl AutomataLoader for XmlProjectLoader {
+    fn get_automaton(&mut self, automaton_name: &str) -> &Automaton {
+        if let Some(automaton) = self.loaded_automata.get(automaton_name) {
+            assert_eq!(automaton_name, automaton.get_name());
+            automaton
         } else {
-            panic!("The component '{}' could not be retrieved", component_name);
+            panic!("The automaton '{}' could not be retrieved", automaton_name);
         }
     }
 
-    fn save_component(&mut self, _: Component) {
-        panic!("Saving components is not supported for XML projects")
+    fn save_automaton(&mut self, _: Automaton) {
+        panic!("Saving automata is not supported for XML projects")
     }
 
     fn get_settings(&self) -> &Settings {
@@ -333,29 +333,29 @@ impl ProjectLoader for XmlProjectLoader {
         &self.project_path
     }
 
-    fn to_comp_loader(self: Box<Self>) -> Box<dyn ComponentLoader> {
+    fn to_comp_loader(self: Box<Self>) -> Box<dyn AutomataLoader> {
         self
     }
 }
 
 impl XmlProjectLoader {
     pub fn new_loader(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
-        let (comps, system_declarations, queries) = parse_xml_from_file(&project_path);
+        let (automata, system_declarations, queries) = parse_xml_from_file(&project_path);
 
-        let mut map = HashMap::<String, Component>::new();
-        for mut component in comps {
-            let opt_inputs = system_declarations.get_component_inputs(component.get_name());
+        let mut map = HashMap::<String, Automaton>::new();
+        for mut automaton in automata {
+            let opt_inputs = system_declarations.get_automaton_inputs(automaton.get_name());
             if let Some(opt_inputs) = opt_inputs {
-                input_enabler::make_input_enabled(&mut component, opt_inputs);
+                input_enabler::make_input_enabled(&mut automaton, opt_inputs);
             }
 
-            let name = String::from(component.get_name());
-            map.insert(name, component);
+            let name = String::from(automaton.get_name());
+            map.insert(name, automaton);
         }
 
         Box::new(XmlProjectLoader {
             project_path,
-            loaded_components: map,
+            loaded_automata: map,
             system_declarations,
             queries,
             settings,

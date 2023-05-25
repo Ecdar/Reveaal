@@ -11,7 +11,7 @@ pub mod logging;
 pub mod tests;
 
 pub use crate::DataReader::component_loader::{
-    ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
+    AutomataLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,
 };
 pub use crate::DataReader::{parse_queries, xml_parser};
 pub use crate::ModelObjects::queries::Query;
