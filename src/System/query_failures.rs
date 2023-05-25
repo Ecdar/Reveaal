@@ -1,7 +1,8 @@
 use std::{collections::HashSet, fmt};
 
+use crate::ModelObjects::state::State;
 use crate::{
-    component::{Automaton, State},
+    component::Automaton,
     ModelObjects::statepair::StatePair,
     TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr},
 };

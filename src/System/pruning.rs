@@ -3,14 +3,17 @@ use edbm::zones::OwnedFederation;
 use log::{debug, trace};
 
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::{
-    Automaton, DeclarationProvider, Declarations, Edge, Location, SyncType,
-};
+use crate::ModelObjects::component::Automaton;
+use crate::ModelObjects::component::DeclarationProvider;
+use crate::ModelObjects::component::Declarations;
+use crate::ModelObjects::edge::SyncType;
 use crate::ModelObjects::representations::BoolExpression;
 use crate::System::save_component::combine_automata;
 use crate::TransitionSystems::TransitionSystemPtr;
 use crate::TransitionSystems::{LocationTree, SimpleTransitionSystem};
 
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::location::Location;
 use std::collections::{HashMap, HashSet};
 
 use super::save_component::PruningStrategy;

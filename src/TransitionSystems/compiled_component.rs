@@ -1,6 +1,8 @@
-use crate::ModelObjects::component::{
-    Automaton, DeclarationProvider, Declarations, State, Transition,
-};
+use crate::ModelObjects::component::Automaton;
+use crate::ModelObjects::component::DeclarationProvider;
+use crate::ModelObjects::component::Declarations;
+use crate::ModelObjects::state::State;
+use crate::ModelObjects::transition::Transition;
 use crate::System::local_consistency::{self};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,

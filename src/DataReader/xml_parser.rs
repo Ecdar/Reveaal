@@ -1,10 +1,12 @@
-use crate::component::{Automaton, Location};
+use crate::component::Automaton;
 use crate::DataReader::parse_edge::Update;
 use crate::DataReader::{parse_edge, parse_invariant};
-use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
+use crate::ModelObjects::edge::Edge;
+use crate::ModelObjects::location::{Location, LocationType};
 use crate::ModelObjects::queries;
 use crate::ModelObjects::representations;
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
+use crate::ModelObjects::{component::Declarations, edge::SyncType};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;

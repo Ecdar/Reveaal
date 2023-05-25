@@ -2,7 +2,7 @@ use edbm::zones::OwnedFederation;
 use log::{debug, info, log_enabled, trace, Level};
 
 use crate::DataTypes::{PassedStateList, PassedStateListExt, WaitingStateList};
-use crate::ModelObjects::component::Transition;
+use crate::ModelObjects::transition::Transition;
 
 use crate::ModelObjects::statepair::StatePair;
 use crate::System::query_failures::RefinementFailure;

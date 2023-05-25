@@ -1,5 +1,5 @@
-use crate::DataReader::component_loader::AutomataLoader;
-use crate::ModelObjects::component::State;
+use crate::AutomataLoader;
+use crate::ModelObjects::state::State;
 use crate::System::reachability;
 use crate::System::refine;
 use crate::System::save_component::combine_automata;

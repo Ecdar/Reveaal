@@ -2,6 +2,8 @@ use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::DataReader::parse_queries::Rule;
 use crate::EdgeEval::updater::CompiledUpdate;
+use crate::ModelObjects::state::State;
+use crate::ModelObjects::transition::Transition;
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
@@ -10,7 +12,7 @@ use crate::{
     parse_queries::{build_expression_from_pair, QueryParser},
     AutomataLoader,
     DataReader::component_loader::AutomataContainer,
-    ModelObjects::component::{Declarations, State, Transition},
+    ModelObjects::component::Declarations,
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};

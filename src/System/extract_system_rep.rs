@@ -14,7 +14,7 @@ use crate::TransitionSystems::{
 };
 
 use super::query_failures::SystemRecipeFailure;
-use crate::component::State;
+use crate::ModelObjects::state::State;
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;

@@ -1,8 +1,8 @@
 use edbm::{util::constraints::ClockIndex, zones::OwnedFederation};
 
+use crate::ModelObjects::location::{Location, LocationType};
 use crate::{
-    EdgeEval::constraint_applyer::apply_constraints_to_state,
-    ModelObjects::component::{Declarations, Location, LocationType},
+    EdgeEval::constraint_applyer::apply_constraints_to_state, ModelObjects::component::Declarations,
 };
 
 use super::LocationID;

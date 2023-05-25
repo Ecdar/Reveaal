@@ -1,7 +1,10 @@
-use crate::component::{Automaton, DeclarationProvider, Edge, SyncType};
+use crate::component::Automaton;
+use crate::component::DeclarationProvider;
+use crate::ModelObjects::edge::SyncType;
 use edbm::zones::OwnedFederation;
 
 use crate::EdgeEval::constraint_applyer;
+use crate::ModelObjects::edge::Edge;
 use crate::ModelObjects::representations::BoolExpression;
 
 pub fn make_input_enabled(automaton: &mut Automaton, inputs: &[String]) {

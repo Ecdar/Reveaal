@@ -7,8 +7,10 @@ use edbm::{
 };
 use log::warn;
 
+use crate::ModelObjects::state::State;
+use crate::ModelObjects::transition::Transition;
 use crate::{
-    ModelObjects::component::{Declarations, State, Transition},
+    ModelObjects::component::Declarations,
     System::{query_failures::DeterminismResult, specifics::SpecificLocation},
 };
 use crate::{System::query_failures::ConsistencyResult, TransitionSystems::CompositionType};
