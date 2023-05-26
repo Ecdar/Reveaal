@@ -35,22 +35,22 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 macro_rules! msg {
     ($severity:expr, subject: $subject:expr, msg: $msg:expr) => ({
         if $crate::is_server() {
-            $crate::logging::message::__set_info__($crate::logging::message::__as_information__($severity.into(), $subject, $msg));
+            $crate::logging::message::__set_info__($crate::logging::message::__as_information__($severity.into(), $subject, $msg.to_string()));
         } else {
             //let lvl = $crate::logging::__severity__($severity);
             //log::log!(lvl, "{}", $crate::logging::__as_information__($severity, $subject, $msg));
-            println!("{}", $crate::logging::message::__as_information__($severity.into(), $subject, $msg));
+            println!("{}", $crate::logging::message::__as_information__($severity.into(), $subject, $msg.to_string()));
         }
     });
 
 
     ($severity:expr, subject: $subject:expr, msg: $($msg:tt)+) => (msg!($severity, subject: $subject, msg: format_args!($($msg)+).to_string()));
 
-    ($subject:expr, msg: $msg:expr) => (msg!(0, subject: $subject, msg: $msg));
+    ($subject:expr, msg: $msg:expr) => (msg!(0, subject: $subject, msg: $msg.to_string()));
     ($subject:expr, msg: $($msg:tt)+) => (msg!(0, subject: $subject, msg: format_args!($($msg)+).to_string()));
 
-    ($msg:expr) => (msg!(0, subject: "general", msg: $msg.to_string()));
-    ($($msg:tt)+) => (msg!(0, subject: "general", msg: format_args!($($msg)+).to_string()));
+    ($msg:expr) => (msg!(0, subject: "General", msg: $msg.to_string()));
+    ($($msg:tt)+) => (msg!(0, subject: "General", msg: format_args!($($msg)+).to_string()));
 }
 
 /// Function to get information messages.
@@ -119,8 +119,34 @@ pub mod message {
     #[cfg(test)]
     mod tests {
         use crate::logging::get_messages;
+        use crate::logging::message::__as_information__;
         use std::thread;
         use std::time::Duration;
+
+        #[test]
+        fn msg_macro_formats_test() {
+            msg!("{}", "test");
+            msg!("test");
+
+            msg!("Testing", msg: "{}", "test");
+            msg!("Testing", msg: "test");
+
+            msg!(1, subject: "Testing", msg: "{}", "test");
+            msg!(1, subject: "Testing", msg: "test");
+            let msgs = get_messages();
+            assert_eq!(msgs.len(), 6);
+            assert_eq!(
+                msgs,
+                vec![
+                    __as_information__(0, "General", "test".to_string()),
+                    __as_information__(0, "General", "test".to_string()),
+                    __as_information__(0, "Testing", "test".to_string()),
+                    __as_information__(0, "Testing", "test".to_string()),
+                    __as_information__(1, "Testing", "test".to_string()),
+                    __as_information__(1, "Testing", "test".to_string())
+                ]
+            );
+        }
 
         #[test]
         fn multithreading_msg_test() {
