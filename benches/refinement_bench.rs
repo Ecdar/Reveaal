@@ -42,8 +42,8 @@ fn construct_query<'a>(
 fn bench_refinement(c: &mut Criterion, query: &str, loader: &mut Box<dyn ComponentLoader>) {
     c.bench_function(query, |b| {
         b.iter(|| match construct_query(query, loader).execute() {
-            QueryResult::Refinement(Ok(_)) => assert!(true),
-            _ => assert!(false),
+            QueryResult::Refinement(Ok(_)) => (),
+            _ => panic!("Not possible"),
         })
     });
 }
@@ -51,8 +51,8 @@ fn bench_refinement(c: &mut Criterion, query: &str, loader: &mut Box<dyn Compone
 fn bench_non_refinement(c: &mut Criterion, query: &str, loader: &mut Box<dyn ComponentLoader>) {
     c.bench_function(&format!("NOT {query}"), |b| {
         b.iter(|| match construct_query(query, loader).execute() {
-            QueryResult::Refinement(Err(_)) => assert!(true),
-            _ => assert!(false),
+            QueryResult::Refinement(Err(_)) => (),
+            _ => panic!("Not possible"),
         })
     });
 }
