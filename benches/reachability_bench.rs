@@ -1,15 +1,41 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use reveaal::tests::refinement::Helper::json_run_query;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
+use reveaal::extract_system_rep::create_executable_query;
+use reveaal::tests::TEST_SETTINGS;
+use reveaal::{parse_queries, ComponentLoader, JsonProjectLoader, Query};
 
 const PATH: &str = "samples/json/EcdarUniversity";
+static mut LOADER: Option<Box<dyn ComponentLoader>> = None;
 
 fn bench_reachability(c: &mut Criterion, query: &str) {
-    c.bench_function(query, |b| b.iter(|| json_run_query(PATH, query)));
+    c.bench_function(query, |b| {
+        b.iter(|| {
+            let query = parse_queries::parse_to_expression_tree(query)
+                .unwrap()
+                .remove(0);
+            let q = Query {
+                query: Option::from(query),
+                comment: "".to_string(),
+            };
+
+            let query =
+                create_executable_query(&q, unsafe { &mut **LOADER.as_mut().unwrap() }).unwrap();
+
+            query.execute()
+        })
+    });
 }
 
 fn reachability_benchmarking(c: &mut Criterion) {
+    let mut loader =
+        JsonProjectLoader::new_loader(PATH.to_string(), TEST_SETTINGS).to_comp_loader();
+    let _ = vec![
+        loader.get_component("Machine").clone(),
+        loader.get_component("Researcher").clone(),
+        loader.get_component("Administration").clone(),
+    ];
+    unsafe { LOADER = Some(loader) };
     bench_reachability(
         c,
         "reachability: Machine || Researcher -> [L5, L6](); [L4, L9]()",
