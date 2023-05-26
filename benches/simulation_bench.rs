@@ -20,7 +20,7 @@ fn new_step_request(
     last_response: &SimulationStartRequest,
 ) -> SimulationStepRequest {
     let cache = ModelCache::default();
-    helper::create_step_requests(
+    helper::construct_step_requests(
         component_names,
         components_path,
         composition,

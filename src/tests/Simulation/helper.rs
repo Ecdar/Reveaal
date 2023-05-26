@@ -19,7 +19,7 @@ impl SimulationStartRequest {
     }
 }
 
-pub fn create_step_requests(
+pub fn construct_step_requests(
     component_names: &[&str],
     components_path: &str,
     composition: &str,

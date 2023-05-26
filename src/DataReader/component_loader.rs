@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-type ComponentsMap = HashMap<String, Component>;
+pub type ComponentsMap = HashMap<String, Component>;
 
 struct ComponentTuple {
     components_hash: u32,

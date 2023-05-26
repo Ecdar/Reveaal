@@ -28,7 +28,7 @@ pub fn get_state(
             };
         }
         let mut state = State::new(
-            create_location_tree(&mut locations.iter(), machine, system)?,
+            construct_location_tree(&mut locations.iter(), machine, system)?,
             create_zone_given_constraints(clock.as_deref(), system)?,
         );
         state.apply_invariants();
@@ -59,7 +59,7 @@ fn create_zone_given_constraints(
         .map_err(|clock| format!("Clock {} does not exist in the transition system", clock))
 }
 
-fn create_location_tree(
+fn construct_location_tree(
     locations: &mut Iter<&str>,
     machine: &SystemRecipe,
     system: &TransitionSystemPtr,
@@ -68,24 +68,24 @@ fn create_location_tree(
         SystemRecipe::Composition(left, right) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::compose(
-                &create_location_tree(locations, left, left_system)?,
-                &create_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
                 CompositionType::Composition,
             ))
         }
         SystemRecipe::Conjunction(left, right) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::compose(
-                &create_location_tree(locations, left, left_system)?,
-                &create_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
                 CompositionType::Conjunction,
             ))
         }
         SystemRecipe::Quotient(left, right, ..) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::merge_as_quotient(
-                &create_location_tree(locations, left, left_system)?,
-                &create_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
             ))
         }
         SystemRecipe::Component(component) => match locations.next().unwrap().trim() {
