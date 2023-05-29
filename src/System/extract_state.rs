@@ -1,4 +1,5 @@
 use edbm::zones::OwnedFederation;
+use itertools::Itertools;
 
 use crate::component::Declarations;
 use crate::extract_system_rep::SystemRecipe;
@@ -19,18 +20,17 @@ pub fn get_state(
 ) -> Result<State, String> {
     // Check that there are no duplicated names in the system recipe components
     let components = recipe.get_components();
-    for c1 in &components {
-        for c2 in &components {
-            if *c1 == *c2 {
-                continue;
-            }
-            if c1.name == c2.name && c1.special_id == c2.special_id {
-                return Err(format!(
-                    "Ambiguous component name: {}[{:?}] and {}[{:?}] are indistinguishable",
-                    c1.name, c1.special_id, c2.name, c2.special_id
-                ));
-            }
-        }
+
+    if let Some((c1, c2)) = components
+        .iter()
+        .cartesian_product(components.iter())
+        .filter(|(&c1, &c2)| c1 != c2)
+        .find(|(c1, c2)| c1.name == c2.name && c1.special_id == c2.special_id)
+    {
+        return Err(format!(
+            "Ambiguous component name: {}[{:?}] and {}[{:?}] are indistinguishable",
+            c1.name, c1.special_id, c2.name, c2.special_id
+        ));
     }
 
     // Get the locations that are part of the state
@@ -38,18 +38,17 @@ pub fn get_state(
     // Deduplicate locations
     locations.dedup();
     // Check that there are no ambiguous locations
-    for l1 in &locations {
-        for l2 in &locations {
-            if l1 == l2 {
-                continue;
-            }
-            if l1.component == l2.component && l1.special_id == l2.special_id {
-                return Err(format!(
-                    "Ambiguous location: {:?} and {:?} refer to the same component",
-                    l1, l2
-                ));
-            }
-        }
+    if let Some((l1, l2)) = locations
+        .iter()
+        .cartesian_product(locations.iter())
+        .filter(|(l1, l2)| **l1 != **l2)
+        .find(|(l1, l2)| l1.component == l2.component && l1.special_id == l2.special_id)
+    {
+        // TODO: Support ambiguous target (and maybe even start) locations in the future e.g. "Comp1.L1 || Comp1.L2".
+        return Err(format!(
+            "Ambiguous location: {} and {} refer to the same component",
+            l1, l2
+        ));
     }
 
     let loc_tree = build_location_tree(&locations, recipe, system)?;

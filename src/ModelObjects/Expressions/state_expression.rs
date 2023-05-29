@@ -34,6 +34,15 @@ pub struct ComponentVariable {
     pub variable: String,
 }
 
+impl Display for ComponentVariable {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.special_id {
+            Some(id) => write!(f, "{}[{}].{}", self.component, id, self.variable),
+            None => write!(f, "{}.{}", self.component, self.variable),
+        }
+    }
+}
+
 impl OperandExpression {
     pub fn to_arith_expression(
         &self,
@@ -78,16 +87,7 @@ impl Display for OperandExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             OperandExpression::Number(n) => write!(f, "{}", n),
-            OperandExpression::Clock(ComponentVariable {
-                component,
-                special_id: None,
-                variable,
-            }) => write!(f, "{}.{}", component, variable),
-            OperandExpression::Clock(ComponentVariable {
-                component,
-                special_id: Some(id),
-                variable,
-            }) => write!(f, "{}[{}].{}", component, id, variable),
+            OperandExpression::Clock(var) => write!(f, "{}", var),
             OperandExpression::Difference(left, right) => {
                 write!(f, "{} - {}", left, right)
             }
@@ -190,16 +190,7 @@ impl Display for StateExpression {
                 s.push(')');
                 write!(f, "{}", s)
             }
-            StateExpression::Location(ComponentVariable {
-                component,
-                special_id: None,
-                variable,
-            }) => write!(f, "{}.{}", component, variable),
-            StateExpression::Location(ComponentVariable {
-                component,
-                special_id: Some(id),
-                variable,
-            }) => write!(f, "{}[{}].{}", component, id, variable),
+            StateExpression::Location(var) => write!(f, "{}", var),
             StateExpression::NOT(expr) => write!(f, "!({})", expr),
             StateExpression::Bool(b) => write!(f, "{}", b),
         }
