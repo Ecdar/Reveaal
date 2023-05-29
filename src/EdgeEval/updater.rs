@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::representations::ArithExpression;
+use crate::ModelObjects::Expressions::ArithExpression;
 use colored::Colorize;
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;

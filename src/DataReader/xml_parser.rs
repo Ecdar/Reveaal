@@ -2,7 +2,7 @@ use crate::DataReader::parse_edge;
 use crate::DataReader::parse_edge::Update;
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
-use crate::ModelObjects::{component, queries, representations, system_declarations};
+use crate::ModelObjects::{component, queries, system_declarations, Expressions};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -111,7 +111,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
     let mut edges: Vec<component::Edge> = vec![];
     for e in xml_edges {
-        let mut guard: Option<representations::BoolExpression> = None;
+        let mut guard: Option<Expressions::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
         let mut sync: String = "".to_string();
         for label in e.find_all("label") {

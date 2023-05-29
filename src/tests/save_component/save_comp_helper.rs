@@ -2,7 +2,7 @@
 pub mod util {
     use crate::DataReader::component_loader::JsonProjectLoader;
     use crate::DataReader::parse_queries;
-    use crate::ModelObjects::representations::QueryExpression;
+    use crate::ModelObjects::Expressions::QueryExpression;
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::query_failures::ConsistencyResult;

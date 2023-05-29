@@ -6,8 +6,8 @@ pub mod reachability_test_helper_functions {
     use crate::parse_queries::parse_to_state_expr;
     use crate::xml_parser;
     use crate::JsonProjectLoader;
-    use crate::ModelObjects::representations::StateExpression;
-    use crate::ModelObjects::representations::SystemExpression;
+    use crate::ModelObjects::Expressions::StateExpression;
+    use crate::ModelObjects::Expressions::SystemExpression;
     use crate::TransitionSystems::TransitionSystem;
     use crate::XmlProjectLoader;
 

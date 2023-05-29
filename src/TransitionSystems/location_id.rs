@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::{ModelObjects::representations::SystemExpression, System::specifics::SpecialLocation};
+use crate::{ModelObjects::Expressions::SystemExpression, System::specifics::SpecialLocation};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum LocationID {

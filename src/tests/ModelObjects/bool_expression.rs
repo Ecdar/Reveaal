@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
-    use crate::ModelObjects::representations::ArithExpression as AE;
-    use crate::ModelObjects::representations::BoolExpression as BE;
+    use crate::ModelObjects::Expressions::ArithExpression as AE;
+    use crate::ModelObjects::Expressions::BoolExpression as BE;
     use AE::Int;
     use BE::Bool;
     #[test]

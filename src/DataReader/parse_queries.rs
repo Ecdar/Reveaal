@@ -1,7 +1,7 @@
 extern crate pest;
 
 use crate::ModelObjects::queries::Query;
-use crate::ModelObjects::representations::{
+use crate::ModelObjects::Expressions::{
     ComponentVariable, OperandExpression, QueryExpression, SaveExpression, StateExpression,
     SystemExpression,
 };

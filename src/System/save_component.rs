@@ -1,6 +1,6 @@
 use crate::component::LocationType;
 use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashMap;
 

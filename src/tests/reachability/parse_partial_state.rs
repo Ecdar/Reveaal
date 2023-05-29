@@ -5,7 +5,7 @@ mod reachability_parse_partial_state {
         parse_queries,
         tests::reachability::helper_functions::reachability_test_helper_functions,
         JsonProjectLoader,
-        ModelObjects::representations::SystemExpression,
+        ModelObjects::Expressions::SystemExpression,
         System,
     };
     use test_case::test_case;

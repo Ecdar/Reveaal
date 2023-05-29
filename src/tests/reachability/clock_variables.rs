@@ -3,7 +3,7 @@ mod reachability_parser_clock_variable_validation {
 
     use crate::{
         tests::reachability::helper_functions::reachability_test_helper_functions,
-        ModelObjects::representations::SystemExpression, System,
+        ModelObjects::Expressions::SystemExpression, System,
     };
     use test_case::test_case;
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";

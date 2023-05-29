@@ -4,7 +4,7 @@ use crate::component::Declarations;
 use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::State;
-use crate::ModelObjects::representations::{BoolExpression, ComponentVariable, StateExpression};
+use crate::ModelObjects::Expressions::{BoolExpression, ComponentVariable, StateExpression};
 use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 
 /// This function takes a [`StateExpression`], the system recipe, and the transitionsystem -

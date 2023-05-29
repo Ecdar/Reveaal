@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod saving_transitionid_test {
     use crate::tests::reachability::helper_functions::reachability_test_helper_functions;
-    use crate::ModelObjects::representations::SystemExpression;
+    use crate::ModelObjects::Expressions::SystemExpression;
     use crate::System::save_component::{combine_components, PruningStrategy};
     use std::collections::HashSet;
     use std::iter::FromIterator;

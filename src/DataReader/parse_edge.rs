@@ -2,7 +2,7 @@ extern crate pest;
 
 use crate::EdgeEval::updater::CompiledUpdate;
 
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
+use crate::ModelObjects::Expressions::{ArithExpression, BoolExpression};
 
 use crate::{DataReader::serialization::encode_arithexpr, ModelObjects::component::Declarations};
 use edbm::util::constraints::ClockIndex;

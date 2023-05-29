@@ -3,7 +3,7 @@ use edbm::zones::OwnedFederation;
 
 use crate::component::Declarations;
 
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Clock};
+use crate::ModelObjects::Expressions::{ArithExpression, BoolExpression, Clock};
 
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
@@ -249,7 +249,7 @@ fn get_clock_val(
 mod test {
     use super::get_indices;
     use crate::component::Declarations;
-    use crate::ModelObjects::representations::ArithExpression;
+    use crate::ModelObjects::Expressions::ArithExpression;
     use std::collections::HashMap;
 
     #[test]

@@ -3,7 +3,7 @@ use edbm::zones::OwnedFederation;
 use crate::EdgeEval::constraint_applyer;
 use crate::ModelObjects::component;
 use crate::ModelObjects::component::DeclarationProvider;
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
 
 pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
     let dimension = component.declarations.get_clock_count() + 1;
