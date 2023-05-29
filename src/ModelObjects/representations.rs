@@ -1248,29 +1248,34 @@ pub enum SystemExpression {
     Conjunction(Box<SystemExpression>, Box<SystemExpression>),
 }
 
-impl SystemExpression {
-    pub fn pretty_string(&self) -> String {
+impl Display for SystemExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SystemExpression::Component(name, Some(id)) => format!("{}[{}]", name, id),
-            SystemExpression::Component(name, None) => name.clone(),
+            SystemExpression::Component(name, Some(id)) => {
+                write!(f, "{}[{}]", name, id)?;
+            }
+            SystemExpression::Component(name, None) => {
+                write!(f, "{}", name)?;
+            }
             SystemExpression::Quotient(left, right) => {
-                format!("({} \\\\ {})", left.pretty_string(), right.pretty_string())
+                write!(f, "({} \\\\ {})", left, right)?;
             }
             SystemExpression::Composition(left, right) => {
-                format!("({} || {})", left.pretty_string(), right.pretty_string())
+                write!(f, "({} || {})", left, right)?;
             }
             SystemExpression::Conjunction(left, right) => {
-                format!("({} && {})", left.pretty_string(), right.pretty_string())
+                write!(f, "({} && {})", left, right)?;
             }
         }
+        Ok(())
     }
 }
 
-impl SaveExpression {
-    pub fn pretty_string(&self) -> String {
+impl Display for SaveExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.name {
-            Some(name) => format!("{} save-as {}", name, self.system.pretty_string()),
-            None => self.system.pretty_string(),
+            Some(name) => write!(f, "{} save-as {}", name, self.system),
+            None => write!(f, "{}", self.system),
         }
     }
 }
@@ -1313,25 +1318,26 @@ impl OperandExpression {
             )),
         }
     }
-    pub fn pretty_string(&self) -> String {
+}
+
+impl Display for OperandExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            OperandExpression::Number(n) => format!("{}", n),
+            OperandExpression::Number(n) => write!(f, "{}", n),
             OperandExpression::Clock(ComponentVariable {
                 component,
                 special_id: None,
                 variable,
-            }) => format!("{}.{}", component, variable),
+            }) => write!(f, "{}.{}", component, variable),
             OperandExpression::Clock(ComponentVariable {
                 component,
                 special_id: Some(id),
                 variable,
-            }) => format!("{}[{}].{}", component, id, variable),
+            }) => write!(f, "{}[{}].{}", component, id, variable),
             OperandExpression::Difference(left, right) => {
-                format!("{} - {}", left.pretty_string(), right.pretty_string())
+                write!(f, "{} - {}", left, right)
             }
-            OperandExpression::Sum(left, right) => {
-                format!("{} + {}", left.pretty_string(), right.pretty_string())
-            }
+            OperandExpression::Sum(left, right) => write!(f, "{} + {}", left, right),
         }
     }
 }
@@ -1398,33 +1404,26 @@ impl StateExpression {
             StateExpression::Bool(b) => Ok(BoolExpression::Bool(*b)),
         }
     }
-    pub fn pretty_string(&self) -> String {
+}
+
+impl Display for StateExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            StateExpression::LEQ(left, right) => {
-                format!("{} <= {}", left.pretty_string(), right.pretty_string())
-            }
-            StateExpression::GEQ(left, right) => {
-                format!("{} >= {}", left.pretty_string(), right.pretty_string())
-            }
-            StateExpression::EQ(left, right) => {
-                format!("{} == {}", left.pretty_string(), right.pretty_string())
-            }
-            StateExpression::LT(left, right) => {
-                format!("{} < {}", left.pretty_string(), right.pretty_string())
-            }
-            StateExpression::GT(left, right) => {
-                format!("{} > {}", left.pretty_string(), right.pretty_string())
-            }
+            StateExpression::LEQ(left, right) => write!(f, "{} <= {}", left, right),
+            StateExpression::GEQ(left, right) => write!(f, "{} >= {}", left, right),
+            StateExpression::EQ(left, right) => write!(f, "{} == {}", left, right),
+            StateExpression::LT(left, right) => write!(f, "{} < {}", left, right),
+            StateExpression::GT(left, right) => write!(f, "{} > {}", left, right),
             StateExpression::AND(exprs) => {
                 let mut s = "(".to_string();
                 for (i, expr) in exprs.iter().enumerate() {
                     if i > 0 {
                         s.push_str(" && ");
                     }
-                    s.push_str(&expr.pretty_string());
+                    s.push_str(&expr.to_string());
                 }
                 s.push(')');
-                s
+                write!(f, "{}", s)
             }
             StateExpression::OR(exprs) => {
                 let mut s = "(".to_string();
@@ -1432,66 +1431,65 @@ impl StateExpression {
                     if i > 0 {
                         s.push_str(" || ");
                     }
-                    s.push_str(&expr.pretty_string());
+                    s.push_str(&expr.to_string());
                 }
                 s.push(')');
-                s
+                write!(f, "{}", s)
             }
             StateExpression::Location(ComponentVariable {
                 component,
                 special_id: None,
                 variable,
-            }) => format!("{}.{}", component, variable),
+            }) => write!(f, "{}.{}", component, variable),
             StateExpression::Location(ComponentVariable {
                 component,
                 special_id: Some(id),
                 variable,
-            }) => format!("{}[{}].{}", component, id, variable),
-            StateExpression::NOT(expr) => format!("!({})", expr.pretty_string()),
-            StateExpression::Bool(b) => format!("{}", b),
+            }) => write!(f, "{}[{}].{}", component, id, variable),
+            StateExpression::NOT(expr) => write!(f, "!({})", expr),
+            StateExpression::Bool(b) => write!(f, "{}", b),
         }
     }
 }
 
-impl QueryExpression {
-    pub fn pretty_string(&self) -> String {
+impl Display for QueryExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            QueryExpression::Refinement(left, right) => format!(
-                "refinement: {} <= {}",
-                left.pretty_string(),
-                right.pretty_string()
-            ),
+            QueryExpression::Refinement(left, right) => {
+                write!(f, "refinement: {} <= {}", left, right)
+            }
             QueryExpression::Reachability { system, from, to } => {
-                format!(
+                write!(
+                    f,
                     "reachability: {} @ {} -> {}",
-                    system.pretty_string(),
+                    system,
                     match from {
-                        Some(expr) => expr.pretty_string(),
+                        Some(expr) => expr.to_string(),
                         None => "init".to_string(),
                     },
-                    to.pretty_string()
+                    to
                 )
             }
             QueryExpression::Consistency(system) => {
-                format!("consistency: {}", system.pretty_string())
+                write!(f, "consistency: {}", system)
             }
             QueryExpression::GetComponent(comp) => {
-                format!("get-component: {}", comp.pretty_string())
+                write!(f, "get-component: {}", comp)
             }
             QueryExpression::Prune(comp) => {
-                format!("prune: {}", comp.pretty_string())
+                write!(f, "prune: {}", comp)
             }
             QueryExpression::BisimMinim(comp) => {
-                format!("bisim-minim: {}", comp.pretty_string())
+                write!(f, "bisim-minim: {}", comp)
             }
             QueryExpression::Implementation(system) => {
-                format!("implementation: {}", system.pretty_string())
+                write!(f, "implementation: {}", system)
             }
             QueryExpression::Determinism(system) => {
-                format!("determinism: {}", system.pretty_string())
+                write!(f, "determinism: {}", system)
             }
             QueryExpression::Specification(system) => {
-                format!("specification: {}", system.pretty_string())
+                write!(f, "specification: {}", system)
             }
         }
     }
