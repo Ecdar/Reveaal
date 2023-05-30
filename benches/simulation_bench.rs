@@ -1,9 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion};
+pub mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::component::Component;
-use reveaal::tests::TEST_SETTINGS;
 use reveaal::DataReader::json_writer::component_to_json;
+use reveaal::ModelObjects::component::Component;
 use reveaal::ProtobufServer::services::component::Rep::Json;
 use reveaal::ProtobufServer::services::{Component as ProtoComp, ComponentsInfo, SimulationInfo};
 use reveaal::{
@@ -15,8 +16,6 @@ use reveaal::{
     },
 };
 use tonic::Response;
-
-const PATH: &str = "samples/json/EcdarUniversity";
 
 fn construct_sim_info(components: &[Component], comp: &str, id: i32) -> SimulationInfo {
     SimulationInfo {
@@ -75,8 +74,7 @@ fn take_simulation_step(c: &mut Criterion, id: &str, request: SimulationStepRequ
 }
 
 fn simulation(c: &mut Criterion) {
-    let mut loader =
-        JsonProjectLoader::new_loader(PATH.to_string(), TEST_SETTINGS).to_comp_loader();
+    let mut loader = bench_helper::get_loader();
 
     let start_request_1 =
         construct_start_request(&[loader.get_component("Machine").clone()], "(Machine)", 1);

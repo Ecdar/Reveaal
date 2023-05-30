@@ -1,28 +1,14 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
+pub mod bench_helper;
 pub mod flamegraph;
 
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::extract_system_rep::create_executable_query;
-use reveaal::tests::TEST_SETTINGS;
+use reveaal::ModelObjects::queries::Query;
 use reveaal::System::executable_query::ExecutableQuery;
 use reveaal::System::query_failures::QueryResult;
-use reveaal::{parse_queries, ComponentLoader, JsonProjectLoader, Query};
-
-const PATH: &str = "samples/json/EcdarUniversity";
-
-fn load_everything(loader: &mut Box<dyn ComponentLoader>) {
-    let _ = loader.get_component("Adm2");
-    let _ = loader.get_component("Administration");
-    let _ = loader.get_component("HalfAdm1");
-    let _ = loader.get_component("HalfAdm2");
-    let _ = loader.get_component("Machine");
-    let _ = loader.get_component("Machine2");
-    let _ = loader.get_component("Machine3");
-    let _ = loader.get_component("Machine4");
-    let _ = loader.get_component("Researcher");
-    let _ = loader.get_component("Spec");
-}
+use reveaal::{parse_queries, ComponentLoader};
 
 fn construct_query<'a>(
     query: &str,
@@ -125,9 +111,7 @@ fn not_refinement(c: &mut Criterion, loader: &mut Box<dyn ComponentLoader>) {
 }
 
 fn all_refinements(c: &mut Criterion) {
-    let mut loader =
-        JsonProjectLoader::new_loader(PATH.to_string(), TEST_SETTINGS).to_comp_loader();
-    load_everything(&mut loader);
+    let mut loader = crate::bench_helper::get_loader();
 
     self_refinement(c, &mut loader);
     refinement(c, &mut loader);
