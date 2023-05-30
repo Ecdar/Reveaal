@@ -51,12 +51,12 @@ pub fn get_state(
         ));
     }
 
-    let loc_tree = build_location_tree(&locations, recipe, system)?;
+    let loc_tree = construct_location_tree(&locations, recipe, system)?;
 
     let zone =
         create_zone_given_constraints(&state_query.to_bool_expression(&components)?, system)?;
 
-    Ok(State::create(loc_tree, zone))
+    Ok(State::new(loc_tree, zone))
 }
 
 fn get_locations(expr: &StateExpression) -> Result<Vec<ComponentVariable>, String> {
@@ -108,7 +108,7 @@ fn create_zone_given_constraints(
 }
 
 fn construct_location_tree(
-    locations: &mut Iter<&str>,
+    locations: &Vec<ComponentVariable>,
     machine: &SystemRecipe,
     system: &TransitionSystemPtr,
 ) -> Result<LocationTree, String> {
