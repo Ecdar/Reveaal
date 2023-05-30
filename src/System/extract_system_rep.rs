@@ -79,7 +79,7 @@ pub fn create_executable_query<'a>(
                 let start_state: State = if let Some(state) = from.as_ref() {
                     let state = get_state(state, &machine, &transition_system)
                         .map_err(|err| format!("Invalid Start state: {}", err))?;
-                    if state.get_location().id.is_partial_location() {
+                    if state.decorated_locations.id.is_partial_location() {
                         return Err("Start state is a partial state, which it must not be".into());
                     }
                     state

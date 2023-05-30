@@ -53,7 +53,7 @@ impl LocationTree {
     }
 
     pub fn simple(location: &Location, decls: &Declarations, dim: ClockIndex) -> Self {
-        let invariant = if let Some(inv) = location.get_invariant() {
+        let invariant = if let Some(inv) = &location.invariant {
             let mut fed = OwnedFederation::universe(dim);
             fed = apply_constraints_to_state(inv, decls, fed).unwrap();
             Some(fed)
@@ -61,9 +61,9 @@ impl LocationTree {
             None
         };
         LocationTree {
-            id: LocationID::Simple(location.get_id().clone()),
+            id: LocationID::Simple(location.id.clone()),
             invariant,
-            loc_type: location.get_location_type(),
+            loc_type: location.location_type,
             left: None,
             right: None,
         }

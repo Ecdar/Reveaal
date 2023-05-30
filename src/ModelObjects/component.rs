@@ -3,12 +3,13 @@ use crate::DataReader::serialization::{decode_declarations, DummyComponent};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
+use crate::ModelObjects::Expressions::BoolExpression;
+use crate::ModelObjects::{Edge, Location, SyncType};
+use itertools::Itertools;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-
-use crate::ModelObjects::Expressions::BoolExpression;
-use crate::ModelObjects::{Edge, Location, LocationType, SyncType};
+use std::iter::FromIterator;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -38,17 +39,6 @@ impl Component {
         *indices += self.declarations.get_clock_count();
     }
 
-    ///Start of basic methods for manipulating fields
-    pub fn get_name(&self) -> &String {
-        &self.name
-    }
-    pub fn get_locations(&self) -> &Vec<Location> {
-        &self.locations
-    }
-    pub fn get_mut_locations(&mut self) -> &mut Vec<Location> {
-        &mut self.locations
-    }
-
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
             .locations
@@ -62,65 +52,23 @@ impl Component {
             panic!("Unable to retrieve location based on id: {}", name)
         }
     }
-    pub fn get_edges(&self) -> &Vec<Edge> {
-        &self.edges
-    }
-    pub fn get_mut_edges(&mut self) -> &mut Vec<Edge> {
-        &mut self.edges
-    }
-    pub fn add_edge(&mut self, edge: Edge) {
-        self.edges.push(edge);
-    }
-    pub fn add_edges(&mut self, edges: &mut Vec<Edge>) {
-        self.edges.append(edges);
-    }
-    pub fn get_mut_declaration(&mut self) -> &mut Declarations {
-        &mut self.declarations
-    }
-
-    pub fn get_initial_location(&self) -> Option<&Location> {
-        let vec: Vec<&Location> = self
-            .get_locations()
-            .iter()
-            .filter(|location| location.get_location_type() == LocationType::Initial)
-            .collect();
-
-        vec.first().copied()
-    }
-
-    pub fn get_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in self.get_edges() {
-            actions.push(edge.get_sync().clone());
-        }
-
-        actions
-    }
 
     pub fn get_input_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in &self.edges {
-            if *edge.get_sync_type() == SyncType::Input && !contain(&actions, edge.get_sync()) {
-                if edge.get_sync() == "*" {
-                    continue;
-                };
-                actions.push(edge.get_sync().clone());
-            }
-        }
-        actions
+        self.get_specific_actions(SyncType::Input)
     }
 
     pub fn get_output_actions(&self) -> Vec<String> {
-        let mut actions = vec![];
-        for edge in &self.edges {
-            if *edge.get_sync_type() == SyncType::Output && !contain(&actions, edge.get_sync()) {
-                if edge.get_sync() == "*" {
-                    continue;
-                };
-                actions.push(edge.get_sync().clone());
-            }
-        }
-        actions
+        self.get_specific_actions(SyncType::Output)
+    }
+
+    fn get_specific_actions(&self, sync_type: SyncType) -> Vec<String> {
+        Vec::from_iter(
+            self.edges
+                .iter()
+                .filter(|e| e.sync_type == sync_type && e.sync != "*")
+                .map(|e| e.sync.clone())
+                .unique(),
+        )
     }
 
     // End of basic methods
@@ -131,13 +79,13 @@ impl Component {
             let max_bound = i32::max(
                 self.edges
                     .iter()
-                    .filter_map(|e| e.get_guard().clone())
+                    .filter_map(|e| e.guard.clone())
                     .map(|g| g.get_max_constant(*clock_id, clock_name))
                     .max()
                     .unwrap_or_default(),
                 self.locations
                     .iter()
-                    .filter_map(|l| l.get_invariant().clone())
+                    .filter_map(|l| l.invariant.clone())
                     .map(|i| i.get_max_constant(*clock_id, clock_name))
                     .max()
                     .unwrap_or_default(),
@@ -151,15 +99,10 @@ impl Component {
         max_bounds
     }
 
-    /// Find [`Edge`] in the component given the edges `id`.
-    pub fn find_edge_from_id(&self, id: &str) -> Option<&Edge> {
-        self.get_edges().iter().find(|e| e.id.contains(id))
-    }
-
     /// Redoes the components Edge IDs by giving them new unique IDs based on their index.
     pub fn remake_edge_ids(&mut self) {
         // Give all edges a name
-        for (index, edge) in self.get_mut_edges().iter_mut().enumerate() {
+        for (index, edge) in self.edges.iter_mut().enumerate() {
             edge.id = format!("E{}", index);
         }
     }
@@ -234,10 +177,6 @@ impl Component {
     }
 }
 
-fn contain(channels: &[String], channel: &str) -> bool {
-    channels.iter().any(|c| c == channel)
-}
-
 pub trait DeclarationProvider {
     fn get_declarations(&self) -> &Declarations;
 }
@@ -257,24 +196,8 @@ impl Declarations {
         }
     }
 
-    pub fn get_ints(&self) -> &HashMap<String, i32> {
-        &self.ints
-    }
-
-    pub fn get_mut_ints(&mut self) -> &mut HashMap<String, i32> {
-        &mut self.ints
-    }
-
-    pub fn get_clocks(&self) -> &HashMap<String, ClockIndex> {
-        &self.clocks
-    }
-
     pub fn get_clock_count(&self) -> usize {
         self.clocks.len()
-    }
-
-    pub fn get_max_clock_index(&self) -> ClockIndex {
-        *self.clocks.values().max().unwrap_or(&0)
     }
 
     pub fn set_clock_indices(&mut self, start_index: ClockIndex) {
@@ -283,23 +206,8 @@ impl Declarations {
         }
     }
 
-    pub fn update_clock_indices(&mut self, start_index: ClockIndex, old_offset: ClockIndex) {
-        for (_, v) in self.clocks.iter_mut() {
-            *v -= old_offset;
-            *v += start_index;
-        }
-    }
-
-    pub fn reset_clock_indices(&mut self) {
-        let mut i = 1;
-        for (_, v) in self.clocks.iter_mut() {
-            *v = i;
-            i += 1;
-        }
-    }
-
     pub fn get_clock_index_by_name(&self, name: &str) -> Option<&ClockIndex> {
-        self.get_clocks().get(name)
+        self.clocks.get(name)
     }
 
     /// Gets the name of a given `ClockIndex`.
