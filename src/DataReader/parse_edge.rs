@@ -2,11 +2,11 @@ extern crate pest;
 
 use crate::EdgeEval::updater::CompiledUpdate;
 
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
+use crate::ModelObjects::Expressions::{ArithExpression, BoolExpression};
 
-use crate::{DataReader::serialization::encode_boolexpr, ModelObjects::component::Declarations};
+use crate::{DataReader::serialization::encode_arithexpr, ModelObjects::Declarations};
 use edbm::util::constraints::ClockIndex;
-use pest::error::Error;
+use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,6 +17,16 @@ use std::collections::HashMap;
 #[grammar = "DataReader/grammars/edge_grammar.pest"]
 pub struct EdgeParser;
 
+lazy_static! {
+    static ref PRATT: PrattParser<Rule> = PrattParser::new()
+        .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
+        .op(Op::infix(Rule::mul, Assoc::Left)
+            | Op::infix(Rule::div, Assoc::Left)
+            | Op::infix(Rule::r#mod, Assoc::Left))
+        .op(Op::infix(Rule::and, Assoc::Left))
+        .op(Op::infix(Rule::or, Assoc::Left));
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub enum EdgeAttribute {
     Updates(Vec<Update>),
@@ -26,12 +36,12 @@ pub enum EdgeAttribute {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Update {
     pub variable: String,
-    #[serde(serialize_with = "encode_boolexpr")]
-    pub expression: BoolExpression,
+    #[serde(serialize_with = "encode_arithexpr")]
+    pub expression: ArithExpression,
 }
 
 impl Update {
-    pub fn get_expression(&self) -> &BoolExpression {
+    pub fn get_expression(&self) -> &ArithExpression {
         &self.expression
     }
 
@@ -63,265 +73,116 @@ impl Update {
     }
 }
 
-pub fn parse(edge_attribute_str: &str) -> Result<EdgeAttribute, Box<Error<Rule>>> {
-    let mut pairs = EdgeParser::parse(Rule::edgeAttribute, edge_attribute_str)
-        .unwrap_or_else(|e| panic!("Could not parse as rule with error: {}", e));
-    let pair = pairs.next().unwrap();
-    match pair.as_rule() {
-        Rule::edgeAttribute => Ok(build_edgeAttribute_from_pair(pair)),
-        err => {
-            panic!("Unable to match edgeAttribute string as rule: {:?}", err)
-        }
-    }
-}
-
-pub fn build_edgeAttribute_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
-    let pair = pair.into_inner().next().unwrap();
-    match pair.as_rule() {
-        Rule::update => build_update_from_pair(pair),
-        Rule::guard => build_guard_from_pair(pair),
-        err => {
-            panic!("Unable to match update string as rule: {:?}", err)
-        }
-    }
-}
-
-fn build_guard_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
-    match pair.as_rule() {
-        Rule::guard => {
-            let pair_span = pair.as_span();
-
-            //check if we have an empty pair
-            if pair_span.start() == pair_span.end() {
-                return EdgeAttribute::Guard(BoolExpression::Bool(true));
-            }
-
-            let mut inner_pairs = pair.into_inner();
-            let inner_pair = inner_pairs.next().unwrap();
-
-            EdgeAttribute::Guard(build_expression_from_pair(inner_pair))
-        }
-        _ => panic!("Unable to match: {:?} as rule, guard", pair),
-    }
-}
-
-fn build_update_from_pair(pair: pest::iterators::Pair<Rule>) -> EdgeAttribute {
-    match pair.as_rule() {
-        Rule::update => {
-            let mut updates: Vec<Update> = vec![];
-            let pair_span = pair.as_span();
-
-            //check if we have an empty pair
-            if pair_span.start() == pair_span.end() {
-                return EdgeAttribute::Updates(updates);
-            }
-
-            let mut inner_pairs = pair.into_inner();
-            let inner_pair = inner_pairs.next().unwrap();
-
-            updates = build_assignments_from_pair(inner_pair);
-
-            EdgeAttribute::Updates(updates)
-        }
-        _ => panic!("Unable to match: {:?} as rule, update", pair),
-    }
-}
-
-fn build_assignments_from_pair(pair: pest::iterators::Pair<Rule>) -> Vec<Update> {
-    let mut updates: Vec<Update> = vec![];
-    match pair.as_rule() {
-        Rule::assignments => {
-            let mut pairs = pair.into_inner();
-            let assignment_pair = pairs.next().unwrap();
-            match assignment_pair.as_rule() {
-                Rule::assignment => {
-                    updates = build_assignments_from_pair(pairs.next().unwrap());
-                    updates.push(build_assignment_from_pair(assignment_pair));
-                }
-                Rule::finalAssignment => {
-                    updates.push(build_assignment_from_pair(assignment_pair));
-                }
-                err => panic!(
-                    "Unable to match: {:?} as rule assignment or finalAssignment",
-                    err
-                ),
-            }
-        }
-        unknown_pair => panic!(
-            "Tried to match pair as assignment, but it was {:?}",
-            unknown_pair
-        ),
-    }
-
-    updates
-}
-
-fn build_assignment_from_pair(pair: pest::iterators::Pair<Rule>) -> Update {
-    let mut inner_pairs = pair.into_inner();
-    let variable = inner_pairs.next().unwrap().as_str();
-    let expression_pair = inner_pairs.next().unwrap();
-
-    let expression = build_expression_from_pair(expression_pair);
-    let update = Update {
-        variable: variable.trim().to_string(),
-        expression,
+/// Parses a guard string `input` into a BoolExpression
+pub fn parse_guard(input: &str) -> Result<BoolExpression, String> {
+    let mut pairs = match EdgeParser::parse(Rule::guard, input) {
+        Ok(pairs) => pairs,
+        Err(e) => return Err(format!("Could not parse as rule with error: {}", e)),
     };
 
-    update
+    let guard = pairs.next().unwrap();
+
+    // Check if there are any constraints
+    let result = match guard.into_inner().next() {
+        Some(bool_expr) => parse_bool_expr(bool_expr),
+        None => BoolExpression::Bool(true),
+    };
+
+    Ok(result)
 }
 
-fn build_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
-    match pair.as_rule() {
-        Rule::parenthesizedExp => {
-            let inner_pair = pair.into_inner().next().unwrap();
-            BoolExpression::Parentheses(Box::new(build_expression_from_pair(inner_pair)))
-        }
-        Rule::expression => build_expression_from_pair(pair.into_inner().next().unwrap()),
-        Rule::and => build_and_from_pair(pair),
-        Rule::or => build_or_from_pair(pair),
-        Rule::compareExpr => build_compareExpr_from_pair(pair),
-        Rule::terms => build_expression_from_pair(pair.into_inner().next().unwrap()),
-        Rule::term => BoolExpression::Arithmetic(Box::new(build_term_from_pair(pair))),
-        unknown => panic!("Got unknown pair: {:?}", unknown),
-    }
-}
+/// Parses an update string `input` into a vector of Updates
+pub fn parse_updates(input: &str) -> Result<Vec<Update>, String> {
+    let mut pairs = match EdgeParser::parse(Rule::update, input) {
+        Ok(pairs) => pairs,
+        Err(e) => return Err(format!("Could not parse as rule with error: {}", e)),
+    };
 
-fn build_arithmetic_expression_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
-    match pair.as_rule() {
-        Rule::expression => {
-            build_arithmetic_expression_from_pair(pair.into_inner().next().unwrap())
-        }
-        Rule::term => build_term_from_pair(pair),
-        Rule::sub_add => build_sub_add_from_pair(pair),
-        Rule::mult_div_mod => build_mult_div_mod_from_pair(pair),
-        Rule::terms => build_arithmetic_expression_from_pair(pair.into_inner().next().unwrap()),
-        unknown => panic!(
-            "Got unknown pair: {:?} with string {:?}",
-            unknown,
-            pair.as_str()
-        ),
-    }
-}
+    let update = pairs.next().unwrap();
 
-fn build_term_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
-    let inner_pair = pair.into_inner().next().unwrap();
-    match inner_pair.as_rule() {
-        Rule::int => {
-            if let Ok(n) = inner_pair.as_str().trim().parse::<i32>() {
-                ArithExpression::Int(n)
-            } else {
-                build_term_from_pair(inner_pair)
+    // Check if there are any assignments
+    if let Some(assignments) = update.into_inner().next() {
+        let mut updates = Vec::new();
+        for assignment in assignments.into_inner() {
+            match assignment.as_rule() {
+                Rule::assignment => updates.push(parse_update(assignment)),
+                _ => unreachable!("Unable to match: {:?} as rule, updates", assignment),
             }
         }
-        Rule::variable => ArithExpression::VarName(inner_pair.as_str().trim().to_string()),
-        err => panic!("Unable to match: {:?} as rule atom or variable", err),
+        Ok(updates)
+    } else {
+        Ok(vec![])
     }
 }
 
-fn build_and_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
+fn parse_update(pair: pest::iterators::Pair<Rule>) -> Update {
+    let mut inner_pairs = pair.into_inner();
+    let variable = inner_pairs.next().unwrap().as_str().to_string();
+    let expression = parse_arith_expr(inner_pairs.next().unwrap())
+        .simplify()
+        .expect("Error simplifying update");
 
-    match inner_pair.next() {
-        None => build_or_from_pair(left_side_pair),
-        Some(right_side_pair) => {
-            let lside = build_or_from_pair(left_side_pair);
-            let rside = build_and_from_pair(right_side_pair);
-
-            BoolExpression::AndOp(Box::new(lside), Box::new(rside))
-        }
+    Update {
+        variable,
+        expression,
     }
 }
 
-fn build_or_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
+fn parse_bool_expr(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
+    PRATT
+        .map_primary(|pair| match pair.as_rule() {
+            Rule::boolExpr => parse_bool_expr(pair),
+            Rule::bool_true => BoolExpression::Bool(true),
+            Rule::bool_false => BoolExpression::Bool(false),
+            Rule::comparison => parse_comparison(pair),
+            _ => unreachable!("Unable to match: {:?} as rule, bool_expr", pair),
+        })
+        .map_infix(|left, op, right| match op.as_rule() {
+            Rule::and => BoolExpression::AndOp(Box::new(left), Box::new(right)),
+            Rule::or => BoolExpression::OrOp(Box::new(left), Box::new(right)),
+            _ => unreachable!("Unable to match operation: {:?}, bool_expr", op),
+        })
+        .parse(pair.into_inner())
+}
 
-    match inner_pair.next() {
-        None => build_compareExpr_from_pair(left_side_pair),
-        Some(right_side_pair) => {
-            let lside = build_compareExpr_from_pair(left_side_pair);
-            let rside = build_or_from_pair(right_side_pair);
+fn parse_comparison(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
+    let mut inner_pairs = pair.into_inner();
+    let left_pair = inner_pairs.next().unwrap();
+    let op = inner_pairs.next().unwrap();
+    let right_pair = inner_pairs.next().unwrap();
 
-            BoolExpression::OrOp(Box::new(lside), Box::new(rside))
-        }
+    let left = Box::new(parse_arith_expr(left_pair));
+    let right = Box::new(parse_arith_expr(right_pair));
+
+    match op.as_rule() {
+        Rule::eq => BoolExpression::EQ(left, right),
+        Rule::lt => BoolExpression::LessT(left, right),
+        Rule::leq => BoolExpression::LessEQ(left, right),
+        Rule::gt => BoolExpression::GreatT(left, right),
+        Rule::geq => BoolExpression::GreatEQ(left, right),
+        _ => unreachable!("Unable to match: {:?} as rule, comparison", op),
     }
 }
 
-fn build_compareExpr_from_pair(pair: pest::iterators::Pair<Rule>) -> BoolExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
-
-    match inner_pair.next() {
-        None => match left_side_pair.as_rule() {
-            Rule::bool => {
-                BoolExpression::Bool(left_side_pair.as_str().trim().parse::<bool>().unwrap())
+fn parse_arith_expr(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
+    PRATT
+        .map_primary(|pair| match pair.as_rule() {
+            Rule::arithExpr => parse_arith_expr(pair),
+            Rule::int => ArithExpression::Int(pair.as_str().parse().unwrap()),
+            Rule::variable => ArithExpression::VarName(pair.as_str().to_string()),
+            _ => panic!("Unable to match: {:?} as rule, arith", pair),
+        })
+        .map_infix(|left, op, right| {
+            let left = Box::new(left);
+            let right = Box::new(right);
+            match op.as_rule() {
+                Rule::add => ArithExpression::Addition(left, right),
+                Rule::sub => ArithExpression::Difference(left, right),
+                Rule::mul => ArithExpression::Multiplication(left, right),
+                Rule::div => ArithExpression::Division(left, right),
+                Rule::r#mod => ArithExpression::Modulo(left, right),
+                _ => unreachable!("Unable to match: {:?} as rule, arith", op),
             }
-            Rule::terms => build_expression_from_pair(left_side_pair),
-            err => panic!("Unable to match: {:?} as rule atom or variable", err),
-        },
-        Some(operator) => {
-            let lhs = build_sub_add_from_pair(left_side_pair);
-            let rhs = build_sub_add_from_pair(inner_pair.next().unwrap());
-
-            match operator.as_str() {
-                ">=" => BoolExpression::GreatEQ(Box::new(lhs), Box::new(rhs)),
-                "<=" => BoolExpression::LessEQ(Box::new(lhs), Box::new(rhs)),
-                "==" => BoolExpression::EQ(Box::new(lhs), Box::new(rhs)),
-                ">" => BoolExpression::GreatT(Box::new(lhs), Box::new(rhs)),
-                "<" => BoolExpression::LessT(Box::new(lhs), Box::new(rhs)),
-                unknown_operator => panic!(
-                    "Got unknown boolean operator: {}. Only able to match >=,<=, ==,<,>",
-                    unknown_operator
-                ),
-            }
-        }
-    }
-}
-
-fn build_sub_add_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
-
-    match inner_pair.next() {
-        None => build_mult_div_mod_from_pair(left_side_pair),
-        Some(operator) => {
-            let right_side_pair = inner_pair.next().unwrap();
-
-            let lside = build_mult_div_mod_from_pair(left_side_pair);
-            let rside = build_sub_add_from_pair(right_side_pair);
-            match operator.as_str() {
-                "-" => ArithExpression::Difference(Box::new(lside), Box::new(rside)),
-                "+" => ArithExpression::Addition(Box::new(lside), Box::new(rside)),
-                unknown_operator => panic!(
-                    "Got unknown boolean operator: {}. Only able to match -,+",
-                    unknown_operator
-                ),
-            }
-        }
-    }
-}
-
-fn build_mult_div_mod_from_pair(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
-    let mut inner_pair = pair.into_inner();
-    let left_side_pair = inner_pair.next().unwrap();
-
-    match inner_pair.next() {
-        None => build_arithmetic_expression_from_pair(left_side_pair),
-        Some(operator) => {
-            let right_side_pair = inner_pair.next().unwrap();
-
-            let lside = build_arithmetic_expression_from_pair(left_side_pair);
-            let rside = build_mult_div_mod_from_pair(right_side_pair);
-            match operator.as_str() {
-                "*" => ArithExpression::Multiplication(Box::new(lside), Box::new(rside)),
-                "/" => ArithExpression::Division(Box::new(lside), Box::new(rside)),
-                "%" => ArithExpression::Modulo(Box::new(lside), Box::new(rside)),
-                unknown_operator => panic!(
-                    "Got unknown boolean operator: {}. Only able to match /,*,%",
-                    unknown_operator
-                ),
-            }
-        }
-    }
+        })
+        .parse(pair.into_inner())
 }

@@ -1,10 +1,10 @@
-use crate::component::Declarations;
 use crate::DataReader::parse_edge;
 use crate::DataReader::serialization::{
     decode_guard, decode_sync, decode_sync_type, decode_update, DummyEdge,
 };
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Declarations;
+use crate::ModelObjects::Expressions::BoolExpression;
 use edbm::zones::OwnedFederation;
 use serde::{Deserialize, Serialize};
 use std::fmt;

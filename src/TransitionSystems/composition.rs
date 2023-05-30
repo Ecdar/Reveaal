@@ -1,6 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::transition::Transition;
+use crate::ModelObjects::Transition;
 use crate::System::query_failures::{ActionFailure, SystemRecipeFailure};
 use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;

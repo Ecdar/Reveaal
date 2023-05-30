@@ -1,12 +1,10 @@
 use edbm::zones::OwnedFederation;
 
 use crate::EdgeEval::constraint_applyer;
-use crate::ModelObjects::component;
-use crate::ModelObjects::component::DeclarationProvider;
-use crate::ModelObjects::edge::{Edge, SyncType};
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
+use crate::ModelObjects::{Component, DeclarationProvider, Edge, SyncType};
 
-pub fn make_input_enabled(component: &mut component::Component, inputs: &[String]) {
+pub fn make_input_enabled(component: &mut Component, inputs: &[String]) {
     let dimension = component.declarations.get_clock_count() + 1;
     let mut new_edges: Vec<Edge> = vec![];
     let input_edges = component

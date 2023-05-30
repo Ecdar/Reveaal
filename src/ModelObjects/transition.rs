@@ -1,9 +1,7 @@
-use crate::component::{Component, DeclarationProvider};
 use crate::DataReader::parse_edge;
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::edge::Edge;
-use crate::ModelObjects::representations::BoolExpression;
-use crate::ModelObjects::state::State;
+use crate::ModelObjects::Expressions::BoolExpression;
+use crate::ModelObjects::{Component, DeclarationProvider, Edge, State};
 use crate::TransitionSystems::{CompositionType, LocationTree, TransitionID};
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;

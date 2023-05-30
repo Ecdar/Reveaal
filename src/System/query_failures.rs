@@ -1,11 +1,7 @@
 use std::{collections::HashSet, fmt};
 
-use crate::ModelObjects::state::State;
-use crate::{
-    component::Component,
-    ModelObjects::statepair::StatePair,
-    TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr},
-};
+use crate::ModelObjects::{Component, State, StatePair};
+use crate::TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr};
 
 use super::specifics::{SpecificPath, SpecificState};
 

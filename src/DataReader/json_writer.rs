@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::Component;
 use std::fs::File;
 
 pub fn component_to_json_file(project_path: &str, component: &Component) {

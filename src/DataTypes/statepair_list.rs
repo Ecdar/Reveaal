@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use edbm::zones::OwnedFederation;
 
-use crate::{ModelObjects::statepair::StatePair, TransitionSystems::LocationID};
+use crate::{ModelObjects::StatePair, TransitionSystems::LocationID};
 
 pub type PassedStateList = PassedStateListFed;
 type PassedStateListFed = HashMap<(LocationID, LocationID), OwnedFederation>;

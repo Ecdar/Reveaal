@@ -1,12 +1,9 @@
+use crate::DataReader::parse_edge;
 use crate::DataReader::parse_edge::Update;
-use crate::DataReader::{parse_edge, parse_invariant};
-use crate::ModelObjects::edge::Edge;
-use crate::ModelObjects::location::LocationType;
-use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
 use crate::ModelObjects::{
-    component, edge, location, queries, representations, system_declarations,
+    Component, Declarations, Edge, Location, LocationType, Query, SyncType, SystemDeclarations,
+    SystemSpecification,
 };
-use crate::ModelObjects::{component::Declarations, edge::SyncType};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -21,11 +18,7 @@ pub fn is_xml_project(project_path: &str) -> bool {
 ///Used to parse systems described in xml
 pub(crate) fn parse_xml_from_file(
     fileName: &str,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+) -> (Vec<Component>, SystemDeclarations, Vec<Query>) {
     //Open file and read xml
     let file = File::open(fileName).unwrap();
     let reader = BufReader::new(file);
@@ -33,29 +26,17 @@ pub(crate) fn parse_xml_from_file(
     parse_xml(reader)
 }
 
-pub(crate) fn parse_xml_from_str(
-    xml: &str,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+pub(crate) fn parse_xml_from_str(xml: &str) -> (Vec<Component>, SystemDeclarations, Vec<Query>) {
     let reader = BufReader::new(xml.as_bytes());
 
     parse_xml(reader)
 }
 
-fn parse_xml<R: Read>(
-    xml_data: R,
-) -> (
-    Vec<component::Component>,
-    system_declarations::SystemDeclarations,
-    Vec<queries::Query>,
-) {
+fn parse_xml<R: Read>(xml_data: R) -> (Vec<Component>, SystemDeclarations, Vec<Query>) {
     let root = Element::from_reader(xml_data).unwrap();
 
     //storage of components
-    let mut xml_components: Vec<component::Component> = vec![];
+    let mut xml_components: Vec<Component> = vec![];
 
     for xml_comp in root.find_all("template") {
         let declarations = match xml_comp.find("declaration") {
@@ -63,7 +44,7 @@ fn parse_xml<R: Read>(
             None => parse_declarations(""),
         };
         let edges = collect_edges(xml_comp.find_all("transition"));
-        let comp = component::Component {
+        let comp = Component {
             name: xml_comp.find("name").unwrap().text().parse().unwrap(),
             declarations,
             locations: collect_locations(
@@ -75,6 +56,7 @@ fn parse_xml<R: Read>(
                     .unwrap(),
             ),
             edges,
+            special_id: None,
         };
         xml_components.push(comp);
     }
@@ -87,13 +69,13 @@ fn parse_xml<R: Read>(
     (xml_components, system_declarations, vec![])
 }
 
-fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<location::Location> {
-    let mut locations: Vec<location::Location> = vec![];
+fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<Location> {
+    let mut locations: Vec<Location> = vec![];
     for loc in xml_locations {
-        let location = location::Location {
+        let location = Location {
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
-                Some(x) => match parse_invariant::parse(x.text()) {
+                Some(x) => match parse_edge::parse_guard(x.text()) {
                     Ok(edgeAttribute) => Some(edgeAttribute),
                     Err(e) => panic!("Could not parse invariant {} got error: {:?}", x.text(), e),
                 },
@@ -112,36 +94,30 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<locat
 }
 
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
-    let mut edges: Vec<edge::Edge> = vec![];
+    let mut edges: Vec<Edge> = vec![];
     for e in xml_edges {
-        let mut guard: Option<representations::BoolExpression> = None;
+        let mut guard: Option<crate::ModelObjects::Expressions::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
         let mut sync: String = "".to_string();
         for label in e.find_all("label") {
             match label.get_attr("kind").unwrap() {
-                "guard" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
-                            guard = Some(guard_res);
-                        }
+                "guard" => match parse_edge::parse_guard(label.text()) {
+                    Ok(guard_res) => {
+                        guard = Some(guard_res);
                     }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
-                "assignment" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
-                            updates = Some(update_vec)
-                        }
-                    }
+                "assignment" => match parse_edge::parse_updates(label.text()) {
+                    Ok(updates_res) => updates = Some(updates_res),
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 _ => {}
             }
         }
-        let edge = edge::Edge {
+        let edge = Edge {
             id: "NotImplemented".to_string(), // We do not support edge IDs for XML right now.
             source_location: e
                 .find("source")

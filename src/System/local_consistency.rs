@@ -1,7 +1,7 @@
 use edbm::zones::OwnedFederation;
 use log::warn;
 
-use crate::ModelObjects::state::State;
+use crate::ModelObjects::State;
 use crate::System::query_failures::{ConsistencyFailure, DeterminismFailure};
 use crate::TransitionSystems::TransitionSystem;
 

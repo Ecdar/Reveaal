@@ -1,5 +1,5 @@
 use crate::DataReader::serialization::{decode_invariant, decode_location_type, DummyLocation};
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]

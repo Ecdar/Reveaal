@@ -23,6 +23,7 @@ pub struct Component {
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
+    pub special_id: Option<String>,
 }
 
 impl DeclarationProvider for Component {

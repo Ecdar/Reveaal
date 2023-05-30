@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod reachability_partial_states_test {
-    use crate::component::Declarations;
-    use crate::ModelObjects::location::{Location, LocationType};
+    use crate::ModelObjects::{Declarations, Location, LocationType};
     use crate::TransitionSystems::CompositionType;
     use crate::TransitionSystems::LocationTree;
     use test_case::test_case;

@@ -4,8 +4,7 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::component::{Component, Declarations};
-use crate::ModelObjects::state::State;
+use crate::ModelObjects::{Component, Declarations, State};
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,

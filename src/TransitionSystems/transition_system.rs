@@ -1,22 +1,16 @@
 use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
-use crate::DataReader::parse_queries::Rule;
+use crate::parse_queries::parse_to_system_expr;
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::state::State;
-use crate::ModelObjects::transition::Transition;
+use crate::ModelObjects::{Component, Declarations, State, Transition};
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
-    component::Component,
-    extract_system_rep::get_system_recipe,
-    parse_queries::{build_expression_from_pair, QueryParser},
-    ComponentLoader,
+    extract_system_rep::get_system_recipe, ComponentLoader,
     DataReader::component_loader::ComponentContainer,
-    ModelObjects::component::Declarations,
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
-use pest::Parser;
 use std::collections::hash_map::Entry;
 use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
@@ -124,17 +118,6 @@ pub trait TransitionSystem: DynClone {
     fn precheck_sys_rep(&self) -> ConsistencyResult {
         self.check_determinism()?;
         self.check_local_consistency()
-    }
-    fn get_combined_decls(&self) -> Declarations {
-        let mut clocks = HashMap::new();
-        let mut ints = HashMap::new();
-
-        for decl in self.get_decls() {
-            clocks.extend(decl.clocks.clone());
-            ints.extend(decl.ints.clone())
-        }
-
-        Declarations { ints, clocks }
     }
 
     fn check_determinism(&self) -> DeterminismResult;
@@ -268,12 +251,8 @@ pub fn component_loader_to_transition_system(
     composition: &str,
 ) -> TransitionSystemPtr {
     let mut dimension = 0;
-    let composition = QueryParser::parse(Rule::expr, composition)
-        .unwrap()
-        .next()
-        .unwrap();
-    let composition = build_expression_from_pair(composition);
-    get_system_recipe(&composition, loader, &mut dimension, &mut None)
+    let sys_expr = parse_to_system_expr(composition).unwrap();
+    get_system_recipe(&sys_expr, loader, &mut dimension, &mut None)
         .compile(dimension)
         .unwrap()
 }

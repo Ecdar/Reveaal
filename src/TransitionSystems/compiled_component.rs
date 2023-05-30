@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{Component, DeclarationProvider, Declarations};
-use crate::ModelObjects::state::State;
-use crate::ModelObjects::transition::Transition;
+use crate::ModelObjects::{Component, DeclarationProvider, Declarations, State, Transition};
 use crate::System::local_consistency::{self};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
@@ -188,10 +186,6 @@ impl TransitionSystem for CompiledComponent {
 
     fn get_composition_type(&self) -> CompositionType {
         CompositionType::Simple
-    }
-
-    fn get_combined_decls(&self) -> Declarations {
-        self.comp_info.declarations.clone()
     }
 
     fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
