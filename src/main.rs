@@ -56,7 +56,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
 
     println!("\nQuery results:");
     for index in 0..queries.len() {
-        results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
+        results[index].print_result(&queries[index].query.as_ref().unwrap().to_string())
     }
 }
 
