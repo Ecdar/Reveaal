@@ -6,7 +6,7 @@ use crate::{
         services::{SimulationStartRequest, SimulationStepRequest, SimulationStepResponse},
         ConcreteEcdarBackend,
     },
-    System::specifics::SpecificDecision,
+    System::specifics::{SpecificDecision, SpecificState},
 };
 
 use super::request_util::simulation_info_to_transition_system;
@@ -23,13 +23,19 @@ impl ConcreteEcdarBackend {
         let transition_system = simulation_info_to_transition_system(&simulation_info, &mut cache);
 
         // Get the decisions from the initial state and convert them to proto
-        let initial = Decision::get_initial_decisions(&transition_system)
+        let decisions = Decision::get_initial_decisions(&transition_system)
             .into_iter()
             .map(|i| SpecificDecision::from_decision(&i, &*transition_system).into())
             .collect();
 
+        let state = transition_system.get_initial_state();
+
+        let full_state =
+            state.map(|state| SpecificState::from_state(&state, &*transition_system).into());
+
         Ok(SimulationStepResponse {
-            new_decision_points: initial,
+            full_state,
+            new_decision_points: decisions,
         })
     }
 
@@ -45,6 +51,9 @@ impl ConcreteEcdarBackend {
         let system = simulation_info_to_transition_system(&simulation_info, &mut cache);
 
         let chosen_decision = request_message.chosen_decision.unwrap();
+
+        let full_state = chosen_decision.destination.clone();
+
         let chosen_decision = proto_decision_to_decision(chosen_decision, &system);
 
         let decision_points = chosen_decision.resolve(&system);
@@ -55,6 +64,7 @@ impl ConcreteEcdarBackend {
             .collect();
 
         Ok(SimulationStepResponse {
+            full_state,
             new_decision_points: decision_points,
         })
     }
