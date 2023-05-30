@@ -32,7 +32,7 @@ fn send_query_with_components(
             let backend = ConcreteEcdarBackend::default();
             let responses = (0..NUM_OF_REQUESTS)
                 .map(|hash| {
-                    let request = create_query_request(
+                    let request = compose_query_request(
                         components,
                         query,
                         if active_cache { 0 } else { hash },
@@ -46,20 +46,20 @@ fn send_query_with_components(
     });
 }
 
-fn create_query_request(json: &[String], query: &str, hash: u32) -> Request<QueryRequest> {
+fn compose_query_request(json: &[String], query: &str, hash: u32) -> Request<QueryRequest> {
     Request::new(QueryRequest {
         user_id: 0,
         query_id: 0,
         query: String::from(query),
         components_info: Some(ComponentsInfo {
-            components: create_components(json),
+            components: construct_components(json),
             components_hash: hash,
         }),
         settings: None,
     })
 }
 
-fn create_components(json: &[String]) -> Vec<Component> {
+fn construct_components(json: &[String]) -> Vec<Component> {
     json.iter()
         .map(|json| Component {
             rep: Some(Rep::Json(json.clone())),

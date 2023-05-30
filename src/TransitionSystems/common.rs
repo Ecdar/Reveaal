@@ -122,7 +122,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             return None;
         }
 
-        Some(State::create(init_loc, zone))
+        Some(State::new(init_loc, zone))
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {

@@ -70,7 +70,7 @@ impl CompiledComponent {
         log::debug!("Edges: {:?}", component.get_edges());
         for edge in component.get_edges() {
             let id = LocationID::Simple(edge.source_location.clone());
-            let transition = Transition::from(&component, edge, dim);
+            let transition = Transition::from_component_and_edge(&component, edge, dim);
             location_edges
                 .get_mut(&id)
                 .unwrap()
@@ -131,11 +131,11 @@ impl TransitionSystem for CompiledComponent {
         let is_input = self.inputs_contain(action);
 
         if locations.is_universal() {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         if locations.is_inconsistent() && is_input {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         let mut transitions = vec![];

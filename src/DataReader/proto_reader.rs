@@ -76,7 +76,7 @@ pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> 
     // Ensure that the invariants are applied to the state
     let federation = location_tree.apply_invariants(federation);
 
-    State::create(location_tree, federation)
+    State::new(location_tree, federation)
 }
 
 fn proto_location_tree_to_location_tree(
