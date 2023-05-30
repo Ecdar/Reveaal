@@ -24,7 +24,7 @@ fn bench_reachability(c: &mut Criterion, query: &str, loader: &mut Box<dyn Compo
 }
 
 fn reachability_benchmarking(c: &mut Criterion) {
-    let mut loader = bench_helper::get_loader();
+    let loader = bench_helper::get_loader();
 
     bench_reachability(
         c,

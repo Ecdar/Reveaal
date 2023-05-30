@@ -4,7 +4,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use reveaal::DataReader::json_writer::component_to_json;
 use reveaal::ProtobufServer::{
     services::{
-        component::Rep, ecdar_backend_server::EcdarBackend, Component, ComponentsInfo, QueryRequest,
+        component::Rep, ecdar_backend_server::EcdarBackend, Component as ProtoComp, ComponentsInfo,
+        QueryRequest,
     },
     ConcreteEcdarBackend,
 };
@@ -17,13 +18,14 @@ use futures::StreamExt;
 mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
+use reveaal::component::Component;
 
 const NUM_OF_REQUESTS: u32 = 512;
 
 fn send_query_with_components(
     id: String,
     c: &mut Criterion,
-    components: &[reveaal::ModelObjects::Component],
+    components: &[Component],
     query: &str,
     active_cache: bool,
 ) {
@@ -59,9 +61,9 @@ fn compose_query_request(json: &[String], query: &str, hash: u32) -> Request<Que
     })
 }
 
-fn construct_components(json: &[String]) -> Vec<Component> {
+fn construct_components(json: &[String]) -> Vec<ProtoComp> {
     json.iter()
-        .map(|json| Component {
+        .map(|json| ProtoComp {
             rep: Some(Rep::Json(json.clone())),
         })
         .collect()

@@ -110,11 +110,11 @@ fn not_refinement(c: &mut Criterion, loader: &mut Box<dyn ComponentLoader>) {
 }
 
 fn all_refinements(c: &mut Criterion) {
-    let mut loader = crate::bench_helper::get_loader();
+    let loader = crate::bench_helper::get_loader();
 
-    self_refinement(c, &mut loader);
-    refinement(c, &mut loader);
-    not_refinement(c, &mut loader);
+    self_refinement(c, loader);
+    refinement(c, loader);
+    not_refinement(c, loader);
 }
 
 criterion_group! {
