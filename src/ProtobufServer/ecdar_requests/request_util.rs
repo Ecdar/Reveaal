@@ -26,13 +26,15 @@ pub fn get_or_insert_model(
                 .flat_map(parse_components_if_some)
                 .flatten()
                 .collect::<Vec<Component>>();
-            let components = create_components(parsed_components);
+            let components = constrtuct_componentsmap(parsed_components);
             model_cache.insert_model(user_id, components_hash, Arc::new(components))
         }
     }
 }
 
-fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
+fn constrtuct_componentsmap(
+    components: Vec<Component>,
+) -> crate::DataReader::component_loader::ComponentsMap {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
         trace!("Adding comp {} to container", component.name);

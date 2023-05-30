@@ -12,7 +12,7 @@ pub struct StatePair {
 }
 
 impl StatePair {
-    pub fn create(
+    pub fn from_locations(
         dimensions: usize,
         locations1: LocationTree,
         locations2: LocationTree,

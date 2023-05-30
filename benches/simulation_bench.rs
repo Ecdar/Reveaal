@@ -13,14 +13,14 @@ use tonic::Response;
 
 const PATH: &str = "samples/json/EcdarUniversity";
 
-fn create_step_request(
+fn new_step_request(
     component_names: &[&str],
     components_path: &str,
     composition: &str,
     last_response: &SimulationStartRequest,
 ) -> SimulationStepRequest {
     let cache = ModelCache::default();
-    helper::create_step_requests(
+    helper::construct_step_requests(
         component_names,
         components_path,
         composition,
@@ -46,34 +46,34 @@ fn take_simulation_step(c: &mut Criterion, id: &str, request: SimulationStepRequ
 }
 
 fn simulation(c: &mut Criterion) {
-    let start_request_1 = helper::create_start_request(&["Machine"], PATH, "(Machine)");
+    let start_request_1 = SimulationStartRequest::new(&["Machine"], PATH, "(Machine)");
     let start_request_2 =
-        helper::create_start_request(&["HalfAdm1", "HalfAdm2"], PATH, "(HalfAdm1 && HalfAdm2)");
-    let start_request_3 = helper::create_start_request(
+        SimulationStartRequest::new(&["HalfAdm1", "HalfAdm2"], PATH, "(HalfAdm1 && HalfAdm2)");
+    let start_request_3 = SimulationStartRequest::new(
         &["Administration", "Machine", "Researcher"],
         PATH,
         "(Administration || Machine || Researcher)",
     );
-    let start_request_4 = helper::create_start_request(
+    let start_request_4 = SimulationStartRequest::new(
         &["HalfAdm1", "HalfAdm2", "Machine", "Researcher"],
         "samples/json/EcdarUniversity",
         "((HalfAdm1 && HalfAdm2) || Machine || Researcher)",
     );
 
-    let step_request_1 = create_step_request(&["Machine"], PATH, "(Machine)", &start_request_1);
-    let step_request_2 = create_step_request(
+    let step_request_1 = new_step_request(&["Machine"], PATH, "(Machine)", &start_request_1);
+    let step_request_2 = new_step_request(
         &["HalfAdm1", "HalfAdm2"],
         PATH,
         "(HalfAdm1 && HalfAdm2)",
         &start_request_2,
     );
-    let step_request_3 = create_step_request(
+    let step_request_3 = new_step_request(
         &["Administration", "Machine", "Researcher"],
         PATH,
         "(Administration || Machine || Researcher)",
         &start_request_3,
     );
-    let step_request_4 = create_step_request(
+    let step_request_4 = new_step_request(
         &["HalfAdm1", "HalfAdm2", "Machine", "Researcher"],
         "samples/json/EcdarUniversity",
         "((HalfAdm1 && HalfAdm2) || Machine || Researcher)",

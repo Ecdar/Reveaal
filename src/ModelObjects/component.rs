@@ -90,24 +90,20 @@ impl Component {
     pub fn get_max_bounds(&self, dimensions: ClockIndex) -> Bounds {
         let mut max_bounds = Bounds::new(dimensions);
         for (clock_name, clock_id) in &self.declarations.clocks {
-            let mut max_bound = 0;
-            for edge in &self.edges {
-                if let Some(guard) = &edge.guard {
-                    let new_bound = guard.get_max_constant(*clock_id, clock_name);
-                    if max_bound < new_bound {
-                        max_bound = new_bound;
-                    }
-                }
-            }
-
-            for location in &self.locations {
-                if let Some(inv) = &location.invariant {
-                    let new_bound = inv.get_max_constant(*clock_id, clock_name);
-                    if max_bound < new_bound {
-                        max_bound = new_bound;
-                    }
-                }
-            }
+            let max_bound = i32::max(
+                self.edges
+                    .iter()
+                    .filter_map(|e| e.guard.clone())
+                    .map(|g| g.get_max_constant(*clock_id, clock_name))
+                    .max()
+                    .unwrap_or_default(),
+                self.locations
+                    .iter()
+                    .filter_map(|l| l.invariant.clone())
+                    .map(|i| i.get_max_constant(*clock_id, clock_name))
+                    .max()
+                    .unwrap_or_default(),
+            );
 
             // TODO: find more precise upper and lower bounds for clocks
             max_bounds.add_lower(*clock_id, max_bound);
@@ -205,7 +201,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn create(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
+    pub fn new(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
         State {
             decorated_locations,
             zone_sentinel: Some(zone),
@@ -335,7 +331,7 @@ pub struct Transition {
 
 impl Transition {
     /// Create a new transition not based on an edge with no identifier
-    pub fn new(target_locations: &LocationTree, dim: ClockIndex) -> Transition {
+    pub fn without_id(target_locations: &LocationTree, dim: ClockIndex) -> Transition {
         Transition {
             id: TransitionID::None,
             guard_zone: OwnedFederation::universe(dim),
@@ -344,7 +340,7 @@ impl Transition {
         }
     }
 
-    pub fn from(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
+    pub fn from_component_and_edge(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
         //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
