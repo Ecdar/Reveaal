@@ -1,50 +1,67 @@
-edgeAttribute = {SOI ~ guard ~ EOI | SOI ~ update ~ EOI}
+guard = {SOI ~ boolExpr? ~ ";"? ~ EOI}
 
-guard = {expression? ~ ";"?}
-update = {assignments?}
+update = {SOI ~ assignments? ~ EOI}
 
-assignments = {assignment ~ assignments | finalAssignment}
+// Allow trailing comma
+assignments = {assignment ~ ("," ~ assignment)* ~ ","?}
 
-assignment = {variable ~ "=" ~ expression ~ ","}
-finalAssignment = {variable ~ "=" ~ expression ~ ","?}
+// If we want to allow boolean variables, we need to allow assigning them here.
+assignment = {variable ~ ("=" | ":=") ~ arithExpr}
 
-expression = { and }
+// ----- Expressions evaluating to a boolean value -----
+boolExpr = { boolTerm ~ (bool_op ~ boolTerm)* }
 
-and = { or ~ "&&" ~ and | or }
+// If we want to allow boolean variables, we need to allow using them here.
+boolTerm = _{ comparison | bool | parenthesizedBoolExpr }
 
-or = { compareExpr ~ "||" ~ or | compareExpr }
+comparison = { arithExpr ~ compare_op ~ arithExpr }
 
-compareExpr = { sub_add ~ lowOperator ~ sub_add | bool | terms }
+parenthesizedBoolExpr = _{ "(" ~ boolExpr ~ ")"}
 
-sub_add = {mult_div_mod ~ operator ~ sub_add  | mult_div_mod}
+// ----- Expressions evaluating to a number or variable -----
+arithExpr = {arithTerm ~ (arith_op ~ arithTerm)*}
 
-mult_div_mod = {terms  ~ highOperator ~  mult_div_mod | terms}
+arithTerm = _{ parenthesizedArithExp  | term }
 
-terms = { parenthesizedExp  | term }
+parenthesizedArithExp = _{ "(" ~ arithExpr ~ ")"}
 
-negation = {"!" ~ compareExpr}
+// ----- Operators -----
+bool_op = _{ and | or }
+and = { "&&" }
+or = { "||" }
 
-numNegation = {"-" ~ parenthesizedExp | "-" ~ term}
+arith_op = _{ add | sub | mul | div | mod }
+add = { "+" } // Addition
+sub = { "-" } // Subtraction
+mul = { "*" } // Multiplication
+div = { "/" } // Division
+mod = { "%" } // Modulo
 
-parenthesizedExp = { "(" ~ expression ~ ")"}
+compare_op = _{ geq | leq | eq | lt | gt }
+geq = { ">=" } // Greater than or equal to
+leq = { "<=" } // Less than or equal to
+eq = { "==" } // Equal to
+lt = { "<" } // Less than
+gt = { ">" } // Greater than
 
+// ----- Terms -----
+variable = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-variable = { (variable_name ~ ("." | "þ" | "€")?)+ ~ (int | variable_name)?}
-variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "þ" | "ð" | "đ" | "œ")*}
+term = _{int | variable}
+bool = _{ bool_true | bool_false }
+bool_true = { "true" }
+bool_false = { "false" }
 
-term = {int | variable}
-bool = { "true" | "false" }
-
-number = @{ int ~ ("." ~ ASCII_DIGIT+)? }
-int    = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-
-string = ${ "\"" ~ inner ~ "\"" }
-inner = @{ char* }
-char = {!("\"") ~ ANY}
-
-operator = { "+" | "-" }
-highOperator = { "/" | "*" | "%" }
-lowOperator = { ">=" | "<=" | "==" | "<" | ">" }
-
+int = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
 
 WHITESPACE = _{ " " | "\n" | "\r\n" | "\t"}
+
+//// Currently unused:
+// negation = {"!" ~ comparison}
+// numNegation = {"-" ~ parenthesizedExp | "-" ~ term}
+// variable = { (variable_name ~ ("." | "þ" | "€")?)+ ~ (int | variable_name)?}
+// variable_name ={ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "þ" | "ð" | "đ" | "œ")*}
+// string = ${ "\"" ~ inner ~ "\"" }
+// inner = @{ char* }
+// char = {!("\"") ~ ANY}
+// number = @{ int ~ ("." ~ ASCII_DIGIT+)? }
