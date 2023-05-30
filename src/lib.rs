@@ -23,8 +23,26 @@ pub use ProtobufServer::start_grpc_server_with_tokio;
 
 /// The default settings
 pub const DEFAULT_SETTINGS: Settings = Settings {
-    disable_clock_reduction: false,
+    disable_clock_reduction: true,
 };
+
+static mut IS_SERVER: Option<bool> = None;
+
+pub fn set_server(is_server: bool) {
+    unsafe {
+        IS_SERVER = Some(is_server);
+    }
+}
+
+#[cfg(not(test))]
+fn is_server() -> bool {
+    unsafe { IS_SERVER.expect("Server or CLI never specified") }
+}
+
+#[cfg(test)]
+fn is_server() -> bool {
+    true
+}
 
 #[macro_use]
 extern crate pest_derive;

@@ -53,7 +53,7 @@ impl ConcreteEcdarBackend {
                     let result = query.execute();
                     Ok(QueryResponse {
                         query_id: query_request.query_id,
-                        info: vec![], // TODO: Should be logs
+                        info: crate::logging::get_messages(),
                         result: Some(result.into()),
                     })
                 }

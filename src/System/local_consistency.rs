@@ -52,8 +52,7 @@ fn is_deterministic_helper(
                 if allowed_fed.has_intersection(&location_fed) {
                     warn!(
                         "Not deterministic from location {} failing action {}",
-                        state.get_location().id,
-                        action
+                        state.decorated_locations.id, action
                     );
                     return DeterminismFailure::from(system, action, &state);
                 }
@@ -121,7 +120,7 @@ pub fn consistency_least_helper(
             }
         }
     }
-    warn!("No saving outputs from {}", state.get_location().id);
+    warn!("No saving outputs from {}", state.decorated_locations.id);
     ConsistencyFailure::inconsistent_from(system, &state)
 }
 
