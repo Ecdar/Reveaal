@@ -1,11 +1,13 @@
 use log::warn;
 use lru::LruCache;
 
+use crate::component::Component;
 use crate::xml_parser;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
 use crate::DataReader::xml_parser::parse_xml_from_file;
-use crate::ModelObjects::{Component, Query, SystemDeclarations};
+use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::system_declarations::SystemDeclarations;
 use crate::ProtobufServer::services;
 use crate::ProtobufServer::services::query_request::Settings;
 use crate::System::input_enabler;
@@ -13,7 +15,9 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-pub type ComponentsMap = HashMap<String, Component>;
+use super::proto_reader::components_info_to_components;
+
+type ComponentsMap = HashMap<String, Component>;
 
 struct ComponentTuple {
     components_hash: u32,
@@ -110,6 +114,7 @@ pub trait ComponentLoader {
     fn get_component(&mut self, component_name: &str) -> &Component;
     fn save_component(&mut self, component: Component);
     fn get_settings(&self) -> &Settings;
+    fn get_settings_mut(&mut self) -> &mut Settings;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -134,6 +139,10 @@ impl ComponentLoader for ComponentContainer {
     fn get_settings(&self) -> &Settings {
         self.settings.as_ref().unwrap()
     }
+
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        self.settings.as_mut().unwrap()
+    }
 }
 
 impl ComponentContainer {
@@ -144,14 +153,17 @@ impl ComponentContainer {
         }
     }
 
-    /// Sets the settings
-    pub(crate) fn set_settings(&mut self, settings: Settings) {
-        self.settings = Some(settings);
+    /// Creates a [`ComponentContainer`] from a [`services::ComponentsInfo`].
+    pub fn from_info(
+        components_info: &services::ComponentsInfo,
+    ) -> Result<ComponentContainer, tonic::Status> {
+        let components = components_info_to_components(components_info);
+        let component_container = Self::from_components(components);
+        Ok(component_container)
     }
-}
 
-impl From<Vec<Component>> for ComponentContainer {
-    fn from(components: Vec<Component>) -> Self {
+    /// Creates a [`ComponentContainer`] from a [`Vec`] of [`Component`]s
+    pub fn from_components(components: Vec<Component>) -> ComponentContainer {
         let mut comp_hashmap = HashMap::<String, Component>::new();
         for mut component in components {
             log::trace!("Adding comp {} to container", component.get_name());
@@ -160,6 +172,11 @@ impl From<Vec<Component>> for ComponentContainer {
             comp_hashmap.insert(component.get_name().to_string(), component);
         }
         ComponentContainer::new(Arc::new(comp_hashmap))
+    }
+
+    /// Sets the settings
+    pub(crate) fn set_settings(&mut self, settings: Settings) {
+        self.settings = Some(settings);
     }
 }
 
@@ -227,6 +244,9 @@ impl ComponentLoader for JsonProjectLoader {
 
     fn get_settings(&self) -> &Settings {
         &self.settings
+    }
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        &mut self.settings
     }
 }
 
@@ -305,6 +325,9 @@ impl ComponentLoader for XmlProjectLoader {
 
     fn get_settings(&self) -> &Settings {
         &self.settings
+    }
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        &mut self.settings
     }
 }
 

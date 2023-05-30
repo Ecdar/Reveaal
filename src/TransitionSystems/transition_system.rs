@@ -2,12 +2,14 @@ use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::parse_queries::parse_to_system_expr;
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::{Component, Declarations, State, Transition};
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
-    extract_system_rep::get_system_recipe, ComponentLoader,
+    component::Component,
+    extract_system_rep::get_system_recipe,
+    ComponentLoader,
     DataReader::component_loader::ComponentContainer,
+    ModelObjects::component::{Declarations, State, Transition},
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
@@ -241,7 +243,7 @@ pub fn components_to_transition_system(
     components: Vec<Component>,
     composition: &str,
 ) -> TransitionSystemPtr {
-    let mut component_container = ComponentContainer::from(components);
+    let mut component_container = ComponentContainer::from_components(components);
     component_loader_to_transition_system(&mut component_container, composition)
 }
 

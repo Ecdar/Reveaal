@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::ProtobufServer::services::SimulationStartRequest;
     use crate::{
-        tests::Simulation::helper::construct_step_requests,
+        tests::Simulation::helper::{create_start_request, create_step_requests},
         ProtobufServer::{self, services::ecdar_backend_server::EcdarBackend},
     };
     use test_case::test_case;
@@ -46,7 +45,7 @@ mod tests {
     ) {
         // Arrange
         let backend = ProtobufServer::ConcreteEcdarBackend::default();
-        let request = Request::new(SimulationStartRequest::new(
+        let request = Request::new(create_start_request(
             component_names,
             components_path,
             composition,
@@ -56,8 +55,7 @@ mod tests {
         let response = backend.start_simulation(request).await;
 
         // Arrange
-        for request in
-            construct_step_requests(component_names, components_path, composition, response)
+        for request in create_step_requests(component_names, components_path, composition, response)
         {
             let request = Request::new(request);
 
@@ -68,7 +66,7 @@ mod tests {
             assert!(response.is_ok(), "Response was not ok: {:?}", response);
 
             for request2 in
-                construct_step_requests(component_names, components_path, composition, response)
+                create_step_requests(component_names, components_path, composition, response)
             {
                 let request2 = Request::new(request2);
 

@@ -1,7 +1,7 @@
 use edbm::zones::OwnedFederation;
 use log::warn;
 
-use crate::ModelObjects::State;
+use crate::ModelObjects::component::State;
 use crate::System::query_failures::{ConsistencyFailure, DeterminismFailure};
 use crate::TransitionSystems::TransitionSystem;
 
@@ -55,7 +55,7 @@ fn is_deterministic_helper(
                         state.get_location().id,
                         action
                     );
-                    return DeterminismFailure::from_system_and_action(system, action, &state);
+                    return DeterminismFailure::from(system, action, &state);
                 }
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);

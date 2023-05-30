@@ -1,15 +1,13 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-pub mod bench_helper;
+mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::component::Component;
 use reveaal::DataReader::json_writer::component_to_json;
-use reveaal::ModelObjects::component::Component;
 use reveaal::ProtobufServer::services::component::Rep::Json;
 use reveaal::ProtobufServer::services::{Component as ProtoComp, ComponentsInfo, SimulationInfo};
 use reveaal::{
     DataReader::component_loader::ModelCache,
-    JsonProjectLoader,
     ProtobufServer::{
         services::{SimulationStartRequest, SimulationStepRequest},
         ConcreteEcdarBackend,
@@ -74,7 +72,7 @@ fn take_simulation_step(c: &mut Criterion, id: &str, request: SimulationStepRequ
 }
 
 fn simulation(c: &mut Criterion) {
-    let mut loader = bench_helper::get_loader();
+    let loader = bench_helper::get_loader();
 
     let start_request_1 =
         construct_start_request(&[loader.get_component("Machine").clone()], "(Machine)", 1);

@@ -6,7 +6,7 @@ use reveaal::System::query_failures::QueryResult;
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
     extract_system_rep, parse_queries, start_grpc_server_with_tokio, xml_parser, ComponentLoader,
-    JsonProjectLoader, ProjectLoader, XmlProjectLoader,
+    JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
 };
 use std::env;
 
@@ -60,9 +60,7 @@ fn start_using_cli(matches: &clap::ArgMatches) {
     }
 }
 
-fn parse_args(
-    matches: &clap::ArgMatches,
-) -> (Box<dyn ComponentLoader>, Vec<reveaal::ModelObjects::Query>) {
+fn parse_args(matches: &clap::ArgMatches) -> (Box<dyn ComponentLoader>, Vec<Query>) {
     let folder_path = matches.value_of("folder").unwrap_or("");
     let query = matches.value_of("query").unwrap_or("");
     let settings = Settings {

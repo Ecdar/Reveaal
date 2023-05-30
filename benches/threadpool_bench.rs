@@ -1,6 +1,7 @@
 use std::vec;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use reveaal::DataReader::json_writer::component_to_json;
 use reveaal::ProtobufServer::{
     services::{
         component::Rep, ecdar_backend_server::EcdarBackend, Component, ComponentsInfo, QueryRequest,
@@ -13,17 +14,16 @@ use criterion::async_executor::FuturesExecutor;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 
+mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
-
-const PATH: &str = "samples/json/EcdarUniversity";
 
 const NUM_OF_REQUESTS: u32 = 512;
 
 fn send_query_with_components(
     id: String,
     c: &mut Criterion,
-    components: &[String],
+    components: &[reveaal::ModelObjects::Component],
     query: &str,
     active_cache: bool,
 ) {
@@ -33,7 +33,7 @@ fn send_query_with_components(
             let responses = (0..NUM_OF_REQUESTS)
                 .map(|hash| {
                     let request = compose_query_request(
-                        components,
+                        &components.iter().map(component_to_json).collect::<Vec<_>>(),
                         query,
                         if active_cache { 0 } else { hash },
                     );
@@ -68,10 +68,11 @@ fn construct_components(json: &[String]) -> Vec<Component> {
 }
 
 fn threadpool_cache(c: &mut Criterion) {
-    let json = vec![
-        std::fs::read_to_string(format!("{}/Components/Administration.json", PATH)).unwrap(),
-        std::fs::read_to_string(format!("{}/Components/Researcher.json", PATH)).unwrap(),
-        std::fs::read_to_string(format!("{}/Components/Machine.json", PATH)).unwrap(),
+    let loader = bench_helper::get_loader();
+    let comps = vec![
+        loader.get_component("Administration").clone(),
+        loader.get_component("Researcher").clone(),
+        loader.get_component("Machine").clone(),
     ];
     let expensive_query = String::from("determinism: Administration || Researcher || Machine");
     let cheap_query = String::from("determinism: Machine");
@@ -79,28 +80,28 @@ fn threadpool_cache(c: &mut Criterion) {
     send_query_with_components(
         String::from("Expensive queries with identical models"),
         c,
-        &json,
+        &comps,
         &expensive_query,
         true,
     );
     send_query_with_components(
         String::from("Expensive queries with different models"),
         c,
-        &json,
+        &comps,
         &expensive_query,
         false,
     );
     send_query_with_components(
         String::from("Cheap queries with identical models"),
         c,
-        &json,
+        &comps,
         &cheap_query,
         true,
     );
     send_query_with_components(
         String::from("Cheap queries with different models"),
         c,
-        &json,
+        &comps,
         &cheap_query,
         false,
     );
@@ -108,7 +109,7 @@ fn threadpool_cache(c: &mut Criterion) {
 
 criterion_group! {
     name = backend_bench;
-    config = Criterion::default().with_profiler(FlamegraphProfiler::new(100));
+    config = Criterion::default().with_profiler(FlamegraphProfiler::new(100)).sample_size(10);
     targets = threadpool_cache
 }
 

@@ -1,9 +1,9 @@
 #[cfg(test)]
 pub mod clock_removal_tests {
+    use crate::component::Component;
     use crate::extract_system_rep::{clock_reduction, SystemRecipe};
     use crate::tests::refinement::Helper::json_run_query;
     use crate::DataReader::json_reader::read_json_component;
-    use crate::ModelObjects::Component;
     use crate::TransitionSystems::{CompiledComponent, TransitionSystem};
     use std::collections::HashSet;
 

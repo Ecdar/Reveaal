@@ -2,17 +2,19 @@
 pub mod test {
     use crate::extract_system_rep::SystemRecipe;
     use crate::DataReader::json_reader::read_json_component;
-    use crate::ModelObjects::Component;
     use crate::System::input_enabler;
     use crate::TransitionSystems::transition_system::ClockReductionInstruction;
     use crate::TransitionSystems::TransitionSystemPtr;
-    use crate::{JsonProjectLoader, DEFAULT_SETTINGS};
+    use crate::{component, JsonProjectLoader, DEFAULT_SETTINGS};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::path::Path;
 
     /// Reads and processes a component.
-    pub fn read_json_component_and_process(project_path: &str, component_name: &str) -> Component {
+    pub fn read_json_component_and_process(
+        project_path: &str,
+        component_name: &str,
+    ) -> component::Component {
         let mut component = read_json_component(project_path, component_name);
         let inputs = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);

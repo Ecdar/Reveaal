@@ -1,7 +1,10 @@
 use std::{collections::HashSet, fmt};
 
-use crate::ModelObjects::{Component, State, StatePair};
-use crate::TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr};
+use crate::{
+    component::{Component, State},
+    ModelObjects::statepair::StatePair,
+    TransitionSystems::{CompositionType, TransitionSystem, TransitionSystemPtr},
+};
 
 use super::specifics::{SpecificPath, SpecificState};
 
@@ -502,7 +505,7 @@ pub struct DeterminismFailure {
 
 impl DeterminismFailure {
     /// Creates a new [DeterminismFailure] from a `system`, `action`, and `state`.
-    pub fn from_system_and_action(
+    pub fn from(
         system: &dyn TransitionSystem,
         action: impl Into<String>,
         state: &State,

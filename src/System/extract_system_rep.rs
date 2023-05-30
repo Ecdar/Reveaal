@@ -1,6 +1,7 @@
 use crate::DataReader::component_loader::ComponentLoader;
+use crate::ModelObjects::component::Component;
+use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::Expressions::{QueryExpression, SaveExpression, SystemExpression};
-use crate::ModelObjects::{Component, Query, State};
 use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
@@ -13,6 +14,7 @@ use crate::TransitionSystems::{
 };
 
 use super::query_failures::SystemRecipeFailure;
+use crate::component::State;
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
@@ -338,7 +340,7 @@ pub fn get_system_recipe(
         SystemExpression::Component(name, id) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
-            component.special_id = id.clone();
+            component.set_special_id(id.clone());
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))

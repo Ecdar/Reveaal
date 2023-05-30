@@ -5,13 +5,13 @@ const PATH: &str = "samples/json/EcdarUniversity";
 
 static mut UNI_LOADER: Option<Box<dyn ComponentLoader>> = None;
 
-pub fn get_loader() -> &'static mut Box<dyn ComponentLoader> {
+pub fn get_loader() -> &'static mut Box<dyn ComponentLoader + 'static> {
     unsafe {
-        match &UNI_LOADER {
-            Some(l) => l,
+        match &mut UNI_LOADER {
+            Some(ref mut l) => l,
             None => {
                 UNI_LOADER = Some(load_everything());
-                &mut UNI_LOADER.unwrap()
+                UNI_LOADER.as_mut().unwrap()
             }
         }
     }

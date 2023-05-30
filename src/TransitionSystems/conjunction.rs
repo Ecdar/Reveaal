@@ -1,6 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::Transition;
+use crate::ModelObjects::component::Transition;
 use crate::System::local_consistency;
 use crate::System::query_failures::{ActionFailure, ConsistencyResult, SystemRecipeFailure};
 use crate::TransitionSystems::{

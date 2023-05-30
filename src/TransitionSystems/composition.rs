@@ -1,6 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::Transition;
+use crate::ModelObjects::component::Transition;
 use crate::System::query_failures::{ActionFailure, SystemRecipeFailure};
 use crate::TransitionSystems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
@@ -91,7 +91,7 @@ impl ComposedTransitionSystem for Composition {
             let left = self.left.next_transitions(loc_left, action);
             return Transition::combinations(
                 &left,
-                &vec![Transition::without_id(loc_right, self.dim)],
+                &vec![Transition::new(loc_right, self.dim)],
                 CompositionType::Composition,
             );
         }
@@ -99,7 +99,7 @@ impl ComposedTransitionSystem for Composition {
         if self.right_unique_actions.contains(action) {
             let right = self.right.next_transitions(loc_right, action);
             return Transition::combinations(
-                &vec![Transition::without_id(loc_left, self.dim)],
+                &vec![Transition::new(loc_left, self.dim)],
                 &right,
                 CompositionType::Composition,
             );

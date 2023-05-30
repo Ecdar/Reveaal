@@ -1,5 +1,6 @@
+use crate::component::LocationType;
+use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
 use crate::ModelObjects::Expressions::BoolExpression;
-use crate::ModelObjects::{Component, Declarations, Location, LocationType, SyncType};
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashMap;
 
@@ -8,7 +9,6 @@ pub enum PruningStrategy {
     NoPruning,
 }
 
-use crate::ModelObjects::Edge;
 use edbm::util::constraints::ClockIndex;
 use PruningStrategy::*;
 

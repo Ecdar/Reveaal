@@ -1,5 +1,6 @@
-use super::{super::Component, ArithExpression, BoolExpression};
 use std::fmt::{Display, Formatter};
+
+use super::{ArithExpression, BoolExpression};
 
 #[derive(Debug, Clone)]
 pub enum StateExpression {
@@ -43,7 +44,10 @@ impl Display for ComponentVariable {
 }
 
 impl OperandExpression {
-    pub fn to_arith_expression(&self, comps: &Vec<&Component>) -> Result<ArithExpression, String> {
+    pub fn to_arith_expression(
+        &self,
+        comps: &Vec<&crate::component::Component>,
+    ) -> Result<ArithExpression, String> {
         match self {
             OperandExpression::Number(n) => Ok(ArithExpression::Int(*n)),
             OperandExpression::Clock(ComponentVariable {
@@ -93,7 +97,10 @@ impl Display for OperandExpression {
 }
 
 impl StateExpression {
-    pub fn to_bool_expression(&self, comps: &Vec<&Component>) -> Result<BoolExpression, String> {
+    pub fn to_bool_expression(
+        &self,
+        comps: &Vec<&crate::component::Component>,
+    ) -> Result<BoolExpression, String> {
         match self {
             StateExpression::LEQ(left, right) => Ok(BoolExpression::LessEQ(
                 Box::new(left.to_arith_expression(comps)?),

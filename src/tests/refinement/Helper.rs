@@ -2,7 +2,7 @@ use crate::extract_system_rep::ExecutableQueryError;
 use crate::logging::setup_logger;
 use crate::DataReader::component_loader::{JsonProjectLoader, XmlProjectLoader};
 use crate::DataReader::parse_queries;
-use crate::ModelObjects::Query;
+use crate::ModelObjects::queries::Query;
 use crate::System::extract_system_rep::create_executable_query;
 use crate::System::query_failures::QueryResult;
 use crate::TransitionSystems::transition_system::component_loader_to_transition_system;

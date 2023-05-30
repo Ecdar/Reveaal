@@ -3,9 +3,7 @@ pub mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::extract_system_rep::create_executable_query;
-use reveaal::tests::TEST_SETTINGS;
-use reveaal::ModelObjects::queries::Query;
-use reveaal::{parse_queries, ComponentLoader};
+use reveaal::{parse_queries, ComponentLoader, Query};
 
 fn bench_reachability(c: &mut Criterion, query: &str, loader: &mut Box<dyn ComponentLoader>) {
     c.bench_function(query, |b| {
@@ -18,7 +16,7 @@ fn bench_reachability(c: &mut Criterion, query: &str, loader: &mut Box<dyn Compo
                 comment: "".to_string(),
             };
 
-            let query = create_executable_query(&q, loader).unwrap();
+            let query = create_executable_query(&q, loader.as_mut()).unwrap();
 
             query.execute()
         })
@@ -31,47 +29,48 @@ fn reachability_benchmarking(c: &mut Criterion) {
     bench_reachability(
         c,
         "reachability: Machine || Researcher @ Machine.L5 && Researcher.L6 -> Machine.L4 && Researcher.L9",
-    &mut loader);
+    loader);
     bench_reachability(
         c,
         "reachability: Administration || Machine || Researcher @ Administration.L3 && Machine.L5 && Researcher.L9 -> Administration.L0 && Machine.L5 && Researcher.U0",
-    &mut loader);
+    loader);
     bench_reachability(
         c,
         "reachability: Administration || Machine || Researcher @ Administration.L0 && Machine.L5 && Researcher.U0 -> Administration.L3 && Machine.L5 && Researcher.L9",
-    &mut loader);
+    loader);
     bench_reachability(
         c,
         "reachability: Machine @ Machine.L5 && Machine.y<6 -> Machine.L4 && Machine.y<=6",
-        &mut loader,
+        loader,
     );
     bench_reachability(
         c,
         "reachability: Machine @ Machine.L5 -> Machine.L4 && Machine.y>7",
-        &mut loader,
+        loader,
     );
     bench_reachability(
         c,
         "reachability: Machine @ Machine.L4 && Machine.y<=6 -> Machine.L5 && Machine.y>=4",
-        &mut loader,
+        loader,
     );
     bench_reachability(
         c,
         "reachability: Machine @ Machine.L5 && Machine.y<1 -> Machine.L5 && Machine.y<2",
+        loader,
     );
     bench_reachability(
         c,
         "reachability: Machine @ Machine.L5 -> Machine.L5",
-        &mut loader,
+        loader,
     );
     bench_reachability(
         c,
         "reachability: Machine || Researcher @ Machine.L5 && Researcher.U0 -> Machine.L5 && Researcher.L7",
-    &mut loader);
+    loader);
     bench_reachability(
         c,
         "reachability: Researcher @ Researcher.U0 -> Researcher.L7",
-        &mut loader,
+        loader,
     );
 }
 

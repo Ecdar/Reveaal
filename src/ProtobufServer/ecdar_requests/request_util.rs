@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use log::trace;
 
 use crate::{
+    component::Component,
     DataReader::component_loader::{parse_components_if_some, ComponentContainer, ModelCache},
-    ModelObjects::Component,
     ProtobufServer::services::{Component as ProtoComponent, SimulationInfo},
     System::input_enabler,
     TransitionSystems::{
@@ -26,15 +26,13 @@ pub fn get_or_insert_model(
                 .flat_map(parse_components_if_some)
                 .flatten()
                 .collect::<Vec<Component>>();
-            let components = constrtuct_componentsmap(parsed_components);
+            let components = create_components(parsed_components);
             model_cache.insert_model(user_id, components_hash, Arc::new(components))
         }
     }
 }
 
-fn constrtuct_componentsmap(
-    components: Vec<Component>,
-) -> crate::DataReader::component_loader::ComponentsMap {
+fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
         trace!("Adding comp {} to container", component.get_name());

@@ -1,14 +1,13 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-pub mod bench_helper;
+mod bench_helper;
 pub mod flamegraph;
 
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::extract_system_rep::create_executable_query;
-use reveaal::ModelObjects::queries::Query;
 use reveaal::System::executable_query::ExecutableQuery;
 use reveaal::System::query_failures::QueryResult;
-use reveaal::{parse_queries, ComponentLoader};
+use reveaal::{parse_queries, ComponentLoader, Query};
 
 fn construct_query<'a>(
     query: &str,
