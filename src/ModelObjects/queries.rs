@@ -1,17 +1,17 @@
 use crate::DataReader::parse_queries;
-use crate::ModelObjects::representations;
+use crate::ModelObjects::Expressions;
 use serde::{Deserialize, Deserializer};
 
 /// The struct containing a single query
 #[derive(Debug, Deserialize, Clone)]
 pub struct Query {
     #[serde(deserialize_with = "decode_query")]
-    pub query: Option<representations::QueryExpression>,
+    pub query: Option<Expressions::QueryExpression>,
     pub comment: String,
 }
 
 impl Query {
-    pub fn get_query(&self) -> &Option<representations::QueryExpression> {
+    pub fn get_query(&self) -> &Option<Expressions::QueryExpression> {
         &self.query
     }
 }
@@ -19,7 +19,7 @@ impl Query {
 /// Function used for deserializing queries
 pub fn decode_query<'de, D>(
     deserializer: D,
-) -> Result<Option<representations::QueryExpression>, D::Error>
+) -> Result<Option<Expressions::QueryExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::ModelObjects::representations::ArithExpression as AE;
+    use crate::ModelObjects::Expressions::ArithExpression as AE;
     use AE::*;
     #[test]
     fn simplify_test1() {
