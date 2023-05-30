@@ -3,7 +3,7 @@ use edbm::zones::OwnedFederation;
 
 use crate::component::Declarations;
 
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression, Clock};
+use crate::ModelObjects::Expressions::{ArithExpression, BoolExpression, Clock};
 
 pub fn apply_constraints_to_state(
     guard: &BoolExpression,
@@ -60,14 +60,12 @@ fn apply_constraints_to_state_helper(
             // j-i < -c -> c < i-j
             Ok(fed.constrain(i, j, LS(c)))
         }
-        BoolExpression::Parentheses(expr) => apply_constraints_to_state_helper(expr, decls, fed),
         BoolExpression::Bool(val) => {
             if !*val {
                 return Ok(fed.set_empty());
             }
             Ok(fed)
         }
-        expr => Err(format!("Unexpected expression in guard: {:?}", expr)),
     }
 }
 
@@ -135,7 +133,6 @@ fn get_indices(
 fn replace_vars(expr: &ArithExpression, decls: &Declarations) -> Result<ArithExpression, String> {
     //let mut out = expr.clone();
     match expr {
-        ArithExpression::Parentheses(inner) => replace_vars(inner, decls),
         ArithExpression::Difference(l, r) => Ok(ArithExpression::ADif(
             replace_vars(l, decls)?,
             replace_vars(r, decls)?,
@@ -175,7 +172,6 @@ fn get_const(expr: &ArithExpression, decls: &Declarations) -> i32 {
         ArithExpression::Int(x) => *x,
         ArithExpression::Clock(_) => 0,
         ArithExpression::VarName(name) => decls.ints.get(name).copied().unwrap_or(0),
-        ArithExpression::Parentheses(x) => get_const(x, decls),
         ArithExpression::Difference(l, r) => get_const(l, decls) - get_const(r, decls),
         ArithExpression::Addition(l, r) => get_const(l, decls) + get_const(r, decls),
         ArithExpression::Multiplication(l, r) => get_const(l, decls) * get_const(r, decls),
@@ -207,7 +203,6 @@ fn get_clock_val(
     let mut nxt_expr: Option<&ArithExpression> = None;
     let mut nxt_negated = false;
     let val = match expression {
-        ArithExpression::Parentheses(inner) => get_clock_val(inner, count, negated)?.0,
         ArithExpression::Difference(l, r) => {
             if let ArithExpression::Clock(x) = **l {
                 nxt_expr = Some(&**r);
@@ -254,7 +249,7 @@ fn get_clock_val(
 mod test {
     use super::get_indices;
     use crate::component::Declarations;
-    use crate::ModelObjects::representations::ArithExpression;
+    use crate::ModelObjects::Expressions::ArithExpression;
     use std::collections::HashMap;
 
     #[test]

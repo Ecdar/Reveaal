@@ -11,7 +11,7 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
 use crate::msg;
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
 use crate::ProtobufServer::services::query_response::information;
 use crate::TransitionSystems::{CompositionType, TransitionSystem};
 use crate::TransitionSystems::{LocationTree, TransitionID};
@@ -35,6 +35,7 @@ pub struct Component {
     pub declarations: Declarations,
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
+    pub special_id: Option<String>,
 }
 
 impl DeclarationProvider for Component {
@@ -44,6 +45,10 @@ impl DeclarationProvider for Component {
 }
 
 impl Component {
+    pub fn set_special_id(&mut self, id: Option<String>) {
+        self.special_id = id;
+    }
+
     pub fn set_clock_indices(&mut self, indices: &mut ClockIndex) {
         self.declarations.set_clock_indices(*indices);
         *indices += self.declarations.get_clock_count();
@@ -153,12 +158,11 @@ impl Component {
         // The invariants containing the clock are overwritten to `false`.
         // This can be done since we assume that all locations with invariants involving
         // the given clock is not reachable in some composite system.
-        self.locations.retain(|l| {
-            l.invariant
-                .as_ref()
-                .filter(|i| i.has_varname(&name))
-                .is_none()
-        });
+        self.locations
+            .iter_mut()
+            .filter_map(|l| l.invariant.as_mut())
+            .filter(|i| i.has_varname(&name))
+            .for_each(|i| *i = BoolExpression::Bool(false));
 
         msg!(information::Severity::Info, subject: "Clock Reduction", msg: "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name);

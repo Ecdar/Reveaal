@@ -6,7 +6,7 @@ use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
 use crate::ModelObjects::component::{
     Component, DeclarationProvider, Declarations, Edge, Location, SyncType,
 };
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
 use crate::TransitionSystems::{CompiledComponent, LocationTree};
