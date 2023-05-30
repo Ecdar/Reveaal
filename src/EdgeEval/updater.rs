@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::DataReader::parse_edge;
 use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::representations::{ArithExpression, BoolExpression};
+use crate::ModelObjects::Expressions::ArithExpression;
 use colored::Colorize;
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
@@ -27,27 +27,21 @@ impl fmt::Display for CompiledUpdate {
 
 impl CompiledUpdate {
     pub fn compile(update: &parse_edge::Update, decl: &Declarations) -> CompiledUpdate {
-        match update.get_expression() {
-            BoolExpression::Arithmetic(x) => match **x {
-                ArithExpression::Int(val) => {
-                    if let Some(&clock_index) =
-                        decl.get_clock_index_by_name(update.get_variable_name())
-                    {
-                        CompiledUpdate {
-                            clock_index,
-                            value: val,
-                        }
-                    } else {
-                        panic!(
-                                "Attempting to compile an update with a clock \"{}\" which is not in decl",
-                                update.get_variable_name()
-                            )
+        match *update.get_expression() {
+            ArithExpression::Int(val) => {
+                if let Some(&clock_index) = decl.get_clock_index_by_name(update.get_variable_name())
+                {
+                    CompiledUpdate {
+                        clock_index,
+                        value: val,
                     }
+                } else {
+                    panic!(
+                        "Attempting to compile an update with a clock \"{}\" which is not in decl",
+                        update.get_variable_name()
+                    )
                 }
-                _ => {
-                    panic!("Should not be able to assign to {:?} in update", update)
-                }
-            },
+            }
             _ => {
                 panic!("Should not be able to assign to {:?} in update", update)
             }
@@ -63,7 +57,7 @@ impl CompiledUpdate {
 
         parse_edge::Update {
             variable: map.get(&self.clock_index).unwrap().clone(),
-            expression: BoolExpression::Arithmetic(Box::new(ArithExpression::Int(self.value))),
+            expression: ArithExpression::Int(self.value),
         }
     }
 

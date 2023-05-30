@@ -1,8 +1,8 @@
+use crate::DataReader::parse_edge;
 use crate::DataReader::parse_edge::Update;
-use crate::DataReader::{parse_edge, parse_invariant};
 use crate::ModelObjects::component::{Declarations, Edge, LocationType, SyncType};
 use crate::ModelObjects::system_declarations::{SystemDeclarations, SystemSpecification};
-use crate::ModelObjects::{component, queries, representations, system_declarations};
+use crate::ModelObjects::{component, queries, system_declarations, Expressions};
 use edbm::util::constraints::ClockIndex;
 use elementtree::{Element, FindChildren};
 use std::collections::HashMap;
@@ -71,6 +71,7 @@ fn parse_xml<R: Read>(
                     .unwrap(),
             ),
             edges,
+            special_id: None,
         };
         xml_components.push(comp);
     }
@@ -89,7 +90,7 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
         let location = component::Location {
             id: loc.get_attr("id").unwrap().parse().unwrap(),
             invariant: match loc.find("label") {
-                Some(x) => match parse_invariant::parse(x.text()) {
+                Some(x) => match parse_edge::parse_guard(x.text()) {
                     Ok(edgeAttribute) => Some(edgeAttribute),
                     Err(e) => panic!("Could not parse invariant {} got error: {:?}", x.text(), e),
                 },
@@ -110,28 +111,22 @@ fn collect_locations(xml_locations: FindChildren, initial_id: &str) -> Vec<compo
 fn collect_edges(xml_edges: FindChildren) -> Vec<Edge> {
     let mut edges: Vec<component::Edge> = vec![];
     for e in xml_edges {
-        let mut guard: Option<representations::BoolExpression> = None;
+        let mut guard: Option<Expressions::BoolExpression> = None;
         let mut updates: Option<Vec<Update>> = None;
         let mut sync: String = "".to_string();
         for label in e.find_all("label") {
             match label.get_attr("kind").unwrap() {
-                "guard" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Guard(guard_res) = edgeAttribute {
-                            guard = Some(guard_res);
-                        }
+                "guard" => match parse_edge::parse_guard(label.text()) {
+                    Ok(guard_res) => {
+                        guard = Some(guard_res);
                     }
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 "synchronisation" => {
                     sync = label.text().to_string();
                 }
-                "assignment" => match parse_edge::parse(label.text()) {
-                    Ok(edgeAttribute) => {
-                        if let parse_edge::EdgeAttribute::Updates(update_vec) = edgeAttribute {
-                            updates = Some(update_vec)
-                        }
-                    }
+                "assignment" => match parse_edge::parse_updates(label.text()) {
+                    Ok(updates_res) => updates = Some(updates_res),
                     Err(e) => panic!("Could not parse {} got error: {:?}", label.text(), e),
                 },
                 _ => {}
