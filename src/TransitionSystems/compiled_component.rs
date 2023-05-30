@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, State, Transition,
-};
+use crate::ModelObjects::{Component, DeclarationProvider, Declarations, State, Transition};
 use crate::System::local_consistency::{self};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,

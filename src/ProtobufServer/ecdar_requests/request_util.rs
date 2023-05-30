@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use log::trace;
 
 use crate::{
-    component::Component,
     DataReader::component_loader::{parse_components_if_some, ComponentContainer, ModelCache},
+    ModelObjects::Component,
     ProtobufServer::services::{Component as ProtoComponent, SimulationInfo},
     System::input_enabler,
     TransitionSystems::{
