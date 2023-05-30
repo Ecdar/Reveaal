@@ -7,8 +7,8 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-use crate::ModelObjects::edge::{Edge, SyncType};
-use crate::ModelObjects::location::{Location, LocationType};
+use crate::ModelObjects::Expressions::BoolExpression;
+use crate::ModelObjects::{Edge, Location, LocationType, SyncType};
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -128,24 +128,20 @@ impl Component {
     pub fn get_max_bounds(&self, dimensions: ClockIndex) -> Bounds {
         let mut max_bounds = Bounds::new(dimensions);
         for (clock_name, clock_id) in &self.declarations.clocks {
-            let mut max_bound = 0;
-            for edge in &self.edges {
-                if let Some(guard) = edge.get_guard() {
-                    let new_bound = guard.get_max_constant(*clock_id, clock_name);
-                    if max_bound < new_bound {
-                        max_bound = new_bound;
-                    }
-                }
-            }
-
-            for location in &self.locations {
-                if let Some(inv) = location.get_invariant() {
-                    let new_bound = inv.get_max_constant(*clock_id, clock_name);
-                    if max_bound < new_bound {
-                        max_bound = new_bound;
-                    }
-                }
-            }
+            let max_bound = i32::max(
+                self.edges
+                    .iter()
+                    .filter_map(|e| e.get_guard().clone())
+                    .map(|g| g.get_max_constant(*clock_id, clock_name))
+                    .max()
+                    .unwrap_or_default(),
+                self.locations
+                    .iter()
+                    .filter_map(|l| l.get_invariant().clone())
+                    .map(|i| i.get_max_constant(*clock_id, clock_name))
+                    .max()
+                    .unwrap_or_default(),
+            );
 
             // TODO: find more precise upper and lower bounds for clocks
             max_bounds.add_lower(*clock_id, max_bound);
@@ -180,22 +176,32 @@ impl Component {
             .to_owned();
         self.declarations.clocks.remove(&name);
 
-        // Removes from from updates
+        // Removes from from updates and guards
         self.edges
             .iter_mut()
-            .filter(|e| e.update.is_some())
+            .filter(|e| e.update.is_some() || e.guard.is_some())
             .for_each(|e| {
-                if let Some((i, _)) = e
-                    .update
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .enumerate()
-                    .find(|(_, u)| u.variable == name)
-                {
-                    e.update.as_mut().unwrap().remove(i);
+                // The guard is overwritten to `false`. This can be done since we assume
+                // that all edges with guards involving the given clock is not reachable
+                // in some composite system.
+                if let Some(guard) = e.guard.as_mut().filter(|g| g.has_varname(&name)) {
+                    *guard = BoolExpression::Bool(false);
+                }
+                if let Some(inv) = e.update.as_mut() {
+                    inv.retain(|u| u.variable != name);
                 }
             });
+
+        // Removes from from location invariants
+        // The invariants containing the clock are overwritten to `false`.
+        // This can be done since we assume that all locations with invariants involving
+        // the given clock is not reachable in some composite system.
+        self.locations
+            .iter_mut()
+            .filter_map(|l| l.invariant.as_mut())
+            .filter(|i| i.has_varname(&name))
+            .for_each(|i| *i = BoolExpression::Bool(false));
+
         info!(
             "Removed Clock '{name}' (index {index}) has been removed from component {}",
             self.name

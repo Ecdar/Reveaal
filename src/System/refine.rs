@@ -137,7 +137,7 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
     let initial_locations_1 = initial_locations_1.unwrap();
     let initial_locations_2 = initial_locations_2.unwrap();
 
-    let mut initial_pair = StatePair::create(
+    let mut initial_pair = StatePair::from_locations(
         dimensions,
         initial_locations_1.clone(),
         initial_locations_2.clone(),
@@ -161,7 +161,10 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
 
             let output_transition1 = sys1.next_outputs(curr_pair.get_locations1(), output);
             let output_transition2 = if extra {
-                vec![Transition::new(curr_pair.get_locations2(), dimensions)]
+                vec![Transition::without_id(
+                    curr_pair.get_locations2(),
+                    dimensions,
+                )]
             } else {
                 sys2.next_outputs(curr_pair.get_locations2(), output)
             };
@@ -180,7 +183,10 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
             let extra = extra_inputs.contains(input);
 
             let input_transitions1 = if extra {
-                vec![Transition::new(curr_pair.get_locations1(), dimensions)]
+                vec![Transition::without_id(
+                    curr_pair.get_locations1(),
+                    dimensions,
+                )]
             } else {
                 sys1.next_inputs(curr_pair.get_locations1(), input)
             };

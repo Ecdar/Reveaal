@@ -137,12 +137,12 @@ pub struct SpecificDisjunction {
 }
 
 impl SpecificDisjunction {
-    pub fn from(disj: Disjunction, sys: &HashMap<ClockIndex, SpecificClock>) -> Self {
+    pub fn from_disjunction(disj: Disjunction, sys: &HashMap<ClockIndex, SpecificClock>) -> Self {
         Self {
             conjunctions: disj
                 .conjunctions
                 .into_iter()
-                .map(|c| SpecificConjunction::from(c, sys))
+                .map(|c| SpecificConjunction::from_conjunction(c, sys))
                 .collect(),
         }
     }
@@ -155,12 +155,12 @@ pub struct SpecificConjunction {
 }
 
 impl SpecificConjunction {
-    pub fn from(conj: Conjunction, sys: &HashMap<ClockIndex, SpecificClock>) -> Self {
+    pub fn from_conjunction(conj: Conjunction, sys: &HashMap<ClockIndex, SpecificClock>) -> Self {
         Self {
             constraints: conj
                 .constraints
                 .into_iter()
-                .map(|c| SpecificConstraint::from(c, sys))
+                .map(|c| SpecificConstraint::from_constraint(c, sys))
                 .collect(),
         }
     }
@@ -187,7 +187,10 @@ pub struct SpecificConstraint {
 }
 
 impl SpecificConstraint {
-    pub fn from(constraint: Constraint, sys: &HashMap<ClockIndex, SpecificClock>) -> Self {
+    pub fn from_constraint(
+        constraint: Constraint,
+        sys: &HashMap<ClockIndex, SpecificClock>,
+    ) -> Self {
         fn map_clock(
             clock: ClockIndex,
             sys: &HashMap<ClockIndex, SpecificClock>,
@@ -292,7 +295,7 @@ impl SpecificState {
         let clock_map = specific_clock_comp_map(sys);
 
         let constraints = state.zone_ref().minimal_constraints();
-        let constraints = SpecificDisjunction::from(constraints, &clock_map);
+        let constraints = SpecificDisjunction::from_disjunction(constraints, &clock_map);
         Self {
             locations,
             constraints,
@@ -310,7 +313,7 @@ impl SpecificState {
         let clock_map = specific_clock_comp_map_composite(sys1, sys2);
 
         let constraints = state.ref_zone().minimal_constraints();
-        let constraints = SpecificDisjunction::from(constraints, &clock_map);
+        let constraints = SpecificDisjunction::from_disjunction(constraints, &clock_map);
         Self {
             locations,
             constraints,

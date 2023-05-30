@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::Component;
 use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;

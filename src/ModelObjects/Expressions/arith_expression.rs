@@ -392,20 +392,15 @@ impl ArithExpression {
     }
 
     /// Finds the clock names used in the expression
-    pub fn get_varnames(&self) -> Vec<&str> {
+    pub fn has_varname(&self, name: &String) -> bool {
         match self {
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
             | ArithExpression::Division(a1, a2)
-            | ArithExpression::Modulo(a1, a2) => a1
-                .get_varnames()
-                .iter()
-                .chain(a2.get_varnames().iter())
-                .copied()
-                .collect(),
-            ArithExpression::Clock(_) | ArithExpression::Int(_) => vec![],
-            ArithExpression::VarName(name) => vec![name.as_str()],
+            | ArithExpression::Modulo(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            ArithExpression::Clock(_) | ArithExpression::Int(_) => false,
+            ArithExpression::VarName(n) => name == n,
         }
     }
 

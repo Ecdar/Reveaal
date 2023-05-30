@@ -13,7 +13,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn create(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
+    pub fn new(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
         State {
             decorated_locations,
             zone_sentinel: Some(zone),

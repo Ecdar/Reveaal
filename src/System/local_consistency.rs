@@ -55,7 +55,7 @@ fn is_deterministic_helper(
                         state.get_location().id,
                         action
                     );
-                    return DeterminismFailure::from(system, action, &state);
+                    return DeterminismFailure::from_system_and_action(system, action, &state);
                 }
                 location_fed += allowed_fed;
                 new_state.extrapolate_max_bounds(system);

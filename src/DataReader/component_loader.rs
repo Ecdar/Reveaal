@@ -13,9 +13,7 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-use super::proto_reader::components_info_to_components;
-
-type ComponentsMap = HashMap<String, Component>;
+pub type ComponentsMap = HashMap<String, Component>;
 
 struct ComponentTuple {
     components_hash: u32,
@@ -146,17 +144,14 @@ impl ComponentContainer {
         }
     }
 
-    /// Creates a [`ComponentContainer`] from a [`services::ComponentsInfo`].
-    pub fn from_info(
-        components_info: &services::ComponentsInfo,
-    ) -> Result<ComponentContainer, tonic::Status> {
-        let components = components_info_to_components(components_info);
-        let component_container = Self::from_components(components);
-        Ok(component_container)
+    /// Sets the settings
+    pub(crate) fn set_settings(&mut self, settings: Settings) {
+        self.settings = Some(settings);
     }
+}
 
-    /// Creates a [`ComponentContainer`] from a [`Vec`] of [`Component`]s
-    pub fn from_components(components: Vec<Component>) -> ComponentContainer {
+impl From<Vec<Component>> for ComponentContainer {
+    fn from(components: Vec<Component>) -> Self {
         let mut comp_hashmap = HashMap::<String, Component>::new();
         for mut component in components {
             log::trace!("Adding comp {} to container", component.get_name());
@@ -165,11 +160,6 @@ impl ComponentContainer {
             comp_hashmap.insert(component.get_name().to_string(), component);
         }
         ComponentContainer::new(Arc::new(comp_hashmap))
-    }
-
-    /// Sets the settings
-    pub(crate) fn set_settings(&mut self, settings: Settings) {
-        self.settings = Some(settings);
     }
 }
 

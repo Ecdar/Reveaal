@@ -20,7 +20,7 @@ pub struct Transition {
 
 impl Transition {
     /// Create a new transition not based on an edge with no identifier
-    pub fn new(target_locations: &LocationTree, dim: ClockIndex) -> Transition {
+    pub fn without_id(target_locations: &LocationTree, dim: ClockIndex) -> Transition {
         Transition {
             id: TransitionID::None,
             guard_zone: OwnedFederation::universe(dim),
@@ -29,7 +29,7 @@ impl Transition {
         }
     }
 
-    pub fn from(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
+    pub fn from_component_and_edge(comp: &Component, edge: &Edge, dim: ClockIndex) -> Transition {
         //let (comp, edge) = edges;
 
         let target_loc_name = &edge.target_location;
