@@ -62,7 +62,7 @@ criterion = { version = "0.4.0", features = ["async_futures"] }
 pprof = { version = "0.10.1", features = ["flamegraph"] }
 
 [[bench]]
-name = "bench"
+name = "refinement_bench"
 harness = false
 
 [[bench]]

@@ -110,6 +110,7 @@ pub trait ComponentLoader {
     fn get_component(&mut self, component_name: &str) -> &Component;
     fn save_component(&mut self, component: Component);
     fn get_settings(&self) -> &Settings;
+    fn get_settings_mut(&mut self) -> &mut Settings;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -133,6 +134,10 @@ impl ComponentLoader for ComponentContainer {
 
     fn get_settings(&self) -> &Settings {
         self.settings.as_ref().unwrap()
+    }
+
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        self.settings.as_mut().unwrap()
     }
 }
 
@@ -228,6 +233,9 @@ impl ComponentLoader for JsonProjectLoader {
     fn get_settings(&self) -> &Settings {
         &self.settings
     }
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        &mut self.settings
+    }
 }
 
 impl ProjectLoader for JsonProjectLoader {
@@ -305,6 +313,9 @@ impl ComponentLoader for XmlProjectLoader {
 
     fn get_settings(&self) -> &Settings {
         &self.settings
+    }
+    fn get_settings_mut(&mut self) -> &mut Settings {
+        &mut self.settings
     }
 }
 
