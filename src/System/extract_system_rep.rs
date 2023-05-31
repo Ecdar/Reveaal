@@ -1,7 +1,6 @@
 use crate::DataReader::component_loader::ComponentLoader;
-use crate::ModelObjects::component::Component;
-use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::Expressions::{QueryExpression, SaveExpression, SystemExpression};
+use crate::ModelObjects::{Component, Query, State};
 use crate::System::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
@@ -14,7 +13,6 @@ use crate::TransitionSystems::{
 };
 
 use super::query_failures::SystemRecipeFailure;
-use crate::component::State;
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
@@ -81,7 +79,7 @@ pub fn create_executable_query<'a>(
                 let start_state: State = if let Some(state) = from.as_ref() {
                     let state = get_state(state, &machine, &transition_system)
                         .map_err(|err| format!("Invalid Start state: {}", err))?;
-                    if state.get_location().id.is_partial_location() {
+                    if state.decorated_locations.id.is_partial_location() {
                         return Err("Start state is a partial state, which it must not be".into());
                     }
                     state
@@ -340,7 +338,7 @@ pub fn get_system_recipe(
         SystemExpression::Component(name, id) => {
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
-            component.set_special_id(id.clone());
+            component.special_id = id.clone();
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))

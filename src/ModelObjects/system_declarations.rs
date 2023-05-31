@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::Component;
 use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
@@ -25,10 +25,10 @@ impl SystemDeclarations {
     pub fn add_component(&mut self, comp: &Component) {
         self.declarations
             .input_actions
-            .insert(comp.get_name().clone(), comp.get_input_actions());
+            .insert(comp.name.clone(), comp.get_input_actions());
         self.declarations
             .output_actions
-            .insert(comp.get_name().clone(), comp.get_output_actions());
+            .insert(comp.name.clone(), comp.get_output_actions());
     }
 }
 

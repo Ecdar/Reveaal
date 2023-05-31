@@ -2,8 +2,8 @@ use criterion::{criterion_group, criterion_main, Criterion};
 mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
-use reveaal::component::Component;
 use reveaal::DataReader::json_writer::component_to_json;
+use reveaal::ModelObjects::Component;
 use reveaal::ProtobufServer::services::component::Rep::Json;
 use reveaal::ProtobufServer::services::{Component as ProtoComp, ComponentsInfo, SimulationInfo};
 use reveaal::{
@@ -72,7 +72,7 @@ fn take_simulation_step(c: &mut Criterion, id: &str, request: SimulationStepRequ
 }
 
 fn simulation(c: &mut Criterion) {
-    let loader = bench_helper::get_loader();
+    let mut loader = bench_helper::get_uni_loader();
 
     let start_request_1 =
         construct_start_request(&[loader.get_component("Machine").clone()], "(Machine)", 1);

@@ -1,10 +1,10 @@
 extern crate pest;
 
-use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::Expressions::{
     ComponentVariable, OperandExpression, QueryExpression, SaveExpression, StateExpression,
     SystemExpression,
 };
+use crate::ModelObjects::Query;
 
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;

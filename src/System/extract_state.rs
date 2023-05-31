@@ -1,11 +1,10 @@
 use edbm::zones::OwnedFederation;
 use itertools::Itertools;
 
-use crate::component::Declarations;
 use crate::extract_system_rep::SystemRecipe;
 use crate::EdgeEval::constraint_applyer::apply_constraints_to_state;
-use crate::ModelObjects::component::State;
 use crate::ModelObjects::Expressions::{BoolExpression, ComponentVariable, StateExpression};
+use crate::ModelObjects::{Declarations, State};
 use crate::TransitionSystems::{CompositionType, LocationID, LocationTree, TransitionSystemPtr};
 
 /// This function takes a [`StateExpression`], the system recipe, and the transitionsystem -
@@ -51,12 +50,12 @@ pub fn get_state(
         ));
     }
 
-    let loc_tree = build_location_tree(&locations, recipe, system)?;
+    let loc_tree = construct_location_tree(&locations, recipe, system)?;
 
     let zone =
         create_zone_given_constraints(&state_query.to_bool_expression(&components)?, system)?;
 
-    Ok(State::create(loc_tree, zone))
+    Ok(State::new(loc_tree, zone))
 }
 
 fn get_locations(expr: &StateExpression) -> Result<Vec<ComponentVariable>, String> {
@@ -107,7 +106,7 @@ fn create_zone_given_constraints(
     apply_constraints_to_state(constraints, &unused_decl, fed)
 }
 
-fn build_location_tree(
+fn construct_location_tree(
     locations: &Vec<ComponentVariable>,
     machine: &SystemRecipe,
     system: &TransitionSystemPtr,
@@ -116,24 +115,24 @@ fn build_location_tree(
         SystemRecipe::Composition(left, right) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::compose(
-                &build_location_tree(locations, left, left_system)?,
-                &build_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
                 CompositionType::Composition,
             ))
         }
         SystemRecipe::Conjunction(left, right) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::compose(
-                &build_location_tree(locations, left, left_system)?,
-                &build_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
                 CompositionType::Conjunction,
             ))
         }
         SystemRecipe::Quotient(left, right, ..) => {
             let (left_system, right_system) = system.get_children();
             Ok(LocationTree::merge_as_quotient(
-                &build_location_tree(locations, left, left_system)?,
-                &build_location_tree(locations, right, right_system)?,
+                &construct_location_tree(locations, left, left_system)?,
+                &construct_location_tree(locations, right, right_system)?,
             ))
         }
         SystemRecipe::Component(component) => {

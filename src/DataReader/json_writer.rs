@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::Component;
 use std::fs::File;
 
 pub fn component_to_json_file(project_path: &str, component: &Component) {
@@ -6,7 +6,7 @@ pub fn component_to_json_file(project_path: &str, component: &Component) {
         "{0}{1}Components{1}{2}.json",
         project_path,
         std::path::MAIN_SEPARATOR,
-        component.get_name()
+        component.name
     );
     let file = File::create(path).expect("Couldnt open file");
 

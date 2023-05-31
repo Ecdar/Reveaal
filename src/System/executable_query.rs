@@ -1,5 +1,5 @@
 use crate::DataReader::component_loader::ComponentLoader;
-use crate::ModelObjects::component::State;
+use crate::ModelObjects::State;
 use crate::System::reachability;
 use crate::System::refine;
 use crate::System::save_component::combine_components;

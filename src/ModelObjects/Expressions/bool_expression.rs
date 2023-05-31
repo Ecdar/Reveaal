@@ -396,25 +396,17 @@ impl BoolExpression {
     }
 
     /// Finds the clock names used in the expression
-    pub fn get_varnames(&self) -> Vec<&str> {
+    pub fn has_varname(&self, name: &String) -> bool {
         match self {
-            BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => p1
-                .get_varnames()
-                .iter()
-                .chain(p2.get_varnames().iter())
-                .copied()
-                .collect(),
+            BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => {
+                p1.has_varname(name) || p2.has_varname(name)
+            }
             BoolExpression::LessEQ(a1, a2)
             | BoolExpression::GreatEQ(a1, a2)
             | BoolExpression::LessT(a1, a2)
             | BoolExpression::GreatT(a1, a2)
-            | BoolExpression::EQ(a1, a2) => a1
-                .get_varnames()
-                .iter()
-                .chain(a2.get_varnames().iter())
-                .copied()
-                .collect(),
-            BoolExpression::Bool(_) => vec![],
+            | BoolExpression::EQ(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            BoolExpression::Bool(_) => false,
         }
     }
 
@@ -459,6 +451,12 @@ impl BoolExpression {
     }
     pub fn BPar(inner: BoolExpression) -> BoolExpression {
         inner
+    }
+}
+
+impl Default for BoolExpression {
+    fn default() -> Self {
+        BoolExpression::Bool(true)
     }
 }
 

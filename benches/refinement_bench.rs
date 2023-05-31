@@ -5,9 +5,10 @@ pub mod flamegraph;
 
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
 use reveaal::extract_system_rep::create_executable_query;
+use reveaal::ModelObjects::Query;
 use reveaal::System::executable_query::ExecutableQuery;
 use reveaal::System::query_failures::QueryResult;
-use reveaal::{parse_queries, ComponentLoader, Query};
+use reveaal::{parse_queries, ComponentLoader};
 
 fn construct_query<'a>(
     query: &str,
@@ -110,11 +111,11 @@ fn not_refinement(c: &mut Criterion, loader: &mut Box<dyn ComponentLoader>) {
 }
 
 fn all_refinements(c: &mut Criterion) {
-    let loader = crate::bench_helper::get_loader();
+    let mut loader = bench_helper::get_uni_loader();
 
-    self_refinement(c, loader);
-    refinement(c, loader);
-    not_refinement(c, loader);
+    self_refinement(c, &mut loader);
+    refinement(c, &mut loader);
+    not_refinement(c, &mut loader);
 }
 
 criterion_group! {

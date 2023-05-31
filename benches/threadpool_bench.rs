@@ -18,7 +18,7 @@ use futures::StreamExt;
 mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
-use reveaal::component::Component;
+use reveaal::ModelObjects::Component;
 
 const NUM_OF_REQUESTS: u32 = 512;
 
@@ -70,7 +70,7 @@ fn construct_components(json: &[String]) -> Vec<ProtoComp> {
 }
 
 fn threadpool_cache(c: &mut Criterion) {
-    let loader = bench_helper::get_loader();
+    let mut loader = bench_helper::get_uni_loader();
     let comps = vec![
         loader.get_component("Administration").clone(),
         loader.get_component("Researcher").clone(),
