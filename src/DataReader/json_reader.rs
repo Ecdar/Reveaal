@@ -1,6 +1,4 @@
-use crate::ModelObjects::component;
-use crate::ModelObjects::queries;
-use crate::ModelObjects::system_declarations::SystemDeclarations;
+use crate::ModelObjects::{Component, Query, SystemDeclarations};
 use serde::de::DeserializeOwned;
 use std::fs::File;
 use std::io::Read;
@@ -26,7 +24,7 @@ pub fn read_system_declarations(project_path: &str) -> Option<SystemDeclarations
     }
 }
 
-pub fn read_json_component(project_path: &str, component_name: &str) -> component::Component {
+pub fn read_json_component(project_path: &str, component_name: &str) -> Component {
     let component_path = format!(
         "{0}{1}Components{1}{2}.json",
         project_path,
@@ -34,7 +32,7 @@ pub fn read_json_component(project_path: &str, component_name: &str) -> componen
         component_name
     );
 
-    let component: component::Component = match read_json(&component_path) {
+    let component: Component = match read_json(&component_path) {
         Ok(json) => json,
         Err(error) => panic!(
             "We got error {}, and could not parse json file {} to component",
@@ -60,14 +58,14 @@ pub fn read_json<T: DeserializeOwned>(filename: &str) -> serde_json::Result<T> {
     Ok(json_file)
 }
 
-pub fn json_to_component(json_str: &str) -> Result<component::Component, serde_json::Error> {
+pub fn json_to_component(json_str: &str) -> Result<Component, serde_json::Error> {
     serde_json::from_str(json_str)
 }
 
 //Input:Filename
 //Description: transforms json into query type
 //Output:Result
-pub fn read_queries(project_path: &str) -> Option<Vec<queries::Query>> {
+pub fn read_queries(project_path: &str) -> Option<Vec<Query>> {
     let queries_path = format!("{}{}Queries.json", project_path, std::path::MAIN_SEPARATOR);
 
     if !Path::new(&queries_path).exists() {

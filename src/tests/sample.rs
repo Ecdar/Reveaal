@@ -12,8 +12,8 @@ mod samples {
         );
         let t1 = project_loader.get_component("Test1");
 
-        assert_eq!(t1.get_name(), "Test1");
-        assert_eq!(t1.get_locations().len(), 2);
+        assert_eq!(t1.name, "Test1");
+        assert_eq!(t1.locations.len(), 2);
     }
 
     #[test]
@@ -24,8 +24,8 @@ mod samples {
         );
         let t2 = project_loader.get_component("Test2");
 
-        assert_eq!(t2.get_name(), "Test2");
-        assert_eq!(t2.get_locations().len(), 2);
+        assert_eq!(t2.name, "Test2");
+        assert_eq!(t2.locations.len(), 2);
     }
 
     #[test]
@@ -36,8 +36,8 @@ mod samples {
         );
         let t3 = project_loader.get_component("Test3");
 
-        assert_eq!(t3.get_name(), "Test3");
-        assert_eq!(t3.get_locations().len(), 3);
+        assert_eq!(t3.name, "Test3");
+        assert_eq!(t3.locations.len(), 3);
     }
 
     #[test]

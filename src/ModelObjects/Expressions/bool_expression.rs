@@ -454,6 +454,12 @@ impl BoolExpression {
     }
 }
 
+impl Default for BoolExpression {
+    fn default() -> Self {
+        BoolExpression::Bool(true)
+    }
+}
+
 fn var_from_naming(
     naming: &HashMap<ClockIndex, String>,
     index: ClockIndex,

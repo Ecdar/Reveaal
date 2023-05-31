@@ -2,9 +2,8 @@ use std::{collections::HashMap, fmt};
 
 use edbm::util::constraints::{ClockIndex, Conjunction, Constraint, Disjunction};
 
+use crate::ModelObjects::{State, StatePair};
 use crate::{
-    component::State,
-    ModelObjects::statepair::StatePair,
     Simulation::decision::Decision,
     TransitionSystems::{
         transition_system::ComponentInfoTree, CompositionType, LocationID, TransitionID,

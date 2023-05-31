@@ -2,14 +2,12 @@ use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::parse_queries::parse_to_system_expr;
 use crate::EdgeEval::updater::CompiledUpdate;
+use crate::ModelObjects::{Component, Declarations, State, Transition};
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
-    component::Component,
-    extract_system_rep::get_system_recipe,
-    ComponentLoader,
+    extract_system_rep::get_system_recipe, ComponentLoader,
     DataReader::component_loader::ComponentContainer,
-    ModelObjects::component::{Declarations, State, Transition},
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};

@@ -2,7 +2,7 @@ use crate::extract_system_rep::ExecutableQueryError;
 use crate::DataReader::component_loader::ModelCache;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
-use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::Query;
 use crate::ProtobufServer::ecdar_requests::request_util::get_or_insert_model;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::{

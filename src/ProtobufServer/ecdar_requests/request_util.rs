@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use log::trace;
 
 use crate::{
-    component::Component,
     DataReader::component_loader::{parse_components_if_some, ComponentContainer, ModelCache},
+    ModelObjects::Component,
     ProtobufServer::services::{Component as ProtoComponent, SimulationInfo},
     System::input_enabler,
     TransitionSystems::{
@@ -37,11 +37,11 @@ fn constrtuct_componentsmap(
 ) -> crate::DataReader::component_loader::ComponentsMap {
     let mut comp_hashmap = HashMap::<String, Component>::new();
     for mut component in components {
-        trace!("Adding comp {} to container", component.get_name());
+        trace!("Adding comp {} to container", component.name);
 
         let inputs: Vec<_> = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);
-        comp_hashmap.insert(component.get_name().to_string(), component);
+        comp_hashmap.insert(component.name.to_string(), component);
     }
     comp_hashmap
 }

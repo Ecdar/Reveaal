@@ -3,8 +3,7 @@ use edbm::zones::OwnedFederation;
 use log::debug;
 
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{State, Transition};
+use crate::ModelObjects::{Declarations, State, Transition};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
 };
