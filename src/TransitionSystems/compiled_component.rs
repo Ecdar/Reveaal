@@ -1,6 +1,4 @@
-use crate::ModelObjects::component::{
-    Component, DeclarationProvider, Declarations, State, Transition,
-};
+use crate::ModelObjects::{Component, DeclarationProvider, Declarations, State, Transition};
 use crate::System::local_consistency::{self};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
@@ -44,14 +42,14 @@ impl CompiledComponent {
         outputs: HashSet<String>,
         dim: ClockIndex,
         id: u32,
-    ) -> Result<Box<Self>, SystemRecipeFailure> {
+    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
         if !inputs.is_disjoint(&outputs) {
             ActionFailure::not_disjoint_IO(&component.name, inputs.clone(), outputs.clone())
                 .map_err(|e| e.to_simple_failure(&component.name))?;
         }
 
         let locations: HashMap<LocationID, LocationTree> = component
-            .get_locations()
+            .locations
             .iter()
             .map(|loc| {
                 let loc = LocationTree::simple(loc, component.get_declarations(), dim);
@@ -62,9 +60,15 @@ impl CompiledComponent {
         let mut location_edges: HashMap<LocationID, Vec<(Action, Transition)>> =
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
-        for edge in component.get_edges() {
+        log::debug!(
+            "decl for {:?}: {:?}",
+            component.name,
+            component.declarations
+        );
+        log::debug!("Edges: {:?}", component.edges);
+        for edge in &component.edges {
             let id = LocationID::Simple(edge.source_location.clone());
-            let transition = Transition::from(&component, edge, dim);
+            let transition = Transition::from_component_and_edge(&component, edge, dim);
             location_edges
                 .get_mut(&id)
                 .unwrap()
@@ -94,7 +98,7 @@ impl CompiledComponent {
         component: Component,
         dim: ClockIndex,
         component_index: &mut u32,
-    ) -> Result<Box<Self>, SystemRecipeFailure> {
+    ) -> Result<Box<Self>, Box<SystemRecipeFailure>> {
         let inputs = HashSet::from_iter(component.get_input_actions());
         let outputs = HashSet::from_iter(component.get_output_actions());
         let index = *component_index;
@@ -125,11 +129,11 @@ impl TransitionSystem for CompiledComponent {
         let is_input = self.inputs_contain(action);
 
         if locations.is_universal() {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         if locations.is_inconsistent() && is_input {
-            return vec![Transition::new(locations, self.dim)];
+            return vec![Transition::without_id(locations, self.dim)];
         }
 
         let mut transitions = vec![];
@@ -177,7 +181,7 @@ impl TransitionSystem for CompiledComponent {
     }
 
     fn get_initial_state(&self) -> Option<State> {
-        let init_loc = self.get_initial_location().unwrap();
+        let init_loc = self.get_initial_location()?;
 
         State::from_location(init_loc, self.dim)
     }
@@ -188,10 +192,6 @@ impl TransitionSystem for CompiledComponent {
 
     fn get_composition_type(&self) -> CompositionType {
         CompositionType::Simple
-    }
-
-    fn get_combined_decls(&self) -> Declarations {
-        self.comp_info.declarations.clone()
     }
 
     fn get_location(&self, id: &LocationID) -> Option<LocationTree> {

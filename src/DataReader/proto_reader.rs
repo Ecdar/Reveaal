@@ -4,18 +4,17 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::component::{Component, Declarations, State};
+use crate::ModelObjects::{Component, Declarations, State};
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
-    SimulationInfo, State as ProtoState,
+    State as ProtoState,
 };
 use crate::Simulation::decision::Decision;
 use crate::System::specifics::SpecificLocation;
-use crate::TransitionSystems::transition_system::component_loader_to_transition_system;
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 
-use super::component_loader::{parse_components_if_some, ComponentContainer};
+use super::component_loader::parse_components_if_some;
 
 /// Borrows a [`ComponentsInfo`] and returns the corresponding [`Vec`] of [`Component`]s.
 pub fn components_info_to_components(components_info: &ComponentsInfo) -> Vec<Component> {
@@ -25,23 +24,6 @@ pub fn components_info_to_components(components_info: &ComponentsInfo) -> Vec<Co
         .flat_map(parse_components_if_some)
         .flatten()
         .collect()
-}
-
-/// Borrows a [`SimulationInfo`] and returns the corresponding [`TransitionsSystemPtr`].
-///
-/// # Panics
-/// If:
-/// - `simulation_info.components_info` is `None`.
-/// - building the [`ComponentContainer`] fails.
-pub fn simulation_info_to_transition_system(
-    simulation_info: &SimulationInfo,
-) -> TransitionSystemPtr {
-    let composition = simulation_info.component_composition.to_owned();
-    let component_info = simulation_info.components_info.as_ref().unwrap();
-
-    let mut component_container = ComponentContainer::from_info(component_info).unwrap();
-
-    component_loader_to_transition_system(&mut component_container, &composition)
 }
 
 /// Consumes a [`ProtoDecision`] and the borrows the [`TransitionsSystemPtr`] it belongs to and returns the corresponding [`Decision`].
@@ -54,13 +36,21 @@ pub fn proto_decision_to_decision(
     proto_decision: ProtoDecision,
     system: &TransitionSystemPtr,
 ) -> Decision {
-    let proto_state: ProtoState = proto_decision.source.unwrap();
+    let proto_state: ProtoState = proto_decision
+        .source
+        .expect("A decision must have a source state.");
     let state = proto_state_to_state(proto_state, system);
 
-    let next_proto_state = proto_decision.destination.unwrap();
+    let next_proto_state = proto_decision
+        .destination
+        .expect("A decision must have a destination state.");
     let next_state = proto_state_to_state(next_proto_state, system);
 
     let action = proto_decision.action;
+    assert!(
+        !action.is_empty(),
+        "A decision must have an action specified."
+    );
 
     Decision {
         state,
@@ -86,7 +76,7 @@ pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> 
     // Ensure that the invariants are applied to the state
     let federation = location_tree.apply_invariants(federation);
 
-    State::create(location_tree, federation)
+    State::new(location_tree, federation)
 }
 
 fn proto_location_tree_to_location_tree(
@@ -179,8 +169,7 @@ mod tests {
             "Zones are not equal"
         );
         assert_eq!(
-            *state1.get_location(),
-            *state2.get_location(),
+            state1.decorated_locations, state2.decorated_locations,
             "Location trees are not equal"
         );
     }

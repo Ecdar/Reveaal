@@ -2,8 +2,8 @@
 mod test {
     use crate::tests::save_component::save_comp_helper::util::json_reconstructed_component_refines_base_self;
 
-    //static PATH: &str = "samples/json/Conjunction";
-    static ECDAR_UNI: &str = "samples/json/EcdarUniversity";
+    //const PATH: &str = "samples/json/Conjunction";
+    const ECDAR_UNI: &str = "samples/json/EcdarUniversity";
 
     #[test]
     fn Adm2MachineSavedRefinesSelf() {

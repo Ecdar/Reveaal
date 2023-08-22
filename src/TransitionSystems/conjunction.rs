@@ -1,6 +1,6 @@
 use edbm::util::constraints::ClockIndex;
 
-use crate::ModelObjects::component::Transition;
+use crate::ModelObjects::Transition;
 use crate::System::local_consistency;
 use crate::System::query_failures::{ActionFailure, ConsistencyResult, SystemRecipeFailure};
 use crate::TransitionSystems::{
@@ -20,12 +20,12 @@ pub struct Conjunction {
 }
 
 impl Conjunction {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(
+    /// Creates a new [TransitionSystem] that is the conjunction of `left` and `right`.
+    pub fn new_ts(
         left: TransitionSystemPtr,
         right: TransitionSystemPtr,
         dim: ClockIndex,
-    ) -> Result<TransitionSystemPtr, SystemRecipeFailure> {
+    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
         let left_in = left.get_input_actions();
         let left_out = left.get_output_actions();
 

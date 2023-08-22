@@ -1,14 +1,9 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use crate::component::Component;
 use crate::extract_system_rep::ExecutableQueryError;
-use crate::xml_parser::parse_xml_from_str;
 use crate::DataReader::component_loader::ModelCache;
-use crate::DataReader::json_reader::json_to_component;
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
-use crate::ModelObjects::queries::Query;
+use crate::ModelObjects::Query;
+use crate::ProtobufServer::ecdar_requests::request_util::get_or_insert_model;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
@@ -22,7 +17,7 @@ use crate::System::query_failures::{
     SystemRecipeFailure,
 };
 
-use crate::System::{extract_system_rep, input_enabler};
+use crate::System::extract_system_rep;
 
 use log::trace;
 use tonic::Status;
@@ -44,23 +39,12 @@ impl ConcreteEcdarBackend {
         let query = parse_query(&query_request)?;
         let user_id = query_request.user_id;
 
-        let mut component_container =
-            match model_cache.get_model(user_id, components_info.components_hash) {
-                Some(model) => model,
-                None => {
-                    let parsed_components: Vec<Component> = proto_components
-                        .iter()
-                        .flat_map(parse_components_if_some)
-                        .flatten()
-                        .collect::<Vec<Component>>();
-                    let components = create_components(parsed_components);
-                    model_cache.insert_model(
-                        user_id,
-                        components_info.components_hash,
-                        Arc::new(components),
-                    )
-                }
-            };
+        let mut component_container = get_or_insert_model(
+            &mut model_cache,
+            user_id,
+            components_info.components_hash,
+            proto_components,
+        );
         component_container.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
 
         let out =
@@ -99,45 +83,6 @@ fn parse_query(query_request: &QueryRequest) -> Result<Query, Status> {
     } else {
         Ok(queries.remove(0))
     }
-}
-
-fn parse_components_if_some(
-    proto_component: &ProtobufComponent,
-) -> Result<Vec<Component>, tonic::Status> {
-    if let Some(rep) = &proto_component.rep {
-        match rep {
-            Rep::Json(json) => parse_json_component(json),
-            Rep::Xml(xml) => Ok(parse_xml_components(xml)),
-        }
-    } else {
-        Ok(vec![])
-    }
-}
-
-fn parse_json_component(json: &str) -> Result<Vec<Component>, tonic::Status> {
-    match json_to_component(json) {
-        Ok(comp) => Ok(vec![comp]),
-        Err(_) => Err(tonic::Status::invalid_argument(
-            "Failed to parse json component",
-        )),
-    }
-}
-
-fn parse_xml_components(xml: &str) -> Vec<Component> {
-    let (comps, _, _) = parse_xml_from_str(xml);
-    comps
-}
-
-fn create_components(components: Vec<Component>) -> HashMap<String, Component> {
-    let mut comp_hashmap = HashMap::<String, Component>::new();
-    for mut component in components {
-        trace!("Adding comp {} to container", component.get_name());
-
-        let inputs: Vec<_> = component.get_input_actions();
-        input_enabler::make_input_enabled(&mut component, &inputs);
-        comp_hashmap.insert(component.get_name().to_string(), component);
-    }
-    comp_hashmap
 }
 
 impl From<QueryResult> for ProtobufResult {

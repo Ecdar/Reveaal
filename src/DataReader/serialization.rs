@@ -1,9 +1,6 @@
 use crate::DataReader::parse_edge;
-use crate::DataReader::parse_invariant;
-use crate::ModelObjects::component::{
-    Component, Declarations, Edge, Location, LocationType, SyncType,
-};
-use crate::ModelObjects::representations;
+use crate::ModelObjects::Expressions;
+use crate::ModelObjects::{Component, Declarations, Edge, Location, LocationType, SyncType};
 use crate::Simulation::graph_layout::layout_dummy_component;
 use edbm::util::constraints::ClockIndex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -33,6 +30,7 @@ impl DummyNail {
 
 #[derive(Serialize)]
 pub struct DummyEdge {
+    pub id: String,
     #[serde(rename = "sourceLocation")]
     pub source_location: String,
     #[serde(rename = "targetLocation")]
@@ -47,7 +45,7 @@ pub struct DummyEdge {
         deserialize_with = "decode_guard",
         serialize_with = "encode_opt_boolexpr"
     )]
-    pub guard: Option<representations::BoolExpression>,
+    pub guard: Option<Expressions::BoolExpression>,
     #[serde(
         deserialize_with = "decode_update",
         serialize_with = "encode_opt_updates"
@@ -77,6 +75,7 @@ impl From<Edge> for DummyEdge {
         }
 
         DummyEdge {
+            id: item.id,
             source_location: item.source_location,
             target_location: item.target_location,
             sync_type: item.sync_type,
@@ -139,7 +138,7 @@ pub struct DummyLocation {
         //deserialize_with = "decode_invariant",
         serialize_with = "encode_opt_boolexpr"
     )]
-    pub invariant: Option<representations::BoolExpression>,
+    pub invariant: Option<Expressions::BoolExpression>,
     #[serde(
         //deserialize_with = "decode_location_type",
         serialize_with = "encode_location_type",
@@ -231,7 +230,7 @@ where
 /// Function used for deserializing guards
 pub fn decode_guard<'de, D>(
     deserializer: D,
-) -> Result<Option<representations::BoolExpression>, D::Error>
+) -> Result<Option<Expressions::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -239,15 +238,9 @@ where
     if s.is_empty() {
         return Ok(None);
     }
-    match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(guard_res) => Ok(Some(guard_res)),
-            parse_edge::EdgeAttribute::Updates(_) => {
-                panic!("We expected a guard but got an update? {:?}\n", s)
-            }
-        },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
-    }
+    parse_edge::parse_guard(&s).map(Some).map_err(|err| {
+        serde::de::Error::custom(format!("Could not parse {} got error: {:?}", s, err))
+    })
 }
 
 //Function used for deserializing updates
@@ -259,21 +252,16 @@ where
     if s.is_empty() {
         return Ok(None);
     }
-    match parse_edge::parse(&s) {
-        Ok(edgeAttribute) => match edgeAttribute {
-            parse_edge::EdgeAttribute::Guard(_) => {
-                panic!("We expected an update but got a guard? {:?}", s)
-            }
-            parse_edge::EdgeAttribute::Updates(update_vec) => Ok(Some(update_vec)),
-        },
-        Err(e) => panic!("Could not parse {} got error: {:?}", s, e),
-    }
+
+    parse_edge::parse_updates(&s).map(Some).map_err(|err| {
+        serde::de::Error::custom(format!("Could not parse {} got error: {:?}", s, err))
+    })
 }
 
 //Function used for deserializing invariants
 pub fn decode_invariant<'de, D>(
     deserializer: D,
-) -> Result<Option<representations::BoolExpression>, D::Error>
+) -> Result<Option<Expressions::BoolExpression>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -281,7 +269,7 @@ where
     if s.is_empty() {
         return Ok(None);
     }
-    match parse_invariant::parse(&s) {
+    match parse_edge::parse_guard(&s) {
         Ok(edgeAttribute) => Ok(Some(edgeAttribute)),
         Err(e) => panic!("Could not parse invariant {} got error: {:?}", s, e),
     }
@@ -378,7 +366,7 @@ where
 }
 
 pub fn encode_opt_boolexpr<S>(
-    opt_expr: &Option<representations::BoolExpression>,
+    opt_expr: &Option<Expressions::BoolExpression>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -392,7 +380,17 @@ where
 }
 
 pub fn encode_boolexpr<S>(
-    expr: &representations::BoolExpression,
+    expr: &Expressions::BoolExpression,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&expr.encode_expr())
+}
+
+pub fn encode_arithexpr<S>(
+    expr: &Expressions::ArithExpression,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where

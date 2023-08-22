@@ -2,7 +2,7 @@
 pub mod util {
     use crate::DataReader::component_loader::JsonProjectLoader;
     use crate::DataReader::parse_queries;
-    use crate::ModelObjects::representations::QueryExpression;
+    use crate::ModelObjects::Expressions::QueryExpression;
     use crate::System::extract_system_rep;
     use crate::System::extract_system_rep::SystemRecipe;
     use crate::System::query_failures::ConsistencyResult;
@@ -13,7 +13,7 @@ pub mod util {
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {
         let project_loader =
-            JsonProjectLoader::new(String::from(input_path), crate::tests::TEST_SETTINGS);
+            JsonProjectLoader::new_loader(String::from(input_path), crate::tests::TEST_SETTINGS);
 
         //This query is not executed but simply used to extract an UncachedSystem so the tests can just give system expressions
         let str_query = format!("get-component: {} save-as test", system);
@@ -26,13 +26,13 @@ pub mod util {
             let mut comp_loader = project_loader.to_comp_loader();
             (
                 extract_system_rep::get_system_recipe(
-                    expr.as_ref(),
+                    &expr.system,
                     &mut *comp_loader,
                     &mut dim,
                     &mut None,
                 ),
                 extract_system_rep::get_system_recipe(
-                    expr.as_ref(),
+                    &expr.system,
                     &mut *comp_loader,
                     &mut dim,
                     &mut None,

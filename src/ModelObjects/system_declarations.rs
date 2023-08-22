@@ -1,4 +1,4 @@
-use crate::ModelObjects::component::Component;
+use crate::ModelObjects::Component;
 use log::debug;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ pub struct SystemDeclarations {
     #[serde(deserialize_with = "decode_sync_type")]
     pub(crate) declarations: SystemSpecification,
 }
-#[allow(dead_code)]
+
 impl SystemDeclarations {
     pub fn get_declarations(&self) -> &SystemSpecification {
         &self.declarations
@@ -25,10 +25,10 @@ impl SystemDeclarations {
     pub fn add_component(&mut self, comp: &Component) {
         self.declarations
             .input_actions
-            .insert(comp.get_name().clone(), comp.get_input_actions());
+            .insert(comp.name.clone(), comp.get_input_actions());
         self.declarations
             .output_actions
-            .insert(comp.get_name().clone(), comp.get_output_actions());
+            .insert(comp.name.clone(), comp.get_output_actions());
     }
 }
 
@@ -38,7 +38,7 @@ pub struct SystemSpecification {
     pub(crate) input_actions: HashMap<String, Vec<String>>,
     pub(crate) output_actions: HashMap<String, Vec<String>>,
 }
-#[allow(dead_code)]
+
 impl SystemSpecification {
     pub fn get_components(&self) -> &Vec<String> {
         &self.components

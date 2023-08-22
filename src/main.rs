@@ -1,13 +1,14 @@
 #![allow(non_snake_case)]
 use reveaal::cli::Args;
 use reveaal::logging::setup_logger;
+use reveaal::ModelObjects::Query;
 use reveaal::System::query_failures::QueryResult;
 
 use clap::Parser;
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
     extract_system_rep, parse_queries, start_grpc_server_with_tokio, xml_parser, ComponentLoader,
-    JsonProjectLoader, ProjectLoader, Query, XmlProjectLoader,
+    JsonProjectLoader, ProjectLoader, XmlProjectLoader,
 };
 use std::env;
 use std::path::Path;
@@ -50,7 +51,7 @@ fn start_using_cli(args: Args) {
 
     println!("\nQuery results:");
     for index in 0..queries.len() {
-        results[index].print_result(&queries[index].query.as_ref().unwrap().pretty_string())
+        results[index].print_result(&queries[index].query.as_ref().unwrap().to_string())
     }
 }
 
@@ -90,9 +91,9 @@ fn get_project_loader<P: AsRef<Path>>(
     settings: Settings,
 ) -> Box<dyn ProjectLoader> {
     if xml_parser::is_xml_project(&project_path) {
-        XmlProjectLoader::new(project_path, settings)
+        XmlProjectLoader::new_loader(project_path, settings)
     } else {
-        JsonProjectLoader::new(project_path, settings)
+        JsonProjectLoader::new_loader(project_path, settings)
     }
 }
 

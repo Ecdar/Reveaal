@@ -2,19 +2,17 @@
 pub mod test {
     use crate::extract_system_rep::SystemRecipe;
     use crate::DataReader::json_reader::read_json_component;
+    use crate::ModelObjects::Component;
     use crate::System::input_enabler;
     use crate::TransitionSystems::transition_system::ClockReductionInstruction;
     use crate::TransitionSystems::TransitionSystemPtr;
-    use crate::{component, JsonProjectLoader, DEFAULT_SETTINGS};
+    use crate::{JsonProjectLoader, DEFAULT_SETTINGS};
     use edbm::util::constraints::ClockIndex;
     use std::collections::{HashMap, HashSet};
     use std::path::Path;
 
     /// Reads and processes a component.
-    pub fn read_json_component_and_process(
-        project_path: &str,
-        component_name: &str,
-    ) -> component::Component {
+    pub fn read_json_component_and_process(project_path: &str, component_name: &str) -> Component {
         let mut component = read_json_component(project_path, component_name);
         let inputs = component.get_input_actions();
         input_enabler::make_input_enabled(&mut component, &inputs);
@@ -74,7 +72,7 @@ pub mod test {
         comp2: &str,
     ) -> (ClockIndex, SystemRecipe) {
         let project_loader =
-            JsonProjectLoader::new(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
+            JsonProjectLoader::new_loader(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
 
         let mut component_loader = project_loader.to_comp_loader();
 
@@ -100,7 +98,8 @@ pub mod test {
         comp1: &str,
         comp2: &str,
     ) -> TransitionSystemPtr {
-        let project_loader = JsonProjectLoader::new(path, DEFAULT_SETTINGS);
+        let project_loader =
+            JsonProjectLoader::new_loader(path.to_string_lossy().to_string(), DEFAULT_SETTINGS);
 
         let mut component_loader = project_loader.to_comp_loader();
 

@@ -2,7 +2,7 @@
 mod test {
     use crate::tests::refinement::Helper::json_refinement_check;
 
-    static PATH: &str = "samples/json/DelayAdd";
+    const PATH: &str = "samples/json/DelayAdd";
 
     #[test]
     fn A1A2NotRefinesB() {

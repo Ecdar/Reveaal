@@ -1,6 +1,5 @@
-use crate::component::LocationType;
-use crate::ModelObjects::component::{Component, Declarations, Edge, Location, SyncType};
-use crate::ModelObjects::representations::BoolExpression;
+use crate::ModelObjects::Expressions::BoolExpression;
+use crate::ModelObjects::{Component, Declarations, Location, LocationType, SyncType};
 use crate::TransitionSystems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashMap;
 
@@ -9,6 +8,7 @@ pub enum PruningStrategy {
     NoPruning,
 }
 
+use crate::ModelObjects::Edge;
 use edbm::util::constraints::ClockIndex;
 use PruningStrategy::*;
 
@@ -38,6 +38,7 @@ pub fn combine_components(
         },
         locations,
         edges,
+        special_id: None,
     }
 }
 
@@ -89,8 +90,8 @@ pub fn get_clock_map(sysrep: &TransitionSystemPtr) -> HashMap<String, ClockIndex
     clocks
 }
 
-fn collect_all_edges_and_locations<'a>(
-    representation: &'a TransitionSystemPtr,
+fn collect_all_edges_and_locations(
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
@@ -102,8 +103,8 @@ fn collect_all_edges_and_locations<'a>(
     }
 }
 
-fn collect_reachable_edges_and_locations<'a>(
-    representation: &'a TransitionSystemPtr,
+fn collect_reachable_edges_and_locations(
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
     edges: &mut Vec<Edge>,
     clock_map: &HashMap<String, ClockIndex>,
@@ -124,9 +125,9 @@ fn collect_reachable_edges_and_locations<'a>(
     }
 }
 
-fn collect_reachable_locations<'a>(
+fn collect_reachable_locations(
     location: &LocationTree,
-    representation: &'a TransitionSystemPtr,
+    representation: &TransitionSystemPtr,
     locations: &mut Vec<LocationTree>,
 ) {
     for input in [true, false].iter() {

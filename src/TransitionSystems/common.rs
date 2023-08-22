@@ -7,11 +7,12 @@ use edbm::{
 };
 use log::warn;
 
-use crate::{
-    ModelObjects::component::{Declarations, State, Transition},
-    System::{query_failures::DeterminismResult, specifics::SpecificLocation},
+use crate::ModelObjects::{Declarations, State, Transition};
+use crate::System::{
+    query_failures::{ConsistencyResult, DeterminismResult},
+    specifics::SpecificLocation,
 };
-use crate::{System::query_failures::ConsistencyResult, TransitionSystems::CompositionType};
+use crate::TransitionSystems::CompositionType;
 
 use super::{LocationTree, TransitionSystem, TransitionSystemPtr};
 
@@ -114,7 +115,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
     }
 
     fn get_initial_state(&self) -> Option<State> {
-        let init_loc = self.get_initial_location().unwrap();
+        let init_loc = self.get_initial_location()?;
         let mut zone = OwnedFederation::init(self.get_dim());
         zone = init_loc.apply_invariants(zone);
         if zone.is_empty() {
@@ -122,7 +123,7 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             return None;
         }
 
-        Some(State::create(init_loc, zone))
+        Some(State::new(init_loc, zone))
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
@@ -143,20 +144,5 @@ impl<T: ComposedTransitionSystem> TransitionSystem for T {
             &loc_r,
             self.get_composition_type(),
         ))
-    }
-}
-
-pub trait CollectionOperation<T: Eq + std::hash::Hash> {
-    fn is_disjoint_action(&self, other: &HashSet<T>) -> Result<bool, Vec<String>>;
-}
-
-impl CollectionOperation<String> for HashSet<String> {
-    fn is_disjoint_action(&self, other: &HashSet<String>) -> Result<bool, Vec<String>> {
-        let out = self.intersection(other).cloned().collect::<Vec<String>>();
-        if !out.is_empty() {
-            Err(out)
-        } else {
-            Ok(true)
-        }
     }
 }

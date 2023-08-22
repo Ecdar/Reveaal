@@ -1,7 +1,5 @@
-use crate::{
-    component::{State, Transition},
-    TransitionSystems::TransitionSystemPtr,
-};
+use crate::ModelObjects::{State, Transition};
+use crate::TransitionSystems::TransitionSystemPtr;
 
 /// Represent a decision in a any composition of components: In the current `state` [`State`] we have decided to take this `action` [`String`].
 #[derive(Debug, Clone)]
