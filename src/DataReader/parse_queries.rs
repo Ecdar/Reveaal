@@ -1,10 +1,10 @@
 extern crate pest;
 
-use crate::ModelObjects::queries::Query;
 use crate::ModelObjects::Expressions::{
     ComponentVariable, OperandExpression, QueryExpression, SaveExpression, StateExpression,
     SystemExpression,
 };
+use crate::ModelObjects::Query;
 
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;
@@ -220,8 +220,8 @@ pub fn test_parse() {
 }
 
 pub fn parse_to_query(input: &str) -> Vec<Query> {
-    let queries = parse_to_expression_tree(input).unwrap();
-    queries
+    parse_to_expression_tree(input)
+        .expect("Parsing failed")
         .into_iter()
         .map(|q| Query {
             query: Option::from(q),

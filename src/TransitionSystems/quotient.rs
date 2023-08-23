@@ -3,8 +3,7 @@ use edbm::zones::OwnedFederation;
 use log::debug;
 
 use crate::EdgeEval::updater::CompiledUpdate;
-use crate::ModelObjects::component::Declarations;
-use crate::ModelObjects::component::{State, Transition};
+use crate::ModelObjects::{Declarations, State, Transition};
 use crate::System::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
 };
@@ -145,7 +144,7 @@ impl TransitionSystem for Quotient {
         if location.is_inconsistent() {
             //Rule 10
             if is_input {
-                let mut transition = Transition::new(location, self.dim);
+                let mut transition = Transition::without_id(location, self.dim);
                 transition.guard_zone = transition
                     .guard_zone
                     .constrain_eq(self.quotient_clock_index, 0);
@@ -154,7 +153,7 @@ impl TransitionSystem for Quotient {
             return transitions;
         } else if location.is_universal() {
             // Rule 9
-            let transition = Transition::new(location, self.dim);
+            let transition = Transition::without_id(location, self.dim);
             transitions.push(transition);
             return transitions;
         }
@@ -373,7 +372,7 @@ impl TransitionSystem for Quotient {
     fn get_initial_state(&self) -> Option<State> {
         let init_loc = self.get_initial_location()?;
         let zone = OwnedFederation::init(self.dim);
-        Some(State::create(init_loc, zone))
+        Some(State::new(init_loc, zone))
     }
 
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {

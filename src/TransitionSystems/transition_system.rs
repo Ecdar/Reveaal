@@ -2,18 +2,17 @@ use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::parse_queries::parse_to_system_expr;
 use crate::EdgeEval::updater::CompiledUpdate;
+use crate::ModelObjects::{Component, Declarations, State, Transition};
 use crate::System::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::System::specifics::SpecificLocation;
 use crate::{
-    component::Component,
-    extract_system_rep::get_system_recipe,
-    ComponentLoader,
+    extract_system_rep::get_system_recipe, ComponentLoader,
     DataReader::component_loader::ComponentContainer,
-    ModelObjects::component::{Declarations, State, Transition},
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_map::Entry;
+use std::collections::vec_deque::VecDeque;
 use std::collections::{hash_set::HashSet, HashMap};
 use std::hash::Hash;
 
@@ -106,6 +105,9 @@ pub trait TransitionSystem: DynClone {
 
     fn get_initial_location(&self) -> Option<LocationTree>;
 
+    /// Function to get all locations from a [`TransitionSystem`]
+    /// #### Warning
+    /// This function utilizes a lot of memory. Use with caution
     fn get_all_locations(&self) -> Vec<LocationTree>;
 
     fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
@@ -165,15 +167,11 @@ pub trait TransitionSystem: DynClone {
             .collect()
     }
 
-    ///Constructs a [CLockAnalysisGraph],
+    ///Constructs a [ClockAnalysisGraph],
     ///where nodes represents locations and Edges represent transitions
     fn get_analysis_graph(&self) -> ClockAnalysisGraph {
-        let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::empty();
-        graph.dim = self.get_dim();
-        let actions = self.get_actions();
-        for location in self.get_all_locations() {
-            self.find_edges_and_nodes(&location, &actions, &mut graph);
-        }
+        let mut graph: ClockAnalysisGraph = ClockAnalysisGraph::from_dim(self.get_dim());
+        self.find_edges_and_nodes(self.get_initial_location().unwrap(), &mut graph);
 
         graph
     }
@@ -181,52 +179,57 @@ pub trait TransitionSystem: DynClone {
     ///Helper function to recursively traverse all transitions in a transitions system
     ///in order to find all transitions and location in the transition system, and
     ///saves these as [ClockAnalysisEdge]s and [ClockAnalysisNode]s in the [ClockAnalysisGraph]
-    fn find_edges_and_nodes(
-        &self,
-        location: &LocationTree,
-        actions: &HashSet<String>,
-        graph: &mut ClockAnalysisGraph,
-    ) {
-        //Constructs a node to represent this location and add it to the graph.
-        let mut node: ClockAnalysisNode = ClockAnalysisNode {
-            invariant_dependencies: HashSet::new(),
-            id: location.id.get_unique_string(),
-        };
+    fn find_edges_and_nodes(&self, init_location: LocationTree, graph: &mut ClockAnalysisGraph) {
+        let mut worklist = VecDeque::from([init_location]);
+        let actions = self.get_actions();
+        while let Some(location) = worklist.pop_front() {
+            //Constructs a node to represent this location and add it to the graph.
+            let mut node: ClockAnalysisNode = ClockAnalysisNode {
+                invariant_dependencies: HashSet::new(),
+                id: location.id.get_unique_string(),
+            };
 
-        //Finds clocks used in invariants in this location.
-        if let Some(invariant) = &location.invariant {
-            let conjunctions = invariant.minimal_constraints().conjunctions;
-            for conjunction in conjunctions {
-                for constraint in conjunction.iter() {
-                    node.invariant_dependencies.insert(constraint.i);
-                    node.invariant_dependencies.insert(constraint.j);
-                }
-            }
-        }
-        graph.nodes.insert(node.id.clone(), node);
-
-        //Constructs an edge to represent each transition from this graph and add it to the graph.
-        for action in actions.iter() {
-            let transitions = self.next_transitions_if_available(location, action);
-            for transition in transitions {
-                let mut edge = ClockAnalysisEdge {
-                    from: location.id.get_unique_string(),
-                    to: transition.target_locations.id.get_unique_string(),
-                    guard_dependencies: HashSet::new(),
-                    updates: transition.updates,
-                    edge_type: action.to_string(),
-                };
-
-                //Finds clocks used in guards in this transition.
-                let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
-                for conjunction in &conjunctions {
+            //Finds clocks used in invariants in this location.
+            if let Some(invariant) = &location.invariant {
+                let conjunctions = invariant.minimal_constraints().conjunctions;
+                for conjunction in conjunctions {
                     for constraint in conjunction.iter() {
-                        edge.guard_dependencies.insert(constraint.i);
-                        edge.guard_dependencies.insert(constraint.j);
+                        node.invariant_dependencies.insert(constraint.i);
+                        node.invariant_dependencies.insert(constraint.j);
                     }
                 }
+            }
+            graph.nodes.insert(node.id.clone(), node);
 
-                graph.edges.push(edge);
+            //Constructs an edge to represent each transition from this graph and add it to the graph.
+            for action in &actions {
+                for transition in self.next_transitions_if_available(&location, action) {
+                    let mut edge = ClockAnalysisEdge {
+                        from: location.id.get_unique_string(),
+                        to: transition.target_locations.id.get_unique_string(),
+                        guard_dependencies: HashSet::new(),
+                        updates: transition.updates,
+                        edge_type: action.to_string(),
+                    };
+
+                    //Finds clocks used in guards in this transition.
+                    let conjunctions = transition.guard_zone.minimal_constraints().conjunctions;
+                    for conjunction in &conjunctions {
+                        for constraint in conjunction.iter() {
+                            edge.guard_dependencies.insert(constraint.i);
+                            edge.guard_dependencies.insert(constraint.j);
+                        }
+                    }
+
+                    graph.edges.push(edge);
+
+                    if !graph
+                        .nodes
+                        .contains_key(&transition.target_locations.id.get_unique_string())
+                    {
+                        worklist.push_back(transition.target_locations);
+                    }
+                }
             }
         }
     }
@@ -243,7 +246,7 @@ pub fn components_to_transition_system(
     components: Vec<Component>,
     composition: &str,
 ) -> TransitionSystemPtr {
-    let mut component_container = ComponentContainer::from_components(components);
+    let mut component_container = ComponentContainer::from(components);
     component_loader_to_transition_system(&mut component_container, composition)
 }
 
@@ -309,15 +312,15 @@ pub struct ClockAnalysisGraph {
 }
 
 impl ClockAnalysisGraph {
-    pub fn empty() -> ClockAnalysisGraph {
+    pub fn from_dim(dim: usize) -> ClockAnalysisGraph {
         ClockAnalysisGraph {
             nodes: HashMap::new(),
             edges: vec![],
-            dim: 0,
+            dim,
         }
     }
 
-    pub fn find_clock_redundancies(&self) -> Vec<ClockReductionInstruction> {
+    pub fn find_clock_redundancies(self) -> Vec<ClockReductionInstruction> {
         //First we find the used clocks
         let used_clocks = self.find_used_clocks();
 

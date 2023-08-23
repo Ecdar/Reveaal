@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::component::{Component, Declarations, State};
+use crate::ModelObjects::{Component, Declarations, State};
 use crate::ProtobufServer::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
@@ -76,7 +76,7 @@ pub fn proto_state_to_state(state: ProtoState, system: &TransitionSystemPtr) -> 
     // Ensure that the invariants are applied to the state
     let federation = location_tree.apply_invariants(federation);
 
-    State::create(location_tree, federation)
+    State::new(location_tree, federation)
 }
 
 fn proto_location_tree_to_location_tree(
@@ -169,8 +169,7 @@ mod tests {
             "Zones are not equal"
         );
         assert_eq!(
-            *state1.get_location(),
-            *state2.get_location(),
+            state1.decorated_locations, state2.decorated_locations,
             "Location trees are not equal"
         );
     }
