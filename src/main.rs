@@ -1,43 +1,38 @@
 #![allow(non_snake_case)]
-use clap::{load_yaml, App};
+use reveaal::cli::Args;
 use reveaal::logging::setup_logger;
+use reveaal::ModelObjects::Query;
 use reveaal::System::query_failures::QueryResult;
 
+use clap::Parser;
 use reveaal::ProtobufServer::services::query_request::Settings;
 use reveaal::{
     extract_system_rep, parse_queries, start_grpc_server_with_tokio, xml_parser, ComponentLoader,
     JsonProjectLoader, ProjectLoader, XmlProjectLoader,
 };
 use std::env;
+use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    #[cfg(feature = "logging")]
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from(yaml).get_matches();
-    setup_logger().unwrap();
-    if let Some(ip_endpoint) = matches.value_of("endpoint") {
-        let thread_count: usize = match matches.value_of("thread_number") {
-            Some(num_of_threads) => num_of_threads
-                .parse()
-                .expect("Could not parse the input for the number of threads"),
-            None => num_cpus::get(),
-        };
-        let cache_count: usize = matches
-            .value_of("cache-size")
-            .unwrap()
-            .parse()
-            .expect("Could not parse input for the cache_size");
+    let args = Args::parse();
 
-        start_grpc_server_with_tokio(ip_endpoint, cache_count, thread_count)?;
-    } else {
-        start_using_cli(&matches);
+    #[cfg(feature = "logging")]
+    setup_logger().unwrap();
+
+    match args {
+        Args::Serve {
+            endpoint,
+            thread_count,
+            cache_size,
+        } => start_grpc_server_with_tokio(&endpoint, cache_size, thread_count)?,
+        Args::Query { .. } => start_using_cli(args),
     }
 
     Ok(())
 }
 
-fn start_using_cli(matches: &clap::ArgMatches) {
-    let (mut comp_loader, queries) = parse_args(matches);
+fn start_using_cli(args: Args) {
+    let (mut comp_loader, queries) = parse_args(args);
 
     let mut results = vec![];
     for query in &queries {
@@ -60,27 +55,41 @@ fn start_using_cli(matches: &clap::ArgMatches) {
     }
 }
 
-fn parse_args(
-    matches: &clap::ArgMatches,
-) -> (Box<dyn ComponentLoader>, Vec<reveaal::ModelObjects::Query>) {
-    let folder_path = matches.value_of("folder").unwrap_or("");
-    let query = matches.value_of("query").unwrap_or("");
-    let settings = Settings {
-        disable_clock_reduction: matches.is_present("clock-reduction"),
-    };
+fn parse_args(args: Args) -> (Box<dyn ComponentLoader>, Vec<Query>) {
+    match args {
+        Args::Query {
+            query,
+            input_folder,
+            enable_clock_reduction,
+            save_refinement_relations,
+            //thread_count,
+        } => {
+            if save_refinement_relations.is_some() {
+                unimplemented!("Saving refinement relations is not yet implemented");
+            }
 
-    let project_loader = get_project_loader(folder_path.to_string(), settings);
+            let settings = Settings {
+                disable_clock_reduction: !enable_clock_reduction,
+            };
 
-    let queries = if query.is_empty() {
-        project_loader.get_queries().clone()
-    } else {
-        parse_queries::parse_to_query(query)
-    };
+            let project_loader = get_project_loader(input_folder, settings);
 
-    (project_loader.to_comp_loader(), queries)
+            let queries = if query.is_empty() {
+                project_loader.get_queries().clone()
+            } else {
+                parse_queries::parse_to_query(&query)
+            };
+
+            (project_loader.to_comp_loader(), queries)
+        }
+        _ => unreachable!("This function should only be called when the args are a query"),
+    }
 }
 
-fn get_project_loader(project_path: String, settings: Settings) -> Box<dyn ProjectLoader> {
+fn get_project_loader<P: AsRef<Path>>(
+    project_path: P,
+    settings: Settings,
+) -> Box<dyn ProjectLoader> {
     if xml_parser::is_xml_project(&project_path) {
         XmlProjectLoader::new_loader(project_path, settings)
     } else {

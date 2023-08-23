@@ -7,6 +7,7 @@ pub mod ProtobufServer;
 pub mod Simulation;
 pub mod System;
 pub mod TransitionSystems;
+pub mod cli;
 pub mod logging;
 pub mod tests;
 

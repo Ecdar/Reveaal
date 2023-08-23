@@ -10,14 +10,15 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
+use std::path::Path;
 
-pub fn is_xml_project(project_path: &str) -> bool {
-    project_path.ends_with(".xml")
+pub fn is_xml_project<P: AsRef<Path>>(project_path: P) -> bool {
+    project_path.as_ref().ends_with(".xml")
 }
 
 ///Used to parse systems described in xml
-pub(crate) fn parse_xml_from_file(
-    fileName: &str,
+pub(crate) fn parse_xml_from_file<P: AsRef<Path>>(
+    fileName: P,
 ) -> (Vec<Component>, SystemDeclarations, Vec<Query>) {
     //Open file and read xml
     let file = File::open(fileName).unwrap();
