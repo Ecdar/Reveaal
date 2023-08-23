@@ -60,7 +60,7 @@ fn parse_args(args: Args) -> (Box<dyn ComponentLoader>, Vec<Query>) {
         Args::Query {
             query,
             input_folder,
-            disable_clock_reduction,
+            enable_clock_reduction,
             save_refinement_relations,
             //thread_count,
         } => {
@@ -69,7 +69,7 @@ fn parse_args(args: Args) -> (Box<dyn ComponentLoader>, Vec<Query>) {
             }
 
             let settings = Settings {
-                disable_clock_reduction,
+                disable_clock_reduction: !enable_clock_reduction,
             };
 
             let project_loader = get_project_loader(input_folder, settings);
