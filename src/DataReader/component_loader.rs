@@ -276,7 +276,7 @@ impl JsonProjectLoader {
     }
 
     fn load_component(&mut self, component_name: &str) {
-        let mut component = json_reader::read_json_component(&self.project_path, component_name);
+        let mut component = json_reader::read_json_component(&self.project_path, component_name).unwrap();
 
         let opt_inputs = self
             .get_declarations()

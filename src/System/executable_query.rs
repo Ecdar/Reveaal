@@ -128,6 +128,12 @@ impl ExecutableQuery for ConsistencyExecutor {
     }
 }
 
+
+pub struct CheckExecutor {
+    pub system: TransitionSystemPtr
+}
+
+
 pub struct DeterminismExecutor {
     pub system: TransitionSystemPtr,
 }

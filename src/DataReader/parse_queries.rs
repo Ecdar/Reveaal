@@ -196,6 +196,11 @@ fn parse_query(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
                     let name = pairs.next().map(|it| it.as_str().to_string());
                     QueryExpression::BisimMinim(SaveExpression { system, name })
                 }
+                Rule::check => {
+                    let mut pairs = pair.into_inner();
+                    let system = parse_system(pairs.next().unwrap());
+                    QueryExpression::Check(system)
+                }
                 _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
             };
             query

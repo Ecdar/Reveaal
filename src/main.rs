@@ -14,6 +14,7 @@ use std::env;
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
 
     #[cfg(feature = "logging")]

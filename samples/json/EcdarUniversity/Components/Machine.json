@@ -3,7 +3,6 @@
   "declarations": "clock y;",
   "locations": [
     {
-      "id": "L4",
       "nickname": "",
       "invariant": "y\u003c\u003d6",
       "type": "NORMAL",

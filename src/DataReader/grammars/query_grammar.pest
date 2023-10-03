@@ -2,10 +2,12 @@ queries = _{SOI ~ queryList ~ EOI}
 
 queryList = { query ~ (";" ~ query)*}
 
-query = {refinement | consistency | reachability | implementation | determinism | specification | getComponent | prune | bisim /*| logicFormulas*/}
+query = {refinement | consistency | reachability | implementation | determinism | specification | getComponent | prune | bisim | check /*| logicFormulas*/}
 
 
 refinement = {"refinement:" ~ expr ~ "<=" ~ expr}
+
+check = {"check:" ~ expr}
 
 consistency = {"consistency:" ~ expr}
 
