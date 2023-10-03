@@ -146,6 +146,7 @@ pub enum QueryResult {
     Refinement(RefinementResult),
     /// A consistency query returned a success or failure, see [ConsistencyResult].
     Consistency(ConsistencyResult),
+    Check(CheckResult),
     /// A determinism query returned a success or failure, see [DeterminismResult].
     Determinism(DeterminismResult),
     /// A get components query returned a new component.
@@ -160,6 +161,8 @@ pub type PathResult = Result<SpecificPath, PathFailure>;
 pub type RefinementResult = Result<(), RefinementFailure>;
 
 pub type ConsistencyResult = Result<(), ConsistencyFailure>;
+
+pub type CheckResult = Result<(), String>;
 
 pub type DeterminismResult = Result<(), DeterminismFailure>;
 

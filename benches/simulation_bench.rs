@@ -75,12 +75,12 @@ fn simulation(c: &mut Criterion) {
     let mut loader = bench_helper::get_uni_loader();
 
     let start_request_1 =
-        construct_start_request(&[loader.get_component("Machine").clone()], "(Machine)", 1);
+        construct_start_request(&[loader.get_component("Machine").unwrap().clone()], "(Machine)", 1);
 
     let start_request_2 = construct_start_request(
         &[
-            loader.get_component("HalfAdm1").clone(),
-            loader.get_component("HalfAdm2").clone(),
+            loader.get_component("HalfAdm1").unwrap().clone(),
+            loader.get_component("HalfAdm2").unwrap().clone(),
         ],
         "(HalfAdm1 && HalfAdm2)",
         2,
@@ -88,9 +88,9 @@ fn simulation(c: &mut Criterion) {
 
     let start_request_3 = construct_start_request(
         &[
-            loader.get_component("Machine").clone(),
-            loader.get_component("Administration").clone(),
-            loader.get_component("Researcher").clone(),
+            loader.get_component("Machine").unwrap().clone(),
+            loader.get_component("Administration").unwrap().clone(),
+            loader.get_component("Researcher").unwrap().clone(),
         ],
         "(Administration || Machine || Researcher)",
         3,
@@ -98,17 +98,17 @@ fn simulation(c: &mut Criterion) {
 
     let start_request_4 = construct_start_request(
         &[
-            loader.get_component("Machine").clone(),
-            loader.get_component("HalfAdm1").clone(),
-            loader.get_component("HalfAdm2").clone(),
-            loader.get_component("Researcher").clone(),
+            loader.get_component("Machine").unwrap().clone(),
+            loader.get_component("HalfAdm1").unwrap().clone(),
+            loader.get_component("HalfAdm2").unwrap().clone(),
+            loader.get_component("Researcher").unwrap().clone(),
         ],
         "((HalfAdm1 && HalfAdm2) || Machine || Researcher)",
         4,
     );
 
     let step_request_1 = construct_step_request(
-        &[loader.get_component("Machine").clone()],
+        &[loader.get_component("Machine").unwrap().clone()],
         "(Machine)",
         1,
         &start_request_1,
@@ -116,8 +116,8 @@ fn simulation(c: &mut Criterion) {
 
     let step_request_2 = construct_step_request(
         &[
-            loader.get_component("HalfAdm1").clone(),
-            loader.get_component("HalfAdm2").clone(),
+            loader.get_component("HalfAdm1").unwrap().clone(),
+            loader.get_component("HalfAdm2").unwrap().clone(),
         ],
         "(HalfAdm1 && HalfAdm2)",
         2,
@@ -126,9 +126,9 @@ fn simulation(c: &mut Criterion) {
 
     let step_request_3 = construct_step_request(
         &[
-            loader.get_component("Machine").clone(),
-            loader.get_component("Administration").clone(),
-            loader.get_component("Researcher").clone(),
+            loader.get_component("Machine").unwrap().clone(),
+            loader.get_component("Administration").unwrap().clone(),
+            loader.get_component("Researcher").unwrap().clone(),
         ],
         "(Administration || Machine || Researcher)",
         3,
@@ -137,10 +137,10 @@ fn simulation(c: &mut Criterion) {
 
     let step_request_4 = construct_step_request(
         &[
-            loader.get_component("Machine").clone(),
-            loader.get_component("HalfAdm1").clone(),
-            loader.get_component("HalfAdm2").clone(),
-            loader.get_component("Researcher").clone(),
+            loader.get_component("Machine").unwrap().clone(),
+            loader.get_component("HalfAdm1").unwrap().clone(),
+            loader.get_component("HalfAdm2").unwrap().clone(),
+            loader.get_component("Researcher").unwrap().clone(),
         ],
         "((HalfAdm1 && HalfAdm2) || Machine || Researcher)",
         4,

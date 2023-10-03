@@ -32,6 +32,9 @@ impl QueryResult {
             QueryResult::Consistency(Ok(_)) => satisfied(query_str),
             QueryResult::Consistency(Err(_)) => not_satisfied(query_str),
 
+            QueryResult::Check(Ok(_)) => println!("{} -- Success!", query_str),
+            QueryResult::Check(Err(err)) => println!("{} -- Failed!\n{}", query_str, err),
+
             QueryResult::Determinism(Ok(_)) => satisfied(query_str),
             QueryResult::Determinism(Err(_)) => not_satisfied(query_str),
 
@@ -130,9 +133,18 @@ impl ExecutableQuery for ConsistencyExecutor {
 
 
 pub struct CheckExecutor {
-    pub system: TransitionSystemPtr
+    pub result: String
 }
 
+impl ExecutableQuery for CheckExecutor {
+    fn execute(self: Box<Self>) -> QueryResult {
+        if self.result == "success" {
+            QueryResult::Check(Ok(()))
+        } else {
+            QueryResult::Check(Err(self.result.into()))
+        }
+    }
+}
 
 pub struct DeterminismExecutor {
     pub system: TransitionSystemPtr,
