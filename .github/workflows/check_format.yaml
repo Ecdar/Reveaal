@@ -1,12 +1,8 @@
 name: Check formatting
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    branches:
-      - main
   workflow_dispatch:
-
+  push:
 
 jobs:
   fmt:
