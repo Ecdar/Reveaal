@@ -1,94 +1,71 @@
-name: Build artifacts
+name: Build Artifacts
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize]
     branches:
       - main
   workflow_dispatch:
 
 jobs:   
-  build-macos:
+  macos:
+    name: Build MacOS
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
+    - uses: arduino/setup-protoc@v2
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
+    - run: cargo build --release
+    - uses: actions/upload-artifact@v2
       with:
         name: reveaal-macos
         path: target/release/Reveaal
         if-no-files-found: error
   
-  build-win:
+  win:
+    name: Build Windows
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
+    - uses: arduino/setup-protoc@v2
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
+    - run: cargo build --release
+    - uses: actions/upload-artifact@v2
       with:
         name: reveaal-windows
         path: target/release/Reveaal.exe
         if-no-files-found: error
-    
-  build-ubuntu:
+
+  ubuntu:
+    name: Build Ubuntu
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
+    - uses: arduino/setup-protoc@v2
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
+    - run: cargo build --release
+    - uses: actions/upload-artifact@v2
       with:
         name: reveaal-ubuntu
         path: target/release/Reveaal

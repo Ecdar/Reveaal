@@ -1,0 +1,38 @@
+name: Check formatting
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+
+jobs:
+  fmt:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo fmt --all
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy lint and check
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install llvm protobuf-compiler
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: clippy check --all-targets --all-features
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-targets --all-features -- -D warnings
