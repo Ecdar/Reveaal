@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   push:
 
-permissions:
-  checks: write
-
 jobs:
   fmt:
     name: cargo fmt
@@ -43,7 +40,6 @@ jobs:
         with:
           cache-on-failure: true
       - name: clippy check --all-targets --all-features
-        uses: auguwu/clippy-action@1.2.1
+        uses: clechasseur/rs-clippy-check@v3
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
           args: --all-targets --all-features -- -D warnings
