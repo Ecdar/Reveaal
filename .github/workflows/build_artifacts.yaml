@@ -22,7 +22,11 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - run: cargo build --release
+    - name: cargo build --release
+      uses: clechasseur/rs-cargo@v1
+      with:
+        command: build
+        args: --release
     - uses: actions/upload-artifact@v2
       with:
         name: reveaal-macos
@@ -43,7 +47,11 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - run: cargo build --release
+    - name: cargo build --release
+      uses: clechasseur/rs-cargo@v1
+      with:
+        command: build
+        args: --release
     - uses: actions/upload-artifact@v2
       with:
         name: reveaal-windows
@@ -64,7 +72,11 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - run: cargo build --release
+    - name: cargo build --release
+      uses: clechasseur/rs-cargo@v1
+      with:
+        command: build
+        args: --release
     - uses: actions/upload-artifact@v2
       with:
         name: reveaal-ubuntu

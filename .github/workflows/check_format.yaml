@@ -13,9 +13,21 @@ jobs:
     name: cargo fmt
     runs-on: ubuntu-latest
     steps:
+      - run: sudo apt-get install llvm protobuf-compiler
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - name: cargo fmt --all
-        run: cargo fmt --all -- --check
+        uses: clechasseur/rs-cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
 
   clippy:
     name: Clippy lint and check
@@ -32,7 +44,6 @@ jobs:
         with:
           cache-on-failure: true
       - name: clippy check --all-targets --all-features
-        uses: actions-rs/clippy-check@v1
+        uses: clechasseur/rs-clippy-check@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-targets --all-features -- -D warnings
