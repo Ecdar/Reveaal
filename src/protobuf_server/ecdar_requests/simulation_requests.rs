@@ -1,5 +1,6 @@
 use tonic::Status;
 
+use crate::model_objects::Decision;
 use crate::{
     data_reader::{component_loader::ModelCache, proto_reader::proto_decision_to_decision},
     protobuf_server::{
@@ -10,7 +11,6 @@ use crate::{
 };
 
 use super::request_util::simulation_info_to_transition_system;
-use crate::simulation::decision::Decision;
 
 impl ConcreteEcdarBackend {
     /// Handles a start simulation request: Responding with the initial decision point in the transition system given in the `request`.

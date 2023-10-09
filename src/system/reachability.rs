@@ -3,8 +3,7 @@ use edbm::zones::OwnedFederation;
 
 use super::query_failures::PathFailure;
 use super::specifics::SpecificPath;
-use crate::model_objects::{State, Transition};
-use crate::simulation::decision::Decision;
+use crate::model_objects::{State, Transition, Decision};
 use crate::transition_systems::{LocationID, TransitionSystemPtr};
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;

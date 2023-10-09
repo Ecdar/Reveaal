@@ -4,13 +4,12 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::model_objects::{Component, Declarations, State};
+use crate::model_objects::{Component, Declarations, State, Decision};
 use crate::protobuf_server::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
     State as ProtoState,
 };
-use crate::simulation::decision::Decision;
 use crate::system::specifics::SpecificLocation;
 use crate::transition_systems::{LocationTree, TransitionSystemPtr};
 

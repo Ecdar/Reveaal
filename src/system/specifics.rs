@@ -2,13 +2,10 @@ use std::{collections::HashMap, fmt};
 
 use edbm::util::constraints::{ClockIndex, Conjunction, Constraint, Disjunction};
 
-use crate::model_objects::{State, StatePair};
-use crate::{
-    simulation::decision::Decision,
-    transition_systems::{
-        transition_system::ComponentInfoTree, CompositionType, LocationID, TransitionID,
-        TransitionSystem,
-    },
+use crate::model_objects::{Decision, State, StatePair};
+use crate::transition_systems::{
+    transition_system::ComponentInfoTree, CompositionType, LocationID, TransitionID,
+    TransitionSystem,
 };
 
 use super::{query_failures::SystemType, reachability::Path};
