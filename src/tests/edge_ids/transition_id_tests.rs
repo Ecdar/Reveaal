@@ -70,10 +70,10 @@ mod reachability_transition_id_test {
             )
             ]; "Conjunction HalfAdm1 and HalfAdm2")]
     fn transition_id_checker(
-        machineExpression: SystemExpression,
+        machine_expression: SystemExpression,
         transition_ids: Vec<TransitionID>,
     ) {
-        let mock_model = Box::new(machineExpression);
+        let mock_model = Box::new(machine_expression);
         let mut expected_ids: HashSet<&TransitionID> = HashSet::from_iter(transition_ids.iter());
         let (_, system) = reachability_test_helper_functions::create_system_recipe_and_machine(
             *mock_model,

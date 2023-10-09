@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod Conjunction_tests {
+mod conjunction_tests {
     use crate::tests::save_component::save_comp_helper::util::json_reconstructed_component_refines_base_self;
 
     const PATH: &str = "samples/json/Conjunction";
