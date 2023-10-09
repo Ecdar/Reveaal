@@ -1,6 +1,6 @@
 use edbm::zones::OwnedFederation;
 
-use crate::edge_eval::constraint_applyer;
+use crate::edge_eval::constraint_applier;
 use crate::model_objects::expressions::BoolExpression;
 use crate::model_objects::{Component, DeclarationProvider, Edge, SyncType};
 
@@ -15,7 +15,7 @@ pub fn make_input_enabled(component: &mut Component, inputs: &[String]) {
         let mut location_inv_zone = OwnedFederation::universe(dimension);
 
         if let Some(invariant) = &location.invariant {
-            location_inv_zone = constraint_applyer::apply_constraints_to_state(
+            location_inv_zone = constraint_applier::apply_constraints_to_state(
                 invariant,
                 component.get_declarations(),
                 location_inv_zone,
@@ -41,7 +41,7 @@ pub fn make_input_enabled(component: &mut Component, inputs: &[String]) {
                     .get_location_by_name(edge.target_location.as_str())
                     .invariant
                 {
-                    guard_zone = constraint_applyer::apply_constraints_to_state(
+                    guard_zone = constraint_applier::apply_constraints_to_state(
                         target_invariant,
                         component.get_declarations(),
                         guard_zone,
@@ -58,7 +58,7 @@ pub fn make_input_enabled(component: &mut Component, inputs: &[String]) {
                 }
 
                 if let Some(guard) = &edge.guard {
-                    guard_zone = constraint_applyer::apply_constraints_to_state(
+                    guard_zone = constraint_applier::apply_constraints_to_state(
                         guard,
                         component.get_declarations(),
                         guard_zone,

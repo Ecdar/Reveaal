@@ -2,7 +2,7 @@ use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 use log::{debug, trace};
 
-use crate::edge_eval::constraint_applyer::apply_constraints_to_state;
+use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::expressions::BoolExpression;
 use crate::model_objects::{
     Component, DeclarationProvider, Declarations, Edge, Location, SyncType,

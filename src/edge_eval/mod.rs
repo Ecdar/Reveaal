@@ -1,2 +1,2 @@
-pub mod constraint_applyer;
+pub mod constraint_applier;
 pub mod updater;

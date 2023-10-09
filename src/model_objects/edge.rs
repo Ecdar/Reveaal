@@ -2,7 +2,7 @@ use crate::data_reader::parse_edge;
 use crate::data_reader::serialization::{
     decode_guard, decode_sync, decode_sync_type, decode_update, DummyEdge,
 };
-use crate::edge_eval::constraint_applyer::apply_constraints_to_state;
+use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::expressions::BoolExpression;
 use crate::model_objects::Declarations;
 use edbm::zones::OwnedFederation;

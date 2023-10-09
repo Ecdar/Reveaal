@@ -1,6 +1,6 @@
 use edbm::{util::constraints::ClockIndex, zones::OwnedFederation};
 
-use crate::edge_eval::constraint_applyer::apply_constraints_to_state;
+use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::{Declarations, Location, LocationType};
 
 use super::LocationID;

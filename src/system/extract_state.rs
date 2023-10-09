@@ -1,7 +1,7 @@
 use edbm::zones::OwnedFederation;
 use itertools::Itertools;
 
-use crate::edge_eval::constraint_applyer::apply_constraints_to_state;
+use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::extract_system_rep::SystemRecipe;
 use crate::model_objects::expressions::{BoolExpression, ComponentVariable, StateExpression};
 use crate::model_objects::{Declarations, State};
