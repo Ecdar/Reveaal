@@ -163,7 +163,7 @@ pub trait TransitionSystem: DynClone {
         left_child
             .component_names()
             .into_iter()
-            .chain(right_child.component_names().into_iter())
+            .chain(right_child.component_names())
             .collect()
     }
 
