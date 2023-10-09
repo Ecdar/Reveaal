@@ -5,17 +5,17 @@ mod test {
     const PATH: &str = "samples/json/Unspec";
 
     #[test]
-    fn testARefinesSelf() {
+    fn test_arefines_self() {
         assert!(json_refinement_check(PATH, "refinement: A <= A"));
     }
 
     #[test]
-    fn testAaRefinesSelf() {
+    fn test_aa_refines_self() {
         assert!(json_refinement_check(PATH, "refinement: AA <= AA"));
     }
 
     #[test]
-    fn testBRefinesSelf() {
+    fn test_brefines_self() {
         assert!(json_refinement_check(PATH, "refinement: B <= B"));
     }
 }

@@ -7,7 +7,7 @@ mod test {
 
     // Self Refinements
     #[test]
-    fn LoopTest() {
+    fn loop_test() {
         assert!(xml_refinement_check(
             PATH_2,
             "refinement: SelfloopNonZeno <= SelfloopNonZeno"
@@ -16,397 +16,397 @@ mod test {
 
     // Self Refinements
     #[test]
-    fn T1RefinesSelf() {
+    fn t1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T1 <= T1"));
     }
 
     #[test]
-    fn T2RefinesSelf() {
+    fn t2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T2 <= T2"));
     }
 
     #[test]
-    fn T3RefinesSelf() {
+    fn t3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T3 <= T3"));
     }
 
     #[test]
-    fn C1RefinesSelf() {
+    fn c1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: C1 <= C1"));
     }
 
     #[test]
-    fn C2RefinesSelf() {
+    fn c2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: C2 <= C2"));
     }
 
     #[test]
-    fn F1RefinesSelf() {
+    fn f1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: F1 <= F1"));
     }
 
     #[test]
-    fn F2RefinesSelf() {
+    fn f2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: F2 <= F2"));
     }
 
     #[test]
-    fn F3RefinesSelf() {
+    fn f3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: F3 <= F3"));
     }
 
     #[test]
-    fn T4RefinesSelf() {
+    fn t4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T4 <= T4"));
     }
 
     #[test]
-    fn T0RefinesSelf() {
+    fn t0refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T0 <= T0"));
     }
 
     #[test]
-    fn T5RefinesSelf() {
+    fn t5refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T5 <= T5"));
     }
 
     #[test]
-    fn T6RefinesSelf() {
+    fn t6refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T6 <= T6"));
     }
 
     #[test]
-    fn T7RefinesSelf() {
+    fn t7refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T7 <= T7"));
     }
 
     #[test]
-    fn T8RefinesSelf() {
+    fn t8refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T8 <= T8"));
     }
 
     #[test]
-    fn T9RefinesSelf() {
+    fn t9refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T9 <= T9"));
     }
 
     #[test]
-    fn T10RefinesSelf() {
+    fn t10refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T10 <= T10"));
     }
 
     #[test]
-    fn T11RefinesSelf() {
+    fn t11refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: T11 <= T11"));
     }
 
     #[test]
-    fn N1RefinesSelf() {
+    fn n1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: N1 <= N1"));
     }
 
     #[test]
-    fn N2RefinesSelf() {
+    fn n2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: N2 <= N2"));
     }
 
     #[test]
-    fn N3RefinesSelf() {
+    fn n3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: N3 <= N3"));
     }
 
     #[test]
-    fn N4RefinesSelf() {
+    fn n4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: N4 <= N4"));
     }
 
     #[test]
-    fn D1RefinesSelf() {
+    fn d1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: D1 <= D1"));
     }
 
     #[test]
-    fn D2RefinesSelf() {
+    fn d2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: D2 <= D2"));
     }
 
     #[test]
-    fn K1RefinesSelf() {
+    fn k1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K1 <= K1"));
     }
 
     #[test]
-    fn K2RefinesSelf() {
+    fn k2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K2 <= K2"));
     }
 
     #[test]
-    fn K3RefinesSelf() {
+    fn k3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K3 <= K3"));
     }
 
     #[test]
-    fn K4RefinesSelf() {
+    fn k4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K4 <= K4"));
     }
 
     #[test]
-    fn K5RefinesSelf() {
+    fn k5refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K5 <= K5"));
     }
 
     #[test]
-    fn K6RefinesSelf() {
+    fn k6refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: K6 <= K6"));
     }
 
     #[test]
-    fn P0RefinesSelf() {
+    fn p0refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P0 <= P0"));
     }
 
     #[test]
-    fn P1RefinesSelf() {
+    fn p1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P1 <= P1"));
     }
 
     #[test]
-    fn P2RefinesSelf() {
+    fn p2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P2 <= P2"));
     }
 
     #[test]
-    fn P3RefinesSelf() {
+    fn p3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P3 <= P3"));
     }
 
     #[test]
-    fn P4RefinesSelf() {
+    fn p4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P4 <= P4"));
     }
 
     #[test]
-    fn P5RefinesSelf() {
+    fn p5refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P5 <= P5"));
     }
 
     #[test]
-    fn P6RefinesSelf() {
+    fn p6refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P6 <= P6"));
     }
 
     #[test]
-    fn P7RefinesSelf() {
+    fn p7refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: P7 <= P7"));
     }
 
     #[test]
-    fn L1RefinesSelf() {
+    fn l1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L1 <= L1"));
     }
 
     #[test]
-    fn L2RefinesSelf() {
+    fn l2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L2 <= L2"));
     }
 
     #[test]
-    fn L3RefinesSelf() {
+    fn l3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L3 <= L3"));
     }
 
     #[test]
-    fn L4RefinesSelf() {
+    fn l4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L4 <= L4"));
     }
 
     #[test]
-    fn L5RefinesSelf() {
+    fn l5refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L5 <= L5"));
     }
 
     #[test]
-    fn L6RefinesSelf() {
+    fn l6refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L6 <= L6"));
     }
 
     #[test]
-    fn L7RefinesSelf() {
+    fn l7refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: L7 <= L7"));
     }
 
     #[test]
-    fn Z1RefinesSelf() {
+    fn z1refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z1 <= Z1"));
     }
 
     #[test]
-    fn Z2RefinesSelf() {
+    fn z2refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z2 <= Z2"));
     }
 
     #[test]
-    fn Z3RefinesSelf() {
+    fn z3refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z3 <= Z3"));
     }
 
     #[test]
-    fn Z4RefinesSelf() {
+    fn z4refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z4 <= Z4"));
     }
 
     #[test]
-    fn Z5RefinesSelf() {
+    fn z5refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z5 <= Z5"));
     }
 
     #[test]
-    fn Z6RefinesSelf() {
+    fn z6refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z6 <= Z6"));
     }
 
     #[test]
-    fn Z7RefinesSelf() {
+    fn z7refines_self() {
         assert!(xml_refinement_check(PATH, "refinement: Z7 <= Z7"));
     }
 
     //     // Rest of the tests
 
     #[test]
-    fn T1T2RefinesT3() {
+    fn t1t2refines_t3() {
         assert!(xml_refinement_check(PATH, "refinement: T1||T2 <= T3"));
     }
 
     #[test]
-    fn C1RefinesC2() {
+    fn c1refines_c2() {
         assert!(xml_refinement_check(PATH, "refinement: C1 <= C2"));
     }
 
     #[test]
-    fn C2RefinesC1() {
+    fn c2refines_c1() {
         assert!(xml_refinement_check(PATH, "refinement: C2 <= C1"));
     }
 
     #[test]
-    fn T0T1T2RefinesT3() {
+    fn t0t1t2refines_t3() {
         assert!(xml_refinement_check(PATH, "refinement: T0||T1||T2 <= T3"));
     }
 
     #[test]
-    fn F1F2RefinesF3() {
+    fn f1f2refines_f3() {
         assert!(xml_refinement_check(PATH, "refinement: F1||F2 <= F3"));
     }
 
     #[test]
-    fn T4RefinesT3() {
+    fn t4refines_t3() {
         assert!(xml_refinement_check(PATH, "refinement: T4 <= T3"));
     }
 
     #[test]
-    fn T6RefinesT5() {
+    fn t6refines_t5() {
         assert!(xml_refinement_check(PATH, "refinement: T6 <= T5"));
     }
 
     #[test]
-    fn T7NotRefinesT8() {
+    fn t7not_refines_t8() {
         //Refinement passes, tho should fail ! same symbols
         assert!(!xml_refinement_check(PATH, "refinement: T7 <= T8"));
     }
 
     #[test]
-    fn T9NotRefinesT8() {
+    fn t9not_refines_t8() {
         //Refinement passes, tho should fail ! same symbols
         assert!(!xml_refinement_check(PATH, "refinement: T9 <= T8"));
     }
 
     #[test]
-    fn T10NotRefinesT11() {
+    fn t10not_refines_t11() {
         //Refinement passes, tho should fail !
         assert!(!xml_refinement_check(PATH, "refinement: T10 <= T11"));
     }
 
     #[test]
-    fn N1RefinesN2() {
+    fn n1refines_n2() {
         assert!(xml_refinement_check(PATH, "refinement: N1 <= N2"));
     }
 
     #[test]
-    fn D2RefinesD1() {
+    fn d2refines_d1() {
         assert!(xml_refinement_check(PATH, "refinement: D2 <= D1"));
     }
 
     #[test]
-    fn D1NotRefinesD2() {
+    fn d1not_refines_d2() {
         assert!(!xml_refinement_check(PATH, "refinement: D1 <= D2"));
     }
 
     #[test]
-    fn K1NotRefinesK2() {
+    fn k1not_refines_k2() {
         //Should fail, but passes ?
         assert!(!xml_refinement_check(PATH, "refinement: K1 <= K2"));
     }
 
     #[test]
-    fn K3NotRefinesK4() {
+    fn k3not_refines_k4() {
         //should fail, tho passes ?!
         assert!(!xml_refinement_check(PATH, "refinement: K3 <= K4"));
     }
 
     #[test]
-    fn K5NotRefinesK6() {
+    fn k5not_refines_k6() {
         //Should fail, tho passes ?!?
         assert!(!xml_refinement_check(PATH, "refinement: K5 <= K6"));
     }
 
     #[test]
-    fn P0RefinesP1() {
+    fn p0refines_p1() {
         assert!(xml_refinement_check(PATH, "refinement: P0 <= P1"));
     }
 
     #[test]
-    fn P2NotRefinesP3() {
+    fn p2not_refines_p3() {
         assert!(!xml_refinement_check(PATH, "refinement: P2 <= P3"));
     }
 
     #[test]
-    fn P4RefinesP5() {
+    fn p4refines_p5() {
         assert!(xml_refinement_check(PATH, "refinement: P4 <= P5"));
     }
 
     #[test]
-    fn P6RefinesP7() {
+    fn p6refines_p7() {
         assert!(xml_refinement_check(PATH, "refinement: P6 <= P7"));
     }
 
     #[test]
-    fn L1L2NotRefinesL3() {
+    fn l1l2not_refines_l3() {
         assert!(!xml_refinement_check(PATH, "refinement: L1||L2 <= L3"));
     }
 
     #[test]
-    fn L4RefinesL5() {
+    fn l4refines_l5() {
         //should pass tho fails
         assert!(xml_refinement_check(PATH, "refinement: L5 <= L5"));
     }
 
     #[test]
-    fn Z1RefinesZ2() {
+    fn z1refines_z2() {
         assert!(xml_refinement_check(PATH, "refinement: Z1 <= Z2"));
     }
 
     #[test]
-    fn Z3RefinesZ4() {
+    fn z3refines_z4() {
         assert!(xml_refinement_check(PATH, "refinement: Z3 <= Z4"));
     }
 
     #[test]
-    fn Q1NotRefinesQ2() {
+    fn q1not_refines_q2() {
         //refinement should not hold tho it holds ?
         assert!(!xml_refinement_check(PATH, "refinement: Q1 <= Q2"));
     }
 
     #[test]
-    fn Q2NotRefinesQ1() {
+    fn q2not_refines_q1() {
         assert!(!xml_refinement_check(PATH, "refinement: Q2 <= Q1"));
     }
 }

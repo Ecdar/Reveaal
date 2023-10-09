@@ -5,7 +5,7 @@ mod test {
     const PATH: &str = "samples/xml/misc_test.xml";
 
     #[test]
-    fn GuardParanRefinesSelf() {
+    fn guard_paran_refines_self() {
         assert!(xml_refinement_check(
             PATH,
             "refinement: GuardParan <= GuardParan"

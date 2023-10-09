@@ -5,32 +5,32 @@ mod test {
     const PATH: &str = "samples/json/Conjunction";
 
     #[test]
-    fn T1RefinesSelf() {
+    fn t1refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Test1 <= Test1"));
     }
 
     #[test]
-    fn T2RefinesSelf() {
+    fn t2refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Test2 <= Test2"));
     }
 
     #[test]
-    fn T3RefinesSelf() {
+    fn t3refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Test3 <= Test3"));
     }
 
     #[test]
-    fn T4RefinesSelf() {
+    fn t4refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Test4 <= Test4"));
     }
 
     #[test]
-    fn T5RefinesSelf() {
+    fn t5refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Test5 <= Test5"));
     }
 
     #[test]
-    fn T1ConjT2RefinesT3() {
+    fn t1conj_t2refines_t3() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test1 && Test2 <= Test3"
@@ -38,7 +38,7 @@ mod test {
     }
 
     #[test]
-    fn T2ConjT3RefinesT1() {
+    fn t2conj_t3refines_t1() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test2 && Test3 <= Test1"
@@ -46,7 +46,7 @@ mod test {
     }
 
     #[test]
-    fn T1ConjT3RefinesT2() {
+    fn t1conj_t3refines_t2() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test1 && Test3 <= Test2"
@@ -54,7 +54,7 @@ mod test {
     }
 
     #[test]
-    fn T1ConjT2ConjT4RefinesT5() {
+    fn t1conj_t2conj_t4refines_t5() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test1 && Test2 && Test4 <= Test5"
@@ -62,7 +62,7 @@ mod test {
     }
 
     #[test]
-    fn T3ConjT4RefinesT5() {
+    fn t3conj_t4refines_t5() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test3 && Test4 <= Test5"
@@ -70,7 +70,7 @@ mod test {
     }
 
     #[test]
-    fn T6ConjT7RefinesT8() {
+    fn t6conj_t7refines_t8() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test6 && Test7 <= Test8"
@@ -78,7 +78,7 @@ mod test {
     }
 
     #[test]
-    fn test1NestedConjRefinesT12() {
+    fn test1nested_conj_refines_t12() {
         assert!(json_refinement_check(
             PATH,
             "refinement: Test9 && Test10 && Test11 <= Test12"
