@@ -5,8 +5,8 @@ mod test {
 
     use crate::extract_system_rep::ExecutableQueryError;
     use crate::{
-        tests::refinement::helper::json_run_query,
         system::query_failures::{ActionFailure, SystemRecipeFailure},
+        tests::refinement::helper::json_run_query,
     };
 
     const PATH: &str = "samples/json/SystemRecipe/Composition";

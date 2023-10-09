@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::{tests::refinement::helper::xml_run_query, system::query_failures::QueryResult};
+    use crate::{system::query_failures::QueryResult, tests::refinement::helper::xml_run_query};
 
     const PATH: &str = "samples/xml/ConsTests.xml";
 

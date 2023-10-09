@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod test {
-    use crate::extract_system_rep::SystemRecipe;
     use crate::data_reader::json_reader::read_json_component;
+    use crate::extract_system_rep::SystemRecipe;
     use crate::model_objects::Component;
     use crate::system::input_enabler;
     use crate::transition_systems::transition_system::ClockReductionInstruction;

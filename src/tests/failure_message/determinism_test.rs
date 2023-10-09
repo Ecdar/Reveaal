@@ -2,10 +2,10 @@
 
 mod test {
     use crate::{
-        tests::refinement::helper::json_run_query,
         system::query_failures::{
             ConsistencyFailure, QueryResult, RefinementFailure, RefinementPrecondition,
         },
+        tests::refinement::helper::json_run_query,
     };
 
     const PATH: &str = "samples/json/Determinism";

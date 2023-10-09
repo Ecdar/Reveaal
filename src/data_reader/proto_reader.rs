@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use edbm::util::constraints::{Conjunction, Constraint, Disjunction, Inequality, RawInequality};
 use edbm::zones::OwnedFederation;
 
-use crate::model_objects::{Component, Declarations, State, Decision};
+use crate::model_objects::{Component, Decision, Declarations, State};
 use crate::protobuf_server::services::{
     clock::Clock as ClockEnum, Clock as ProtoClock, ComponentsInfo, Constraint as ProtoConstraint,
     Decision as ProtoDecision, Disjunction as ProtoDisjunction, LocationTree as ProtoLocationTree,
@@ -154,7 +154,7 @@ fn proto_zone_to_owned_federation(
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests::refinement::helper::json_get_system, system::specifics::SpecificState};
+    use crate::{system::specifics::SpecificState, tests::refinement::helper::json_get_system};
 
     use super::*;
 

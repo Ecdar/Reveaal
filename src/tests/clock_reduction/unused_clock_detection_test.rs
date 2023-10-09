@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod unused_clocks_tests {
-    use crate::tests::clock_reduction::helper::test::assert_unused_clock_in_clock_reduction_instruction_vec;
     use crate::data_reader::json_reader::read_json_component;
+    use crate::tests::clock_reduction::helper::test::assert_unused_clock_in_clock_reduction_instruction_vec;
     use crate::transition_systems::{CompiledComponent, TransitionSystem};
 
     /// Loads the sample in `samples/json/ClockReductionTest/UnusedClockWithCycle` which contains

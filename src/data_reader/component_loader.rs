@@ -1,7 +1,6 @@
 use log::warn;
 use lru::LruCache;
 
-use crate::xml_parser;
 use crate::data_reader::json_reader;
 use crate::data_reader::json_writer::component_to_json_file;
 use crate::data_reader::xml_parser::parse_xml_from_file;
@@ -9,6 +8,7 @@ use crate::model_objects::{Component, Query, SystemDeclarations};
 use crate::protobuf_server::services;
 use crate::protobuf_server::services::query_request::Settings;
 use crate::system::input_enabler;
+use crate::xml_parser;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};

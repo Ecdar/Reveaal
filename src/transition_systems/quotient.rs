@@ -10,7 +10,9 @@ use crate::system::query_failures::{
 use crate::system::specifics::{SpecialLocation, SpecificLocation};
 use edbm::util::bounds::Bounds;
 
-use crate::transition_systems::{LocationTree, TransitionID, TransitionSystem, TransitionSystemPtr};
+use crate::transition_systems::{
+    LocationTree, TransitionID, TransitionSystem, TransitionSystemPtr,
+};
 use std::collections::hash_set::HashSet;
 use std::vec;
 
