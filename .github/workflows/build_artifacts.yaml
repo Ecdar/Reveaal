@@ -27,7 +27,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: reveaal-macos
-        path: target/release/Reveaal
+        path: target/release/reveaal
         if-no-files-found: error
         retention-days: 7
   
@@ -53,7 +53,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: reveaal-windows
-        path: target/release/Reveaal.exe
+        path: target/release/reveaal.exe
         if-no-files-found: error
         retention-days: 7
 
@@ -79,6 +79,6 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: reveaal-ubuntu
-        path: target/release/Reveaal
+        path: target/release/reveaal
         if-no-files-found: error
         retention-days: 7
