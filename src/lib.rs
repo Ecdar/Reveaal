@@ -1,14 +1,13 @@
+pub mod cli;
 pub mod data_reader;
-pub mod data_types;
 pub mod edge_eval;
+pub mod logging;
 pub mod model_objects;
 pub mod protobuf_server;
 pub mod simulation;
 pub mod system;
-pub mod transition_systems;
-pub mod cli;
-pub mod logging;
 pub mod tests;
+pub mod transition_systems;
 
 pub use crate::data_reader::component_loader::{
     ComponentLoader, JsonProjectLoader, ProjectLoader, XmlProjectLoader,

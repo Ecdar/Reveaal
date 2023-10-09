@@ -1,8 +1,9 @@
 use edbm::zones::OwnedFederation;
 use log::{debug, info, log_enabled, trace, Level};
 
-use crate::data_types::{PassedStateList, PassedStateListExt, WaitingStateList};
-use crate::model_objects::{StatePair, Transition};
+use crate::model_objects::{
+    PassedStateList, PassedStateListExt, StatePair, Transition, WaitingStateList,
+};
 use crate::system::query_failures::RefinementFailure;
 use crate::transition_systems::{LocationTree, TransitionSystemPtr};
 use std::collections::HashSet;
