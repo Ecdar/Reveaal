@@ -11,8 +11,8 @@ use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-///This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
-///For clarification see documentation on pest crate
+//This file handles parsing the edges based on the abstract syntax described in the .pest files in the grammar folder
+//For clarification see documentation on pest crate
 #[derive(Parser)]
 #[grammar = "DataReader/grammars/edge_grammar.pest"]
 pub struct EdgeParser;

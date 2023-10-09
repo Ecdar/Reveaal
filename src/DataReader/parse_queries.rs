@@ -20,8 +20,8 @@ lazy_static! {
         .op(Op::infix(Rule::conjunction_op, Assoc::Left));
 }
 
-///This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
-///For clarification see documentation on pest crate
+//This file handles parsing the queries based on the abstract syntax described in the .pest files in the grammar folder
+//For clarification see documentation on pest crate
 
 pub fn parse_system(pair: pest::iterators::Pair<Rule>) -> SystemExpression {
     PRATT
