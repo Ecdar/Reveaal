@@ -1,14 +1,14 @@
 #[cfg(test)]
 pub mod util {
-    use crate::DataReader::component_loader::JsonProjectLoader;
-    use crate::DataReader::parse_queries;
-    use crate::ModelObjects::Expressions::QueryExpression;
-    use crate::System::extract_system_rep;
-    use crate::System::extract_system_rep::SystemRecipe;
-    use crate::System::query_failures::ConsistencyResult;
-    use crate::System::refine;
-    use crate::System::save_component::combine_components;
-    use crate::System::save_component::PruningStrategy;
+    use crate::data_reader::component_loader::JsonProjectLoader;
+    use crate::data_reader::parse_queries;
+    use crate::model_objects::expressions::QueryExpression;
+    use crate::system::extract_system_rep;
+    use crate::system::extract_system_rep::SystemRecipe;
+    use crate::system::query_failures::ConsistencyResult;
+    use crate::system::refine;
+    use crate::system::save_component::combine_components;
+    use crate::system::save_component::PruningStrategy;
     use edbm::util::constraints::ClockIndex;
 
     pub fn json_reconstructed_component_refines_base_self(input_path: &str, system: &str) {

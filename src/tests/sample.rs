@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod samples {
-    use crate::DataReader::component_loader::JsonProjectLoader;
+    use crate::data_reader::component_loader::JsonProjectLoader;
 
     const CONJUNCTION_SAMPLE: &str = "samples/json/Conjunction";
 

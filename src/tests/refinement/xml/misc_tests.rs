@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::tests::refinement::Helper::xml_refinement_check;
+    use crate::tests::refinement::helper::xml_refinement_check;
 
     const PATH: &str = "samples/xml/misc_test.xml";
 

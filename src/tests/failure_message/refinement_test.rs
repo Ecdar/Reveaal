@@ -2,8 +2,8 @@
 
 mod test {
     use crate::{
-        tests::refinement::Helper::json_run_query,
-        System::query_failures::{
+        tests::refinement::helper::json_run_query,
+        system::query_failures::{
             ActionFailure, QueryResult, RefinementFailure, RefinementPrecondition,
         },
     };

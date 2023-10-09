@@ -4,9 +4,9 @@ mod test {
     use std::collections::HashSet;
 
     use crate::{
-        tests::refinement::Helper::json_run_query,
-        System::extract_system_rep::ExecutableQueryError,
-        System::query_failures::{
+        tests::refinement::helper::json_run_query,
+        system::extract_system_rep::ExecutableQueryError,
+        system::query_failures::{
             ActionFailure, ConsistencyFailure, DeterminismFailure, SystemRecipeFailure,
         },
     };

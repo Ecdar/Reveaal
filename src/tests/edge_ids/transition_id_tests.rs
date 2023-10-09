@@ -3,9 +3,9 @@ mod reachability_transition_id_test {
     use std::collections::HashSet;
     use std::iter::FromIterator;
 
+    use crate::model_objects::expressions::SystemExpression;
     use crate::tests::reachability::helper_functions::reachability_test_helper_functions;
-    use crate::ModelObjects::Expressions::SystemExpression;
-    use crate::TransitionSystems::TransitionID;
+    use crate::transition_systems::TransitionID;
     use test_case::test_case;
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";
 
