@@ -8,7 +8,9 @@ use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
 };
-use crate::ProtobufServer::services::{Component as ProtobufComponent, query_response, QueryRequest, QueryResponse};
+use crate::ProtobufServer::services::{
+    query_response, Component as ProtobufComponent, QueryRequest, QueryResponse,
+};
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::query_failures::{
     ConsistencyFailure, DeterminismFailure, PathFailure, QueryResult, RefinementFailure,
@@ -36,9 +38,9 @@ impl ConcreteEcdarBackend {
         let proto_components = &components_info.components;
 
         // Model already in cache
-        if let Some(model) = model_cache.get_model(
-            query_request.user_id,
-            components_info.components_hash) {
+        if let Some(model) =
+            model_cache.get_model(query_request.user_id, components_info.components_hash)
+        {
             send_query(model, query_request)
         }
         // Model not in cache but included in request
@@ -56,13 +58,18 @@ impl ConcreteEcdarBackend {
             Ok(QueryResponse {
                 query_id: query_request.query_id,
                 info: vec![],
-                result: Some(query_response::Result::ComponentsNotInCache(Default::default())),
+                result: Some(query_response::Result::ComponentsNotInCache(
+                    Default::default(),
+                )),
             })
         }
     }
 }
 
-fn send_query(mut model: ComponentContainer, query_request: QueryRequest) -> Result<QueryResponse, Status> {
+fn send_query(
+    mut model: ComponentContainer,
+    query_request: QueryRequest,
+) -> Result<QueryResponse, Status> {
     let query = parse_query(&query_request)?;
 
     model.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
