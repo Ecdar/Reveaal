@@ -115,7 +115,7 @@ mod refinements {
             settings: Some(crate::tests::TEST_SETTINGS),
         });
 
-        let cached_request = Request::new(QueryRequest {
+        let empty_component_request = Request::new(QueryRequest {
             user_id: 0,
             query_id: 0,
             query: String::from(query),
@@ -125,7 +125,7 @@ mod refinements {
             }),
             settings: Some(crate::tests::TEST_SETTINGS),
         });
-        (normal_request, cached_request)
+        (normal_request, empty_component_request)
     }
 
     fn construct_query_request(query: &str) -> Request<QueryRequest> {
