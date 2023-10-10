@@ -1,16 +1,14 @@
 use crate::extract_system_rep::ExecutableQueryError;
-use crate::DataReader::component_loader::ModelCache;
+use crate::DataReader::component_loader::{ComponentContainer, ModelCache};
 use crate::DataReader::json_writer::component_to_json;
 use crate::DataReader::parse_queries;
 use crate::ModelObjects::Query;
-use crate::ProtobufServer::ecdar_requests::request_util::get_or_insert_model;
+use crate::ProtobufServer::ecdar_requests::request_util::insert_model;
 use crate::ProtobufServer::services::component::Rep;
 use crate::ProtobufServer::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
 };
-use crate::ProtobufServer::services::{
-    Component as ProtobufComponent, QueryRequest, QueryResponse,
-};
+use crate::ProtobufServer::services::{Component as ProtobufComponent, query_response, QueryRequest, QueryResponse};
 use crate::ProtobufServer::ConcreteEcdarBackend;
 use crate::System::query_failures::{
     ConsistencyFailure, DeterminismFailure, PathFailure, QueryResult, RefinementFailure,
@@ -36,40 +34,59 @@ impl ConcreteEcdarBackend {
         trace!("Received query: {:?}", query_request);
         let components_info = query_request.components_info.as_ref().unwrap();
         let proto_components = &components_info.components;
-        let query = parse_query(&query_request)?;
-        let user_id = query_request.user_id;
 
-        let mut component_container = get_or_insert_model(
-            &mut model_cache,
-            user_id,
-            components_info.components_hash,
-            proto_components,
-        );
-        component_container.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
+        // Model already in cache
+        if let Some(model) = model_cache.get_model(
+            query_request.user_id,
+            components_info.components_hash) {
+            send_query(model, query_request)
+        }
+        // Model not in cache but included in request
+        else if !proto_components.is_empty() {
+            let model = insert_model(
+                &mut model_cache,
+                query_request.user_id,
+                components_info.components_hash,
+                proto_components,
+            );
+            send_query(model, query_request)
+        }
+        // Model not in cache nor included in request
+        else {
+            Ok(QueryResponse {
+                query_id: query_request.query_id,
+                info: vec![],
+                result: Some(query_response::Result::ComponentsNotInCache(Default::default())),
+            })
+        }
+    }
+}
 
-        let out =
-            match extract_system_rep::create_executable_query(&query, &mut component_container) {
-                Ok(query) => {
-                    let result = query.execute();
-                    Ok(QueryResponse {
-                        query_id: query_request.query_id,
-                        info: vec![], // TODO: Should be logs
-                        result: Some(result.into()),
-                    })
-                }
-                Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
-                    "Creation of query failed: {}",
-                    e
-                ))),
-                Err(ExecutableQueryError::SystemRecipeFailure(failure)) => {
-                    Ok(QueryResponse {
-                        query_id: query_request.query_id,
-                        info: vec![], // TODO: Should be logs
-                        result: Some(failure.into()),
-                    })
-                }
-            };
-        out
+fn send_query(mut model: ComponentContainer, query_request: QueryRequest) -> Result<QueryResponse, Status> {
+    let query = parse_query(&query_request)?;
+
+    model.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
+
+    match extract_system_rep::create_executable_query(&query, &mut model) {
+        Ok(query) => {
+            let result = query.execute();
+            Ok(QueryResponse {
+                query_id: query_request.query_id,
+                info: vec![], // TODO: Should be logs
+                result: Some(result.into()),
+            })
+        }
+        Err(ExecutableQueryError::Custom(e)) => Err(Status::invalid_argument(format!(
+            "Creation of query failed: {}",
+            e
+        ))),
+        Err(ExecutableQueryError::SystemRecipeFailure(failure)) => {
+            Ok(QueryResponse {
+                query_id: query_request.query_id,
+                info: vec![], // TODO: Should be logs
+                result: Some(failure.into()),
+            })
+        }
     }
 }
 
