@@ -91,7 +91,7 @@ mod refinements {
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
         match result {
-            query_response::Result::ComponentsNotInCache(_) => {},
+            query_response::Result::ComponentsNotInCache(_) => {}
             _ => panic!("Expected failure, got {:?}", result),
         }
     }
@@ -178,4 +178,3 @@ mod refinements {
         }
     }
 }
-
