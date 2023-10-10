@@ -1,10 +1,10 @@
+use crate::extract_system_rep::SystemRecipe;
 use crate::DataReader::component_loader::ComponentLoader;
 use crate::ModelObjects::State;
 use crate::System::reachability;
 use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
-use crate::extract_system_rep::SystemRecipe;
 
 use super::query_failures::PathFailure;
 use super::query_failures::QueryResult;
@@ -134,14 +134,14 @@ impl ExecutableQuery for ConsistencyExecutor {
 }
 
 pub struct SyntaxExecutor {
-    pub result: Result<Box<SystemRecipe>, SyntaxResult>
+    pub result: Result<Box<SystemRecipe>, SyntaxResult>,
 }
 
 impl ExecutableQuery for SyntaxExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
         match self.result {
             Ok(_) => QueryResult::Syntax(Ok(())),
-            Err(err) => QueryResult::Syntax(Err(err.unwrap_err()))
+            Err(err) => QueryResult::Syntax(Err(err.unwrap_err())),
         }
     }
 }

@@ -74,8 +74,11 @@ fn take_simulation_step(c: &mut Criterion, id: &str, request: SimulationStepRequ
 fn simulation(c: &mut Criterion) {
     let mut loader = bench_helper::get_uni_loader();
 
-    let start_request_1 =
-        construct_start_request(&[loader.get_component("Machine").unwrap().clone()], "(Machine)", 1);
+    let start_request_1 = construct_start_request(
+        &[loader.get_component("Machine").unwrap().clone()],
+        "(Machine)",
+        1,
+    );
 
     let start_request_2 = construct_start_request(
         &[

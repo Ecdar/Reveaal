@@ -33,11 +33,11 @@ pub fn parse_system(pair: pest::iterators::Pair<Rule>) -> SystemExpression {
                 let special_id = pairs.next().map(|it| it.as_str().to_string());
 
                 SystemExpression::Component(comp_name, special_id)
-            },
+            }
             Rule::variable_name => {
                 let comp_name = pair.as_str().to_string();
                 SystemExpression::Component(comp_name, None)
-            },
+            }
             _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
         })
         .map_infix(|left, op, right| {

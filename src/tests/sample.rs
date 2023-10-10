@@ -40,7 +40,9 @@ mod samples {
             JsonProjectLoader::new_loader(CONJUNCTION_SAMPLE, crate::tests::TEST_SETTINGS);
 
         for i in 1..12 {
-            let t = project_loader.get_component(&format!("Test{}", i).to_string()).unwrap();
+            let t = project_loader
+                .get_component(&format!("Test{}", i).to_string())
+                .unwrap();
 
             assert_eq!(t.name, format!("Test{}", i));
         }

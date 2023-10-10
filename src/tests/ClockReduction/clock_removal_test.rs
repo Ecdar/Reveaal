@@ -28,7 +28,8 @@ pub mod clock_removal_tests {
         let mut component = read_json_component(
             "samples/json/ClockReductionTest/UnusedClock",
             component_name,
-        ).unwrap();
+        )
+        .unwrap();
 
         let clock_index = *component
             .declarations
@@ -55,7 +56,8 @@ pub mod clock_removal_tests {
         let mut component = read_json_component(
             "samples/json/ClockReductionTest/RedundantClocks",
             "Component1",
-        ).unwrap();
+        )
+        .unwrap();
 
         let clock_1_index = component.declarations.get_clock_index_by_name("x").unwrap();
         let mut duplicate_clocks_index = HashSet::new();

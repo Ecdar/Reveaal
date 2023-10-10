@@ -13,7 +13,7 @@ use crate::TransitionSystems::{
 };
 
 use super::executable_query::SyntaxExecutor;
-use super::query_failures::{SystemRecipeFailure, SyntaxResult};
+use super::query_failures::{SyntaxResult, SystemRecipeFailure};
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
@@ -52,9 +52,11 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
 
                 let mut left =
-                    get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index).unwrap();
+                    get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index)
+                        .unwrap();
                 let mut right =
-                    get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index).unwrap();
+                    get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index)
+                        .unwrap();
 
                 if !component_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(
@@ -73,7 +75,8 @@ pub fn create_executable_query<'a>(
                 }))
             }
             QueryExpression::Reachability { system, from, to } => {
-                let machine = get_system_recipe(system, component_loader, &mut dim, &mut None).unwrap();
+                let machine =
+                    get_system_recipe(system, component_loader, &mut dim, &mut None).unwrap();
                 let transition_system = machine.clone().compile(dim)?;
 
                 // Assign the start state to the initial state of the transition system if no start state is given by the query
@@ -107,7 +110,8 @@ pub fn create_executable_query<'a>(
                     component_loader,
                     &mut dim,
                     &mut quotient_index,
-                ).unwrap();
+                )
+                .unwrap();
 
                 if !component_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
@@ -126,9 +130,7 @@ pub fn create_executable_query<'a>(
                     &mut quotient_index,
                 );
 
-                Ok(Box::new(SyntaxExecutor {
-                    result: recipe,
-                }))
+                Ok(Box::new(SyntaxExecutor { result: recipe }))
             }
             QueryExpression::Determinism(query_expression) => {
                 let mut quotient_index = None;
@@ -137,7 +139,8 @@ pub fn create_executable_query<'a>(
                     component_loader,
                     &mut dim,
                     &mut quotient_index,
-                ).unwrap();
+                )
+                .unwrap();
 
                 if !component_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
@@ -150,7 +153,8 @@ pub fn create_executable_query<'a>(
             QueryExpression::GetComponent(SaveExpression { system, name }) => {
                 let mut quotient_index = None;
                 let mut recipe =
-                    get_system_recipe(system, component_loader, &mut dim, &mut quotient_index).unwrap();
+                    get_system_recipe(system, component_loader, &mut dim, &mut quotient_index)
+                        .unwrap();
 
                 if !component_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
@@ -165,7 +169,8 @@ pub fn create_executable_query<'a>(
             QueryExpression::Prune(SaveExpression { system, name }) => {
                 let mut quotient_index = None;
                 let mut recipe =
-                    get_system_recipe(system, component_loader, &mut dim, &mut quotient_index).unwrap();
+                    get_system_recipe(system, component_loader, &mut dim, &mut quotient_index)
+                        .unwrap();
 
                 if !component_loader.get_settings().disable_clock_reduction {
                     clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;

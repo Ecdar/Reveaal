@@ -22,7 +22,10 @@ pub fn read_system_declarations<P: AsRef<Path>>(project_path: P) -> Option<Syste
     }
 }
 
-pub fn read_json_component<P: AsRef<Path>>(project_path: P, component_name: &str) -> Result<Component, SyntaxResult> {
+pub fn read_json_component<P: AsRef<Path>>(
+    project_path: P,
+    component_name: &str,
+) -> Result<Component, SyntaxResult> {
     let component_path = project_path
         .as_ref()
         .join("Components")
@@ -30,7 +33,10 @@ pub fn read_json_component<P: AsRef<Path>>(project_path: P, component_name: &str
 
     let component: Result<Component, SyntaxResult> = match read_json(&component_path) {
         Ok(json) => Ok(json),
-        Err(error) => Err(SyntaxFailure::unparsable(error.to_string(), component_path.display().to_string())),
+        Err(error) => Err(SyntaxFailure::unparsable(
+            error.to_string(),
+            component_path.display().to_string(),
+        )),
     };
 
     component

@@ -664,10 +664,9 @@ impl std::fmt::Display for RefinementPrecondition {
 impl std::fmt::Display for SyntaxFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SyntaxFailure::Unparsable {msg, path} => write!(
-                f, "The file '{}' could not be parsed: {}",
-                path, msg
-            ),
+            SyntaxFailure::Unparsable { msg, path } => {
+                write!(f, "The file '{}' could not be parsed: {}", path, msg)
+            }
         }
     }
 }
