@@ -4,9 +4,11 @@ use crate::System::reachability;
 use crate::System::refine;
 use crate::System::save_component::combine_components;
 use crate::TransitionSystems::TransitionSystemPtr;
+use crate::extract_system_rep::SystemRecipe;
 
 use super::query_failures::PathFailure;
 use super::query_failures::QueryResult;
+use super::query_failures::SyntaxResult;
 use super::save_component::PruningStrategy;
 use super::specifics::SpecificDecision;
 
@@ -32,8 +34,8 @@ impl QueryResult {
             QueryResult::Consistency(Ok(_)) => satisfied(query_str),
             QueryResult::Consistency(Err(_)) => not_satisfied(query_str),
 
-            QueryResult::Check(Ok(_)) => println!("{} -- Success!", query_str),
-            QueryResult::Check(Err(err)) => println!("{} -- Failed!\n{}", query_str, err),
+            QueryResult::Syntax(Ok(_)) => println!("{} -- Success!", query_str),
+            QueryResult::Syntax(Err(err)) => println!("{} -- Failed!\n{}", query_str, err),
 
             QueryResult::Determinism(Ok(_)) => satisfied(query_str),
             QueryResult::Determinism(Err(_)) => not_satisfied(query_str),
@@ -131,17 +133,15 @@ impl ExecutableQuery for ConsistencyExecutor {
     }
 }
 
-
-pub struct CheckExecutor {
-    pub result: String
+pub struct SyntaxExecutor {
+    pub result: Result<Box<SystemRecipe>, SyntaxResult>
 }
 
-impl ExecutableQuery for CheckExecutor {
+impl ExecutableQuery for SyntaxExecutor {
     fn execute(self: Box<Self>) -> QueryResult {
-        if self.result == "success" {
-            QueryResult::Check(Ok(()))
-        } else {
-            QueryResult::Check(Err(self.result.into()))
+        match self.result {
+            Ok(_) => QueryResult::Syntax(Ok(())),
+            Err(err) => QueryResult::Syntax(Err(err.unwrap_err()))
         }
     }
 }

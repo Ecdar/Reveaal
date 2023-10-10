@@ -12,8 +12,8 @@ use crate::TransitionSystems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
 };
 
-use super::executable_query::CheckExecutor;
-use super::query_failures::SystemRecipeFailure;
+use super::executable_query::SyntaxExecutor;
+use super::query_failures::{SystemRecipeFailure, SyntaxResult};
 use crate::System::pruning;
 use crate::TransitionSystems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
@@ -117,7 +117,7 @@ pub fn create_executable_query<'a>(
                     system: recipe.compile(dim)?,
                 }))
             }
-            QueryExpression::Check(query_expression) => {
+            QueryExpression::Syntax(query_expression) => {
                 let mut quotient_index = None;
                 let recipe = get_system_recipe(
                     query_expression,
@@ -126,10 +126,8 @@ pub fn create_executable_query<'a>(
                     &mut quotient_index,
                 );
 
-                let result = if recipe.is_ok() { "success".to_string() } else { recipe.unwrap_err().to_string() };
-
-                Ok(Box::new(CheckExecutor {
-                    result: result.into(),
+                Ok(Box::new(SyntaxExecutor {
+                    result: recipe,
                 }))
             }
             QueryExpression::Determinism(query_expression) => {
@@ -324,7 +322,7 @@ pub fn get_system_recipe(
     component_loader: &mut dyn ComponentLoader,
     clock_index: &mut ClockIndex,
     quotient_index: &mut Option<ClockIndex>,
-) -> Result<Box<SystemRecipe>, String> {
+) -> Result<Box<SystemRecipe>, SyntaxResult> {
     match side {
         SystemExpression::Composition(left, right) => Ok(Box::new(SystemRecipe::Composition(
             get_system_recipe(left, component_loader, clock_index, quotient_index)?,

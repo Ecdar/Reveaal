@@ -146,7 +146,8 @@ pub enum QueryResult {
     Refinement(RefinementResult),
     /// A consistency query returned a success or failure, see [ConsistencyResult].
     Consistency(ConsistencyResult),
-    Check(CheckResult),
+    /// A syntax query returned a success or failure, see [SyntaxResult].
+    Syntax(SyntaxResult),
     /// A determinism query returned a success or failure, see [DeterminismResult].
     Determinism(DeterminismResult),
     /// A get components query returned a new component.
@@ -162,7 +163,7 @@ pub type RefinementResult = Result<(), RefinementFailure>;
 
 pub type ConsistencyResult = Result<(), ConsistencyFailure>;
 
-pub type CheckResult = Result<(), String>;
+pub type SyntaxResult = Result<(), SyntaxFailure>;
 
 pub type DeterminismResult = Result<(), DeterminismFailure>;
 
@@ -520,6 +521,20 @@ impl DeterminismFailure {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SyntaxFailure {
+    Unparsable { msg: String, path: String },
+}
+
+impl SyntaxFailure {
+    pub fn unparsable(msg: impl Into<String>, path: impl Into<String>) -> SyntaxResult {
+        Err(SyntaxFailure::Unparsable {
+            msg: msg.into(),
+            path: path.into(),
+        })
+    }
+}
+
 // ---------------------------- //
 // --- Format Display Impl  --- //
 // ---------------------------- //
@@ -642,6 +657,17 @@ impl std::fmt::Display for RefinementPrecondition {
                     system.name, action
                 )
             }
+        }
+    }
+}
+
+impl std::fmt::Display for SyntaxFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SyntaxFailure::Unparsable {msg, path} => write!(
+                f, "The file '{}' could not be parsed: {}",
+                path, msg
+            ),
         }
     }
 }

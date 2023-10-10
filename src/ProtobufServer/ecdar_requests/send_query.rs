@@ -97,9 +97,9 @@ impl From<QueryResult> for ProtobufResult {
             QueryResult::Determinism(Err(fail)) => fail.into(),
             QueryResult::Reachability(Err(fail)) => fail.into(),
 
-            QueryResult::Check(Ok(_)) => ProtobufResult::Success(Success {}),
-            QueryResult::Check(Err(_)) => ProtobufResult::Error(InnerError {
-                error: "Check failed".to_string(),
+            QueryResult::Syntax(Ok(_)) => ProtobufResult::Success(Success {}),
+            QueryResult::Syntax(Err(_)) => ProtobufResult::Error(InnerError {
+                error: "Syntax failed".to_string(),
             }),
 
             QueryResult::GetComponent(comp) => ProtobufResult::Component(ProtobufComponent {

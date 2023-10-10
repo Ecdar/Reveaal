@@ -1,6 +1,7 @@
 use log::warn;
 use lru::LruCache;
 
+use crate::System::query_failures::SyntaxResult;
 use crate::xml_parser;
 use crate::DataReader::json_reader;
 use crate::DataReader::json_writer::component_to_json_file;
@@ -108,7 +109,7 @@ impl ModelCache {
 }
 
 pub trait ComponentLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, String>;
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult>;
     fn save_component(&mut self, component: Component);
     fn get_settings(&self) -> &Settings;
     fn get_settings_mut(&mut self) -> &mut Settings;
@@ -121,7 +122,7 @@ pub struct ComponentContainer {
 }
 
 impl ComponentLoader for ComponentContainer {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, String> {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult> {
         if let Some(component) = self.loaded_components.get(component_name) {
             assert_eq!(component_name, component.name);
             Ok(component)
@@ -212,7 +213,7 @@ pub struct JsonProjectLoader {
 }
 
 impl ComponentLoader for JsonProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, String> {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult> {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name)?;
         }
@@ -275,7 +276,7 @@ impl JsonProjectLoader {
         })
     }
 
-    fn load_component(&mut self, component_name: &str) -> Result<(), String> {
+    fn load_component(&mut self, component_name: &str) -> Result<(), SyntaxResult> {
         let mut component = json_reader::read_json_component(&self.project_path, component_name)?;
 
         let opt_inputs = self
@@ -305,7 +306,7 @@ pub struct XmlProjectLoader {
 }
 
 impl ComponentLoader for XmlProjectLoader {
-    fn get_component(&mut self, component_name: &str) -> Result<&Component, String> {
+    fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult> {
         if let Some(component) = self.loaded_components.get(component_name) {
             assert_eq!(component_name, component.name);
             Ok(component)

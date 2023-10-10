@@ -1,4 +1,5 @@
 use crate::ModelObjects::{Component, Query, SystemDeclarations};
+use crate::System::query_failures::{SyntaxFailure, SyntaxResult};
 use serde::de::DeserializeOwned;
 use std::fs::File;
 use std::io::Read;
@@ -21,17 +22,15 @@ pub fn read_system_declarations<P: AsRef<Path>>(project_path: P) -> Option<Syste
     }
 }
 
-pub fn read_json_component<P: AsRef<Path>>(project_path: P, component_name: &str) -> Result<Component, String> {
+pub fn read_json_component<P: AsRef<Path>>(project_path: P, component_name: &str) -> Result<Component, SyntaxResult> {
     let component_path = project_path
         .as_ref()
         .join("Components")
         .join(format!("{}.json", component_name));
 
-    let component: Result<Component, String> = match read_json(&component_path) {
+    let component: Result<Component, SyntaxResult> = match read_json(&component_path) {
         Ok(json) => Ok(json),
-        Err(error) => Err( 
-            format!("We got error {}, and could not parse json file {} to component", error, component_path.display()),
-        )
+        Err(error) => Err(SyntaxFailure::unparsable(error.to_string(), component_path.display().to_string())),
     };
 
     component
