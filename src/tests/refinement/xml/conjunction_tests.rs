@@ -5,12 +5,12 @@ mod test {
     const PATH: &str = "samples/xml/conjun.xml";
 
     #[test]
-    fn p0conj_p1ref_p2() {
+    fn p0_conj_p1_ref_p2() {
         assert!(!xml_refinement_check(PATH, "refinement: P0 && P1 <= P2"));
     }
 
     #[test]
-    fn p7conj_p8conj_p9ref_p10() {
+    fn p7_conj_p8_conj_p9_ref_p10() {
         assert!(!xml_refinement_check(
             PATH,
             "refinement: P7 && P8 && P9 <= P10"
@@ -18,7 +18,7 @@ mod test {
     }
 
     #[test]
-    fn p11conj_p12ref_p13() {
+    fn p11_conj_p12_ref_p13() {
         assert!(!xml_refinement_check(PATH, "refinement: P11 && P12 <= P13"));
     }
 }

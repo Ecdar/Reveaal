@@ -3,7 +3,7 @@ mod test {
     use crate::model_objects::expressions::ArithExpression as AE;
     use AE::*;
     #[test]
-    fn simplify_test1() {
+    fn simplify_test_1() {
         let expr = AE::a_dif(Int(10), Int(5)); //10 - 5
         assert_eq!(Ok(Int(5)), expr.simplify());
 
@@ -12,7 +12,7 @@ mod test {
     }
 
     #[test]
-    fn simplify_test2() {
+    fn simplify_test_2() {
         let expr = Multiplication(
             //(10 - 5) * (5 + 3)
             Box::new(AE::a_dif(Int(10), Int(5))),
@@ -28,7 +28,7 @@ mod test {
         assert_eq!(Ok(Int(30)), expr.simplify());
     }
     #[test]
-    fn simplify_test3() {
+    fn simplify_test_3() {
         let expr = AE::a_dif(
             Clock(1),
             AE::a_dif(Int(5), AE::a_dif(Int(4), AE::a_dif(Int(3), Int(2)))), //5-(4-(3-2))
@@ -42,7 +42,7 @@ mod test {
         assert_eq!(Ok(AE::a_add(Clock(1), Int(14))), expr.simplify());
     }
     #[test]
-    fn simplify_test4() {
+    fn simplify_test_4() {
         //((5-4)-3)-2
         let expr = AE::a_dif(
             Clock(1),
@@ -58,7 +58,7 @@ mod test {
     }
 
     #[test]
-    fn simplify_test5() {
+    fn simplify_test_5() {
         //((5-4)-3)-2
         let expr = AE::a_dif(AE::a_dif(AE::a_dif(Int(5), Clock(4)), Int(3)), Int(2));
         assert_eq!(Ok(AE::a_dif(Int(0), Clock(4))), expr.simplify());
@@ -68,7 +68,7 @@ mod test {
     }
 
     #[test]
-    fn simplify_test6() {
+    fn simplify_test_6() {
         //5-(4-(3-2))
         let expr = AE::a_dif(Int(5), AE::a_dif(Int(4), AE::a_dif(Int(3), Clock(2))));
         assert_eq!(Ok(AE::a_dif(Int(4), Clock(2))), expr.simplify());
@@ -78,7 +78,7 @@ mod test {
     }
 
     #[test]
-    fn simplify_test7() {
+    fn simplify_test_7() {
         //5-(4-(3-2))
         let expr = AE::a_dif(
             Int(5),

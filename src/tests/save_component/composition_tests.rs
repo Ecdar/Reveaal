@@ -6,22 +6,22 @@ mod test {
     const ECDAR_UNI: &str = "samples/json/EcdarUniversity";
 
     #[test]
-    fn adm2machine_saved_refines_self() {
+    fn adm_2_machine_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Adm2 || Machine");
     }
 
     #[test]
-    fn adm2machine2saved_refines_self() {
+    fn adm_2_machine_2_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Adm2 || Machine2");
     }
 
     #[test]
-    fn adm2machine3saved_refines_self() {
+    fn adm_2_machine_3_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Adm2 || Machine3");
     }
 
     #[test]
-    fn adm2researcher_saved_refines_self() {
+    fn adm_2_researcher_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Adm2 || Researcher");
     }
 
@@ -31,12 +31,12 @@ mod test {
     }
 
     #[test]
-    fn administration_machine2saved_refines_self() {
+    fn administration_machine_2_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Administration || Machine2");
     }
 
     #[test]
-    fn administration_machine3saved_refines_self() {
+    fn administration_machine_3_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Administration || Machine3");
     }
 
@@ -46,42 +46,42 @@ mod test {
     }
 
     #[test]
-    fn half_adm1machine_saved_refines_self() {
+    fn half_adm_1_machine_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm1 || Machine");
     }
 
     #[test]
-    fn half_adm1machine2saved_refines_self() {
+    fn half_adm_1_machine_2_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm1 || Machine2");
     }
 
     #[test]
-    fn half_adm1machine3saved_refines_self() {
+    fn half_adm_1_machine_3_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm1 || Machine3");
     }
 
     #[test]
-    fn half_adm1researcher_saved_refines_self() {
+    fn half_adm_1_researcher_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm1 || Researcher");
     }
 
     #[test]
-    fn half_adm2machine_saved_refines_self() {
+    fn half_adm_2_machine_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm2 || Machine");
     }
 
     #[test]
-    fn half_adm2machine2saved_refines_self() {
+    fn half_adm_2_machine_2_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm2 || Machine2");
     }
 
     #[test]
-    fn half_adm2machine3saved_refines_self() {
+    fn half_adm_2_machine_3_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm2 || Machine3");
     }
 
     #[test]
-    fn half_adm2researcher_saved_refines_self() {
+    fn half_adm_2_researcher_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "HalfAdm2 || Researcher");
     }
 
@@ -96,22 +96,22 @@ mod test {
     }
 
     #[test]
-    fn machine2researcher_saved_refines_self() {
+    fn machine_2_researcher_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Machine2 || Researcher");
     }
 
     #[test]
-    fn machine2spec_saved_refines_self() {
+    fn machine_2_spec_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Machine2 || Spec");
     }
 
     #[test]
-    fn machine3researcher_saved_refines_self() {
+    fn machine_3_researcher_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Machine3 || Researcher");
     }
 
     #[test]
-    fn machine3spec_saved_refines_self() {
+    fn machine_3_spec_saved_refines_self() {
         json_reconstructed_component_refines_base_self(ECDAR_UNI, "Machine3 || Spec");
     }
 

@@ -3,9 +3,9 @@ use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 
-/// State is a struct used for initial verification of consistency, and determinism as a state that also hols a dbm
+/// State is a struct used for initial verification of consistency, and determinism as a state that also holds a dbm
 /// This is done as the type used in refinement state pair assumes two sides of an operation
-/// this should probably be refactored as it causes unnecessary confusion
+// This should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, Debug)]
 pub struct State {
     pub decorated_locations: LocationTree,

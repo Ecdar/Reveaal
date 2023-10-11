@@ -39,11 +39,14 @@ pub fn read_json_component<P: AsRef<Path>>(project_path: P, component_name: &str
     component
 }
 
-///Input:File name
+/// Opens a file and reads it.
+/// If the file is read successfully,
+/// a Result object which contains a DeserializeOwned JSON object is returned.
+/// More information: https://doc.rust-lang.org/std/result/
 ///
-///Description:uses the filename to open the file and then reads the file.
+/// # Arguments
 ///
-///Output: Result type, if more info about this type is need please go to: https://doc.rust-lang.org/std/result/
+/// * `filename` - A path to the json file
 pub fn read_json<T: DeserializeOwned, P: AsRef<Path>>(filename: P) -> serde_json::Result<T> {
     let mut file = File::open(&filename)
         .unwrap_or_else(|_| panic!("Could not find file {}", filename.as_ref().display()));
@@ -64,11 +67,11 @@ pub fn json_to_component(json_str: &str) -> Result<Component, serde_json::Error>
     serde_json::from_str(json_str)
 }
 
-///Input:Filename
+/// Transforms JSON into a Query type
 ///
-///Description: transforms json into query type
+/// # Arguments
 ///
-///Output:Result
+/// * `project_path` - A path to the project
 pub fn read_queries<P: AsRef<Path>>(project_path: P) -> Option<Vec<Query>> {
     let queries_path = project_path.as_ref().join("Queries.json");
 

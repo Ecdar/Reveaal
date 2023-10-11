@@ -5,17 +5,17 @@ mod test {
     const PATH: &str = "samples/json/AG";
 
     #[test]
-    fn arefines_self() {
+    fn a_refines_self() {
         assert!(json_refinement_check(PATH, "refinement: A <= A"));
     }
 
     #[test]
-    fn grefines_self() {
+    fn g_refines_self() {
         assert!(json_refinement_check(PATH, "refinement: G <= G"));
     }
 
     #[test]
-    fn qrefines_self() {
+    fn q_refines_self() {
         assert!(json_refinement_check(PATH, "refinement: Q <= Q"));
     }
 
@@ -30,13 +30,13 @@ mod test {
     }
 
     #[test]
-    fn agnot_refines_aimp() {
+    fn a_g_not_refines_a_imp() {
         assert!(!json_refinement_check(PATH, "refinement: A||G <= A||Imp"));
         // should fail because left side has more inputs
     }
 
     #[test]
-    fn gnot_refines_imp() {
+    fn g_not_refines_imp() {
         assert!(!json_refinement_check(PATH, "refinement: G <= Imp"));
         // should fail because right side has more outputs
     }
@@ -47,17 +47,17 @@ mod test {
     }
 
     #[test]
-    fn grefines_q() {
+    fn g_refines_q() {
         assert!(json_refinement_check(PATH, "refinement: G <= Q"));
     }
 
     #[test]
-    fn qrefines_g() {
+    fn q_refines_g() {
         assert!(json_refinement_check(PATH, "refinement: Q <= G"));
     }
 
     #[test]
-    fn qnot_refines_imp() {
+    fn q_not_refines_imp() {
         // should fail because right side has more outputs
         assert!(!json_refinement_check(PATH, "refinement: Q <= Imp"));
     }
