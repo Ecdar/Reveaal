@@ -1,4 +1,4 @@
 {
   "name": "System Declarations",
-  "declarations": "system, syntaxFailure;\n"
+  "declarations": "system syntaxFailure;\n"
 }
