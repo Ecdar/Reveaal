@@ -90,6 +90,30 @@ mod refinements {
 
         let query_result = query_response.unwrap().into_inner();
         let result = query_result.result.unwrap();
+
+        match result {
+            query_response::Result::ComponentsNotInCache(_) => {}
+            _ => panic!("Expected failure, got {:?}", result),
+        }
+    }
+
+    #[tokio::test]
+    async fn send_query_different_users_cache() {
+        let backend = ConcreteEcdarBackend::default();
+        let query_request = construct_query_request_for_cache("refinement: Machine <= Machine");
+
+        let _ = backend.send_query(query_request.0).await;
+
+        let user_1_request = Request::new(QueryRequest {
+            user_id: 1,
+            ..query_request.1.into_inner()
+        });
+
+        let query_response = backend.send_query(user_1_request).await;
+
+        let query_result = query_response.unwrap().into_inner();
+        let result = query_result.result.unwrap();
+
         match result {
             query_response::Result::ComponentsNotInCache(_) => {}
             _ => panic!("Expected failure, got {:?}", result),
@@ -115,6 +139,7 @@ mod refinements {
             settings: Some(crate::tests::TEST_SETTINGS),
         });
 
+        //TODO There is some fancy rust syntax to make a clone of the above with minor alterations.
         let empty_component_request = Request::new(QueryRequest {
             user_id: 0,
             query_id: 0,
