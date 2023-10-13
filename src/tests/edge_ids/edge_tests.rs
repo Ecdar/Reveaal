@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod reachability_edge_test {
-    use crate::DataReader::json_reader::read_json_component;
+    use crate::data_reader::json_reader::read_json_component;
     use test_case::test_case;
 
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";

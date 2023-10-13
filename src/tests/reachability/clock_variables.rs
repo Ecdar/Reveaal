@@ -2,8 +2,8 @@
 mod reachability_parser_clock_variable_validation {
 
     use crate::{
+        model_objects::expressions::SystemExpression, system,
         tests::reachability::helper_functions::reachability_test_helper_functions,
-        ModelObjects::Expressions::SystemExpression, System,
     };
     use test_case::test_case;
     const FOLDER_PATH: &str = "samples/json/EcdarUniversity";
@@ -27,7 +27,7 @@ mod reachability_parser_clock_variable_validation {
 
         let mock_state = reachability_test_helper_functions::string_to_state_expr(clock_str);
 
-        assert!(System::extract_state::get_state(&mock_state, &machine, &system).is_err());
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_err());
     }
 
     #[test_case("Adm2.L20 && Adm2.x>1";
@@ -43,6 +43,7 @@ mod reachability_parser_clock_variable_validation {
             );
 
         let mock_state = reachability_test_helper_functions::string_to_state_expr(clock_str);
-        assert!(System::extract_state::get_state(&mock_state, &machine, &system).is_ok());
+
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_ok());
     }
 }

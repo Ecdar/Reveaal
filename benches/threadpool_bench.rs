@@ -1,8 +1,8 @@
 use std::vec;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use reveaal::DataReader::json_writer::component_to_json;
-use reveaal::ProtobufServer::{
+use reveaal::data_reader::json_writer::component_to_json;
+use reveaal::protobuf_server::{
     services::{
         component::Rep, ecdar_backend_server::EcdarBackend, Component as ProtoComp, ComponentsInfo,
         QueryRequest,
@@ -18,7 +18,7 @@ use futures::StreamExt;
 mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
-use reveaal::ModelObjects::Component;
+use reveaal::model_objects::Component;
 
 const NUM_OF_REQUESTS: u32 = 512;
 
