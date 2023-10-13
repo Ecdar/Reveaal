@@ -2,8 +2,8 @@
 
 mod test {
     use crate::{
-        tests::refinement::Helper::json_run_query,
-        System::query_failures::{QueryResult, SyntaxFailure, SyntaxResult},
+        system::query_failures::{QueryResult, SyntaxFailure, SyntaxResult},
+        tests::refinement::helper::json_run_query,
     };
 
     const PATH: &str = "samples/json/SyntaxTest";

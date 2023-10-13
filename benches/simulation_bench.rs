@@ -2,13 +2,13 @@ use criterion::{criterion_group, criterion_main, Criterion};
 mod bench_helper;
 pub mod flamegraph;
 use flamegraph::flamegraph_profiler::FlamegraphProfiler;
-use reveaal::DataReader::json_writer::component_to_json;
-use reveaal::ModelObjects::Component;
-use reveaal::ProtobufServer::services::component::Rep::Json;
-use reveaal::ProtobufServer::services::{Component as ProtoComp, ComponentsInfo, SimulationInfo};
+use reveaal::data_reader::json_writer::component_to_json;
+use reveaal::model_objects::Component;
+use reveaal::protobuf_server::services::component::Rep::Json;
+use reveaal::protobuf_server::services::{Component as ProtoComp, ComponentsInfo, SimulationInfo};
 use reveaal::{
-    DataReader::component_loader::ModelCache,
-    ProtobufServer::{
+    data_reader::component_loader::ModelCache,
+    protobuf_server::{
         services::{SimulationStartRequest, SimulationStepRequest},
         ConcreteEcdarBackend,
     },

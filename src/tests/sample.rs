@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod samples {
-    use crate::DataReader::component_loader::JsonProjectLoader;
+    use crate::data_reader::component_loader::JsonProjectLoader;
 
     const CONJUNCTION_SAMPLE: &str = "samples/json/Conjunction";
 
     #[test]
-    fn test_locations_T1() {
+    fn test_locations_t1() {
         let mut project_loader =
             JsonProjectLoader::new_loader(CONJUNCTION_SAMPLE, crate::tests::TEST_SETTINGS);
         let t1 = project_loader.get_component("Test1").unwrap();
@@ -15,7 +15,7 @@ mod samples {
     }
 
     #[test]
-    fn test_locations_T2() {
+    fn test_locations_t2() {
         let mut project_loader =
             JsonProjectLoader::new_loader(CONJUNCTION_SAMPLE, crate::tests::TEST_SETTINGS);
         let t2 = project_loader.get_component("Test2").unwrap();
@@ -25,7 +25,7 @@ mod samples {
     }
 
     #[test]
-    fn test_locations_T3() {
+    fn test_locations_t3() {
         let mut project_loader =
             JsonProjectLoader::new_loader(CONJUNCTION_SAMPLE, crate::tests::TEST_SETTINGS);
         let t3 = project_loader.get_component("Test3").unwrap();
@@ -35,7 +35,7 @@ mod samples {
     }
 
     #[test]
-    fn test_names_T1_through_T12() {
+    fn test_names_t1_through_t12() {
         let mut project_loader =
             JsonProjectLoader::new_loader(CONJUNCTION_SAMPLE, crate::tests::TEST_SETTINGS);
 
