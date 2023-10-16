@@ -8,7 +8,9 @@ use crate::protobuf_server::services::component::Rep;
 use crate::protobuf_server::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
 };
-use crate::protobuf_server::services::{Component as ProtobufComponent, query_response, QueryRequest, QueryResponse};
+use crate::protobuf_server::services::{
+    query_response, Component as ProtobufComponent, QueryRequest, QueryResponse,
+};
 use crate::protobuf_server::ConcreteEcdarBackend;
 use crate::system::query_failures::{
     ConsistencyFailure, DeterminismFailure, PathFailure, QueryResult, RefinementFailure,
