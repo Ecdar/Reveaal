@@ -1,16 +1,14 @@
-use crate::data_reader::component_loader::ModelCache;
+use crate::data_reader::component_loader::{ComponentContainer, ModelCache};
 use crate::data_reader::json_writer::component_to_json;
 use crate::data_reader::parse_queries;
 use crate::extract_system_rep::ExecutableQueryError;
 use crate::model_objects::Query;
-use crate::protobuf_server::ecdar_requests::request_util::get_or_insert_model;
+use crate::protobuf_server::ecdar_requests::request_util::insert_model;
 use crate::protobuf_server::services::component::Rep;
 use crate::protobuf_server::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
 };
-use crate::protobuf_server::services::{
-    Component as ProtobufComponent, QueryRequest, QueryResponse,
-};
+use crate::protobuf_server::services::{Component as ProtobufComponent, query_response, QueryRequest, QueryResponse};
 use crate::protobuf_server::ConcreteEcdarBackend;
 use crate::system::query_failures::{
     ConsistencyFailure, DeterminismFailure, PathFailure, QueryResult, RefinementFailure,
