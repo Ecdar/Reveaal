@@ -14,7 +14,7 @@ use crate::protobuf_server::services::{
 use crate::protobuf_server::ConcreteEcdarBackend;
 use crate::system::query_failures::{
     ConsistencyFailure, DeterminismFailure, PathFailure, QueryResult, RefinementFailure,
-    SystemRecipeFailure,
+    SyntaxFailure, SystemRecipeFailure,
 };
 
 use crate::system::extract_system_rep;
@@ -91,16 +91,13 @@ impl From<QueryResult> for ProtobufResult {
             QueryResult::Reachability(Ok(path)) => ProtobufResult::ReachabilityPath(path.into()),
             QueryResult::Refinement(Ok(_))
             | QueryResult::Consistency(Ok(_))
+            | QueryResult::Syntax(Ok(_))
             | QueryResult::Determinism(Ok(_)) => ProtobufResult::Success(Success {}),
             QueryResult::Refinement(Err(fail)) => fail.into(),
             QueryResult::Consistency(Err(fail)) => fail.into(),
             QueryResult::Determinism(Err(fail)) => fail.into(),
             QueryResult::Reachability(Err(fail)) => fail.into(),
-
-            QueryResult::Syntax(Ok(_)) => ProtobufResult::Success(Success {}),
-            QueryResult::Syntax(Err(_)) => ProtobufResult::Error(InnerError {
-                error: "Syntax failed".to_string(),
-            }),
+            QueryResult::Syntax(Err(fail)) => fail.into(),
 
             QueryResult::GetComponent(comp) => ProtobufResult::Component(ProtobufComponent {
                 rep: Some(Rep::Json(component_to_json(&comp))),
@@ -127,6 +124,12 @@ impl From<DeterminismFailure> for ProtobufResult {
 impl From<ConsistencyFailure> for ProtobufResult {
     fn from(fail: ConsistencyFailure) -> ProtobufResult {
         ProtobufResult::Consistency(fail.into())
+    }
+}
+
+impl From<SyntaxFailure> for ProtobufResult {
+    fn from(fail: SyntaxFailure) -> ProtobufResult {
+        ProtobufResult::Syntax(fail.into())
     }
 }
 

@@ -683,6 +683,7 @@ mod conversions {
     impl Error for RefinementFailure {}
     impl Error for ConsistencyFailure {}
     impl Error for DeterminismFailure {}
+    impl Error for SyntaxFailure {}
 
     impl From<RefinementPrecondition> for RefinementFailure {
         fn from(failure: RefinementPrecondition) -> Self {
@@ -728,6 +729,12 @@ mod conversions {
     impl From<ConsistencyResult> for QueryResult {
         fn from(res: ConsistencyResult) -> Self {
             QueryResult::Consistency(res)
+        }
+    }
+
+    impl From<SyntaxResult> for QueryResult {
+        fn from(res: SyntaxResult) -> Self {
+            QueryResult::Syntax(res)
         }
     }
 
