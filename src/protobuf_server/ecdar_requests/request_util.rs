@@ -32,6 +32,21 @@ pub fn get_or_insert_model(
     }
 }
 
+pub fn insert_model(
+    model_cache: &mut ModelCache,
+    user_id: i32,
+    components_hash: u32,
+    proto_components: &[ProtoComponent],
+) -> ComponentContainer {
+    let parsed_components: Vec<Component> = proto_components
+        .iter()
+        .flat_map(parse_components_if_some)
+        .flatten()
+        .collect::<Vec<Component>>();
+    let components = constrtuct_componentsmap(parsed_components);
+    model_cache.insert_model(user_id, components_hash, Arc::new(components))
+}
+
 fn constrtuct_componentsmap(
     components: Vec<Component>,
 ) -> crate::data_reader::component_loader::ComponentsMap {
