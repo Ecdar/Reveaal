@@ -337,6 +337,19 @@ pub fn get_system_recipe(
         }
         SystemExpression::Component(name, id) => {
             let mut component = component_loader.get_component(name).clone();
+            // TODO Find the right clock usages and add them to the component's clocks HashMap(symboltable)
+            // Recursively loop through boolean expressions and/then Arithmetic expression.
+            // Find the clocks contained in the expressions and save the ClockUsages in the ClockInfo struct
+            // This ClockInfo which contains all the clocks usages is what will be map to with an identifier in the HashMap
+
+            /* for edge in component.edges {
+                match edge.guard {
+                    None => (),
+                    Some(exp) => {
+
+                    }
+                }
+            } */
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);

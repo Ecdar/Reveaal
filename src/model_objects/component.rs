@@ -25,12 +25,12 @@ pub struct Component {
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
     pub special_id: Option<String>,
-    pub clocks: HashMap<clock_name: String, ClockInfo>,
+    pub clocks: HashMap<String, ClockInfo>,
 }
 
 pub struct ClockInfo {
-    pub usage: Vec::<ClockUsage>,
-    pub updates: Vec::<Edge>,
+    pub usage: Vec<ClockUsage>,
+    pub updates: Vec<Edge>,
 }
 
 enum ClockUsage {
