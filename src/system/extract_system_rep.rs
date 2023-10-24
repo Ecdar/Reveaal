@@ -1,6 +1,6 @@
 use crate::data_reader::component_loader::ComponentLoader;
 use crate::model_objects::expressions::{BoolExpression, ArithExpression, QueryExpression, SaveExpression, SystemExpression};
-use crate::model_objects::{Component, Query, State};
+use crate::model_objects::{ClockUsage, Component, Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
@@ -340,20 +340,32 @@ pub fn get_system_recipe(
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
             // TODO Find the right clock usages and add them to the component's clocks HashMap(symboltable)
-            // Recursively loop through boolean expressions and/then Arithmetic expression.
-            // Find the clocks contained in the expressions and save the ClockUsages in the ClockInfo struct
-            // This ClockInfo which contains all the clocks usages is what will be map to with an identifier in the HashMap
 
-            // Edges
-            /*for edge in component.edges {
+            // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
+            component.clock_usages = HashMap::new();
+            for clock in component.declarations.clocks {
+                component.clock_usages.insert(clock.0,Component::ClockUsage{vec![], vec![], vec![]});
+            }
+
+            // Logic for edges
+            for edge in component.edges {
                 match edge.guard {
                     None => (),
                     Some(exp) => {
-
+                        // Logik her
                     }
                 }
-            } */
-            // Locations
+            }
+            // Logic for locations
+            for location in component.locations {
+                match location.invariant {
+                    None => (),
+                    Some(exp) => {
+                        // logik her
+                    }
+                }
+            }
+
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
@@ -421,9 +433,7 @@ fn get_clocks_arith(aexp: &Box<ArithExpression>){
         ArithExpression::VarName(ref name) => {
 
         }
-        ArithExpression::Int(ref int) => {
-
-        }
+        ArithExpression::Int(ref int) => ()
     }
 }
 
