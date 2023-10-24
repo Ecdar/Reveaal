@@ -337,25 +337,23 @@ pub fn get_system_recipe(
         }
         SystemExpression::Component(name, id) => {
             let mut component = component_loader.get_component(name).clone();
+            component.set_clock_indices(clock_index);
+            component.special_id = id.clone();
             // TODO Find the right clock usages and add them to the component's clocks HashMap(symboltable)
             // Recursively loop through boolean expressions and/then Arithmetic expression.
             // Find the clocks contained in the expressions and save the ClockUsages in the ClockInfo struct
             // This ClockInfo which contains all the clocks usages is what will be map to with an identifier in the HashMap
 
             // Edges
-             for edge in component.edges {
+            /*for edge in component.edges {
                 match edge.guard {
                     None => (),
                     Some(exp) => {
 
                     }
                 }
-            }
+            } */
             // Locations
-
-
-            component.set_clock_indices(clock_index);
-            component.special_id = id.clone();
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
@@ -363,32 +361,32 @@ pub fn get_system_recipe(
     }
 }
 fn get_clocks_bool(bexp: &Box<BoolExpression>){
-    match bexp {
-        BoolExpression::AndOp(left, right) => {
+    match **bexp {
+        BoolExpression::AndOp(ref left, ref right) => {
             get_clocks_bool(left);
             get_clocks_bool(right);
         },
-        BoolExpression::OrOp(left, right) => {
+        BoolExpression::OrOp(ref left, ref right) => {
             get_clocks_bool(left);
             get_clocks_bool(right);
         },
-        BoolExpression::LessEQ(left, right) => {
+        BoolExpression::LessEQ(ref left, ref right) => {
             get_clocks_arith(left);
             get_clocks_arith(right);
         },
-        BoolExpression::GreatEQ(left, right) => {
+        BoolExpression::GreatEQ(ref left, ref right) => {
             get_clocks_arith(left);
             get_clocks_arith(right);
         },
-        BoolExpression::LessT(left, right) => {
+        BoolExpression::LessT(ref left, ref right) => {
             get_clocks_arith(left);
             get_clocks_arith(right);
         },
-        BoolExpression::GreatT(left, right) => {
+        BoolExpression::GreatT(ref left, ref right) => {
             get_clocks_arith(left);
             get_clocks_arith(right);
         },
-        BoolExpression::EQ(left, right) => {
+        BoolExpression::EQ(ref left, ref right) => {
             get_clocks_arith(left);
             get_clocks_arith(right);
         },
@@ -396,34 +394,34 @@ fn get_clocks_bool(bexp: &Box<BoolExpression>){
     }
 }
 fn get_clocks_arith(aexp: &Box<ArithExpression>){
-    match aexp{
-        ArithExpression::Difference(left, right) =>{
+    match **aexp{
+        ArithExpression::Difference(ref left, ref right) =>{
             get_clocks_arith(left);
             get_clocks_arith(right);
         }
-        ArithExpression::Addition(left, right) =>{
+        ArithExpression::Addition(ref left, ref right) =>{
             get_clocks_arith(left);
             get_clocks_arith(right);
         }
-        ArithExpression::Multiplication(left, right) =>{
+        ArithExpression::Multiplication(ref left, ref right) =>{
             get_clocks_arith(left);
             get_clocks_arith(right);
         }
-        ArithExpression::Division(left, right) =>{
+        ArithExpression::Division(ref left, ref right) =>{
             get_clocks_arith(left);
             get_clocks_arith(right);
         }
-        ArithExpression::Modulo(left, right) =>{
+        ArithExpression::Modulo(ref left, ref right) =>{
             get_clocks_arith(left);
             get_clocks_arith(right);
         }
-        ArithExpression::Clock(clock_index) => {
+        ArithExpression::Clock(ref clock_index) => {
 
         }
-        ArithExpression::VarName(name) => {
+        ArithExpression::VarName(ref name) => {
 
         }
-        ArithExpression::Int(..) => {
+        ArithExpression::Int(ref int) => {
 
         }
     }

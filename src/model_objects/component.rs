@@ -27,13 +27,13 @@ pub struct Component {
     pub special_id: Option<String>,
     pub clocks: HashMap<String, ClockInfo>,
 }
-
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockInfo {
     pub usage: Vec<ClockUsage>,
     pub updates: Vec<Edge>,
 }
-
-enum ClockUsage {
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+pub enum ClockUsage {
     Edge(Edge),
     Location(Location),
 }
