@@ -25,17 +25,13 @@ pub struct Component {
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
     pub special_id: Option<String>,
-    pub clocks: HashMap<String, ClockInfo>,
+    pub clock_usages: HashMap<String, ClockUsage>,
 }
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub struct ClockInfo {
-    pub usage: Vec<ClockUsage>,
+pub struct ClockUsage {
+    pub edges: Vec<Edge>,
+    pub locations: Vec<Location>,
     pub updates: Vec<Edge>,
-}
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub enum ClockUsage {
-    Edge(Edge),
-    Location(Location),
 }
 
 impl DeclarationProvider for Component {
