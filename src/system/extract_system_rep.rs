@@ -1,5 +1,5 @@
 use crate::data_reader::component_loader::ComponentLoader;
-use crate::model_objects::expressions::{QueryExpression, SaveExpression, SystemExpression};
+use crate::model_objects::expressions::{BoolExpression, ArithExpression, QueryExpression, SaveExpression, SystemExpression};
 use crate::model_objects::{Component, Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
@@ -342,19 +342,89 @@ pub fn get_system_recipe(
             // Find the clocks contained in the expressions and save the ClockUsages in the ClockInfo struct
             // This ClockInfo which contains all the clocks usages is what will be map to with an identifier in the HashMap
 
-            /* for edge in component.edges {
+            // Edges
+             for edge in component.edges {
                 match edge.guard {
                     None => (),
                     Some(exp) => {
 
                     }
                 }
-            } */
+            }
+            // Locations
+
+
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
+        }
+    }
+}
+fn get_clocks_bool(bexp: &Box<BoolExpression>){
+    match bexp {
+        BoolExpression::AndOp(left, right) => {
+            get_clocks_bool(left);
+            get_clocks_bool(right);
+        },
+        BoolExpression::OrOp(left, right) => {
+            get_clocks_bool(left);
+            get_clocks_bool(right);
+        },
+        BoolExpression::LessEQ(left, right) => {
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        },
+        BoolExpression::GreatEQ(left, right) => {
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        },
+        BoolExpression::LessT(left, right) => {
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        },
+        BoolExpression::GreatT(left, right) => {
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        },
+        BoolExpression::EQ(left, right) => {
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        },
+        BoolExpression::Bool(bool) => ()
+    }
+}
+fn get_clocks_arith(aexp: &Box<ArithExpression>){
+    match aexp{
+        ArithExpression::Difference(left, right) =>{
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        }
+        ArithExpression::Addition(left, right) =>{
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        }
+        ArithExpression::Multiplication(left, right) =>{
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        }
+        ArithExpression::Division(left, right) =>{
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        }
+        ArithExpression::Modulo(left, right) =>{
+            get_clocks_arith(left);
+            get_clocks_arith(right);
+        }
+        ArithExpression::Clock(clock_index) => {
+
+        }
+        ArithExpression::VarName(name) => {
+
+        }
+        ArithExpression::Int(..) => {
+
         }
     }
 }
