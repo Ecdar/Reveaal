@@ -353,6 +353,7 @@ pub fn get_system_recipe(
                     None => (),
                     Some(exp) => {
                         // Logik her
+
                     }
                 }
             }
@@ -372,66 +373,39 @@ pub fn get_system_recipe(
         }
     }
 }
-fn get_clocks_bool(bexp: &Box<BoolExpression>){
+fn get_clocks_bool(bexp: &Box<BoolExpression>) -> Vec<String>{
+    let mut result_clocks = vec![];
     match **bexp {
-        BoolExpression::AndOp(ref left, ref right) => {
+        BoolExpression::AndOp(ref left, ref right)
+        | BoolExpression::OrOp(ref left, ref right) => {
             get_clocks_bool(left);
             get_clocks_bool(right);
         },
-        BoolExpression::OrOp(ref left, ref right) => {
-            get_clocks_bool(left);
-            get_clocks_bool(right);
-        },
-        BoolExpression::LessEQ(ref left, ref right) => {
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        },
-        BoolExpression::GreatEQ(ref left, ref right) => {
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        },
-        BoolExpression::LessT(ref left, ref right) => {
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        },
-        BoolExpression::GreatT(ref left, ref right) => {
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        },
-        BoolExpression::EQ(ref left, ref right) => {
-            get_clocks_arith(left);
-            get_clocks_arith(right);
+        BoolExpression::LessEQ(ref left, ref right)
+        | BoolExpression::GreatEQ(ref left, ref right)
+        | BoolExpression::LessT(ref left, ref right)
+        | BoolExpression::GreatT(ref left, ref right)
+        | BoolExpression::EQ(ref left, ref right) => {
+            get_clocks_arith(left, &mut result_clocks);
+            get_clocks_arith(right, &mut result_clocks);
         },
         BoolExpression::Bool(bool) => ()
     }
+    return result_clocks;
 }
-fn get_clocks_arith(aexp: &Box<ArithExpression>){
+fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>) {
     match **aexp{
-        ArithExpression::Difference(ref left, ref right) =>{
-            get_clocks_arith(left);
-            get_clocks_arith(right);
+        ArithExpression::Difference(ref left, ref right)
+        | ArithExpression::Addition(ref left, ref right)
+        | ArithExpression::Multiplication(ref left, ref right)
+        | ArithExpression::Division(ref left, ref right)
+        | ArithExpression::Modulo(ref left, ref right) =>{
+            get_clocks_arith(left, result_clocks);
+            get_clocks_arith(right, result_clocks);
         }
-        ArithExpression::Addition(ref left, ref right) =>{
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        }
-        ArithExpression::Multiplication(ref left, ref right) =>{
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        }
-        ArithExpression::Division(ref left, ref right) =>{
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        }
-        ArithExpression::Modulo(ref left, ref right) =>{
-            get_clocks_arith(left);
-            get_clocks_arith(right);
-        }
-        ArithExpression::Clock(ref clock_index) => {
-
-        }
+        ArithExpression::Clock(ref clock_index) => (),
         ArithExpression::VarName(ref name) => {
-
+            result_clocks.push(name.clone())
         }
         ArithExpression::Int(ref int) => ()
     }
