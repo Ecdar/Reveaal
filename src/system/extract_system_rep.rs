@@ -558,3 +558,20 @@ pub(crate) mod clock_reduction {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+    use crate::model_objects::expressions::{ArithExpression, BoolExpression};
+
+    // test_case(expression, expected ; name of test case)
+    #[test_case()]
+    fn test_get_clocks_bool(expression : &Box<BoolExpression>, expected : Vec<String>) {
+
+    }
+
+    #[test]
+    fn test_get_clocks_arith() {
+
+    }
+}
