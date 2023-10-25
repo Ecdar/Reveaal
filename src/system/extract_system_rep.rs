@@ -343,12 +343,12 @@ pub fn get_system_recipe(
 
             // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
             component.clock_usages = HashMap::new();
-            for clock in component.declarations.clocks {
-                component.clock_usages.insert(clock.0,Component::ClockUsage{vec![], vec![], vec![]});
+            for clock in &component.declarations.clocks {
+                component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
             }
-
+            // iterer over slices?
             // Logic for edges
-            for edge in component.edges {
+            for edge in component.edges.clone() {
                 match edge.guard {
                     None => (),
                     Some(exp) => {
@@ -357,7 +357,7 @@ pub fn get_system_recipe(
                 }
             }
             // Logic for locations
-            for location in component.locations {
+            for location in component.locations.clone() {
                 match location.invariant {
                     None => (),
                     Some(exp) => {
