@@ -389,7 +389,7 @@ fn get_clocks_bool(bexp: &Box<BoolExpression>) -> Vec<String>{
             get_clocks_arith(left, &mut result_clocks);
             get_clocks_arith(right, &mut result_clocks);
         },
-        BoolExpression::Bool(bool) => ()
+        BoolExpression::Bool(_) => ()
     }
     return result_clocks;
 }
@@ -403,11 +403,11 @@ fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>
             get_clocks_arith(left, result_clocks);
             get_clocks_arith(right, result_clocks);
         }
-        ArithExpression::Clock(ref clock_index) => (),
+        ArithExpression::Clock(_) => (),
         ArithExpression::VarName(ref name) => {
             result_clocks.push(name.clone())
         }
-        ArithExpression::Int(ref int) => ()
+        ArithExpression::Int(_) => ()
     }
 }
 
