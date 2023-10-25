@@ -376,18 +376,18 @@ pub fn get_system_recipe(
 fn get_clocks_bool(bexp: &Box<BoolExpression>) -> Vec<String>{
     let mut result_clocks = vec![];
     match **bexp {
-        BoolExpression::AndOp(ref left, ref right)
-        | BoolExpression::OrOp(ref left, ref right) => {
-            get_clocks_bool(left);
-            get_clocks_bool(right);
+        BoolExpression::AndOp(left, right)
+        | BoolExpression::OrOp(left, right) => {
+            get_clocks_bool(&left);
+            get_clocks_bool(&right);
         },
-        BoolExpression::LessEQ(ref left, ref right)
-        | BoolExpression::GreatEQ(ref left, ref right)
-        | BoolExpression::LessT(ref left, ref right)
-        | BoolExpression::GreatT(ref left, ref right)
-        | BoolExpression::EQ(ref left, ref right) => {
-            get_clocks_arith(left, &mut result_clocks);
-            get_clocks_arith(right, &mut result_clocks);
+        BoolExpression::LessEQ(left, right)
+        | BoolExpression::GreatEQ(left, right)
+        | BoolExpression::LessT(left, right)
+        | BoolExpression::GreatT(left, right)
+        | BoolExpression::EQ(left, right) => {
+            get_clocks_arith(&left, &mut result_clocks);
+            get_clocks_arith(&right, &mut result_clocks);
         },
         BoolExpression::Bool(_) => ()
     }
@@ -395,13 +395,13 @@ fn get_clocks_bool(bexp: &Box<BoolExpression>) -> Vec<String>{
 }
 fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>) {
     match **aexp{
-        ArithExpression::Difference(ref left, ref right)
-        | ArithExpression::Addition(ref left, ref right)
-        | ArithExpression::Multiplication(ref left, ref right)
-        | ArithExpression::Division(ref left, ref right)
-        | ArithExpression::Modulo(ref left, ref right) =>{
-            get_clocks_arith(left, result_clocks);
-            get_clocks_arith(right, result_clocks);
+        ArithExpression::Difference(left, right)
+        | ArithExpression::Addition(left, right)
+        | ArithExpression::Multiplication(left, right)
+        | ArithExpression::Division(left, right)
+        | ArithExpression::Modulo(left, right) =>{
+            get_clocks_arith(&left, result_clocks);
+            get_clocks_arith(&right, result_clocks);
         }
         ArithExpression::Clock(_) => (),
         ArithExpression::VarName(ref name) => {

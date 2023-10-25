@@ -27,6 +27,8 @@ pub struct Component {
     pub special_id: Option<String>,
     pub clock_usages: HashMap<String, ClockUsage>,
 }
+
+///Details to what edges and locations, clocks are used and where there are updates
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockUsage {
     pub edges: Vec<Edge>,
