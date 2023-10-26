@@ -29,7 +29,7 @@ pub struct Component {
 }
 
 ///Details to what edges and locations, clocks are used and where there are updates
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockUsage {
     pub edges: Vec<Edge>,
     pub locations: Vec<Location>,

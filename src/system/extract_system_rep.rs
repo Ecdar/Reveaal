@@ -349,11 +349,40 @@ pub fn get_system_recipe(
             // iterer over slices?
             // Logic for edges
             for edge in component.edges.clone() {
+
                 match edge.guard {
                     None => (),
                     Some(exp) => {
-                        // Logik her
-
+                        // Find name of clocks present in the boolean expression
+                        let mut guard_result_clocks: Vec<String> = vec![];
+                        get_clocks_bool(&Box::new(exp), &mut guard_result_clocks);
+                        // We now have the current clocks in the edge guard in the result_clocks
+                        // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
+                        // To do this we use the clock names to extract the right struct from the clock_usages hashmap
+                        for clock_name in guard_result_clocks{
+                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
+                                *clock_struct.edges.push(edge.clone());
+                            }
+                        }
+                    }
+                }
+                match edge.update{
+                    None => (),
+                    Some(updates) => {
+                        for update in updates{
+                            // Save left side of update clock
+                            if let Some(clock_struct) = component.clock_usages.get_mut(update.get_variable_name()){
+                                *clock_struct.updates.push(edge.clone());
+                            }
+                            // Save right side of update clocks
+                            let mut update_result_clocks: Vec<String> = vec![];
+                            get_clocks_arith(&Box::new(update.get_expression().clone()), &mut update_result_clocks);
+                            for clock_name in update_result_clocks{
+                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
+                                    *clock_struct.updates.push(edge.clone());
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -362,39 +391,42 @@ pub fn get_system_recipe(
                 match location.invariant {
                     None => (),
                     Some(exp) => {
-                        // logik her
+                        let mut invariant_result_clocks: Vec<String> = vec![];
+                        get_clocks_bool(&Box::new(exp), &mut invariant_result_clocks);
+                        for clock_name in invariant_result_clocks{
+                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
+                                *clock_struct.locations.push(location.clone());
+                            }
+                        }
                     }
                 }
             }
-
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
         }
     }
 }
-fn get_clocks_bool(bexp: &Box<BoolExpression>) -> Vec<String>{
-    let mut result_clocks = vec![];
+fn get_clocks_bool(bexp: &Box<BoolExpression>, result_clocks: &mut Vec<String>) {
     match **bexp {
         BoolExpression::AndOp(left, right)
         | BoolExpression::OrOp(left, right) => {
-            get_clocks_bool(&left);
-            get_clocks_bool(&right);
+            get_clocks_bool(&left, result_clocks);
+            get_clocks_bool(&right, result_clocks);
         },
         BoolExpression::LessEQ(left, right)
         | BoolExpression::GreatEQ(left, right)
         | BoolExpression::LessT(left, right)
         | BoolExpression::GreatT(left, right)
         | BoolExpression::EQ(left, right) => {
-            get_clocks_arith(&left, &mut result_clocks);
-            get_clocks_arith(&right, &mut result_clocks);
+            get_clocks_arith(&left, result_clocks);
+            get_clocks_arith(&right, result_clocks);
         },
         BoolExpression::Bool(_) => ()
     }
-    return result_clocks;
 }
 fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>) {
-    match **aexp{
+    match **aexp {
         ArithExpression::Difference(left, right)
         | ArithExpression::Addition(left, right)
         | ArithExpression::Multiplication(left, right)
@@ -562,12 +594,26 @@ pub(crate) mod clock_reduction {
 #[cfg(test)]
 mod tests {
     use test_case::test_case;
+    use crate::data_reader::parse_edge::parse_guard;
+    use crate::extract_system_rep::get_clocks_bool;
     use crate::model_objects::expressions::{ArithExpression, BoolExpression};
 
-    // test_case(expression, expected ; name of test case)
-    #[test_case()]
-    fn test_get_clocks_bool(expression : &Box<BoolExpression>, expected : Vec<String>) {
+    // test_case(expression, expected, verdict; name of test case)
+    #[test_case("x<5","x<5", true ; "expected true")]
+    fn test_get_clocks_bool(expression : &String, expected : Vec<String>, verdict : bool) {
+        //Arrange
+        let input_expr = parse_guard(expression);
+        let mut results :Vec<String> = vec![];
+        //Act
+        results.extend(get_clocks_bool(&Box::new(input_expr.unwrap()), &mut results));
+        //Assert
+        assert_eq!(expected, results, verdict);
+    }
 
+    #[test]
+    fn test_get_clocks_bool_simple() {
+        let input_expr = parse_guard("x<5");
+        // let result_expr = Box::new()
     }
 
     #[test]
