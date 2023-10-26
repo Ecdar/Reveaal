@@ -6,7 +6,7 @@ use crate::system::executable_query::{
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::system::extract_state::get_state;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::transition_systems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -339,30 +339,30 @@ pub fn get_system_recipe(
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
-            // TODO Find the right clock usages and add them to the component's clocks HashMap(symboltable)
-
+            // Find the right clock usages and add them to the component's clocks HashMap(symboltable)
             // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
             /*component.clock_usages = HashMap::new();
             for clock in &component.declarations.clocks {
                 component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
             }
-            // iterer over slices?
             // Logic for edges
             for edge in component.edges.clone() {
-
+                let mut seen_clocks_edges = HashSet::new();
                 match edge.guard {
                     None => (),
                     Some(exp) => {
-                        // TODO make sure no duplicate clocks gets saved to ClockUsage struct( a BoolExpression, can contain the same clock multiple times)
                         // Find name of clocks present in the boolean expression
                         let mut guard_result_clocks: Vec<String> = vec![];
                         get_clocks_bool(&Box::new(exp), &mut guard_result_clocks);
                         // We now have the current clocks in the edge guard in the result_clocks
                         // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
                         // To do this we use the clock names to extract the right struct from the clock_usages hashmap
-                        for clock_name in guard_result_clocks{
-                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
-                                *clock_struct.edges.push(edge.clone());
+                        for clock_name in guard_result_clocks {
+                            if !seen_clocks_edges.contains(&clock_name) {
+                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                    *clock_struct.edges.push(edge.clone());
+                                }
+                                seen_clocks_edges.insert(clock_name);
                             }
                         }
                     }
@@ -370,18 +370,25 @@ pub fn get_system_recipe(
                 match edge.update{
                     None => (),
                     Some(updates) => {
+                        let mut seen_clocks_updates = HashSet::new();
                         for update in updates{
-                            // TODO make sure no duplicate clocks gets saved to ClockUsage struct(Updates can also contain multiple clocks)
                             // Save left side of update clock
-                            if let Some(clock_struct) = component.clock_usages.get_mut(update.get_variable_name()){
-                                *clock_struct.updates.push(edge.clone());
+                            let update_name: String = update.get_variable_name().to_string();
+                            if !seen_clocks_updates.contains(&update_name) {
+                                if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
+                                    *clock_struct.updates.push(edge.clone());
+                                }
+                                seen_clocks_updates.insert(update_name);
                             }
                             // Save right side of update clocks
                             let mut update_result_clocks: Vec<String> = vec![];
                             get_clocks_arith(&Box::new(update.get_expression().clone()), &mut update_result_clocks);
                             for clock_name in update_result_clocks{
-                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
-                                    *clock_struct.updates.push(edge.clone());
+                                if !seen_clocks_edges.contains(&clock_name) {
+                                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                        *clock_struct.updates.push(edge.clone());
+                                    }
+                                    seen_clocks_edges.insert(clock_name);
                                 }
                             }
                         }
@@ -391,14 +398,17 @@ pub fn get_system_recipe(
             // Logic for locations
             for location in component.locations.clone() {
                 match location.invariant {
-                    // TODO make sure no duplicate clocks gets saved to ClockUsage struct(Bool can contain multiple)
                     None => (),
                     Some(exp) => {
+                        let mut seen_clocks_invariants = HashSet::new();
                         let mut invariant_result_clocks: Vec<String> = vec![];
                         get_clocks_bool(&Box::new(exp), &mut invariant_result_clocks);
                         for clock_name in invariant_result_clocks{
-                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name){
-                                *clock_struct.locations.push(location.clone());
+                            if !seen_clocks_invariants.contains(&clock_name) {
+                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                    *clock_struct.locations.push(location.clone());
+                                }
+                                seen_clocks_invariants.insert(clock_name);
                             }
                         }
                     }
