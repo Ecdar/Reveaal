@@ -639,4 +639,17 @@ mod tests {
             }
         };
     }
+
+    #[test_case("5",        vec![],                                  true  ; "No clocks")]
+    #[test_case("5+x",      vec!["x".to_string()],                   true  ; "A single clock with addition")]
+    #[test_case("y-9",      vec!["y".to_string()],                   true  ; "A single clock with difference")]
+    #[test_case("zz*6/z",   vec!["zz".to_string(), "z".to_string()], true  ; "2 clocks with similar names")]
+    #[test_case("5%alpha",  vec!["alpha".to_string()],               true  ; "Longer clock names")]
+    #[test_case("5%alpha",  vec!["x".to_string()],                   false ; "One clock, should fail")]
+    fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
+        // We test arith expressions by converting them into boolean expressions and then running the bool test below.
+        let mut expression = expression.to_owned();
+        expression.push_str("<0");
+        test_get_clocks_bool(&expression, expected, verdict);
+    }
 }
