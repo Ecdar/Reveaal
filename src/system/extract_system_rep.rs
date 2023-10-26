@@ -350,17 +350,17 @@ pub fn get_system_recipe(
                 let mut seen_clocks_edges = HashSet::new();
                 match edge.guard {
                     None => (),
-                    Some(exp) => {
+                    Some(ref exp) => {
                         // Find name of clocks present in the boolean expression
                         let mut guard_result_clocks: Vec<String> = vec![];
-                        get_clocks_bool(&Box::new(exp), &mut guard_result_clocks);
+                        get_clocks_bool(&Box::new(exp.clone()), &mut guard_result_clocks);
                         // We now have the current clocks in the edge guard in the result_clocks
                         // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
                         // To do this we use the clock names to extract the right struct from the clock_usages hashmap
                         for clock_name in guard_result_clocks {
                             if !seen_clocks_edges.contains(&clock_name) {
                                 if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                    *clock_struct.edges.push(edge.clone());
+                                    clock_struct.edges.push(edge.clone());
                                 }
                                 seen_clocks_edges.insert(clock_name);
                             }
@@ -369,14 +369,14 @@ pub fn get_system_recipe(
                 }
                 match edge.update{
                     None => (),
-                    Some(updates) => {
+                    Some(ref updates) => {
                         let mut seen_clocks_updates = HashSet::new();
-                        for update in updates{
+                        for update in updates.clone(){
                             // Save left side of update clock
                             let update_name: String = update.get_variable_name().to_string();
                             if !seen_clocks_updates.contains(&update_name) {
                                 if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
-                                    *clock_struct.updates.push(edge.clone());
+                                    clock_struct.updates.push(edge.clone());
                                 }
                                 seen_clocks_updates.insert(update_name);
                             }
@@ -386,7 +386,7 @@ pub fn get_system_recipe(
                             for clock_name in update_result_clocks{
                                 if !seen_clocks_edges.contains(&clock_name) {
                                     if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                        *clock_struct.updates.push(edge.clone());
+                                        clock_struct.updates.push(edge.clone());
                                     }
                                     seen_clocks_edges.insert(clock_name);
                                 }
@@ -399,14 +399,14 @@ pub fn get_system_recipe(
             for location in component.locations.clone() {
                 match location.invariant {
                     None => (),
-                    Some(exp) => {
+                    Some(ref exp) => {
                         let mut seen_clocks_invariants = HashSet::new();
                         let mut invariant_result_clocks: Vec<String> = vec![];
-                        get_clocks_bool(&Box::new(exp), &mut invariant_result_clocks);
+                        get_clocks_bool(&Box::new(exp.clone()), &mut invariant_result_clocks);
                         for clock_name in invariant_result_clocks{
                             if !seen_clocks_invariants.contains(&clock_name) {
                                 if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                    *clock_struct.locations.push(location.clone());
+                                    clock_struct.locations.push(location.clone());
                                 }
                                 seen_clocks_invariants.insert(clock_name);
                             }
@@ -422,31 +422,31 @@ pub fn get_system_recipe(
 }
 fn get_clocks_bool(bexp: &Box<BoolExpression>, result_clocks: &mut Vec<String>) {
     match **bexp {
-        BoolExpression::AndOp(left, right)
-        | BoolExpression::OrOp(left, right) => {
-            get_clocks_bool(&left, result_clocks);
-            get_clocks_bool(&right, result_clocks);
+        BoolExpression::AndOp(ref left, ref right)
+        | BoolExpression::OrOp(ref left, ref right) => {
+            get_clocks_bool(left, result_clocks);
+            get_clocks_bool(right, result_clocks);
         },
-        BoolExpression::LessEQ(left, right)
-        | BoolExpression::GreatEQ(left, right)
-        | BoolExpression::LessT(left, right)
-        | BoolExpression::GreatT(left, right)
-        | BoolExpression::EQ(left, right) => {
-            get_clocks_arith(&left, result_clocks);
-            get_clocks_arith(&right, result_clocks);
+        BoolExpression::LessEQ(ref left, ref right)
+        | BoolExpression::GreatEQ(ref left,ref right)
+        | BoolExpression::LessT(ref left,ref right)
+        | BoolExpression::GreatT(ref left,ref right)
+        | BoolExpression::EQ(ref left,ref right) => {
+            get_clocks_arith(left, result_clocks);
+            get_clocks_arith(right, result_clocks);
         },
         BoolExpression::Bool(_) => ()
     }
 }
 fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>) {
     match **aexp {
-        ArithExpression::Difference(left, right)
-        | ArithExpression::Addition(left, right)
-        | ArithExpression::Multiplication(left, right)
-        | ArithExpression::Division(left, right)
-        | ArithExpression::Modulo(left, right) =>{
-            get_clocks_arith(&left, result_clocks);
-            get_clocks_arith(&right, result_clocks);
+        ArithExpression::Difference(ref left,ref right)
+        | ArithExpression::Addition(ref left, ref right)
+        | ArithExpression::Multiplication(ref left, ref right)
+        | ArithExpression::Division(ref left,ref right)
+        | ArithExpression::Modulo(ref left, ref right) =>{
+            get_clocks_arith(left, result_clocks);
+            get_clocks_arith(right, result_clocks);
         }
         ArithExpression::Clock(_) => (),
         ArithExpression::VarName(ref name) => {
