@@ -341,7 +341,7 @@ pub fn get_system_recipe(
             component.special_id = id.clone();
             // Find the right clock usages and add them to the component's clocks HashMap(symboltable)
             // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
-            /*component.clock_usages = HashMap::new();
+            component.clock_usages = HashMap::new();
             for clock in &component.declarations.clocks {
                 component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
             }
@@ -413,7 +413,7 @@ pub fn get_system_recipe(
                         }
                     }
                 }
-            }*/
+            }
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
