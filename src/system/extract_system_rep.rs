@@ -353,6 +353,7 @@ pub fn get_system_recipe(
                 match edge.guard {
                     None => (),
                     Some(exp) => {
+                        // TODO make sure no duplicate clocks gets saved to ClockUsage struct( a BoolExpression, can contain the same clock multiple times)
                         // Find name of clocks present in the boolean expression
                         let mut guard_result_clocks: Vec<String> = vec![];
                         get_clocks_bool(&Box::new(exp), &mut guard_result_clocks);
@@ -370,6 +371,7 @@ pub fn get_system_recipe(
                     None => (),
                     Some(updates) => {
                         for update in updates{
+                            // TODO make sure no duplicate clocks gets saved to ClockUsage struct(Updates can also contain multiple clocks)
                             // Save left side of update clock
                             if let Some(clock_struct) = component.clock_usages.get_mut(update.get_variable_name()){
                                 *clock_struct.updates.push(edge.clone());
@@ -389,6 +391,7 @@ pub fn get_system_recipe(
             // Logic for locations
             for location in component.locations.clone() {
                 match location.invariant {
+                    // TODO make sure no duplicate clocks gets saved to ClockUsage struct(Bool can contain multiple)
                     None => (),
                     Some(exp) => {
                         let mut invariant_result_clocks: Vec<String> = vec![];
