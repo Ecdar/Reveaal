@@ -346,6 +346,7 @@ pub fn get_system_recipe(
                 component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
             }
             // Logic for edges
+            // Mulig iterator for component.edges.clone for at filtrere edges uden expr i guard eller update
             for edge in component.edges.clone() {
                 let mut seen_clocks_edges = HashSet::new();
                 match edge.guard {
@@ -611,26 +612,46 @@ mod tests {
     use crate::extract_system_rep::get_clocks_bool;
     use crate::model_objects::expressions::{ArithExpression, BoolExpression};
 
-    // test_case(expression, expected, verdict; name of test case)
-    #[test_case("x<5","x<5", true ; "expected true")]
-    fn test_get_clocks_bool(expression : &String, expected : Vec<String>, verdict : bool) {
-        //Arrange
-        let input_expr = parse_guard(expression);
-        let mut results :Vec<String> = vec![];
-        //Act
-        results.extend(get_clocks_bool(&Box::new(input_expr.unwrap()), &mut results));
-        //Assert
-        assert_eq!(expected, results, verdict);
+    #[test_case("0>4",              vec![],                                         true  ; "No clocks")]
+    #[test_case("x<=5",             vec!["x".to_string()],                          true  ; "A single clock using leq")]
+    #[test_case("x <= 5",           vec!["x".to_string()],                          true  ; "A single clock with spaces")]
+    #[test_case("x==5",             vec!["x".to_string()],                          true  ; "A single clock using eq")]
+    #[test_case("x>=5",             vec!["x".to_string()],                          true  ; "A single clock using geq")]
+    #[test_case("x>=xx",            vec!["x".to_string(), "xx".to_string()],        true  ; "Two clocks with similar names")]
+    #[test_case("x<5&&x>0",         vec!["x".to_string(), "x".to_string()],         true  ; "Two occurrences of the same clock")]
+    #[test_case("x<y",              vec!["x".to_string(), "y".to_string()],         true  ; "Two different clocks")]
+    #[test_case("alpha<5",          vec!["alpha".to_string()],                      true  ; "Longer clock names")]
+    #[test_case("x>2&&y+1<=6",      vec!["x".to_string(), "y".to_string()],         true  ; "Two different clocks in two different expressions")]
+    #[test_case("x<5&&b>1",         vec!["x".to_string(), "y".to_string()],         false ; "Two clocks, should fail")]
+    #[test_case("x<5+4",            vec!["x".to_string()],                          true  ; "A single clock with arithmetic expressions")]
+    #[test_case("x<5+4||y==6*4",    vec!["x".to_string(), "y".to_string()],         true  ; "Two clocks with arithmetic expressions")]
+    fn test_get_clocks_bool(expression: &str, expected: Vec<String>, verdict: bool) {
+        // Arrange
+        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
+        match parse_guard(expression) {
+            Ok(input_expr) => {
+                let mut results: Vec<String> = vec![];
+                // Act
+                get_clocks_bool(&Box::new(input_expr), &mut results);
+                // Assert
+                assert_eq!((expected == results), verdict);
+            }
+            Err(err) => {
+                panic!("Test failed: {}", err);
+            }
+        };
     }
 
-    #[test]
-    fn test_get_clocks_bool_simple() {
-        let input_expr = parse_guard("x<5");
-        // let result_expr = Box::new()
-    }
-
-    #[test]
-    fn test_get_clocks_arith() {
-
+    #[test_case("5",        vec![],                                  true  ; "No clocks")]
+    #[test_case("5+x",      vec!["x".to_string()],                   true  ; "A single clock with addition")]
+    #[test_case("y-9",      vec!["y".to_string()],                   true  ; "A single clock with difference")]
+    #[test_case("zz*6/z",   vec!["zz".to_string(), "z".to_string()], true  ; "2 clocks with similar names")]
+    #[test_case("5%alpha",  vec!["alpha".to_string()],               true  ; "Longer clock names")]
+    #[test_case("5%alpha",  vec!["x".to_string()],                   false ; "One clock, should fail")]
+    fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
+        // We test arith expressions by converting them into boolean expressions and then running the bool test below.
+        let mut expression = expression.to_owned();
+        expression.push_str("<0");
+        test_get_clocks_bool(&expression, expected, verdict);
     }
 }
