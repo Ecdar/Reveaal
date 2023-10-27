@@ -339,13 +339,12 @@ pub fn get_system_recipe(
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
-            // Find the right clock usages and add them to the component's clocks HashMap(symboltable)
+
             // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
             component.clock_usages = HashMap::default();
             for (clock, _) in &component.declarations.clocks {
                 component.clock_usages.insert(clock.clone(),ClockUsage::default());
             }
-
             populate_usages_with_guards(&mut component);
             populate_usages_with_updates(&mut component);
             populate_usages_with_locations(&mut component);
@@ -363,10 +362,6 @@ fn populate_usages_with_guards(component: &mut Component) {
         match edge.guard {
             None => (),
             Some(ref exp) => {
-                // Find name of clocks present in the boolean expression
-                // We now have the current clocks in the edge guard in the result_clocks
-                // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
-                // To do this we use the clock names to extract the right struct from the clock_usages hashmap
                 for clock_name in exp.get_var_names() {
                     if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
                         clock_struct.add_edge(edge.id.clone())
