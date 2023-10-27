@@ -404,16 +404,22 @@ impl ArithExpression {
         }
     }
 
+    pub fn get_var_names(&self) -> Vec<String> {
+        let mut vec = vec![];
+        self.get_var_names_rec(&mut vec);
+        vec
+    }
+
     /// Finds the clocks used in the expression and put them into result_clocks.
-    pub fn get_var_names(&self, result_clocks: &mut Vec<String>) {
+    pub fn get_var_names_rec(&self, result_clocks: &mut Vec<String>) {
         match self {
             ArithExpression::Difference(ref left,ref right)
             | ArithExpression::Addition(ref left, ref right)
             | ArithExpression::Multiplication(ref left, ref right)
             | ArithExpression::Division(ref left,ref right)
             | ArithExpression::Modulo(ref left, ref right) =>{
-                left.get_var_names(result_clocks);
-                right.get_var_names(result_clocks);
+                left.get_var_names_rec(result_clocks);
+                right.get_var_names_rec(result_clocks);
             }
             ArithExpression::Clock(_) => (),
             ArithExpression::VarName(ref name) => {
@@ -627,9 +633,8 @@ mod tests {
         // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
         match parse_guard(&expression) {
             Ok(input_expr) => {
-                let mut results: Vec<String> = vec![];
                 // Act
-                input_expr.get_var_names(&mut results);
+                let results: Vec<String> = input_expr.get_var_names();
                 // Assert
                 assert_eq!((expected == results), verdict);
             }

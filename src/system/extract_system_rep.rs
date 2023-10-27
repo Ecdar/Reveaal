@@ -346,15 +346,14 @@ pub fn get_system_recipe(
                 component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
             }
             // Logic for edges
-            // Mulig iterator for component.edges.clone for at filtrere edges uden expr i guard eller update
+            // Possible iterator for component.edges.clone to filter edges without expr in guard or update.
             for edge in component.edges.clone() {
                 let mut seen_clocks_edges = HashSet::new();
                 match edge.guard {
                     None => (),
                     Some(ref exp) => {
                         // Find name of clocks present in the boolean expression
-                        let mut guard_result_clocks: Vec<String> = vec![];
-                        exp.get_var_names(&mut guard_result_clocks);
+                        let guard_result_clocks = exp.get_var_names();
                         // We now have the current clocks in the edge guard in the result_clocks
                         // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
                         // To do this we use the clock names to extract the right struct from the clock_usages hashmap
@@ -382,8 +381,7 @@ pub fn get_system_recipe(
                                 seen_clocks_updates.insert(update_name);
                             }
                             // Save right side of update clocks
-                            let mut update_result_clocks: Vec<String> = vec![];
-                            update.expression.get_var_names(&mut update_result_clocks);
+                            let update_result_clocks = update.expression.get_var_names();
                             for clock_name in update_result_clocks{
                                 if !seen_clocks_edges.contains(&clock_name) {
                                     if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
@@ -402,8 +400,7 @@ pub fn get_system_recipe(
                     None => (),
                     Some(ref exp) => {
                         let mut seen_clocks_invariants = HashSet::new();
-                        let mut invariant_result_clocks: Vec<String> = vec![];
-                        exp.get_var_names(&mut invariant_result_clocks);
+                        let invariant_result_clocks = exp.get_var_names();
                         for clock_name in invariant_result_clocks{
                             if !seen_clocks_invariants.contains(&clock_name) {
                                 if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
