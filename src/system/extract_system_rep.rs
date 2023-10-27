@@ -345,58 +345,12 @@ pub fn get_system_recipe(
             for (clock, _) in &component.declarations.clocks {
                 component.clock_usages.insert(clock.clone(),ClockUsage::default());
             }
-            // Logic for edges
-            // Possible iterator for component.edges.clone to filter edges without expr in guard or update.
-            for edge in component.edges.clone() {
-                match edge.guard {
-                    None => (),
-                    Some(ref exp) => {
-                        // Find name of clocks present in the boolean expression
-                        let guard_result_clocks = exp.get_var_names();
-                        // We now have the current clocks in the edge guard in the result_clocks
-                        // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
-                        // To do this we use the clock names to extract the right struct from the clock_usages hashmap
-                        for clock_name in guard_result_clocks {
-                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                clock_struct.add_edge(edge.id.clone())
-                            }
-                        }
-                    }
-                }
-                match edge.update{
-                    None => (),
-                    Some(ref updates) => {
-                        for update in updates.clone(){
-                            // Save left side of update clock
-                            let update_name: String = update.get_variable_name().to_string();
-                            if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
-                                clock_struct.add_update(edge.id.clone());
-                            }
-                            // Save right side of update clocks
-                            let update_result_clocks = update.expression.get_var_names();
-                            for clock_name in update_result_clocks {
-                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                    clock_struct.add_edge(edge.id.clone())
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+
+            populate_usages_with_guards(&mut component);
+            populate_usages_with_updates(&mut component);
+            populate_usages_with_locations(&mut component);
+
             // Logic for locations
-            for location in component.locations.clone() {
-                match location.invariant {
-                    None => (),
-                    Some(ref exp) => {
-                        let invariant_result_clocks = exp.get_var_names();
-                        for clock_name in invariant_result_clocks{
-                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                clock_struct.add_location(location.id.clone())
-                            }
-                        }
-                    }
-                }
-            }
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
             Box::new(SystemRecipe::Component(Box::new(component)))
@@ -404,6 +358,62 @@ pub fn get_system_recipe(
     }
 }
 
+fn populate_usages_with_guards(component: &mut Component) {
+    for edge in component.edges.clone() {
+        match edge.guard {
+            None => (),
+            Some(ref exp) => {
+                // Find name of clocks present in the boolean expression
+                // We now have the current clocks in the edge guard in the result_clocks
+                // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
+                // To do this we use the clock names to extract the right struct from the clock_usages hashmap
+                for clock_name in exp.get_var_names() {
+                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                        clock_struct.add_edge(edge.id.clone())
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn populate_usages_with_updates(component: &mut Component) {
+    for edge in component.edges.clone() {
+        match edge.update {
+            None => (),
+            Some(ref updates) => {
+                for update in updates.clone() {
+                    // Save left side of update clock
+                    let update_name: String = update.get_variable_name().to_string();
+                    if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
+                        clock_struct.add_update(edge.id.clone());
+                    }
+                    // Save right side of update clocks
+                    for clock_name in update.expression.get_var_names() {
+                        if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                            clock_struct.add_edge(edge.id.clone())
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn populate_usages_with_locations(component: &mut Component) {
+    for location in component.locations.clone() {
+        match location.invariant {
+            None => (),
+            Some(ref exp) => {
+                for clock_name in exp.get_var_names(){
+                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                        clock_struct.add_location(location.id.clone())
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 /// Module containing a "safer" function for clock reduction, along with some helper functions
