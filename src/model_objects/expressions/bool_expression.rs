@@ -396,16 +396,16 @@ impl BoolExpression {
     }
 
     /// Checks if the clock name is used in the expression.
-    pub fn has_varname(&self, name: &String) -> bool {
+    pub fn has_var_name(&self, name: &String) -> bool {
         match self {
             BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => {
-                p1.has_varname(name) || p2.has_varname(name)
+                p1.has_var_name(name) || p2.has_var_name(name)
             }
             BoolExpression::LessEQ(a1, a2)
             | BoolExpression::GreatEQ(a1, a2)
             | BoolExpression::LessT(a1, a2)
             | BoolExpression::GreatT(a1, a2)
-            | BoolExpression::EQ(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            | BoolExpression::EQ(a1, a2) => a1.has_var_name(name) || a2.has_var_name(name),
             BoolExpression::Bool(_) => false,
         }
     }
@@ -433,22 +433,22 @@ impl BoolExpression {
     /// Replaces all occurrences of `ArithExpression::VarName(old)` with `new`
 
     /// # Arguments
-    /// `old`: The `varname` to be replaced
+    /// `old`: The `var name` to be replaced
 
-    /// `new`: The new varname
-    pub fn replace_varname(&mut self, old: &String, new: &String) {
+    /// `new`: The new var name
+    pub fn replace_var_name(&mut self, old: &String, new: &String) {
         match self {
             BoolExpression::AndOp(e1, e2) | BoolExpression::OrOp(e1, e2) => {
-                e1.replace_varname(old, new);
-                e2.replace_varname(old, new);
+                e1.replace_var_name(old, new);
+                e2.replace_var_name(old, new);
             }
             BoolExpression::LessEQ(e1, e2)
             | BoolExpression::GreatEQ(e1, e2)
             | BoolExpression::LessT(e1, e2)
             | BoolExpression::GreatT(e1, e2)
             | BoolExpression::EQ(e1, e2) => {
-                e1.replace_varname(old, new);
-                e2.replace_varname(old, new);
+                e1.replace_var_name(old, new);
+                e2.replace_var_name(old, new);
             }
             BoolExpression::Bool(_) => (),
         }

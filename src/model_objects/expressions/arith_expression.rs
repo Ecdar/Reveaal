@@ -392,13 +392,13 @@ impl ArithExpression {
     }
 
     /// Checks if the clock name is used in the expression.
-    pub fn has_varname(&self, name: &String) -> bool {
+    pub fn has_var_name(&self, name: &String) -> bool {
         match self {
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
             | ArithExpression::Division(a1, a2)
-            | ArithExpression::Modulo(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
+            | ArithExpression::Modulo(a1, a2) => a1.has_var_name(name) || a2.has_var_name(name),
             ArithExpression::Clock(_) | ArithExpression::Int(_) => false,
             ArithExpression::VarName(n) => name == n,
         }
@@ -426,18 +426,18 @@ impl ArithExpression {
     /// Replaces all occurrences of `ArithExpression::VarName(old)` with `new`
 
     /// # Arguments
-    /// `old`: The `varname` to be replaced
+    /// `old`: The `var name` to be replaced
 
-    /// `new`: The new varname
-    pub fn replace_varname(&mut self, old: &String, new: &String) {
+    /// `new`: The new var name
+    pub fn replace_var_name(&mut self, old: &String, new: &String) {
         match self {
             ArithExpression::Difference(a1, a2)
             | ArithExpression::Addition(a1, a2)
             | ArithExpression::Multiplication(a1, a2)
             | ArithExpression::Division(a1, a2)
             | ArithExpression::Modulo(a1, a2) => {
-                a1.replace_varname(old, new);
-                a2.replace_varname(old, new);
+                a1.replace_var_name(old, new);
+                a2.replace_var_name(old, new);
             }
             ArithExpression::Clock(_) | ArithExpression::Int(_) => (),
             ArithExpression::VarName(name) => {

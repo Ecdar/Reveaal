@@ -136,7 +136,7 @@ impl Component {
                 // The guard is overwritten to `false`. This can be done since we assume
                 // that all edges with guards involving the given clock is not reachable
                 // in some composite system.
-                if let Some(guard) = e.guard.as_mut().filter(|g| g.has_varname(&name)) {
+                if let Some(guard) = e.guard.as_mut().filter(|g| g.has_var_name(&name)) {
                     *guard = BoolExpression::Bool(false);
                 }
                 if let Some(inv) = e.update.as_mut() {
@@ -151,7 +151,7 @@ impl Component {
         self.locations
             .iter_mut()
             .filter_map(|l| l.invariant.as_mut())
-            .filter(|i| i.has_varname(&name))
+            .filter(|i| i.has_var_name(&name))
             .for_each(|i| *i = BoolExpression::Bool(false));
 
         info!(
