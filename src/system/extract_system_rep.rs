@@ -343,12 +343,11 @@ pub fn get_system_recipe(
             // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
             component.clock_usages = HashMap::new();
             for clock in &component.declarations.clocks {
-                component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: vec![], locations: vec![], updates: vec![]});
+                component.clock_usages.insert(clock.0.clone(),ClockUsage{edges: HashSet::default(), locations: HashSet::default(), updates: HashSet::default()});
             }
             // Logic for edges
             // Possible iterator for component.edges.clone to filter edges without expr in guard or update.
             for edge in component.edges.clone() {
-                let mut seen_clocks_edges = HashSet::new();
                 match edge.guard {
                     None => (),
                     Some(ref exp) => {
@@ -358,11 +357,10 @@ pub fn get_system_recipe(
                         // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
                         // To do this we use the clock names to extract the right struct from the clock_usages hashmap
                         for clock_name in guard_result_clocks {
-                            if !seen_clocks_edges.contains(&clock_name) {
-                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                    clock_struct.edges.push(edge.clone());
+                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                if !clock_struct.edges.contains(&edge.id) {
+                                    clock_struct.edges.insert(edge.id.clone());
                                 }
-                                seen_clocks_edges.insert(clock_name);
                             }
                         }
                     }
@@ -370,24 +368,22 @@ pub fn get_system_recipe(
                 match edge.update{
                     None => (),
                     Some(ref updates) => {
-                        let mut seen_clocks_updates = HashSet::new();
+
                         for update in updates.clone(){
                             // Save left side of update clock
                             let update_name: String = update.get_variable_name().to_string();
-                            if !seen_clocks_updates.contains(&update_name) {
-                                if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
-                                    clock_struct.updates.push(edge.clone());
+                            if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
+                                if !clock_struct.updates.contains(&edge.id) {
+                                    clock_struct.updates.insert(edge.id.clone());
                                 }
-                                seen_clocks_updates.insert(update_name);
                             }
                             // Save right side of update clocks
                             let update_result_clocks = update.expression.get_var_names();
-                            for clock_name in update_result_clocks{
-                                if !seen_clocks_edges.contains(&clock_name) {
-                                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                        clock_struct.updates.push(edge.clone());
+                            for clock_name in update_result_clocks {
+                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                    if !clock_struct.edges.contains(&edge.id) {
+                                        clock_struct.edges.insert(edge.id.clone());
                                     }
-                                    seen_clocks_edges.insert(clock_name);
                                 }
                             }
                         }
@@ -399,14 +395,12 @@ pub fn get_system_recipe(
                 match location.invariant {
                     None => (),
                     Some(ref exp) => {
-                        let mut seen_clocks_invariants = HashSet::new();
                         let invariant_result_clocks = exp.get_var_names();
                         for clock_name in invariant_result_clocks{
-                            if !seen_clocks_invariants.contains(&clock_name) {
-                                if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
-                                    clock_struct.locations.push(location.clone());
+                            if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                                if !clock_struct.locations.contains(&location.id) {
+                                    clock_struct.locations.insert(location.id.clone());
                                 }
-                                seen_clocks_invariants.insert(clock_name);
                             }
                         }
                     }

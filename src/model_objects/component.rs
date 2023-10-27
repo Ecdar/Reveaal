@@ -31,9 +31,9 @@ pub struct Component {
 ///Details to what edges and locations, clocks are used and where there are updates
 #[derive(Debug, Default, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockUsage {
-    pub edges: Vec<Edge>,
-    pub locations: Vec<Location>,
-    pub updates: Vec<Edge>,
+    pub edges: HashSet<String>,
+    pub locations: HashSet<String>,
+    pub updates: HashSet<String>,
 }
 
 impl DeclarationProvider for Component {
