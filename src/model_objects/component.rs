@@ -31,9 +31,30 @@ pub struct Component {
 ///Details to what edges and locations, clocks are used and where there are updates
 #[derive(Debug, Default, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockUsage {
-    pub edges: HashSet<String>,
-    pub locations: HashSet<String>,
-    pub updates: HashSet<String>,
+    edges: HashSet<String>,
+    locations: HashSet<String>,
+    updates: HashSet<String>,
+}
+
+impl ClockUsage {
+    pub fn is_in_edge(&self, edge_id: &str) -> bool {
+        self.edges.contains(edge_id) || self.updates.contains(edge_id)
+    }
+    pub fn add_edge(&mut self, edge_id: String) {
+        self.edges.insert(edge_id);
+    }
+    pub fn is_updated_in_edge(&self, edge_id: &str) -> bool {
+        self.updates.contains(edge_id)
+    }
+    pub fn add_update(&mut self, edge_id: String) {
+        self.updates.insert(edge_id);
+    }
+    pub fn is_in_location(&self, location_id: &str) -> bool {
+        self.locations.contains(location_id)
+    }
+    pub fn add_location(&mut self, location_id: String) {
+        self.locations.insert(location_id);
+    }
 }
 
 impl DeclarationProvider for Component {
