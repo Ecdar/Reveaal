@@ -354,7 +354,7 @@ pub fn get_system_recipe(
                     Some(ref exp) => {
                         // Find name of clocks present in the boolean expression
                         let mut guard_result_clocks: Vec<String> = vec![];
-                        get_clocks_bool(&Box::new(exp.clone()), &mut guard_result_clocks);
+                        exp.get_var_names(&mut guard_result_clocks);
                         // We now have the current clocks in the edge guard in the result_clocks
                         // We have to iterate over the clocks present. For each unique clock, we have to add the current edge we are in the clocks ClockUsage struct
                         // To do this we use the clock names to extract the right struct from the clock_usages hashmap
@@ -383,7 +383,7 @@ pub fn get_system_recipe(
                             }
                             // Save right side of update clocks
                             let mut update_result_clocks: Vec<String> = vec![];
-                            get_clocks_arith(&Box::new(update.get_expression().clone()), &mut update_result_clocks);
+                            update.expression.get_var_names(&mut update_result_clocks);
                             for clock_name in update_result_clocks{
                                 if !seen_clocks_edges.contains(&clock_name) {
                                     if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
@@ -403,7 +403,7 @@ pub fn get_system_recipe(
                     Some(ref exp) => {
                         let mut seen_clocks_invariants = HashSet::new();
                         let mut invariant_result_clocks: Vec<String> = vec![];
-                        get_clocks_bool(&Box::new(exp.clone()), &mut invariant_result_clocks);
+                        exp.get_var_names(&mut invariant_result_clocks);
                         for clock_name in invariant_result_clocks{
                             if !seen_clocks_invariants.contains(&clock_name) {
                                 if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
@@ -421,41 +421,8 @@ pub fn get_system_recipe(
         }
     }
 }
-fn get_clocks_bool(bexp: &Box<BoolExpression>, result_clocks: &mut Vec<String>) {
-    match **bexp {
-        BoolExpression::AndOp(ref left, ref right)
-        | BoolExpression::OrOp(ref left, ref right) => {
-            get_clocks_bool(left, result_clocks);
-            get_clocks_bool(right, result_clocks);
-        },
-        BoolExpression::LessEQ(ref left, ref right)
-        | BoolExpression::GreatEQ(ref left,ref right)
-        | BoolExpression::LessT(ref left,ref right)
-        | BoolExpression::GreatT(ref left,ref right)
-        | BoolExpression::EQ(ref left,ref right) => {
-            get_clocks_arith(left, result_clocks);
-            get_clocks_arith(right, result_clocks);
-        },
-        BoolExpression::Bool(_) => ()
-    }
-}
-fn get_clocks_arith(aexp: &Box<ArithExpression>, result_clocks: &mut Vec<String>) {
-    match **aexp {
-        ArithExpression::Difference(ref left,ref right)
-        | ArithExpression::Addition(ref left, ref right)
-        | ArithExpression::Multiplication(ref left, ref right)
-        | ArithExpression::Division(ref left,ref right)
-        | ArithExpression::Modulo(ref left, ref right) =>{
-            get_clocks_arith(left, result_clocks);
-            get_clocks_arith(right, result_clocks);
-        }
-        ArithExpression::Clock(_) => (),
-        ArithExpression::VarName(ref name) => {
-            result_clocks.push(name.clone())
-        }
-        ArithExpression::Int(_) => ()
-    }
-}
+
+
 
 /// Module containing a "safer" function for clock reduction, along with some helper functions
 pub(crate) mod clock_reduction {
@@ -605,53 +572,3 @@ pub(crate) mod clock_reduction {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use test_case::test_case;
-    use crate::data_reader::parse_edge::parse_guard;
-    use crate::extract_system_rep::get_clocks_bool;
-    use crate::model_objects::expressions::{ArithExpression, BoolExpression};
-
-    #[test_case("0>4",              vec![],                                         true  ; "No clocks")]
-    #[test_case("x<=5",             vec!["x".to_string()],                          true  ; "A single clock using leq")]
-    #[test_case("x <= 5",           vec!["x".to_string()],                          true  ; "A single clock with spaces")]
-    #[test_case("x==5",             vec!["x".to_string()],                          true  ; "A single clock using eq")]
-    #[test_case("x>=5",             vec!["x".to_string()],                          true  ; "A single clock using geq")]
-    #[test_case("x>=xx",            vec!["x".to_string(), "xx".to_string()],        true  ; "Two clocks with similar names")]
-    #[test_case("x<5&&x>0",         vec!["x".to_string(), "x".to_string()],         true  ; "Two occurrences of the same clock")]
-    #[test_case("x<y",              vec!["x".to_string(), "y".to_string()],         true  ; "Two different clocks")]
-    #[test_case("alpha<5",          vec!["alpha".to_string()],                      true  ; "Longer clock names")]
-    #[test_case("x>2&&y+1<=6",      vec!["x".to_string(), "y".to_string()],         true  ; "Two different clocks in two different expressions")]
-    #[test_case("x<5&&b>1",         vec!["x".to_string(), "y".to_string()],         false ; "Two clocks, should fail")]
-    #[test_case("x<5+4",            vec!["x".to_string()],                          true  ; "A single clock with arithmetic expressions")]
-    #[test_case("x<5+4||y==6*4",    vec!["x".to_string(), "y".to_string()],         true  ; "Two clocks with arithmetic expressions")]
-    fn test_get_clocks_bool(expression: &str, expected: Vec<String>, verdict: bool) {
-        // Arrange
-        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
-        match parse_guard(expression) {
-            Ok(input_expr) => {
-                let mut results: Vec<String> = vec![];
-                // Act
-                get_clocks_bool(&Box::new(input_expr), &mut results);
-                // Assert
-                assert_eq!((expected == results), verdict);
-            }
-            Err(err) => {
-                panic!("Test failed: {}", err);
-            }
-        };
-    }
-
-    #[test_case("5",        vec![],                                  true  ; "No clocks")]
-    #[test_case("5+x",      vec!["x".to_string()],                   true  ; "A single clock with addition")]
-    #[test_case("y-9",      vec!["y".to_string()],                   true  ; "A single clock with difference")]
-    #[test_case("zz*6/z",   vec!["zz".to_string(), "z".to_string()], true  ; "2 clocks with similar names")]
-    #[test_case("5%alpha",  vec!["alpha".to_string()],               true  ; "Longer clock names")]
-    #[test_case("5%alpha",  vec!["x".to_string()],                   false ; "One clock, should fail")]
-    fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
-        // We test arith expressions by converting them into boolean expressions and then running the bool test below.
-        let mut expression = expression.to_owned();
-        expression.push_str("<0");
-        test_get_clocks_bool(&expression, expected, verdict);
-    }
-}

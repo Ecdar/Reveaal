@@ -391,7 +391,7 @@ impl ArithExpression {
         }
     }
 
-    /// Finds the clock names used in the expression
+    /// Checks if the clock name is used in the expression.
     pub fn has_varname(&self, name: &String) -> bool {
         match self {
             ArithExpression::Difference(a1, a2)
@@ -401,6 +401,25 @@ impl ArithExpression {
             | ArithExpression::Modulo(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
             ArithExpression::Clock(_) | ArithExpression::Int(_) => false,
             ArithExpression::VarName(n) => name == n,
+        }
+    }
+
+    /// Finds the clocks used in the expression and put them into result_clocks.
+    pub fn get_var_names(&self, result_clocks: &mut Vec<String>) {
+        match self {
+            ArithExpression::Difference(ref left,ref right)
+            | ArithExpression::Addition(ref left, ref right)
+            | ArithExpression::Multiplication(ref left, ref right)
+            | ArithExpression::Division(ref left,ref right)
+            | ArithExpression::Modulo(ref left, ref right) =>{
+                left.get_var_names(result_clocks);
+                right.get_var_names(result_clocks);
+            }
+            ArithExpression::Clock(_) => (),
+            ArithExpression::VarName(ref name) => {
+                result_clocks.push(name.clone())
+            }
+            ArithExpression::Int(_) => ()
         }
     }
 
@@ -587,5 +606,36 @@ impl Clock {
 
     pub fn invert(&mut self) {
         self.negated = !self.negated;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+    use crate::data_reader::parse_edge::parse_guard;
+
+    #[test_case("5",        vec![],                                  true  ; "No clocks")]
+    #[test_case("5+x",      vec!["x".to_string()],                   true  ; "A single clock with addition")]
+    #[test_case("y-9",      vec!["y".to_string()],                   true  ; "A single clock with difference")]
+    #[test_case("zz*6/z",   vec!["zz".to_string(), "z".to_string()], true  ; "2 clocks with similar names")]
+    #[test_case("5%alpha",  vec!["alpha".to_string()],               true  ; "Longer clock names")]
+    #[test_case("5%alpha",  vec!["x".to_string()],                   false ; "One clock, should fail")]
+    fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
+        // We test arith expressions by converting them into boolean expressions and then running the bool test below.
+        let mut expression = expression.to_owned();
+        expression.push_str("<0");        // Arrange
+        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
+        match parse_guard(&expression) {
+            Ok(input_expr) => {
+                let mut results: Vec<String> = vec![];
+                // Act
+                input_expr.get_var_names(&mut results);
+                // Assert
+                assert_eq!((expected == results), verdict);
+            }
+            Err(err) => {
+                panic!("Test failed: {}", err);
+            }
+        };
     }
 }

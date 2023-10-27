@@ -395,7 +395,7 @@ impl BoolExpression {
         }
     }
 
-    /// Finds the clock names used in the expression
+    /// Checks if the clock name is used in the expression.
     pub fn has_varname(&self, name: &String) -> bool {
         match self {
             BoolExpression::AndOp(p1, p2) | BoolExpression::OrOp(p1, p2) => {
@@ -407,6 +407,26 @@ impl BoolExpression {
             | BoolExpression::GreatT(a1, a2)
             | BoolExpression::EQ(a1, a2) => a1.has_varname(name) || a2.has_varname(name),
             BoolExpression::Bool(_) => false,
+        }
+    }
+
+    /// Finds the clocks used in the expression and put them into result_clocks.
+    pub fn get_var_names(&self, result_clocks: &mut Vec<String>) {
+        match self {
+            BoolExpression::AndOp(ref left, ref right)
+            | BoolExpression::OrOp(ref left, ref right) => {
+                left.get_var_names(result_clocks);
+                right.get_var_names(result_clocks);
+            },
+            BoolExpression::LessEQ(ref left, ref right)
+            | BoolExpression::GreatEQ(ref left,ref right)
+            | BoolExpression::LessT(ref left,ref right)
+            | BoolExpression::GreatT(ref left,ref right)
+            | BoolExpression::EQ(ref left,ref right) => {
+                left.get_var_names(result_clocks);
+                right.get_var_names(result_clocks);
+            },
+            BoolExpression::Bool(_) => ()
         }
     }
 
@@ -587,5 +607,41 @@ fn get_op(exp: &BoolExpression) -> Option<String> {
         BoolExpression::LessEQ(_, _) => Some("≤".to_string()),
         BoolExpression::LessT(_, _) => Some("<".to_string()),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+    use crate::data_reader::parse_edge::parse_guard;
+
+    #[test_case("0>4", vec ! [], true; "No clocks")]
+    #[test_case("x<=5", vec ! ["x".to_string()], true; "A single clock using leq")]
+    #[test_case("x <= 5", vec ! ["x".to_string()], true; "A single clock with spaces")]
+    #[test_case("x==5", vec ! ["x".to_string()], true; "A single clock using eq")]
+    #[test_case("x>=5", vec ! ["x".to_string()], true; "A single clock using geq")]
+    #[test_case("x>=xx", vec ! ["x".to_string(), "xx".to_string()], true; "Two clocks with similar names")]
+    #[test_case("x<5&&x>0", vec ! ["x".to_string(), "x".to_string()], true; "Two occurrences of the same clock")]
+    #[test_case("x<y", vec ! ["x".to_string(), "y".to_string()], true; "Two different clocks")]
+    #[test_case("alpha<5", vec ! ["alpha".to_string()], true; "Longer clock names")]
+    #[test_case("x>2&&y+1<=6", vec ! ["x".to_string(), "y".to_string()], true; "Two different clocks in two different expressions")]
+    #[test_case("x<5&&b>1", vec ! ["x".to_string(), "y".to_string()], false; "Two clocks, should fail")]
+    #[test_case("x<5+4", vec ! ["x".to_string()], true; "A single clock with arithmetic expressions")]
+    #[test_case("x<5+4||y==6*4", vec ! ["x".to_string(), "y".to_string()], true; "Two clocks with arithmetic expressions")]
+    pub fn test_get_clocks_bool(expression: &str, expected: Vec<String>, verdict: bool) {
+        // Arrange
+        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
+        match parse_guard(expression) {
+            Ok(input_expr) => {
+                let mut results: Vec<String> = vec![];
+                // Act
+                input_expr.get_var_names(&mut results);
+                // Assert
+                assert_eq!((expected == results), verdict);
+            }
+            Err(err) => {
+                panic!("Test failed: {}", err);
+            }
+        };
     }
 }
