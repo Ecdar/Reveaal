@@ -581,7 +581,7 @@ mod tests {
     locations: vec![new Location("L0", "L1", "L2", "L3", "L4", "L5"]), //tilføj locations her
     edges: vec!["E0", "E1", "E2", "E3", "E4", "E5"], //tilføj edges her
     special_id: None,
-    clock_usages: HashMap::from([ //penis
+    clock_usages: HashMap::from([
         (String::from("UK"), ClockUsage {
             edges: vec!["E1", "E4"].into_iter().collect(),
             locations: vec!["E1", "E4"].into_iter().collect(),
