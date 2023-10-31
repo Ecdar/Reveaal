@@ -1,6 +1,6 @@
 use crate::data_reader::component_loader::ComponentLoader;
 use crate::model_objects::expressions::{BoolExpression, ArithExpression, QueryExpression, SaveExpression, SystemExpression};
-use crate::model_objects::{ClockUsage, Component, Query, State};
+use crate::model_objects::{ClockUsage, Component, Edge, Location, Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
@@ -345,9 +345,9 @@ pub fn get_system_recipe(
             for (clock, _) in &component.declarations.clocks {
                 component.clock_usages.insert(clock.clone(),ClockUsage::default());
             }
-            populate_usages_with_guards(&mut component);
-            populate_usages_with_updates(&mut component);
-            populate_usages_with_locations(&mut component);
+            populate_usages_with_guards(component.edges.clone(), &mut component.clock_usages);
+            populate_usages_with_updates(component.edges.clone(), &mut component.clock_usages);
+            populate_usages_with_locations(component.locations.clone(), &mut component.clock_usages);
 
             // Logic for locations
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
@@ -357,13 +357,13 @@ pub fn get_system_recipe(
     }
 }
 
-fn populate_usages_with_guards(component: &mut Component) {
-    for edge in component.edges.clone() {
+fn populate_usages_with_guards(edges: Vec<Edge>, clock_usages: &mut HashMap<String, ClockUsage>) {
+    for edge in edges {
         match edge.guard {
             None => (),
             Some(ref exp) => {
                 for clock_name in exp.get_var_names() {
-                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                    if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
                         clock_struct.add_edge(edge.id.clone())
                     }
                 }
@@ -372,20 +372,20 @@ fn populate_usages_with_guards(component: &mut Component) {
     }
 }
 
-fn populate_usages_with_updates(component: &mut Component) {
-    for edge in component.edges.clone() {
+fn populate_usages_with_updates(edges: Vec<Edge>, clock_usages: &mut HashMap<String, ClockUsage>) {
+    for edge in edges {
         match edge.update {
             None => (),
             Some(ref updates) => {
                 for update in updates.clone() {
                     // Save left side of update clock
                     let update_name: String = update.get_variable_name().to_string();
-                    if let Some(clock_struct) = component.clock_usages.get_mut(&update_name) {
+                    if let Some(clock_struct) = clock_usages.get_mut(&update_name) {
                         clock_struct.add_update(edge.id.clone());
                     }
                     // Save right side of update clocks
                     for clock_name in update.expression.get_var_names() {
-                        if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                        if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
                             clock_struct.add_edge(edge.id.clone())
                         }
                     }
@@ -395,13 +395,13 @@ fn populate_usages_with_updates(component: &mut Component) {
     }
 }
 
-fn populate_usages_with_locations(component: &mut Component) {
-    for location in component.locations.clone() {
+fn populate_usages_with_locations(locations: Vec<Location>, clock_usages: &mut HashMap<String, ClockUsage>) {
+    for location in locations {
         match location.invariant {
             None => (),
             Some(ref exp) => {
                 for clock_name in exp.get_var_names(){
-                    if let Some(clock_struct) = component.clock_usages.get_mut(&clock_name) {
+                    if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
                         clock_struct.add_location(location.id.clone())
                     }
                 }
@@ -559,3 +559,63 @@ pub(crate) mod clock_reduction {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    // use std::path::Component;
+    use test_case::test_case;
+    use crate::data_reader::parse_edge::parse_guard;
+    use crate::extract_system_rep::{populate_usages_with_guards, SystemRecipe};
+    use crate::model_objects::Component;
+    use crate::JsonProjectLoader;
+    use crate::model_objects::{ClockUsage, Declarations};
+
+    const PATH: &str = "samples/json/specTest1";
+
+    const TEST_COMP: &Component = Component { // :'( aavild is HERE!!!!!
+        name: String::from("test_comp"), //indsæt konkrete værdier
+        declarations: Declarations {
+            ints: Default::default(),
+            clocks: Default::default(),
+    },
+    locations: vec![new Location("L0", "L1", "L2", "L3", "L4", "L5"]), //tilføj locations her
+    edges: vec!["E0", "E1", "E2", "E3", "E4", "E5"], //tilføj edges her
+    special_id: None,
+    clock_usages: HashMap::from([ //penis
+        (String::from("UK"), ClockUsage {
+            edges: vec!["E1", "E4"].into_iter().collect(),
+            locations: vec!["E1", "E4"].into_iter().collect(),
+            updates: vec!["E1", "E4"].into_iter().collect()
+        }),
+        (String::from("US"), ClockUsage {
+            edges: vec!["E1", "E4"].into_iter().collect(),
+            locations: vec!["E1", "E4"].into_iter().collect(),
+            updates: vec!["E1", "E4"].into_iter().collect()
+        })
+    ])
+        // det kan godt argumenteres for at det her er
+    // worthless at gøre, men det er bare et argument for at integration testing er meget bedre end unit testing
+    };
+
+    #[test]
+    fn test_populate_usages_with_guards() {
+        //Arrange
+        TEST_COMP.remake_edge_ids();
+        populate_usages_with_guards(TEST_COMP.clock_usages.get("x").unwrap().edges, Default::default());
+        //Assert
+        assert_eq!(TEST_COMP.clock_usages.get("x").unwrap().edges[0], "E0");
+        assert_eq!(TEST_COMP.clock_usages.get("x").unwrap().edges, vec!["E0"]);
+    }
+
+    /*fn test_populate_usages_with_updates_lhs() {
+        populate_usages_with_updates(Component);
+    }
+
+    fn test_populate_usages_with_updates_rhs() {
+        populate_usages_with_updates(Component);
+    }
+
+    fn test_populate_usages_with_locations() {
+        populate_usages_with_locations(Component);
+    }*/
+}
