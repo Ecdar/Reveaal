@@ -20,7 +20,7 @@ impl LocationType {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(into = "DummyLocation")]
 pub struct Location {
     pub id: String,

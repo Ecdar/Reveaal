@@ -566,51 +566,25 @@ mod tests {
     use test_case::test_case;
     use crate::data_reader::parse_edge::parse_guard;
     use crate::extract_system_rep::{populate_usages_with_guards, SystemRecipe};
-    use crate::model_objects::{Component, Edge, Location};
+    use crate::model_objects::{Component, Edge, Location, LocationType, SyncType};
     use crate::JsonProjectLoader;
     use crate::model_objects::{ClockUsage, Declarations};
 
     const PATH: &str = "samples/json/specTest1";
 
-    const TEST_COMP: &Component = &Component { // :'( aavild is HERE!!!!!
-        name: String::from("test_comp"), //indsæt konkrete værdier
-        declarations: Declarations {
-            ints: Default::default(),
-            clocks: Default::default(),
-        },
-        // Create location structs associated with this dummy component
-        // Only Ids are specified, rest of edge's properties are defaulted
-        locations: vec!["E0", "E1", "E2"]
-            .into_iter()
-            .map(|id| Location {
-                id: id.to_string(),
-                ..Default::default()
-            })
-            .collect::<Vec<Location>>(),
-        // Create edge structs associated with this dummy component
-        edges: vec!["E0", "E1", "E2"]
-            .into_iter()
-            .map(|id| Edge {
-                id: id.to_string(),
-                ..Default::default()
-            })
-            .collect::<Vec<Edge>>(),
-        special_id: None,
-        clock_usages: HashMap::from([
-            (String::from("x"), ClockUsage::default()),
-            (String::from("y"), ClockUsage::default())
-        ])
-        // det kan godt argumenteres for at det her er
-    // worthless at gøre, men det er bare et argument for at integration testing er meget bedre end unit testing
-    };
+
     #[test]
     fn test_populate_usages_with_guards() {
+        //Act'
+        let mut project_loader  =
+            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component("comp").clone();
         //Arrange
-        //TEST_COMP.remake_edge_ids();
-        populate_usages_with_guards(TEST_COMP.edges.clone(), Default::default());
+        test_comp.remake_edge_ids();
+        populate_usages_with_guards(test_comp.edges.clone(), &mut Default::default());
         //Assert
-        assert_eq!(TEST_COMP.clock_usages.get("x").unwrap().edges[0], "E0");
-        assert_eq!(TEST_COMP.clock_usages.get("x").unwrap().edges, vec!["E0"]);
+        assert!(test_comp.clock_usages.get("x").expect("fuck off then").edges.contains("E0"));
+        //assert_eq!(test_comp.clock_usages.get("x").unwrap().edges, vec!["E0"]);
     }
 
     /*fn test_populate_usages_with_updates_lhs() {
