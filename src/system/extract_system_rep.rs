@@ -570,7 +570,7 @@ mod tests {
     use crate::JsonProjectLoader;
     use crate::model_objects::{ClockUsage, Declarations};
 
-    const PATH: &str = "samples/json/specTest1";
+    const PATH: &str = "samples/json/EcdarUniversity";
 
 
     #[test]
@@ -578,12 +578,12 @@ mod tests {
         //Act'
         let mut project_loader  =
             JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component("comp").clone();
+        let mut test_comp = project_loader.get_component("Machine").clone();
         //Arrange
         test_comp.remake_edge_ids();
         populate_usages_with_guards(test_comp.edges.clone(), &mut Default::default());
         //Assert
-        assert!(test_comp.clock_usages.get("x").expect("fuck off then").edges.contains("E0"));
+        assert!(test_comp.clock_usages.get("y").expect("").edges.contains("E25"));
         //assert_eq!(test_comp.clock_usages.get("x").unwrap().edges, vec!["E0"]);
     }
 

@@ -25,6 +25,7 @@ pub struct Component {
     pub locations: Vec<Location>,
     pub edges: Vec<Edge>,
     pub special_id: Option<String>,
+    #[serde(skip_deserializing)]
     pub clock_usages: HashMap<String, ClockUsage>,
 }
 
