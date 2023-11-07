@@ -561,7 +561,7 @@ pub(crate) mod clock_reduction {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     // use std::path::Component;
     use test_case::test_case;
     use crate::data_reader::parse_edge::parse_guard;
@@ -572,20 +572,25 @@ mod tests {
 
     const PATH: &str = "samples/json/EcdarUniversity";
 
-
     #[test]
     fn test_populate_usages_with_guards() {
-        //Act'
+        //Arrange
         let mut project_loader  =
             JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         let mut test_comp = project_loader.get_component("Machine").clone();
-        //Arrange
-        test_comp.remake_edge_ids();
-        populate_usages_with_guards(test_comp.edges.clone(), &mut Default::default());
+        let mut expected: HashSet<String> = vec!["E25".to_string(),"E29".to_string()].into_iter().collect();
+
+        //Act
+        for (clock, _) in &test_comp.declarations.clocks {
+            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        }
+        populate_usages_with_guards(test_comp.edges.clone(), &mut test_comp.clock_usages);
+
         //Assert
-        assert!(test_comp.clock_usages.get("y").expect("").edges.contains("E25"));
-        //assert_eq!(test_comp.clock_usages.get("x").unwrap().edges, vec!["E0"]);
+        assert_eq!(test_comp.clock_usages.get("y").unwrap().edges, expected);
     }
+
+    
 
     /*fn test_populate_usages_with_updates_lhs() {
         populate_usages_with_updates(Component);
