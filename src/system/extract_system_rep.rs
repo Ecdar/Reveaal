@@ -561,36 +561,17 @@ pub(crate) mod clock_reduction {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::collections::{HashMap, HashSet};
-    // use std::path::Component;
     use test_case::test_case;
-    use crate::data_reader::parse_edge::parse_guard;
-    use crate::extract_system_rep::{populate_usages_with_guards, SystemRecipe};
-    use crate::model_objects::{Component, Edge, Location, LocationType, SyncType};
+    use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_locations, populate_usages_with_updates};
     use crate::JsonProjectLoader;
     use crate::model_objects::{ClockUsage, Declarations};
 
     const PATH: &str = "samples/json/EcdarUniversity";
 
-    // #[test]
-    // fn test_populate_usages_with_guards() {
-    //     //Arrange
-    //     let mut project_loader  =
-    //         JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-    //     let mut test_comp = project_loader.get_component("Machine").clone();
-    //     let mut expected: HashSet<String> = vec!["E25".to_string(),"E29".to_string()].into_iter().collect();
-    //
-    //     //Act
-    //     for (clock, _) in &test_comp.declarations.clocks {
-    //         test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
-    //     }
-    //     populate_usages_with_guards(test_comp.edges.clone(), &mut test_comp.clock_usages);
-    //
-    //     //Assert
-    //     assert_eq!(test_comp.clock_usages.get("y").unwrap().edges, expected);
-    // }
-    #[test_case("Machine",           vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
-    #[test_case("Machine",           vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
+    #[test_case("Machine",  vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
+    #[test_case("Machine",  vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
         let mut project_loader  =
@@ -608,15 +589,45 @@ mod tests {
         assert_eq!((test_comp.clock_usages.get("y").unwrap().edges == expected), verdict);
 
     }
-    /*fn test_populate_usages_with_updates_lhs() {
-        populate_usages_with_updates(Component);
+    #[test_case("Machine",  vec!["E27".to_string()],  true;  "Clock with usage in one update")]
+    #[test_case("Machine",  vec!["E25".to_string(),"E26".to_string()],  false;  "Clock with usage in two non-updates")]
+    fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
+        //Arrange
+        let mut project_loader  =
+            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let mut expected: HashSet<String> = expected_edges.into_iter().collect();
+
+        //Act
+        for (clock, _) in &test_comp.declarations.clocks {
+            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        }
+        populate_usages_with_updates(test_comp.edges.clone(), &mut test_comp.clock_usages);
+
+        //Assert
+        assert_eq!((test_comp.clock_usages.get("y").unwrap().updates == expected), verdict);
     }
 
-    fn test_populate_usages_with_updates_rhs() {
-        populate_usages_with_updates(Component);
-    }
+    // fn test_populate_usages_with_updates_rhs() {
+    //     populate_usages_with_updates();
+    // }
 
-    fn test_populate_usages_with_locations() {
-        populate_usages_with_locations(Component);
-    }*/
+    #[test_case("Machine",  vec!["L4".to_string()],  true;  "Clock with usage in one invariant")]
+    #[test_case("Machine",  vec!["L6".to_string()],  false; "Clock with usage in one fake invariant")]
+    fn test_populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
+        //Arrange
+        let mut project_loader  =
+            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let mut expected: HashSet<String> = expected_locations.into_iter().collect();
+
+        //Act
+        for (clock, _) in &test_comp.declarations.clocks {
+            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        }
+        populate_usages_with_locations(test_comp.locations.clone(), &mut test_comp.clock_usages);
+
+        //Assert
+        assert_eq!((test_comp.clock_usages.get("y").unwrap().locations == expected), verdict);
+    }
 }
