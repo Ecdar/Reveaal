@@ -1,12 +1,12 @@
 use crate::data_reader::component_loader::ComponentLoader;
-use crate::model_objects::expressions::{BoolExpression, ArithExpression, QueryExpression, SaveExpression, SystemExpression};
+use crate::model_objects::expressions::{QueryExpression, SaveExpression, SystemExpression};
 use crate::model_objects::{ClockUsage, Component, Edge, Location, Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::system::extract_state::get_state;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 use crate::transition_systems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -562,14 +562,13 @@ pub(crate) mod clock_reduction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashSet};
     use test_case::test_case;
     use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_invariants, populate_usages_with_updates};
-    use crate::{JsonProjectLoader, ProjectLoader};
-    use crate::model_objects::{ClockUsage, Declarations};
+    use crate::{JsonProjectLoader};
+    use crate::model_objects::{ClockUsage};
 
     struct SetupContext {
-        project_loader: Box<dyn ProjectLoader>,
         test_comp: Component,
         expected: HashSet<String>,
     }
@@ -577,10 +576,10 @@ mod tests {
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
         let mut project_loader  =
             JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component(comp_name).clone();
-        let mut expected: HashSet<String> = expected.into_iter().collect();
+        let test_comp = project_loader.get_component(comp_name).clone();
+        let expected: HashSet<String> = expected.into_iter().collect();
 
-        SetupContext { project_loader, test_comp, expected }
+        SetupContext { test_comp, expected }
     }
 
     const PATH: &str = "samples/json/EcdarUniversity";
@@ -590,6 +589,7 @@ mod tests {
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
         let mut context = setup(comp_name, expected_edges);
+
         //Act
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
