@@ -347,7 +347,7 @@ pub fn get_system_recipe(
             }
             populate_usages_with_guards(component.edges.clone(), &mut component.clock_usages);
             populate_usages_with_updates(component.edges.clone(), &mut component.clock_usages);
-            populate_usages_with_locations(component.locations.clone(), &mut component.clock_usages);
+            populate_usages_with_invariants(component.locations.clone(), &mut component.clock_usages);
 
             // Logic for locations
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
@@ -395,7 +395,7 @@ fn populate_usages_with_updates(edges: Vec<Edge>, clock_usages: &mut HashMap<Str
     }
 }
 
-fn populate_usages_with_locations(locations: Vec<Location>, clock_usages: &mut HashMap<String, ClockUsage>) {
+fn populate_usages_with_invariants(locations: Vec<Location>, clock_usages: &mut HashMap<String, ClockUsage>) {
     for location in locations {
         match location.invariant {
             None => (),
@@ -564,7 +564,7 @@ mod tests {
     use super::*;
     use std::collections::{HashMap, HashSet};
     use test_case::test_case;
-    use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_locations, populate_usages_with_updates};
+    use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_invariants, populate_usages_with_updates};
     use crate::JsonProjectLoader;
     use crate::model_objects::{ClockUsage, Declarations};
 
@@ -625,7 +625,7 @@ mod tests {
         for (clock, _) in &test_comp.declarations.clocks {
             test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_locations(test_comp.locations.clone(), &mut test_comp.clock_usages);
+        populate_usages_with_invariants(test_comp.locations.clone(), &mut test_comp.clock_usages);
 
         //Assert
         assert_eq!((test_comp.clock_usages.get("y").unwrap().locations == expected), verdict);
