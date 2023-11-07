@@ -565,8 +565,23 @@ mod tests {
     use std::collections::{HashMap, HashSet};
     use test_case::test_case;
     use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_invariants, populate_usages_with_updates};
-    use crate::JsonProjectLoader;
+    use crate::{JsonProjectLoader, ProjectLoader};
     use crate::model_objects::{ClockUsage, Declarations};
+
+    struct SetupContext {
+        project_loader: Box<dyn ProjectLoader>,
+        test_comp: Component,
+        expected: HashSet<String>,
+    }
+
+    fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
+        let mut project_loader  =
+            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let mut expected: HashSet<String> = expected.into_iter().collect();
+
+        SetupContext { project_loader, test_comp, expected }
+    }
 
     const PATH: &str = "samples/json/EcdarUniversity";
 
@@ -574,38 +589,31 @@ mod tests {
     #[test_case("Machine",  vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
-        let mut project_loader  =
-            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component(comp_name).clone();
-        let mut expected: HashSet<String> = expected_edges.into_iter().collect();
-
+        let mut context = setup(comp_name, expected_edges);
         //Act
-        for (clock, _) in &test_comp.declarations.clocks {
-            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        for (clock, _) in &context.test_comp.declarations.clocks {
+            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_guards(test_comp.edges.clone(), &mut test_comp.clock_usages);
+        populate_usages_with_guards(context.test_comp.edges.clone(), &mut context.test_comp.clock_usages);
 
         //Assert
-        assert_eq!((test_comp.clock_usages.get("y").unwrap().edges == expected), verdict);
+        assert_eq!((context.test_comp.clock_usages.get("y").unwrap().edges == context.expected), verdict);
 
     }
     #[test_case("Machine",  vec!["E27".to_string()],  true;  "Clock with usage in one update")]
     #[test_case("Machine",  vec!["E25".to_string(),"E26".to_string()],  false;  "Clock with usage in two non-updates")]
     fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
-        let mut project_loader  =
-            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component(comp_name).clone();
-        let mut expected: HashSet<String> = expected_edges.into_iter().collect();
+        let mut context = setup(comp_name, expected_edges);
 
         //Act
-        for (clock, _) in &test_comp.declarations.clocks {
-            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        for (clock, _) in &context.test_comp.declarations.clocks {
+            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_updates(test_comp.edges.clone(), &mut test_comp.clock_usages);
+        populate_usages_with_updates(context.test_comp.edges.clone(), &mut context.test_comp.clock_usages);
 
         //Assert
-        assert_eq!((test_comp.clock_usages.get("y").unwrap().updates == expected), verdict);
+        assert_eq!((context.test_comp.clock_usages.get("y").unwrap().updates == context.expected), verdict);
     }
 
     // fn test_populate_usages_with_updates_rhs() {
@@ -616,18 +624,15 @@ mod tests {
     #[test_case("Machine",  vec!["L6".to_string()],  false; "Clock with usage in one fake invariant")]
     fn test_populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
         //Arrange
-        let mut project_loader  =
-            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component(comp_name).clone();
-        let mut expected: HashSet<String> = expected_locations.into_iter().collect();
+        let mut context = setup(comp_name, expected_locations);
 
         //Act
-        for (clock, _) in &test_comp.declarations.clocks {
-            test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        for (clock, _) in &context.test_comp.declarations.clocks {
+            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_invariants(test_comp.locations.clone(), &mut test_comp.clock_usages);
+        populate_usages_with_invariants(context.test_comp.locations.clone(), &mut context.test_comp.clock_usages);
 
         //Assert
-        assert_eq!((test_comp.clock_usages.get("y").unwrap().locations == expected), verdict);
+        assert_eq!((context.test_comp.clock_usages.get("y").unwrap().locations == context.expected), verdict);
     }
 }
