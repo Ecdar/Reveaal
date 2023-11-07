@@ -572,13 +572,31 @@ mod tests {
 
     const PATH: &str = "samples/json/EcdarUniversity";
 
-    #[test]
-    fn test_populate_usages_with_guards() {
+    // #[test]
+    // fn test_populate_usages_with_guards() {
+    //     //Arrange
+    //     let mut project_loader  =
+    //         JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+    //     let mut test_comp = project_loader.get_component("Machine").clone();
+    //     let mut expected: HashSet<String> = vec!["E25".to_string(),"E29".to_string()].into_iter().collect();
+    //
+    //     //Act
+    //     for (clock, _) in &test_comp.declarations.clocks {
+    //         test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+    //     }
+    //     populate_usages_with_guards(test_comp.edges.clone(), &mut test_comp.clock_usages);
+    //
+    //     //Assert
+    //     assert_eq!(test_comp.clock_usages.get("y").unwrap().edges, expected);
+    // }
+    #[test_case("Machine",           vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
+    #[test_case("Machine",           vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
+    fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
         let mut project_loader  =
             JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component("Machine").clone();
-        let mut expected: HashSet<String> = vec!["E25".to_string(),"E29".to_string()].into_iter().collect();
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let mut expected: HashSet<String> = expected_edges.into_iter().collect();
 
         //Act
         for (clock, _) in &test_comp.declarations.clocks {
@@ -587,11 +605,9 @@ mod tests {
         populate_usages_with_guards(test_comp.edges.clone(), &mut test_comp.clock_usages);
 
         //Assert
-        assert_eq!(test_comp.clock_usages.get("y").unwrap().edges, expected);
+        assert_eq!((test_comp.clock_usages.get("y").unwrap().edges == expected), verdict);
+
     }
-
-    
-
     /*fn test_populate_usages_with_updates_lhs() {
         populate_usages_with_updates(Component);
     }
