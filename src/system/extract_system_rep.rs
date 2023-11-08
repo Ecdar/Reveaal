@@ -515,35 +515,44 @@ mod tests {
         test_comp: Component,
         expected: HashSet<String>,
     }
-
+    ///Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
-        let mut project_loader  =
-            JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         let test_comp = project_loader.get_component(comp_name).clone();
         let expected: HashSet<String> = expected.into_iter().collect();
 
         SetupContext { test_comp, expected }
     }
 
-    const PATH: &str = "samples/json/EcdarUniversity";
+    // File path to project for project_loader
+    // UpdateCase is designed to test for additional edge cases
+    // such as the update y=x. No other sample contains this case.
+    const PATH: &str = "samples/json/UpdateCase";
 
+    //TODO: maybe update component names to reflect tests?
     #[test_case("Machine",  vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
     #[test_case("Machine",  vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
+    #[test_case("Machine4", vec!["E1".to_string(),"E5".to_string()],    true;  "Clock with usage in two guards avoiding cherrypicking")]
+    #[test_case("Machine4", vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards avoiding cherrypicking")]
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         //Arrange
+        // Instantiating variables used in all tests using the setup function above
         let mut context = setup(comp_name, expected_edges);
 
         //Act
+        // Creating empty clock_usage structs for each clock in component
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
         context.test_comp.populate_usages_with_guards();
 
         //Assert
+        //Confirming edges where clock "y" exists.
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().edges == context.expected), verdict);
 
     }
-    #[test_case("Machine",  vec!["E27".to_string()],  true;  "Clock with usage in one update")]
+
+    #[test_case("Machine",  vec!["E27".to_string()],                    true;   "Clock with usage in one update")]
     #[test_case("Machine",  vec!["E25".to_string(),"E26".to_string()],  false;  "Clock with usage in two non-updates")]
     fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         let mut context = setup(comp_name, expected_edges);
@@ -556,9 +565,22 @@ mod tests {
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().updates == context.expected), verdict);
     }
 
-    // fn test_populate_usages_with_updates_rhs() {
-    //     populate_usages_with_updates();
-    // }
+    #[test_case("Update", vec!["E27".to_string()], true;    "Clock on both rhs and lhs of update")]
+    #[test_case("Update", vec!["E26".to_string()], false;   "Clock on both rhs and lhs of fake update")]
+    fn test_populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
+        //Arrange
+        let mut context = setup(comp_name, expected_edges);
+
+        //Act
+        for (clock, _) in &context.test_comp.declarations.clocks {
+            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
+        }
+        context.populate_usages_with_updates();
+
+        //Assert
+        // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly
+        assert_eq!((context.test_comp.clock_usages.get("x").unwrap().edges == context.expected), verdict);
+    }
 
     #[test_case("Machine",  vec!["L4".to_string()],  true;  "Clock with usage in one invariant")]
     #[test_case("Machine",  vec!["L6".to_string()],  false; "Clock with usage in one fake invariant")]
