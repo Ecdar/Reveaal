@@ -15,7 +15,8 @@ pub mod clock_removal_tests {
         let mut component = read_json_component(
             "samples/json/ClockReductionTest/UnusedClock",
             component_name,
-        );
+        )
+        .unwrap();
 
         let clock_index = *component
             .declarations
@@ -52,7 +53,8 @@ pub mod clock_removal_tests {
         let mut component = read_json_component(
             "samples/json/ClockReductionTest/RedundantClocks",
             "Component1",
-        );
+        )
+        .unwrap();
 
         let clock_1_index = component.declarations.get_clock_index_by_name("x").unwrap();
         let mut duplicate_clocks_index = HashSet::new();
@@ -81,7 +83,7 @@ pub mod clock_removal_tests {
     fn test_no_used_clock() {
         const PATH: &str = "samples/json/AG";
 
-        let comp = read_json_component(PATH, "A");
+        let comp = read_json_component(PATH, "A").unwrap();
 
         let mut dim = comp.declarations.clocks.len();
         assert_eq!(
@@ -103,9 +105,9 @@ pub mod clock_removal_tests {
     fn test_no_used_clock_multi() {
         const PATH: &str = "samples/json/AG";
         let mut dim = 0;
-        let mut lhs = read_json_component(PATH, "A");
+        let mut lhs = read_json_component(PATH, "A").unwrap();
         lhs.set_clock_indices(&mut dim);
-        let mut rhs = read_json_component(PATH, "A");
+        let mut rhs = read_json_component(PATH, "A").unwrap();
         rhs.set_clock_indices(&mut dim);
 
         assert_eq!(
