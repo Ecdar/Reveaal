@@ -2,12 +2,12 @@ use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 use log::debug;
 
-use crate::edge_eval::updater::CompiledUpdate;
 use crate::model_objects::{Declarations, State, Transition};
 use crate::system::query_failures::{
     ActionFailure, ConsistencyResult, DeterminismResult, SystemRecipeFailure,
 };
 use crate::system::specifics::{SpecialLocation, SpecificLocation};
+use crate::transition_systems::compiled_update::CompiledUpdate;
 use edbm::util::bounds::Bounds;
 
 use crate::transition_systems::{

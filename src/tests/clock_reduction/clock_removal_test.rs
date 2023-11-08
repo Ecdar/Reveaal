@@ -6,25 +6,12 @@ pub mod clock_removal_tests {
     use crate::tests::refinement::helper::json_run_query;
     use crate::transition_systems::{CompiledComponent, TransitionSystem};
     use std::collections::HashSet;
+    use test_case::test_case;
 
-    #[test]
-    fn test_check_declarations_unused_clocks_are_removed() {
-        check_declarations_unused_clocks_are_removed("Component1", "x");
-        check_declarations_unused_clocks_are_removed("Component2", "i");
-        check_declarations_unused_clocks_are_removed("Component3", "c");
-    }
-
-    impl Component {
-        fn fit_decls(&mut self, index: edbm::util::constraints::ClockIndex) {
-            self.declarations
-                .clocks
-                .values_mut()
-                .filter(|val| **val > index)
-                .for_each(|val| *val -= 1);
-        }
-    }
-
-    fn check_declarations_unused_clocks_are_removed(component_name: &str, clock: &str) {
+    #[test_case("Component1", "x"; "Component1 x")]
+    #[test_case("Component2", "i"; "Component2 i")]
+    #[test_case("Component3", "c"; "Component3 c")]
+    fn test_check_declarations_unused_clocks_are_removed(component_name: &str, clock: &str) {
         let mut component = read_json_component(
             "samples/json/ClockReductionTest/UnusedClock",
             component_name,
@@ -48,6 +35,16 @@ pub mod clock_removal_tests {
         let decls = clock_reduced_compiled_component.get_decls();
 
         assert!(!decls[0].clocks.contains_key(clock));
+    }
+
+    impl Component {
+        fn fit_decls(&mut self, index: edbm::util::constraints::ClockIndex) {
+            self.declarations
+                .clocks
+                .values_mut()
+                .filter(|val| **val > index)
+                .for_each(|val| *val -= 1);
+        }
     }
 
     #[test]

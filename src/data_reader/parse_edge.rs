@@ -1,6 +1,6 @@
 extern crate pest;
 
-use crate::edge_eval::updater::CompiledUpdate;
+use crate::transition_systems::compiled_update::CompiledUpdate;
 
 use crate::model_objects::expressions::{ArithExpression, BoolExpression};
 

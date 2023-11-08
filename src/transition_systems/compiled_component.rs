@@ -1,3 +1,4 @@
+use crate::extract_system_rep::clock_reduction::remove_clock_from_federation;
 use crate::model_objects::{Component, DeclarationProvider, Declarations, State, Transition};
 use crate::system::local_consistency::{self};
 use crate::system::query_failures::{
@@ -109,6 +110,47 @@ impl CompiledComponent {
     fn _comp_info(&self) -> &ComponentInfo {
         &self.comp_info
     }
+
+    fn remove_clock_from_transistion_system(
+        system: Box<TransitionSystem>,
+        clock_index: ClockIndex,
+    ) {
+        //match system {
+        //conjunction -> ...
+        //disjunction -> ...
+        //quotient -> ...
+        //compiled_component -> remove_clock_from_component(component)
+
+        ////}
+    }
+    fn remove_clock_from_component(component: &mut CompiledComponent, clock_index: ClockIndex) {
+        //call remove_clock_from_transition on all transitions
+        for transition in &mut component.location_edges.values_mut() {
+            //remove_clock_from_transition(transition, clock_index);
+        }
+        //call remove_clock_from_locationTree on all locationTrees
+        for locations_tree in component.locations.values_mut() {
+            //remove_clock_from_locationTree(locations_tree, clock_index);
+        }
+        //remove clock from declarations
+        component.comp_info.declarations.remove(&clock_index)
+    }
+    fn remove_clock_from_transition(mut transition: Transition, clock_index: ClockIndex) {
+        //call rebuild_federation_without_clock for guard
+        transition.guard_zone =
+            crate::extract_system_rep::clock_reduction::remove_clock_from_federation(
+                &transition.guard_zone,
+                clock_index,
+                None,
+            );
+    }
+    fn remove_clock_from_locationTree(location: LocationTree, clock_index: ClockIndex) {
+        //call remove_clock_from_federation for invariant
+        //location.invariant
+        for invariant in location.invariant {
+            //remove_clock_from_locationTree(invariant, clock_index);
+        }
+    }
 }
 
 impl TransitionSystem for CompiledComponent {
@@ -168,6 +210,10 @@ impl TransitionSystem for CompiledComponent {
         self.locations.values().cloned().collect()
     }
 
+    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
+        self.locations.get(id).cloned()
+    }
+
     fn get_decls(&self) -> Vec<&Declarations> {
         vec![&self.comp_info.declarations]
     }
@@ -194,20 +240,16 @@ impl TransitionSystem for CompiledComponent {
         CompositionType::Simple
     }
 
-    fn get_location(&self, id: &LocationID) -> Option<LocationTree> {
-        self.locations.get(id).cloned()
-    }
-
-    fn component_names(&self) -> Vec<&str> {
-        vec![&self.comp_info.name]
-    }
-
     fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
         ComponentInfoTree::Info(&self.comp_info)
     }
 
     fn to_string(&self) -> String {
         self.comp_info.name.clone()
+    }
+
+    fn component_names(&self) -> Vec<&str> {
+        vec![&self.comp_info.name]
     }
 
     fn construct_location_tree(&self, target: SpecificLocation) -> Result<LocationTree, String> {

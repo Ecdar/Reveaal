@@ -82,7 +82,7 @@ impl LocationTree {
         }
     }
 
-    //Merge two locations keeping the invariants seperate
+    //Merge two locations keeping the invariants separate
     pub fn merge_as_quotient(left: &Self, right: &Self) -> Self {
         let id = LocationID::Quotient(Box::new(left.id.clone()), Box::new(right.id.clone()));
 

@@ -1,10 +1,10 @@
 use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
-use crate::edge_eval::updater::CompiledUpdate;
 use crate::model_objects::{Component, Declarations, State, Transition};
 use crate::parse_queries::parse_to_system_expr;
 use crate::system::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::system::specifics::SpecificLocation;
+use crate::transition_systems::compiled_update::CompiledUpdate;
 use crate::{
     data_reader::component_loader::ComponentContainer, extract_system_rep::get_system_recipe,
     ComponentLoader,
@@ -325,10 +325,9 @@ impl ClockAnalysisGraph {
         let used_clocks = self.find_used_clocks();
 
         //Then we instruct the caller to remove the unused clocks, we start at 1 since the 0 clock is not a real clock
-        let mut unused_clocks = (1..self.dim).collect::<HashSet<ClockIndex>>();
-        for used_clock in &used_clocks {
-            unused_clocks.remove(used_clock);
-        }
+        let unused_clocks = (1..self.dim)
+            .filter(|clock| !used_clocks.contains(&clock))
+            .collect::<HashSet<ClockIndex>>();
 
         let mut rv: Vec<ClockReductionInstruction> = Vec::new();
         for unused_clock in &unused_clocks {

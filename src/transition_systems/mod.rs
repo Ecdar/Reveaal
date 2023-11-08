@@ -1,6 +1,7 @@
 #[macro_use]
 pub(crate) mod common;
 mod compiled_component;
+pub mod compiled_update;
 mod composition;
 mod conjunction;
 pub mod location_id;
