@@ -71,6 +71,72 @@ impl Component {
         *indices += self.declarations.get_clock_count();
     }
 
+    pub fn initialise_clock_usages(&mut self) {
+        self.clock_usages = HashMap::default();
+        for (clock, _) in &self.declarations.clocks {
+            self.clock_usages.insert(clock.clone(), ClockUsage::default());
+        }
+    }
+
+    pub fn populate_usages_with_guards(&mut self) {
+        let edges = self.edges.clone();
+        let mut clock_usages = &self.clock_usages;
+        for edge in edges {
+            match edge.guard {
+                None => (),
+                Some(ref exp) => {
+                    for clock_name in exp.get_var_names() {
+                        if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
+                            clock_struct.add_edge(edge.id.clone())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn populate_usages_with_updates(&mut self) {
+        let edges = self.edges.clone();
+        let mut clock_usages = &self.clock_usages;
+        for edge in edges {
+            match edge.update {
+                None => (),
+                Some(ref updates) => {
+                    for update in updates.clone() {
+                        // Save left side of update clock
+                        let update_name: String = update.get_variable_name().to_string();
+                        if let Some(clock_struct) = clock_usages.get_mut(&update_name) {
+                            clock_struct.add_update(edge.id.clone());
+                        }
+                        // Save right side of update clocks
+                        for clock_name in update.expression.get_var_names() {
+                            if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
+                                clock_struct.add_edge(edge.id.clone())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn populate_usages_with_invariants(component: &mut Component) {
+        let locations = component.locations.clone();
+        let mut clock_usages = &component.clock_usages;
+        for location in locations {
+            match location.invariant {
+                None => (),
+                Some(ref exp) => {
+                    for clock_name in exp.get_var_names(){
+                        if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
+                            clock_struct.add_location(location.id.clone())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
             .locations

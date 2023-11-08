@@ -340,14 +340,10 @@ pub fn get_system_recipe(
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
 
-            // Initialise HashMap for all clocks present in component with according empty ClockUsage structs
-            component.clock_usages = HashMap::default();
-            for (clock, _) in &component.declarations.clocks {
-                component.clock_usages.insert(clock.clone(),ClockUsage::default());
-            }
-            populate_usages_with_guards(component.edges.clone(), &mut component.clock_usages);
-            populate_usages_with_updates(component.edges.clone(), &mut component.clock_usages);
-            populate_usages_with_invariants(component.locations.clone(), &mut component.clock_usages);
+            component.initialise_clock_usages();
+            component.populate_usages_with_guards();
+            component.populate_usages_with_updates();
+            component.populate_usages_with_invariants();
 
             // Logic for locations
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
@@ -357,58 +353,6 @@ pub fn get_system_recipe(
     }
 }
 
-fn populate_usages_with_guards(edges: Vec<Edge>, clock_usages: &mut HashMap<String, ClockUsage>) {
-    for edge in edges {
-        match edge.guard {
-            None => (),
-            Some(ref exp) => {
-                for clock_name in exp.get_var_names() {
-                    if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
-                        clock_struct.add_edge(edge.id.clone())
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn populate_usages_with_updates(edges: Vec<Edge>, clock_usages: &mut HashMap<String, ClockUsage>) {
-    for edge in edges {
-        match edge.update {
-            None => (),
-            Some(ref updates) => {
-                for update in updates.clone() {
-                    // Save left side of update clock
-                    let update_name: String = update.get_variable_name().to_string();
-                    if let Some(clock_struct) = clock_usages.get_mut(&update_name) {
-                        clock_struct.add_update(edge.id.clone());
-                    }
-                    // Save right side of update clocks
-                    for clock_name in update.expression.get_var_names() {
-                        if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
-                            clock_struct.add_edge(edge.id.clone())
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn populate_usages_with_invariants(locations: Vec<Location>, clock_usages: &mut HashMap<String, ClockUsage>) {
-    for location in locations {
-        match location.invariant {
-            None => (),
-            Some(ref exp) => {
-                for clock_name in exp.get_var_names(){
-                    if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
-                        clock_struct.add_location(location.id.clone())
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 /// Module containing a "safer" function for clock reduction, along with some helper functions
@@ -564,7 +508,6 @@ mod tests {
     use super::*;
     use std::collections::{HashSet};
     use test_case::test_case;
-    use crate::extract_system_rep::{populate_usages_with_guards, populate_usages_with_invariants, populate_usages_with_updates};
     use crate::{JsonProjectLoader};
     use crate::model_objects::{ClockUsage};
 
@@ -594,7 +537,7 @@ mod tests {
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_guards(context.test_comp.edges.clone(), &mut context.test_comp.clock_usages);
+        context.test_comp.populate_usages_with_guards();
 
         //Assert
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().edges == context.expected), verdict);
@@ -603,16 +546,13 @@ mod tests {
     #[test_case("Machine",  vec!["E27".to_string()],  true;  "Clock with usage in one update")]
     #[test_case("Machine",  vec!["E25".to_string(),"E26".to_string()],  false;  "Clock with usage in two non-updates")]
     fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
-        //Arrange
         let mut context = setup(comp_name, expected_edges);
 
-        //Act
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_updates(context.test_comp.edges.clone(), &mut context.test_comp.clock_usages);
+        context.test_comp.populate_usages_with_updates();
 
-        //Assert
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().updates == context.expected), verdict);
     }
 
@@ -630,7 +570,7 @@ mod tests {
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        populate_usages_with_invariants(context.test_comp.locations.clone(), &mut context.test_comp.clock_usages);
+        context.test_comp.populate_usages_with_invariants();
 
         //Assert
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().locations == context.expected), verdict);
