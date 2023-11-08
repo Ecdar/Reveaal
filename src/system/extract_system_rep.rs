@@ -368,10 +368,7 @@ pub fn get_system_recipe(
 /// Module containing a "safer" function for clock reduction, along with some helper functions
 pub(crate) mod clock_reduction {
     use super::*;
-    use crate::model_objects::expressions::Clock;
-    use crate::model_objects::Transition;
-    use crate::transition_systems::{LocationTree, TransitionSystem};
-    use edbm::util::constraints::{Constraint, Disjunction, Inequality, RawInequality};
+    use edbm::util::constraints::{Constraint, Disjunction, Inequality};
     use edbm::zones::{Federation, OwnedFederation};
 
     /// Function for a "safer" clock reduction that handles both the dimension of the DBM and the quotient index if needed be
@@ -551,11 +548,11 @@ pub(crate) mod clock_reduction {
         remove_clock: ClockIndex,
         replacing_clock: Option<ClockIndex>,
         found_clock: &mut bool,
-    ) -> Option<Conjunction> {
+    ) -> Option<edbm::util::constraints::Conjunction> {
         let new_constraints: Vec<Constraint> = conjunction
             .iter()
             // Clone constraint
-            .filtermap(|constraint: Constraint| {
+            .filter_map(|constraint| {
                 remove_or_replace_constraint(constraint, remove_clock, replacing_clock)
             })
             .collect::<Vec<Constraint>>();
@@ -566,14 +563,14 @@ pub(crate) mod clock_reduction {
             // Remove conjunction constraints using only global clock
             return None;
         }
-        let new_conjunction = Conjunction::new(new_constraints);
+        let new_conjunction = edbm::util::constraints::Conjunction::new(new_constraints);
         Some(new_conjunction)
     }
 
     // Remove/Replace constraint if constraint contains clock_index
     // clock can be either i, j or neither
     fn remove_or_replace_constraint(
-        constraint: Constraint,
+        constraint: &Constraint,
         remove_clock: ClockIndex,
         replacing_clock: Option<ClockIndex>,
     ) -> Option<Constraint> {
@@ -581,35 +578,35 @@ pub(crate) mod clock_reduction {
             // remove constraint if there's no replacing clock and either side contains the clock to be removed
             None => {
                 if constraint.i == remove_clock || constraint.j == remove_clock {
-                    None
+                    return None;
                 }
             }
             // Replace either left or right side if either side contains the clock to be removed
             Some(new_clock) => {
                 if constraint.i == remove_clock {
-                    Some(create_constraint(
+                    return Some(create_constraint(
                         new_clock,
                         constraint.j,
                         constraint.ineq(),
                         remove_clock,
-                    ))
+                    ));
                 } else if constraint.j == remove_clock {
-                    Some(create_constraint(
+                    return Some(create_constraint(
                         constraint.i,
                         new_clock,
                         constraint.ineq(),
                         remove_clock,
-                    ))
+                    ));
                 }
             }
         }
         // If neither side contains the clock rebuild the constraint
-        Some(create_constraint(
+        return Some(create_constraint(
             constraint.i,
             constraint.j,
             constraint.ineq(),
             remove_clock,
-        ))
+        ));
     }
 
     //helper for remove_or_replace_constraint
@@ -635,7 +632,7 @@ pub(crate) mod clock_reduction {
 
     #[cfg(test)]
     mod a {
-        use crate::transition_systems::CompiledComponent;
+        use crate::extract_system_rep::clock_reduction::remove_clock_from_federation;
         use edbm::util::constraints::{Constraint, Inequality};
         use edbm::zones::OwnedFederation;
 
@@ -652,7 +649,7 @@ pub(crate) mod clock_reduction {
                 .constrain(1, 0, Inequality::LS(5)) // It doesnt make sense to have 0 < i
                 .constrain(1, 2, Inequality::LS(4))
                 .constrain(2, 3, Inequality::LS(3));
-            let new_fed = CompiledComponent::rebuild_federation_without_clock(&fed, 1);
+            let new_fed = remove_clock_from_federation(&fed, 1, None);
             assert_eq!(new_fed.dim(), 3);
             assert_eq!(
                 new_fed

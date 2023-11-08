@@ -133,7 +133,7 @@ impl CompiledComponent {
             //remove_clock_from_locationTree(locations_tree, clock_index);
         }
         //remove clock from declarations
-        component.comp_info.declarations.remove(&clock_index)
+        //component.comp_info.declarations.remove(&clock_index)
     }
     fn remove_clock_from_transition(mut transition: Transition, clock_index: ClockIndex) {
         //call rebuild_federation_without_clock for guard
