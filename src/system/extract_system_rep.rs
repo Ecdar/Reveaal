@@ -1,6 +1,6 @@
 use crate::data_reader::component_loader::ComponentLoader;
 use crate::model_objects::expressions::{QueryExpression, SaveExpression, SystemExpression};
-use crate::model_objects::{ClockUsage, Component, Edge, Location, Query, State};
+use crate::model_objects::{Component, Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
@@ -18,6 +18,7 @@ use crate::transition_systems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutableQueryError {
@@ -505,11 +506,10 @@ pub(crate) mod clock_reduction {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::{HashSet};
     use test_case::test_case;
     use crate::{JsonProjectLoader};
-    use crate::model_objects::{ClockUsage};
+    use crate::model_objects::{ClockUsage, Component};
 
     struct SetupContext {
         test_comp: Component,
@@ -570,7 +570,7 @@ mod tests {
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
-        context.populate_usages_with_updates();
+        context.test_comp.populate_usages_with_updates();
 
         // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly
         assert_eq!((context.test_comp.clock_usages.get("x").unwrap().edges == context.expected), verdict);

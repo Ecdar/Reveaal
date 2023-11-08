@@ -80,7 +80,7 @@ impl Component {
 
     pub fn populate_usages_with_guards(&mut self) {
         let edges = self.edges.clone();
-        let mut clock_usages = &self.clock_usages;
+        let clock_usages = &mut self.clock_usages;
         for edge in edges {
             match edge.guard {
                 None => (),
@@ -97,7 +97,7 @@ impl Component {
 
     pub fn populate_usages_with_updates(&mut self) {
         let edges = self.edges.clone();
-        let mut clock_usages = &self.clock_usages;
+        let clock_usages = &mut self.clock_usages;
         for edge in edges {
             match edge.update {
                 None => (),
@@ -120,9 +120,9 @@ impl Component {
         }
     }
 
-    fn populate_usages_with_invariants(component: &mut Component) {
-        let locations = component.locations.clone();
-        let mut clock_usages = &component.clock_usages;
+    pub fn populate_usages_with_invariants(&mut self) {
+        let locations = self.locations.clone();
+        let clock_usages = &mut self.clock_usages;
         for location in locations {
             match location.invariant {
                 None => (),
