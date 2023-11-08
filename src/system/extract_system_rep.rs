@@ -535,18 +535,15 @@ mod tests {
     #[test_case("Machine4", vec!["E1".to_string(),"E5".to_string()],    true;  "Clock with usage in two guards avoiding cherrypicking")]
     #[test_case("Machine4", vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards avoiding cherrypicking")]
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
-        //Arrange
         // Instantiating variables used in all tests using the setup function above
         let mut context = setup(comp_name, expected_edges);
 
-        //Act
         // Creating empty clock_usage structs for each clock in component
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
         context.test_comp.populate_usages_with_guards();
 
-        //Assert
         //Confirming edges where clock "y" exists.
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().edges == context.expected), verdict);
 
@@ -568,16 +565,13 @@ mod tests {
     #[test_case("Update", vec!["E27".to_string()], true;    "Clock on both rhs and lhs of update")]
     #[test_case("Update", vec!["E26".to_string()], false;   "Clock on both rhs and lhs of fake update")]
     fn test_populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
-        //Arrange
         let mut context = setup(comp_name, expected_edges);
 
-        //Act
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
         context.populate_usages_with_updates();
 
-        //Assert
         // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly
         assert_eq!((context.test_comp.clock_usages.get("x").unwrap().edges == context.expected), verdict);
     }
@@ -585,16 +579,13 @@ mod tests {
     #[test_case("Machine",  vec!["L4".to_string()],  true;  "Clock with usage in one invariant")]
     #[test_case("Machine",  vec!["L6".to_string()],  false; "Clock with usage in one fake invariant")]
     fn test_populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
-        //Arrange
         let mut context = setup(comp_name, expected_locations);
 
-        //Act
         for (clock, _) in &context.test_comp.declarations.clocks {
             context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
         }
         context.test_comp.populate_usages_with_invariants();
 
-        //Assert
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().locations == context.expected), verdict);
     }
 }
