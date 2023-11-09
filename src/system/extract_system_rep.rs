@@ -533,7 +533,10 @@ mod tests {
 
     #[test]
     fn test_initialise_clock_usages() {
+        let mut context = setup("Update", vec![]);
 
+        assert_eq!(context.test_comp.clock_usages.contains_key("x"), true);
+        assert_eq!(context.test_comp.clock_usages.contains_key("y"), true);
     }
 
     //TODO: maybe update component names to reflect tests?
