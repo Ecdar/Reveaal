@@ -10,6 +10,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use crate::transition_systems::LocationTree;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -135,6 +136,57 @@ impl Component {
                 }
             }
         }
+    }
+
+    fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
+        // Skal tage en instance af SystemRecipe ind, call de appropriate metoder og return instruktionerne
+        // Man kan tage meget inspiration fra TransitionSystem her
+
+    }
+    fn get_initial_location(&self) -> Option<LocationTree> {
+        // Implement logik som kan producere et korrekt LocationTree fra systemRecipe/component
+        // Et LocationTree har muligvis en Federation som også skal korrekt skabes og passe med Location
+        // Dette er klart den sværeste opgave at implementere
+
+    }
+    fn get_analysis_graph(&self) -> ClockAnalysisGraph {
+        // En ClockAnalysisGraph skal creates her og populates med rigtige constraints i dens noder og edges
+        // Man kan tage inspiration fra TransistionSystem aswell
+
+    }
+    fn get_actions(&self) -> HashSet<String> {
+        // Skal kunne finde alle Actions associeret med component/systemRecipe her
+        // Dette kan ikke gøres på samme måde som TransitionSystem
+        // I Edge struct's field med SyncType specificeres hvilken Action den har
+        // Ved ikke om man kan direkte hive fat i dem eller om der skal filtres noget først etc.
+        // Se på get_actions i TransitionSystem
+
+    }
+    fn actions_contain(&self, action: &str) -> bool {
+        // check if get_actions contains a specific action
+        // Se i TransitionSystem, meget simpelt
+
+    }
+    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
+        // Finder transitions fra en specific location(LocationTree) (tror jeg, der er vidst nogen conditions på det)
+        // Vær ops på at benytter sig blandt andet af location.edges som er en compiled_component specific.
+        // Benytter sig os af get_input funktioner som er lokal for Compiled_Component aswell
+        // Dette kan derfor ik rigtigt være en copy paste funktion, men undersøg selv \-_-/
+
+    }
+    fn next_transitions_if_available(&self) -> Vec<Transition> {
+        // Check if the next transition is possible
+        // Requires LocationTree and Actions to work
+        // Se TransitionSystem for inspiration
+
+    }
+    fn find_edges_and_nodes(&self, init_location: LocationTree, graph: &mut ClockAnalysisGraph) {
+        // Hvis resten af funktionerne kan/er implementeret korrekt kan denne være Copy/paste fra Transistion_system
+        // Vi kan nok bare importere funktionen så faktisk
+        // Hvis vi ikke kan få LocationTree til at virke skal denne funktion(Som populater clockAnalysisGraph) reworkes
+        // Vi skal så stadig have samme population af graphen men på en måde der ikke anvender LocationTree type
+        // Sidste ting vi skal implementere
+
     }
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
