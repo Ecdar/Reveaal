@@ -520,7 +520,7 @@ mod tests {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         let mut test_comp = project_loader.get_component(comp_name).clone();
         let expected: HashSet<String> = expected.into_iter().collect();
-
+        // Initialise clock usage structs for each clock in component.
         test_comp.initialise_clock_usages();
 
         SetupContext { test_comp, expected }
@@ -528,7 +528,6 @@ mod tests {
 
     // File path to project for project_loader
     // UpdateCase is designed to test for additional edge cases
-    // such as the update y=x. No other sample contains this case.
     const PATH: &str = "samples/json/UpdateCase";
 
     #[test]
@@ -539,18 +538,18 @@ mod tests {
                 && context.test_comp.clock_usages.contains_key("y"), true);
     }
 
-    //TODO: maybe update component names to reflect tests?
+    // TODO: maybe update component names to reflect tests?
     #[test_case("Machine",  vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
     #[test_case("Machine",  vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
     #[test_case("Machine4", vec!["E1".to_string(),"E5".to_string()],    true;  "Clock with usage in two guards avoiding cherrypicking")]
     #[test_case("Machine4", vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards avoiding cherrypicking")]
     fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
-        // Instantiating variables used in all tests using the setup function above
+        // Instantiating variables used in all tests using the setup function above.
         let mut context = setup(comp_name, expected_edges);
 
         context.test_comp.populate_usages_with_guards();
 
-        //Confirming edges where clock "y" exists.
+        // Confirming edges where clock "y" exists.
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().edges == context.expected), verdict);
 
     }
@@ -565,6 +564,7 @@ mod tests {
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().updates == context.expected), verdict);
     }
 
+    // A new sample was created for this test to accommodate the edge-case y=x.
     #[test_case("Update", vec!["E27".to_string()], true;    "Clock on both rhs and lhs of update")]
     #[test_case("Update", vec!["E26".to_string()], false;   "Clock on both rhs and lhs of fake update")]
     fn test_populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
@@ -572,7 +572,7 @@ mod tests {
 
         context.test_comp.populate_usages_with_updates();
 
-        // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly
+        // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly.
         assert_eq!((context.test_comp.clock_usages.get("x").unwrap().edges == context.expected), verdict);
     }
 
