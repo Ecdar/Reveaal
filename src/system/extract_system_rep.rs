@@ -518,8 +518,10 @@ mod tests {
     ///Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let test_comp = project_loader.get_component(comp_name).clone();
+        let mut test_comp = project_loader.get_component(comp_name).clone();
         let expected: HashSet<String> = expected.into_iter().collect();
+
+        test_comp.initialise_clock_usages();
 
         SetupContext { test_comp, expected }
     }
@@ -528,6 +530,11 @@ mod tests {
     // UpdateCase is designed to test for additional edge cases
     // such as the update y=x. No other sample contains this case.
     const PATH: &str = "samples/json/UpdateCase";
+
+    #[test]
+    fn test_initialise_clock_usages() {
+
+    }
 
     //TODO: maybe update component names to reflect tests?
     #[test_case("Machine",  vec!["E25".to_string(),"E29".to_string()],  true;  "Clock with usage in two guards")]
@@ -538,10 +545,6 @@ mod tests {
         // Instantiating variables used in all tests using the setup function above
         let mut context = setup(comp_name, expected_edges);
 
-        // Creating empty clock_usage structs for each clock in component
-        for (clock, _) in &context.test_comp.declarations.clocks {
-            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
-        }
         context.test_comp.populate_usages_with_guards();
 
         //Confirming edges where clock "y" exists.
@@ -554,9 +557,6 @@ mod tests {
     fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         let mut context = setup(comp_name, expected_edges);
 
-        for (clock, _) in &context.test_comp.declarations.clocks {
-            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
-        }
         context.test_comp.populate_usages_with_updates();
 
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().updates == context.expected), verdict);
@@ -567,9 +567,6 @@ mod tests {
     fn test_populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         let mut context = setup(comp_name, expected_edges);
 
-        for (clock, _) in &context.test_comp.declarations.clocks {
-            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
-        }
         context.test_comp.populate_usages_with_updates();
 
         // The rhs of an update is handled like a guard on an edge, therefore we check if the edge has been added correctly
@@ -581,9 +578,6 @@ mod tests {
     fn test_populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
         let mut context = setup(comp_name, expected_locations);
 
-        for (clock, _) in &context.test_comp.declarations.clocks {
-            context.test_comp.clock_usages.insert(clock.clone(),ClockUsage::default());
-        }
         context.test_comp.populate_usages_with_invariants();
 
         assert_eq!((context.test_comp.clock_usages.get("y").unwrap().locations == context.expected), verdict);
