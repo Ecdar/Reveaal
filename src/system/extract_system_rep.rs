@@ -509,7 +509,7 @@ mod tests {
     use std::collections::{HashSet};
     use test_case::test_case;
     use crate::{JsonProjectLoader};
-    use crate::model_objects::{ClockUsage, Component};
+    use crate::model_objects::{Component};
 
     struct SetupContext {
         test_comp: Component,
@@ -533,10 +533,10 @@ mod tests {
 
     #[test]
     fn test_initialise_clock_usages() {
-        let mut context = setup("Update", vec![]);
+        let context = setup("Update", vec![]);
 
-        assert_eq!(context.test_comp.clock_usages.contains_key("x"), true);
-        assert_eq!(context.test_comp.clock_usages.contains_key("y"), true);
+        assert_eq!(context.test_comp.clock_usages.contains_key("x")
+                && context.test_comp.clock_usages.contains_key("y"), true);
     }
 
     //TODO: maybe update component names to reflect tests?
