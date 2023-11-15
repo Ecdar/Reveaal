@@ -153,7 +153,7 @@ impl Component {
     // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
     // see find_clock_redundancies for inspiration
 
-    // TODO Husk actions har en effekt på mulige transitions der kan tages.
+    // TODO overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
     // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
     // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
     // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
