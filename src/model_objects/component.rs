@@ -138,6 +138,18 @@ impl Component {
         }
     }
 
+    // TODO Remove clocks identical to global clock (Never updated)
+    // Hvilke informationer skal bruges (Edges? Locations? etc)
+    // Hvilke logiske trin er det man skal udføre på de informationer
+    // Hvor kan man finde noget lignende logik fra deres implementation
+
+    // TODO Remove duplicate clocks (Clocks always updated at the same time)
+
+
+    // TODO Remove clocks never used (Never read)
+
+
+    /*
     fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
         // Skal tage en instance af SystemRecipe ind, call de appropriate metoder og return instruktionerne
         // Man kan tage meget inspiration fra TransitionSystem her
@@ -188,6 +200,7 @@ impl Component {
         // Sidste ting vi skal implementere
 
     }
+    */
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
