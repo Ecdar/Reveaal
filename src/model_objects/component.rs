@@ -137,70 +137,36 @@ impl Component {
             }
         }
     }
-
     // TODO Remove clocks identical to global clock (Never updated)
-    // Hvilke informationer skal bruges (Edges? Locations? etc)
-    // Hvilke logiske trin er det man skal udføre på de informationer
-    // Hvor kan man finde noget lignende logik fra deres implementation
+    // If a clock is never updated it is identical to the global clock with 0 index
+    // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
+    // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
+    // See dens metode find_equivalent_clock_groups for inspiration
 
     // TODO Remove duplicate clocks (Clocks always updated at the same time)
-
+    // Needs information about updates of clocks
+    // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
+    // Clock Groups
+    // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
+    // See dens metode find_equivalent_clock_groups for inspiration
 
     // TODO Remove clocks never used (Never read)
+    // Needs to know all locations and edges clocks are read in
+    // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
+    // see find_clock_redundancies for inspiration
 
-
-    /*
-    fn find_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
-        // Skal tage en instance af SystemRecipe ind, call de appropriate metoder og return instruktionerne
-        // Man kan tage meget inspiration fra TransitionSystem her
-
-    }
-    fn get_initial_location(&self) -> Option<LocationTree> {
-        // Implement logik som kan producere et korrekt LocationTree fra systemRecipe/component
-        // Et LocationTree har muligvis en Federation som også skal korrekt skabes og passe med Location
-        // Dette er klart den sværeste opgave at implementere
-
-    }
-    fn get_analysis_graph(&self) -> ClockAnalysisGraph {
-        // En ClockAnalysisGraph skal creates her og populates med rigtige constraints i dens noder og edges
-        // Man kan tage inspiration fra TransistionSystem aswell
-
-    }
-    fn get_actions(&self) -> HashSet<String> {
-        // Skal kunne finde alle Actions associeret med component/systemRecipe her
-        // Dette kan ikke gøres på samme måde som TransitionSystem
-        // I Edge struct's field med SyncType specificeres hvilken Action den har
-        // Ved ikke om man kan direkte hive fat i dem eller om der skal filtres noget først etc.
-        // Se på get_actions i TransitionSystem
-
-    }
-    fn actions_contain(&self, action: &str) -> bool {
-        // check if get_actions contains a specific action
-        // Se i TransitionSystem, meget simpelt
-
-    }
-    fn next_transitions(&self, location: &LocationTree, action: &str) -> Vec<Transition> {
-        // Finder transitions fra en specific location(LocationTree) (tror jeg, der er vidst nogen conditions på det)
-        // Vær ops på at benytter sig blandt andet af location.edges som er en compiled_component specific.
-        // Benytter sig os af get_input funktioner som er lokal for Compiled_Component aswell
-        // Dette kan derfor ik rigtigt være en copy paste funktion, men undersøg selv \-_-/
-
-    }
-    fn next_transitions_if_available(&self) -> Vec<Transition> {
-        // Check if the next transition is possible
-        // Requires LocationTree and Actions to work
-        // Se TransitionSystem for inspiration
-
-    }
-    fn find_edges_and_nodes(&self, init_location: LocationTree, graph: &mut ClockAnalysisGraph) {
-        // Hvis resten af funktionerne kan/er implementeret korrekt kan denne være Copy/paste fra Transistion_system
-        // Vi kan nok bare importere funktionen så faktisk
-        // Hvis vi ikke kan få LocationTree til at virke skal denne funktion(Som populater clockAnalysisGraph) reworkes
-        // Vi skal så stadig have samme population af graphen men på en måde der ikke anvender LocationTree type
-        // Sidste ting vi skal implementere
-
-    }
-    */
+    // TODO Husk actions har en effekt på mulige transitions der kan tages.
+    // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
+    // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
+    // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
+    // Opgaven her består i at vi skal filtrere disse "fake" transitions/edges fra inden vi laver reductions baseret på hvad vi ved
+    // I Edge struct's field med SyncType specificeres hvilken Action den har
+    // Metoder fra TransitionSystem der muligvis kan trækkes inspiration fra:
+    /* get_actions()
+     * actions_contain()   // check if get_actions contains a specific action
+     * next_transitions()
+     * next_transitions_if_available()
+     */
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
