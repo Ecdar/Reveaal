@@ -10,8 +10,6 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use crate::transition_systems::LocationTree;
-
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
