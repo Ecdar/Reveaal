@@ -9,7 +9,10 @@ use itertools::Itertools;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::io::empty;
 use std::iter::FromIterator;
+use crate::transition_systems::transition_system::ClockReductionInstruction;
+
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
@@ -135,23 +138,74 @@ impl Component {
             }
         }
     }
-    // TODO Remove clocks identical to global clock (Never updated)
-    // If a clock is never updated it is identical to the global clock with 0 index
-    // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
-    // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
-    // See dens metode find_equivalent_clock_groups for inspiration
 
-    // TODO Remove duplicate clocks (Clocks always updated at the same time)
-    // Needs information about updates of clocks
-    // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
-    // Clock Groups
-    // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
-    // See dens metode find_equivalent_clock_groups for inspiration
+    pub fn remove_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
+        let mut used_clocks: HashSet<String> = HashSet::new();
+        let all_clocks = &self.clock_usages;
 
-    // TODO Remove clocks never used (Never read)
-    // Needs to know all locations and edges clocks are read in
-    // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
-    // see find_clock_redundancies for inspiration
+        for(clock_name,_) in all_clocks {
+            used_clocks.insert(clock_name.clone())
+        }
+        let mut unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
+        for unused_clocks in &unused_clocks {
+            used_clocks.remove(unused_clocks);
+        }
+
+        // Remove never read from clocks(useless
+        for unused_clock in &unused_clocks {
+            // TODO
+            // Remove clock declarations
+
+        }
+
+        // Remap the clocks equvalient to each other
+        // Se find_equivalent_clock_groups on ClockAnalysisGraph
+        let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
+            // TODO
+            // Remap the equvaliant clocks to global clock and their non-global duplicates
+    }
+    pub fn get_unused_clocks(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
+        // TODO Remove clocks never used (Never read)
+        // Needs to know all locations and edges clocks are read in
+        // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
+        // see find_clock_redundancies for inspiration
+        let mut unused_clocks: HashSet<String> = HashSet::new();
+        for(clock_name, clock_info) in clock_usages {
+            if clock_info.edges.is_empty() && clock_info.locations.is_empty() {
+                unused_clocks.insert(clock_name.clone());
+            }
+        }
+        unused_clocks
+    }
+
+    pub fn find_equivalent_clock_groups(used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>>{
+        // Function which should return a vector of the equvalant clock groups
+
+    }
+
+    // THE FUNCTIONS BELOW POSSIBLY NOT GONNA BE USED
+    pub fn get_global_clock_duplicates(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
+        // TODO Remove clocks identical to global clock (Never updated)
+        // If a clock is never updated it is identical to the global clock with 0 index
+        // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
+        // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
+        // See dens metode find_equivalent_clock_groups for inspiration
+        let mut global_clocks: HashSet<String> = HashSet::new();
+        for(clock_name, clock_info) in clock_usages {
+            if clock_info.updates.is_empty() {
+                global_clocks.insert(clock_name.clone());
+            }
+        }
+        global_clocks
+    }
+    pub fn get_clock_duplicates(&self) {
+        // TODO Remove duplicate clocks (Clocks always updated at the same time)
+        // Needs information about updates of clocks
+        // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
+        // Clock Groups
+        // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
+        // See dens metode find_equivalent_clock_groups for inspiration
+    }
 
     // TODO overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
     // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output

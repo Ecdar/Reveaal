@@ -476,6 +476,7 @@ pub(crate) mod clock_reduction {
         )
     }
 
+    // Remaps index more compactly, after clock reduction that may leave gaps in the index range
     fn compress_component_decls(
         mut comps: Vec<&mut Component>,
         other: Option<Vec<&mut Component>>,
