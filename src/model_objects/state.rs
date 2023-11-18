@@ -11,14 +11,17 @@ use edbm::zones::OwnedFederation;
 #[derive(Clone, Debug)]
 pub struct State {
     pub decorated_locations: Rc<LocationTree>,
-    zone_sentinel: Option<OwnedFederation>,
+    zone: Rc<OwnedFederation>,
 }
 
 impl State {
-    pub fn new(decorated_locations: Rc<LocationTree>, zone: OwnedFederation) -> Self {
+    pub fn new<Z: Into<Rc<OwnedFederation>>>(
+        decorated_locations: Rc<LocationTree>,
+        zone: Z,
+    ) -> Self {
         State {
             decorated_locations,
-            zone_sentinel: Some(zone),
+            zone: zone.into(),
         }
     }
 
@@ -39,30 +42,35 @@ impl State {
 
         Some(State {
             decorated_locations,
-            zone_sentinel: Some(fed),
+            zone: Rc::new(fed),
         })
     }
 
     pub fn apply_invariants(&mut self) {
-        let fed = self.take_zone();
+        let fed = self.clone_zone();
         let new_fed = self.decorated_locations.apply_invariants(fed);
+
         self.set_zone(new_fed);
     }
 
-    pub fn zone_ref(&self) -> &OwnedFederation {
-        self.zone_sentinel.as_ref().unwrap()
+    pub fn clone_zone(&self) -> OwnedFederation {
+        self.zone.as_ref().clone()
     }
 
-    pub(crate) fn take_zone(&mut self) -> OwnedFederation {
-        self.zone_sentinel.take().unwrap()
+    pub fn ref_zone(&self) -> &OwnedFederation {
+        self.zone.as_ref()
     }
 
-    pub(crate) fn set_zone(&mut self, zone: OwnedFederation) {
-        self.zone_sentinel = Some(zone);
+    pub fn get_zone(&self) -> Rc<OwnedFederation> {
+        Rc::clone(&self.zone)
+    }
+
+    pub(crate) fn set_zone<Z: Into<Rc<OwnedFederation>>>(&mut self, zone: Z) {
+        self.zone = zone.into();
     }
 
     pub fn update_zone(&mut self, update: impl FnOnce(OwnedFederation) -> OwnedFederation) {
-        let fed = self.take_zone();
+        let fed = self.clone_zone();
         let new_fed = update(fed);
         self.set_zone(new_fed);
     }
@@ -72,7 +80,7 @@ impl State {
             return false;
         }
 
-        self.zone_ref().subset_eq(other.zone_ref())
+        self.ref_zone().subset_eq(other.ref_zone())
     }
 
     pub fn get_location(&self) -> &LocationTree {

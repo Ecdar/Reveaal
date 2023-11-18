@@ -51,18 +51,6 @@ impl StatePair {
         self.locations2.clone()
     }
 
-    //Used to allow borrowing both states as mutable
-    // pub fn get_mut_locations(
-    //     &mut self,
-    //     is_states1: bool,
-    // ) -> (&mut LocationTree, &mut LocationTree) {
-    //     if is_states1 {
-    //         (&mut self.locations1, &mut self.locations2)
-    //     } else {
-    //         (&mut self.locations2, &mut self.locations1)
-    //     }
-    // }
-
     pub fn get_locations(&self, is_states1: bool) -> (&LocationTree, &LocationTree) {
         if is_states1 {
             (&self.locations1, &self.locations2)

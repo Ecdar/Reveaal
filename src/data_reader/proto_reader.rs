@@ -165,7 +165,7 @@ mod tests {
 
     fn assert_state_equals(state1: &State, state2: &State) {
         assert!(
-            state1.zone_ref().equals(state2.zone_ref()),
+            state1.ref_zone().equals(state2.ref_zone()),
             "Zones are not equal"
         );
         assert_eq!(

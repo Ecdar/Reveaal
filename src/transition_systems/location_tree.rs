@@ -136,11 +136,12 @@ impl LocationTree {
         self.invariant.as_ref()
     }
 
-    pub fn apply_invariants(&self, mut fed: OwnedFederation) -> OwnedFederation {
+    pub fn apply_invariants(&self, fed: OwnedFederation) -> OwnedFederation {
         if let Some(inv) = &self.invariant {
-            fed = fed.intersection(inv);
+            fed.intersection(inv)
+        } else {
+            fed
         }
-        fed
     }
 
     pub fn get_left(&self) -> Rc<LocationTree> {

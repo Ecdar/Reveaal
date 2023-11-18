@@ -47,7 +47,7 @@ impl Decision {
         // Intersect the state zone with the allowed zone
         state.update_zone(|zone| zone.intersection(&allowed));
         // Check if the new state is empty
-        if !state.zone_ref().is_empty() {
+        if !state.ref_zone().is_empty() {
             let next_state = transition.use_transition_alt(&state).expect(
                 "If the allowed zone is non-empty, the transition should lead to a non-empty state",
             );

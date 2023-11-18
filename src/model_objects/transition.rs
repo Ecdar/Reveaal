@@ -53,19 +53,17 @@ impl Transition {
     }
 
     pub fn use_transition(&self, state: &mut State) -> bool {
-        let mut zone = state.take_zone();
+        let mut zone = state.clone_zone();
         zone = self.apply_guards(zone);
         if !zone.is_empty() {
             zone = self.apply_updates(zone).up();
             state.decorated_locations = Rc::clone(&self.target_locations);
             zone = state.decorated_locations.apply_invariants(zone);
-            if !zone.is_empty() {
-                state.set_zone(zone);
-                return true;
-            }
         }
+        let empty = !zone.is_empty();
         state.set_zone(zone);
-        false
+
+        empty
     }
 
     /// Returns the resulting [`State`] when using a transition in the given [`State`]

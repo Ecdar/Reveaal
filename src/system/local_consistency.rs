@@ -107,7 +107,7 @@ pub fn consistency_least_helper(
         }
     }
 
-    if state.zone_ref().can_delay_indefinitely() {
+    if state.ref_zone().can_delay_indefinitely() {
         return Ok(());
     }
 
@@ -169,7 +169,7 @@ fn consistency_fully_helper(
         Ok(())
     } else {
         let last_state = passed_list.last().unwrap();
-        match last_state.zone_ref().can_delay_indefinitely() {
+        match last_state.ref_zone().can_delay_indefinitely() {
             false => ConsistencyFailure::inconsistent_from(system, &state),
             true => Ok(()),
         }

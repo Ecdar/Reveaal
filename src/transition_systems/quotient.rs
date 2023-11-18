@@ -220,6 +220,7 @@ impl TransitionSystem for Quotient {
             }
         }
 
+        let universe = OwnedFederation::universe(self.dim);
         if self.s.get_output_actions().contains(action) {
             // new Rule 3 (includes rule 4 by de-morgan)
             let mut g_s = OwnedFederation::empty(self.dim);
@@ -230,7 +231,7 @@ impl TransitionSystem for Quotient {
             }
 
             // Rule 5 when Rule 3 applies
-            let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
+            let inv_l_s = loc_s.apply_invariants(universe);
 
             transitions.push(Transition {
                 id: TransitionID::Quotient(Vec::new(), s.iter().map(|t| t.id.clone()).collect()),
@@ -240,7 +241,7 @@ impl TransitionSystem for Quotient {
             });
         } else {
             // Rule 5 when Rule 3 does not apply
-            let inv_l_s = loc_s.apply_invariants(OwnedFederation::universe(self.dim));
+            let inv_l_s = loc_s.apply_invariants(universe);
 
             transitions.push(Transition {
                 id: TransitionID::None,
