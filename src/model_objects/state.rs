@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::transition_systems::{LocationTree, TransitionSystem};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
@@ -8,12 +10,12 @@ use edbm::zones::OwnedFederation;
 // This should probably be refactored as it causes unnecessary confusion
 #[derive(Clone, Debug)]
 pub struct State {
-    pub decorated_locations: LocationTree,
+    pub decorated_locations: Rc<LocationTree>,
     zone_sentinel: Option<OwnedFederation>,
 }
 
 impl State {
-    pub fn new(decorated_locations: LocationTree, zone: OwnedFederation) -> Self {
+    pub fn new(decorated_locations: Rc<LocationTree>, zone: OwnedFederation) -> Self {
         State {
             decorated_locations,
             zone_sentinel: Some(zone),
@@ -25,7 +27,7 @@ impl State {
     }
 
     pub fn from_location(
-        decorated_locations: LocationTree,
+        decorated_locations: Rc<LocationTree>,
         dimensions: ClockIndex,
     ) -> Option<Self> {
         let mut fed = OwnedFederation::init(dimensions);
@@ -78,7 +80,7 @@ impl State {
     }
 
     pub fn extrapolate_max_bounds(&mut self, system: &dyn TransitionSystem) {
-        let bounds = system.get_local_max_bounds(&self.decorated_locations);
+        let bounds = system.get_local_max_bounds(self.decorated_locations.as_ref());
         self.update_zone(|zone| zone.extrapolate_max_bounds(&bounds))
     }
 
@@ -87,7 +89,7 @@ impl State {
         system: &dyn TransitionSystem,
         extra_bounds: &Bounds,
     ) {
-        let mut bounds = system.get_local_max_bounds(&self.decorated_locations);
+        let mut bounds = system.get_local_max_bounds(self.decorated_locations.as_ref());
         bounds.add_bounds(extra_bounds);
         self.update_zone(|zone| zone.extrapolate_max_bounds(&bounds))
     }

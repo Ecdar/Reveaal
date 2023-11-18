@@ -26,7 +26,7 @@ pub trait PassedStateListExt {
 impl PassedStateListExt for PassedStateListVec {
     fn put(&mut self, pair: StatePair) {
         let fed = pair.get_zone();
-        let (loc1, loc2) = (pair.locations1.id, pair.locations2.id);
+        let (loc1, loc2) = (pair.locations1.id.clone(), pair.locations2.id.clone());
         let key = (loc1, loc2);
         if let Some(vec) = self.get_mut(&key) {
             vec.push(fed);
@@ -60,7 +60,7 @@ impl PassedStateListExt for DepthFirstWaitingStateList {
     fn put(&mut self, pair: StatePair) {
         self.queue.push_front(pair.clone());
         let fed = pair.get_zone();
-        let (loc1, loc2) = (pair.locations1.id, pair.locations2.id);
+        let (loc1, loc2) = (pair.locations1.id.clone(), pair.locations2.id.clone());
         let key = (loc1, loc2);
         if let Some(vec) = self.map.get_mut(&key) {
             vec.push_front(fed);
@@ -120,7 +120,7 @@ impl DepthFirstWaitingStateList {
 impl PassedStateListExt for PassedStateListFed {
     fn put(&mut self, pair: StatePair) {
         let mut fed = pair.clone_zone();
-        let (loc1, loc2) = (pair.locations1.id, pair.locations2.id);
+        let (loc1, loc2) = (pair.locations1.id.clone(), pair.locations2.id.clone());
         let key = (loc1, loc2);
 
         if let Some(f) = self.get(&key) {

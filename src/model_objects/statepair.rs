@@ -8,16 +8,16 @@ use std::{
 
 #[derive(Clone, Debug)]
 pub struct StatePair {
-    pub locations1: LocationTree,
-    pub locations2: LocationTree,
+    pub locations1: Rc<LocationTree>,
+    pub locations2: Rc<LocationTree>,
     zone: Rc<OwnedFederation>,
 }
 
 impl StatePair {
     pub fn from_locations(
         dimensions: usize,
-        locations1: LocationTree,
-        locations2: LocationTree,
+        locations1: Rc<LocationTree>,
+        locations2: Rc<LocationTree>,
     ) -> StatePair {
         let mut zone = OwnedFederation::init(dimensions);
 
@@ -32,8 +32,8 @@ impl StatePair {
     }
 
     pub fn new(
-        locations1: LocationTree,
-        locations2: LocationTree,
+        locations1: Rc<LocationTree>,
+        locations2: Rc<LocationTree>,
         zone: Rc<OwnedFederation>,
     ) -> Self {
         StatePair {
@@ -43,25 +43,25 @@ impl StatePair {
         }
     }
 
-    pub fn get_locations1(&self) -> &LocationTree {
-        &self.locations1
+    pub fn get_locations1(&self) -> Rc<LocationTree> {
+        self.locations1.clone()
     }
 
-    pub fn get_locations2(&self) -> &LocationTree {
-        &self.locations2
+    pub fn get_locations2(&self) -> Rc<LocationTree> {
+        self.locations2.clone()
     }
 
     //Used to allow borrowing both states as mutable
-    pub fn get_mut_locations(
-        &mut self,
-        is_states1: bool,
-    ) -> (&mut LocationTree, &mut LocationTree) {
-        if is_states1 {
-            (&mut self.locations1, &mut self.locations2)
-        } else {
-            (&mut self.locations2, &mut self.locations1)
-        }
-    }
+    // pub fn get_mut_locations(
+    //     &mut self,
+    //     is_states1: bool,
+    // ) -> (&mut LocationTree, &mut LocationTree) {
+    //     if is_states1 {
+    //         (&mut self.locations1, &mut self.locations2)
+    //     } else {
+    //         (&mut self.locations2, &mut self.locations1)
+    //     }
+    // }
 
     pub fn get_locations(&self, is_states1: bool) -> (&LocationTree, &LocationTree) {
         if is_states1 {
@@ -88,8 +88,8 @@ impl StatePair {
         sys1: &TransitionSystemPtr,
         sys2: &TransitionSystemPtr,
     ) -> Self {
-        let mut bounds = sys1.get_local_max_bounds(&self.locations1);
-        bounds.add_bounds(&sys2.get_local_max_bounds(&self.locations2));
+        let mut bounds = sys1.get_local_max_bounds(self.locations1.as_ref());
+        bounds.add_bounds(&sys2.get_local_max_bounds(self.locations2.as_ref()));
         let zone = self.clone_zone().extrapolate_max_bounds(&bounds);
 
         StatePair {

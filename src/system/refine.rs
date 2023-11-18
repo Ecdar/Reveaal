@@ -141,8 +141,8 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
 
     let mut initial_pair = StatePair::from_locations(
         dimensions,
-        initial_locations_1.clone(),
-        initial_locations_2.clone(),
+        Rc::clone(&initial_locations_1),
+        Rc::clone(&initial_locations_2),
     );
 
     if initial_pair.ref_zone().is_empty() {

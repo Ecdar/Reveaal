@@ -134,9 +134,10 @@ fn reachability_search(
         }
 
         for action in &actions {
-            for transition in
-                &system.next_transitions(&sub_path.destination_state.decorated_locations, action)
-            {
+            for transition in &system.next_transitions(
+                Rc::clone(&sub_path.destination_state.decorated_locations),
+                action,
+            ) {
                 take_transition(
                     &sub_path,
                     transition,
@@ -156,7 +157,7 @@ fn reachability_search(
 fn reached_end_state(cur_state: &State, end_state: &State) -> bool {
     cur_state
         .decorated_locations
-        .compare_partial_locations(&end_state.decorated_locations)
+        .compare_partial_locations(Rc::clone(&end_state.decorated_locations))
         && cur_state.zone_ref().has_intersection(end_state.zone_ref())
 }
 

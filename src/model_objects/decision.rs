@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::model_objects::{State, Transition};
 use crate::transition_systems::TransitionSystemPtr;
 
@@ -16,7 +18,8 @@ impl Decision {
     /// # Panics
     /// Panics if the [`Decision`] leads to no new states or is ambiguous (leads to multiple new states)
     pub fn resolve(&self, system: &TransitionSystemPtr) -> Vec<Decision> {
-        let transitions = system.next_transitions(&self.state.decorated_locations, &self.action);
+        let transitions =
+            system.next_transitions(Rc::clone(&self.state.decorated_locations), &self.action);
         let mut next_states: Vec<_> = transitions
             .into_iter()
             .filter_map(|transition| transition.use_transition_alt(&self.state))
@@ -64,7 +67,8 @@ impl Decision {
         let mut next_decisions = vec![];
 
         for action in system.get_actions() {
-            let possible_transitions = system.next_transitions(&state.decorated_locations, &action);
+            let possible_transitions =
+                system.next_transitions(Rc::clone(&state.decorated_locations), &action);
             for t in possible_transitions {
                 if let Some(decision) = Decision::from_state_transition(state.clone(), &t, &action)
                 {
