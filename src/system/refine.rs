@@ -148,7 +148,7 @@ pub fn check_refinement(sys1: TransitionSystemPtr, sys2: TransitionSystemPtr) ->
     if initial_pair.ref_zone().is_empty() {
         return RefinementFailure::empty_initial(sys1.as_ref(), sys2.as_ref());
     }
-    initial_pair = initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
+    initial_pair.extrapolate_max_bounds(context.sys1, context.sys2);
 
     debug!("Initial {}", initial_pair);
     context.waiting_list.put(initial_pair);
@@ -361,8 +361,8 @@ fn build_state_pair(
 
     //Update locations in states
     let (locations1, locations2) = (
-        transition1.target_locations.clone(),
-        transition2.target_locations.clone(),
+        Rc::clone(&transition1.target_locations),
+        Rc::clone(&transition2.target_locations),
     );
 
     // Apply invariants on the left side of relation
@@ -394,7 +394,7 @@ fn build_state_pair(
     }
 
     let mut new_sp = StatePair::new(left_loc, right_loc, Rc::new(new_sp_zone));
-    new_sp = new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
+    new_sp.extrapolate_max_bounds(context.sys1, context.sys2);
 
     if !context.passed_list.has(&new_sp) && !context.waiting_list.has(&new_sp) {
         debug!("New state {}", new_sp);

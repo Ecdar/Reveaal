@@ -72,19 +72,14 @@ impl StatePair {
     }
 
     pub fn extrapolate_max_bounds(
-        self,
+        &mut self,
         sys1: &TransitionSystemPtr,
         sys2: &TransitionSystemPtr,
-    ) -> Self {
+    ) {
         let mut bounds = sys1.get_local_max_bounds(self.locations1.as_ref());
         bounds.add_bounds(&sys2.get_local_max_bounds(self.locations2.as_ref()));
-        let zone = self.clone_zone().extrapolate_max_bounds(&bounds);
 
-        StatePair {
-            locations1: self.locations1,
-            locations2: self.locations2,
-            zone: Rc::new(zone),
-        }
+        self.zone = Rc::new(self.clone_zone().extrapolate_max_bounds(&bounds));
     }
 }
 

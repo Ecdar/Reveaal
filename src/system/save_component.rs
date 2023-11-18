@@ -17,7 +17,7 @@ pub fn combine_components(
     system: &TransitionSystemPtr,
     reachability: PruningStrategy,
 ) -> Component {
-    let mut location_trees: Vec<Rc<LocationTree>> = vec![];
+    let mut location_trees = vec![];
     let mut edges = vec![];
     let clocks = get_clock_map(system);
     match reachability {
