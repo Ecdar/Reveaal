@@ -164,9 +164,8 @@ impl Component {
             // TODO
             // Remap the equvaliant clocks to global clock and their non-global duplicates
     }
+
     pub fn get_unused_clocks(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
-        // TODO Remove clocks never used (Never read)
-        // Needs to know all locations and edges clocks are read in
         // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
         // see find_clock_redundancies for inspiration
         let mut unused_clocks: HashSet<String> = HashSet::new();
@@ -178,18 +177,73 @@ impl Component {
         unused_clocks
     }
 
-    pub fn find_equivalent_clock_groups(used_clocks: &HashSet<ClockIndex>) -> Vec<HashSet<ClockIndex>>{
+    // First idea - Port previous logic from TransitionSystem to work on component
+    pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
         // Function which should return a vector of the equvalant clock groups
+        // kan være vi skal bruge component.edges til iterere henover forløbet.
 
+        if used_clocks.len() < 2 || self.edges.is_empty() {
+            return Vec::new();
+        }
+
+        let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
+
+        for edge in &self.edges {
+            let local_equivalences = self.find_local_equivalences(edge);
+            self.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
+        }
+        equivalent_clock_groups
+    }
+    fn find_local_equivalences(&self, edge: &Edge) -> HashMap<String, u32> {
+        let mut local_equivalence_map = HashMap::new();
+        for update in edge.update.unwrap() {
+            // TODO implement metode for at extract expression value from an update (get_int() - is not implemented in Arith_expression as of now)
+            local_equivalence_map.insert(update.variable, update.expression.get_int() as u32);
+        }
+        local_equivalence_map
+    }
+    // TODO Fix this to work with strings
+    fn update_global_groups(
+        equivalent_clock_groups: &mut Vec<HashSet<String>>,
+        local_equivalences: &HashMap<String, u32>,
+    ) {
+        let mut new_groups: HashMap<usize, HashSet<String>> = HashMap::new();
+        let mut group_offset: usize = u32::MAX as usize;
+
+        for (old_group_index, equivalent_clock_group) in equivalent_clock_groups.iter_mut().enumerate() {
+            for clock in equivalent_clock_group.iter() {
+                if let Some(group_id) = local_equivalences.get(clock) {
+                    Component::get_or_insert(
+                        &mut new_groups,
+                        group_offset + ((*group_id) as usize),
+                    )
+                        .insert(*clock);
+                } else {
+                    Component::get_or_insert(&mut new_groups, old_group_index)
+                        .insert(*clock);
+                }
+            }
+            group_offset += (u32::MAX as usize) * 2;
+        }
+
+        *equivalent_clock_groups = new_groups
+            .into_iter()
+            .map(|pair| pair.1)
+            .filter(|group| group.len() > 1)
+            .collect();
+    }
+    // TODO Fix this to work with Strings? idk
+    fn get_or_insert<K: Eq + Hash, V: Default>(map: &'_ mut HashMap<K, V>, key: K) -> &'_ mut V {
+        match map.entry(key) {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(V::default()),
+        }
     }
 
-    // THE FUNCTIONS BELOW POSSIBLY NOT GONNA BE USED
+    // Second idea - Use primarily the clock_usage structs and split the different clocks into their equvilant groups by looking at their update HashSets and seeing the IDs match
     pub fn get_global_clock_duplicates(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
-        // TODO Remove clocks identical to global clock (Never updated)
         // If a clock is never updated it is identical to the global clock with 0 index
         // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
-        // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
-        // See dens metode find_equivalent_clock_groups for inspiration
         let mut global_clocks: HashSet<String> = HashSet::new();
         for(clock_name, clock_info) in clock_usages {
             if clock_info.updates.is_empty() {
@@ -199,26 +253,19 @@ impl Component {
         global_clocks
     }
     pub fn get_clock_duplicates(&self) {
-        // TODO Remove duplicate clocks (Clocks always updated at the same time)
-        // Needs information about updates of clocks
         // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
-        // Clock Groups
-        // ClockAnalysisGraph kommer lidt til at svare til vores clockscopes vi har skabt
-        // See dens metode find_equivalent_clock_groups for inspiration
+        // Can be done by runninf through the different clocks and their clock_usage struct too look for matches. All identical clocks(their updates) fall into the same clock group
+
     }
+
+    // It could be worth benchmarking to different ideas to see what is most effecient
 
     // TODO overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
     // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
     // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
     // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
     // Opgaven her består i at vi skal filtrere disse "fake" transitions/edges fra inden vi laver reductions baseret på hvad vi ved
-    // I Edge struct's field med SyncType specificeres hvilken Action den har
-    // Metoder fra TransitionSystem der muligvis kan trækkes inspiration fra:
-    /* get_actions()
-     * actions_contain()   // check if get_actions contains a specific action
-     * next_transitions()
-     * next_transitions_if_available()
-     */
+
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
