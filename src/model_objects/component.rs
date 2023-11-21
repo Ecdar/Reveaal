@@ -141,7 +141,7 @@ impl Component {
         }
     }
 
-    pub fn remove_redundant_clocks(&self) -> Vec<ClockReductionInstruction> {
+    pub fn remove_redundant_clocks(&mut self) {
         let mut used_clocks: HashSet<String> = HashSet::new();
         let all_clocks = &self.clock_usages;
 
