@@ -33,7 +33,7 @@ mod reachability_partial_states_test {
                 "L5//_ == L5//L1")]
     #[test_case(LocationTree::compose(build_location_tree_helper("L5", LocationType::Normal), LocationTree::build_any_location_tree(), CompositionType::Conjunction),
                 LocationTree::compose(LocationTree::build_any_location_tree(), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Conjunction);
-                "L5_ == _L1")]
+                "L5&&_ == _&&L1")]
     #[test_case(LocationTree::compose(build_location_tree_helper("L7", LocationType::Normal), LocationTree::build_any_location_tree(), CompositionType::Composition),
                 LocationTree::compose(build_location_tree_helper("L7", LocationType::Normal), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Composition);
                 "L7||_ == L7||L1")]
@@ -58,31 +58,31 @@ mod reachability_partial_states_test {
                 "L2//L6 != L2||L1")]
     #[test_case(LocationTree::merge_as_quotient(build_location_tree_helper("L7", LocationType::Normal), build_location_tree_helper("L6", LocationType::Normal)),
                 LocationTree::compose(build_location_tree_helper("L2", LocationType::Normal), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Conjunction);
-                "L7//L6 != L2L1")]
+                "L7//L6 != L2&&L1")]
     #[test_case(LocationTree::merge_as_quotient(build_location_tree_helper("L8", LocationType::Normal), LocationTree::build_any_location_tree()),
                 LocationTree::compose(build_location_tree_helper("L2", LocationType::Normal), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Conjunction);
-                "L8//_ != L2L1")]
+                "L8//_ != L2&&L1")]
     #[test_case(LocationTree::build_any_location_tree(),
                 LocationTree::compose(build_location_tree_helper("L6", LocationType::Normal), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Conjunction);
-                "_ != L6L1")]
+                "_ != L6&&L1")]
     #[test_case(LocationTree::build_any_location_tree(),
                 LocationTree::compose(LocationTree::build_any_location_tree(), LocationTree::build_any_location_tree(), CompositionType::Conjunction);
-                "anylocation _ != __")]
+                "anylocation _ != _&&_")]
     #[test_case(LocationTree::compose(build_location_tree_helper("L2", LocationType::Normal), build_location_tree_helper("L4", LocationType::Normal), CompositionType::Conjunction),
                 LocationTree::merge_as_quotient(build_location_tree_helper("L2", LocationType::Normal), build_location_tree_helper("L4", LocationType::Normal));
-                "L2L4 != L2\\L4")]
+                "L2&&L4 != L2\\L4")]
     #[test_case(LocationTree::compose(LocationTree::compose(LocationTree::build_any_location_tree(), LocationTree::build_any_location_tree(), CompositionType::Composition),build_location_tree_helper("L2", LocationType::Normal), CompositionType::Conjunction),
                 LocationTree::compose(LocationTree::compose(build_location_tree_helper("L2", LocationType::Normal), build_location_tree_helper("L1", LocationType::Normal), CompositionType::Composition),build_location_tree_helper("L2", LocationType::Normal), CompositionType::Composition);
-                "_||_L2 == L2||L1||L2")]
+                "_||_&&L2 == L2||L1||L2")]
     #[test_case(LocationTree::compose(LocationTree::compose(build_location_tree_helper("L2", LocationType::Normal), LocationTree::build_any_location_tree(), CompositionType::Composition),build_location_tree_helper("L2", LocationType::Normal), CompositionType::Conjunction),
                 LocationTree::compose(LocationTree::build_any_location_tree(), LocationTree::build_any_location_tree(), CompositionType::Conjunction);
-                "L2||_L2 == __")]
+                "L2||_&&L2 == _&&_")]
     #[test_case(build_location_tree_helper("L7", LocationType::Normal),
                 build_location_tree_helper("L5", LocationType::Normal);
                 "L7 != L5")]
     #[test_case(LocationTree::merge_as_quotient(LocationTree::build_any_location_tree(), LocationTree::build_any_location_tree()),
                 LocationTree::compose(build_location_tree_helper("L6", LocationType::Normal), build_location_tree_helper("L25", LocationType::Normal), CompositionType::Conjunction);
-                "_//_ != L6L25")]
+                "_//_ != L6&&L25")]
     #[test_case(build_location_tree_helper("_L1", LocationType::Normal),
                 build_location_tree_helper("L1", LocationType::Normal);
                 "_L1 != L1")]
