@@ -153,18 +153,25 @@ impl Component {
             used_clocks.remove(unused_clocks);
         }
 
-        // Remove never read from clocks(useless
-        for unused_clock in &unused_clocks {
-            // TODO
-            // Remove clock declarations
+        // Remove never read from clocks(useless)
+        // TODO remove updates involving the clocks
+        self.declarations.remove_clocks_from_dcls(&unused_clocks);
 
-        }
-
-        // Remap the clocks equvalient to each other
-        // Se find_equivalent_clock_groups on ClockAnalysisGraph
+        // TODO
+        // Remap the clocks equivalent to each other
         let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
-            // TODO
-            // Remap the equvaliant clocks to global clock and their non-global duplicates
+        for clock_group in equivalent_clock_groups {
+            let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
+            for clock in clock_group {
+                clock_group_indices.insert(self.declarations.get_clock_index_by_name(&clock).unwrap().clone());
+            }
+            let lowest_clock = clock_group_indices.iter().min().unwrap();
+            // clock_group.remove(&lowest_clock);
+            // clock_index: lowest_clock,
+            // clock_indices: equivalent_clock_group.clone(),
+
+            self.declarations.remap_clocks_in_dcls(&clock_group);
+        }
     }
 
     pub fn get_unused_clocks(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
@@ -180,7 +187,7 @@ impl Component {
 
     // First idea - Port previous logic from TransitionSystem to work on component
     pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
-        // Function which should return a vector of the equvalant clock groups
+        // Function which should return a vector of the equivalent clock groups
 
         if used_clocks.len() < 2 || self.edges.is_empty() {
             return Vec::new();
@@ -416,6 +423,18 @@ impl Declarations {
             ints: HashMap::new(),
             clocks: HashMap::new(),
         }
+    }
+
+    pub fn remove_clocks_from_dcls(&mut self, clocks: &HashSet<String>) {
+        // Remove unused clocks completely from component's declarations
+        for clock in clocks{
+            self.clocks.remove(clock);
+        }
+    }
+
+    pub fn remap_clocks_in_dcls(&mut self, clocks: &HashSet<String>) {
+        // Remap duplicate clocks in a components declaration
+
     }
 
     pub fn get_clock_count(&self) -> usize {
