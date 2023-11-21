@@ -19,6 +19,46 @@ pub enum ArithExpression {
 }
 
 impl ArithExpression {
+
+    pub fn get_evaluated_int(
+        &self,
+    ) -> Result<i32, String> {
+        match self {
+            ArithExpression::Difference(left, right) => {
+                Ok(left.get_evaluated_int()? - right.get_evaluated_int()?)
+            }
+            ArithExpression::Addition(left, right) => {
+                Ok(left.get_evaluated_int()? + right.get_evaluated_int()?)
+            }
+            ArithExpression::Multiplication(left, right) => {
+                Ok(left.get_evaluated_int()? * right.get_evaluated_int()?)
+            }
+            ArithExpression::Division(left, right) => {
+                let divide_with = right.get_evaluated_int()?;
+                if divide_with == 0 {
+                    Err("Division with zero".to_string())
+                }
+                Ok(left.get_evaluated_int()? / divide_with)
+            }
+            ArithExpression::Modulo(left, right) => {
+                let modulo_with = right.get_evaluated_int()?;
+                if modulo_with == 0 {
+                    Err("Modulo with zero".to_string())
+                }
+                Ok(left.get_evaluated_int()? % modulo_with)
+            }
+            ArithExpression::Clock(_) => {
+                Err("This function cant work with clock_index".to_string())
+            }
+            ArithExpression::VarName(_) => {
+                Err("This function cant work with clock_names".to_string())
+            }
+            ArithExpression::Int(value) => {
+                Ok(*value)
+            }
+        }
+    }
+
     pub fn swap_clock_names(
         &self,
         from_vars: &HashMap<String, ClockIndex>,

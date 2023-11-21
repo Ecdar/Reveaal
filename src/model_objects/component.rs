@@ -9,6 +9,8 @@ use itertools::Itertools;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
+use std::hash::Hash;
 use std::io::empty;
 use std::iter::FromIterator;
 use crate::transition_systems::transition_system::ClockReductionInstruction;
@@ -167,7 +169,6 @@ impl Component {
 
     pub fn get_unused_clocks(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
-        // see find_clock_redundancies for inspiration
         let mut unused_clocks: HashSet<String> = HashSet::new();
         for(clock_name, clock_info) in clock_usages {
             if clock_info.edges.is_empty() && clock_info.locations.is_empty() {
@@ -180,7 +181,6 @@ impl Component {
     // First idea - Port previous logic from TransitionSystem to work on component
     pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
         // Function which should return a vector of the equvalant clock groups
-        // kan være vi skal bruge component.edges til iterere henover forløbet.
 
         if used_clocks.len() < 2 || self.edges.is_empty() {
             return Vec::new();
@@ -196,13 +196,12 @@ impl Component {
     }
     fn find_local_equivalences(&self, edge: &Edge) -> HashMap<String, u32> {
         let mut local_equivalence_map = HashMap::new();
-        for update in edge.update.unwrap() {
-            // TODO implement metode for at extract expression value from an update (get_int() - is not implemented in Arith_expression as of now)
-            local_equivalence_map.insert(update.variable, update.expression.get_int() as u32);
+        for update in &edge.update.unwrap() {
+            local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int()? as u32);
         }
         local_equivalence_map
     }
-    // TODO Fix this to work with strings
+
     fn update_global_groups(
         equivalent_clock_groups: &mut Vec<HashSet<String>>,
         local_equivalences: &HashMap<String, u32>,
@@ -213,26 +212,21 @@ impl Component {
         for (old_group_index, equivalent_clock_group) in equivalent_clock_groups.iter_mut().enumerate() {
             for clock in equivalent_clock_group.iter() {
                 if let Some(group_id) = local_equivalences.get(clock) {
-                    Component::get_or_insert(
-                        &mut new_groups,
-                        group_offset + ((*group_id) as usize),
-                    )
-                        .insert(*clock);
+                    Component::get_or_insert(&mut new_groups, group_offset + ((*group_id) as usize))
+                        .insert(clock.clone());
                 } else {
                     Component::get_or_insert(&mut new_groups, old_group_index)
-                        .insert(*clock);
+                        .insert(clock.clone());
                 }
             }
             group_offset += (u32::MAX as usize) * 2;
         }
-
         *equivalent_clock_groups = new_groups
             .into_iter()
             .map(|pair| pair.1)
             .filter(|group| group.len() > 1)
             .collect();
     }
-    // TODO Fix this to work with Strings? idk
     fn get_or_insert<K: Eq + Hash, V: Default>(map: &'_ mut HashMap<K, V>, key: K) -> &'_ mut V {
         match map.entry(key) {
             Entry::Occupied(o) => o.into_mut(),
@@ -254,7 +248,7 @@ impl Component {
     }
     pub fn get_clock_duplicates(&self) {
         // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
-        // Can be done by runninf through the different clocks and their clock_usage struct too look for matches. All identical clocks(their updates) fall into the same clock group
+        // Can be done by running through the different clocks and their clock_usage struct too look for matches. All identical clocks(their updates) fall into the same clock group
 
     }
 
