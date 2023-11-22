@@ -131,7 +131,7 @@ impl Component {
             match location.invariant {
                 None => (),
                 Some(ref exp) => {
-                    for clock_name in exp.get_var_names(){
+                    for clock_name in exp.get_var_names() {
                         if let Some(clock_struct) = clock_usages.get_mut(&clock_name) {
                             clock_struct.add_location(location.id.clone())
                         }
@@ -145,7 +145,7 @@ impl Component {
         let mut used_clocks: HashSet<String> = HashSet::new();
         let all_clocks = &self.clock_usages;
 
-        for(clock_name,_) in all_clocks {
+        for (clock_name, _) in all_clocks {
             used_clocks.insert(clock_name.clone())
         }
         let mut unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
@@ -153,24 +153,34 @@ impl Component {
             used_clocks.remove(unused_clocks);
         }
 
-        // Remove never read from clocks(useless)
-        // TODO remove updates involving the clocks
+        // Remove clocks never read from(useless)
         self.declarations.remove_clocks_from_dcls(&unused_clocks);
+        // Remove updates related to those clocks
+        self.remove_updates(&unused_clocks);
 
-        // TODO
         // Remap the clocks equivalent to each other
         let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
-        for clock_group in equivalent_clock_groups {
+        for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
             for clock in clock_group {
                 clock_group_indices.insert(self.declarations.get_clock_index_by_name(&clock).unwrap().clone());
             }
             let lowest_clock = clock_group_indices.iter().min().unwrap();
-            // clock_group.remove(&lowest_clock);
-            // clock_index: lowest_clock,
-            // clock_indices: equivalent_clock_group.clone(),
+            clock_group_indices.remove(lowest_clock); //Kan måske skæres væk hvis alle clocks replaces
+            self.replace_clock(*lowest_clock, &clock_group_indices);
+        }
+        // TODO Compress Component declarations?
+        // TODO Update component dimension
+        // se create_executable_query for dimensions
+        // TODO Shift quotient?
+    }
 
-            self.declarations.remap_clocks_in_dcls(&clock_group);
+    pub fn remove_updates(&mut self, clocks: &HashSet<String>) {
+        for clock in clocks {
+            self.edges
+                .iter_mut()
+                .filter_map(|edge| edge.update.as_mut())
+                .for_each(|var| var.retain(|u| u.variable != clock));
         }
     }
 
@@ -241,7 +251,7 @@ impl Component {
         }
     }
 
-    // Second idea - Use primarily the clock_usage structs and split the different clocks into their equvilant groups by looking at their update HashSets and seeing the IDs match
+    // Second idea - Use primarily the clock_usage structs and split the different clocks into their equivalent groups by looking at their update HashSets and seeing the IDs match and the value of the update
     pub fn get_global_clock_duplicates(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If a clock is never updated it is identical to the global clock with 0 index
         // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
@@ -430,11 +440,6 @@ impl Declarations {
         for clock in clocks{
             self.clocks.remove(clock);
         }
-    }
-
-    pub fn remap_clocks_in_dcls(&mut self, clocks: &HashSet<String>) {
-        // Remap duplicate clocks in a components declaration
-
     }
 
     pub fn get_clock_count(&self) -> usize {
