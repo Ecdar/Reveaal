@@ -56,15 +56,6 @@ pub fn create_executable_query<'a>(
                 let mut right =
                     get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
 
-                if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(
-                        &mut left,
-                        Some(&mut right),
-                        &mut dim,
-                        quotient_index,
-                    )?;
-                }
-
                 let mut component_index = 0;
 
                 Ok(Box::new(RefinementExecutor {
@@ -109,10 +100,6 @@ pub fn create_executable_query<'a>(
                     &mut quotient_index,
                 );
 
-                if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
-                }
-
                 Ok(Box::new(ConsistencyExecutor {
                     system: recipe.compile(dim)?,
                 }))
@@ -126,10 +113,6 @@ pub fn create_executable_query<'a>(
                     &mut quotient_index,
                 );
 
-                if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
-                }
-
                 Ok(Box::new(DeterminismExecutor {
                     system: recipe.compile(dim)?,
                 }))
@@ -138,10 +121,6 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let mut recipe =
                     get_system_recipe(system, component_loader, &mut dim, &mut quotient_index);
-
-                if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
-                }
 
                 Ok(Box::new(GetComponentExecutor {
                     system: recipe.compile(dim)?,
@@ -153,10 +132,6 @@ pub fn create_executable_query<'a>(
                 let mut quotient_index = None;
                 let mut recipe =
                     get_system_recipe(system, component_loader, &mut dim, &mut quotient_index);
-
-                if !component_loader.get_settings().disable_clock_reduction {
-                    clock_reduction::clock_reduce(&mut recipe, None, &mut dim, quotient_index)?;
-                }
 
                 Ok(Box::new(GetComponentExecutor {
                     system: pruning::prune_system(recipe.compile(dim)?, dim),
@@ -340,12 +315,6 @@ pub fn get_system_recipe(
             let mut component = component_loader.get_component(name).clone();
             component.set_clock_indices(clock_index);
             component.special_id = id.clone();
-
-            component.initialise_clock_usages();
-            component.populate_usages_with_guards();
-            component.populate_usages_with_updates();
-            component.populate_usages_with_invariants();
-
             // Logic for locations
             debug!("{} Clocks: {:?}", name, component.declarations.clocks);
 
@@ -476,7 +445,7 @@ pub(crate) mod clock_reduction {
         )
     }
 
-    // Remaps index more compactly, after clock reduction that may leave gaps in the index range
+    /// Remaps index more compactly, after clock reduction that may leave gaps in the index range
     fn compress_component_decls(
         mut comps: Vec<&mut Component>,
         other: Option<Vec<&mut Component>>,
