@@ -418,7 +418,7 @@ impl ClockAnalysisGraph {
                     if let Some(group_id) = locally_equivalent_clock_groups.get(clock) {
                         ClockAnalysisGraph::get_or_insert(
                             &mut new_groups,
-                            group_offset + ((*group_id) as usize),
+                            group_offset + *group_id as usize,
                         )
                         .insert(*clock);
                     } else {

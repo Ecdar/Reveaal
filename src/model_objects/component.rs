@@ -11,9 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
-use std::io::empty;
 use std::iter::FromIterator;
-use crate::transition_systems::transition_system::ClockReductionInstruction;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -146,9 +144,9 @@ impl Component {
         let all_clocks = &self.clock_usages;
 
         for (clock_name, _) in all_clocks {
-            used_clocks.insert(clock_name.clone())
+            used_clocks.insert(clock_name.clone());
         }
-        let mut unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
+        let unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);
         }
@@ -162,12 +160,12 @@ impl Component {
         let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
         for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
-            for clock in clock_group {
+            for clock in clock_group.iter() {
                 clock_group_indices.insert(self.declarations.get_clock_index_by_name(&clock).unwrap().clone());
             }
-            let lowest_clock = clock_group_indices.iter().min().unwrap();
-            clock_group_indices.remove(lowest_clock);
-            self.replace_clock(*lowest_clock, &clock_group_indices);
+            let lowest_clock = *clock_group_indices.iter().min().unwrap();
+            clock_group_indices.remove(&lowest_clock);
+            self.replace_clock(lowest_clock, &clock_group_indices);
         }
         // TODO Shift quotient?
     }
@@ -177,11 +175,11 @@ impl Component {
             self.edges
                 .iter_mut()
                 .filter_map(|edge| edge.update.as_mut())
-                .for_each(|var| var.retain(|u| u.variable != clock));
+                .for_each(|var| var.retain(|u|u.variable != *clock));
         }
     }
 
-    pub fn get_unused_clocks(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
+    pub fn get_unused_clocks(&self, clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
         let mut unused_clocks: HashSet<String> = HashSet::new();
         for(clock_name, clock_info) in clock_usages {
@@ -210,13 +208,14 @@ impl Component {
     }
     fn find_local_equivalences(&self, edge: &Edge) -> HashMap<String, u32> {
         let mut local_equivalence_map = HashMap::new();
-        for update in &edge.update.unwrap() {
-            local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int()? as u32);
+        for update in &edge.update.clone().unwrap() {
+            local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int().unwrap() as u32);
         }
         local_equivalence_map
     }
 
     fn update_global_groups(
+        &self,
         equivalent_clock_groups: &mut Vec<HashSet<String>>,
         local_equivalences: &HashMap<String, u32>,
     ) {
@@ -248,9 +247,9 @@ impl Component {
         }
     }
 
-    fn compress_dcls(mut component: &mut Component) {
+    pub fn compress_dcls(&mut self) {
         let mut seen: HashMap<ClockIndex, ClockIndex> = HashMap::new();
-        let mut clocks: Vec<&mut ClockIndex> = component
+        let mut clocks: Vec<&mut ClockIndex> = self
             .declarations
             .clocks
             .values_mut()

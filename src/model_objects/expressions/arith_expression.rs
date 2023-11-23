@@ -36,14 +36,14 @@ impl ArithExpression {
             ArithExpression::Division(left, right) => {
                 let divide_with = right.get_evaluated_int()?;
                 if divide_with == 0 {
-                    Err("Division with zero".to_string())
+                    return Err("Division with zero".to_string());
                 }
                 Ok(left.get_evaluated_int()? / divide_with)
             }
             ArithExpression::Modulo(left, right) => {
                 let modulo_with = right.get_evaluated_int()?;
                 if modulo_with == 0 {
-                    Err("Modulo with zero".to_string())
+                    return Err("Modulo with zero".to_string());
                 }
                 Ok(left.get_evaluated_int()? % modulo_with)
             }
