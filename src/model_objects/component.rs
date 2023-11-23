@@ -166,12 +166,9 @@ impl Component {
                 clock_group_indices.insert(self.declarations.get_clock_index_by_name(&clock).unwrap().clone());
             }
             let lowest_clock = clock_group_indices.iter().min().unwrap();
-            clock_group_indices.remove(lowest_clock); //Kan måske skæres væk hvis alle clocks replaces
+            clock_group_indices.remove(lowest_clock);
             self.replace_clock(*lowest_clock, &clock_group_indices);
         }
-        // TODO Compress Component declarations?
-        // TODO Update component dimension
-        // se create_executable_query for dimensions
         // TODO Shift quotient?
     }
 
@@ -196,9 +193,9 @@ impl Component {
     }
 
     // First idea - Port previous logic from TransitionSystem to work on component
-    pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
-        // Function which should return a vector of the equivalent clock groups
 
+    // Function which should return a vector with equivalent clock groups
+    pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
         if used_clocks.len() < 2 || self.edges.is_empty() {
             return Vec::new();
         }
@@ -251,7 +248,29 @@ impl Component {
         }
     }
 
+    fn compress_dcls(mut component: &mut Component) {
+        let mut seen: HashMap<ClockIndex, ClockIndex> = HashMap::new();
+        let mut clocks: Vec<&mut ClockIndex> = component
+            .declarations
+            .clocks
+            .values_mut()
+            .collect();
+        clocks.sort();
+        let mut index = 1;
+        for clock in clocks {
+            if let Some(val) = seen.get(clock) {
+                *clock = *val;
+            } else {
+                seen.insert(*clock, index);
+                *clock = index;
+                index += 1;
+            }
+        }
+    }
+
+
     // Second idea - Use primarily the clock_usage structs and split the different clocks into their equivalent groups by looking at their update HashSets and seeing the IDs match and the value of the update
+    /*
     pub fn get_global_clock_duplicates(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If a clock is never updated it is identical to the global clock with 0 index
         // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
@@ -271,12 +290,13 @@ impl Component {
 
     // It could be worth benchmarking to different ideas to see what is most effecient
 
-    // TODO overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
+    // overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
     // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
     // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
     // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
     // Opgaven her består i at vi skal filtrere disse "fake" transitions/edges fra inden vi laver reductions baseret på hvad vi ved
 
+     */
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
@@ -349,6 +369,7 @@ impl Component {
     /// Removes unused clock
     /// # Arguments
     /// `index`: The index to be removed
+
     pub(crate) fn remove_clock(&mut self, index: ClockIndex) {
         // Removes from declarations, and updates the other
         let name = self
@@ -389,6 +410,7 @@ impl Component {
             self.name
         ); // Should be changed in the future to be the information logger
     }
+
 
     /// Replaces duplicate clock with a new
     /// # Arguments
