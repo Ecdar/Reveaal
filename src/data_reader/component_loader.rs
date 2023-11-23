@@ -285,6 +285,22 @@ impl JsonProjectLoader {
             input_enabler::make_input_enabled(&mut component, inputs);
         }
 
+        // The clock reduction on the component before/while it gets loaded (instead of doing it at systemRecipe lvl)
+        if !self.get_settings().disable_clock_reduction {
+            // Set up and populate clock usages
+            component.initialise_clock_usages();
+            component.populate_usages_with_guards();
+            component.populate_usages_with_updates();
+            component.populate_usages_with_invariants();
+
+            // Remove the redundant clocks from component
+            // TODO Maybe log removed clocks
+            component.remove_redundant_clocks();
+
+            // compress components declarations
+            component.compress_dcls();
+        }
+
         self.loaded_components
             .insert(String::from(component_name), component);
     }
