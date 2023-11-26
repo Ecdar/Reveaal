@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
 use std::iter::FromIterator;
+use crate::data_reader::parse_edge::Update;
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -484,5 +485,48 @@ impl Declarations {
             .iter()
             .find(|(_, v)| **v == index)
             .map(|(k, _)| k)
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use test_case::test_case;
+
+    #[test]
+    fn test_remove_redundant_clocks(){
+
+    }
+
+    #[test]
+    fn test_remove_updates(){
+
+    }
+
+    #[test]
+    fn test_get_unused_clocks(){
+
+    }
+
+    #[test]
+    fn test_find_equivalent_clock_groups(){
+
+    }
+
+    #[test]
+    fn test_find_local_equivalences(){
+
+    }
+
+    #[test]
+    fn test_update_global_groups(){
+
+    }
+
+    fn test_get_or_insert<>(){
+
+    }
+
+    fn test_compress_dcls(){
+
     }
 }
