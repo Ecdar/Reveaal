@@ -503,6 +503,10 @@ mod tests {
         test_comp: Component,
         expected: HashSet<String>,
     }
+    /*struct SetupContextClockRed {
+        test_comp: Component,
+        expected: HashMap<String, ClockIndex>,
+    }*/
     ///Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
@@ -514,12 +518,22 @@ mod tests {
         SetupContext { test_comp, expected }
     }
 
+    /*fn setup_clock_reduction(comp_name: &str, expected: Vec<String>) -> SetupContextClockRed {
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let expected: HashMap<String, ClockIndex> = expected.into_iter().collect();
+        // Initialise clock usage structs for each clock in component.
+        test_comp.initialise_clock_usages();
+
+        SetupContextClockRed { test_comp, expected }
+    }*/
     // File path to project for project_loader
     // PopulateClocks is designed to test for additional edge cases
     const PATH: &str = "samples/json/PopulateClocks";
 
+
     #[test]
-    fn test_initialise_clock_usages() {
+    fn initialise_clock_usages() {
         let context = setup("Update", vec![]);
 
         assert_eq!(context.test_comp.clock_usages.contains_key("x")
@@ -531,7 +545,7 @@ mod tests {
     #[test_case("Machine",  vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards")]
     #[test_case("Machine4", vec!["E1".to_string(),"E5".to_string()],    true;  "Clock with usage in two guards avoiding cherrypicking")]
     #[test_case("Machine4", vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards avoiding cherrypicking")]
-    fn test_populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
+    fn populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         // Instantiating variables used in all tests using the setup function above.
         let mut context = setup(comp_name, expected_edges);
 
@@ -543,7 +557,7 @@ mod tests {
 
     #[test_case("Machine",  vec!["E27".to_string()],                    true;   "Clock with usage in one update")]
     #[test_case("Machine",  vec!["E25".to_string(),"E26".to_string()],  false;  "Clock with usage in two non-updates")]
-    fn test_populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
+    fn populate_usages_with_updates_lhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         let mut context = setup(comp_name, expected_edges);
 
         context.test_comp.populate_usages_with_updates();
@@ -554,7 +568,7 @@ mod tests {
     // A new sample was created for this test to accommodate the edge-case y=x.
     #[test_case("Update", vec!["E27".to_string()], true;    "Clock on both rhs and lhs of update")]
     #[test_case("Update", vec!["E26".to_string()], false;   "Clock on both rhs and lhs of fake update")]
-    fn test_populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
+    fn populate_usages_with_updates_rhs(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
         let mut context = setup(comp_name, expected_edges);
 
         context.test_comp.populate_usages_with_updates();
@@ -565,7 +579,7 @@ mod tests {
 
     #[test_case("Machine",  vec!["L4".to_string()],  true;  "Clock with usage in one invariant")]
     #[test_case("Machine",  vec!["L6".to_string()],  false; "Clock with usage in one fake invariant")]
-    fn test_populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
+    fn populate_usages_with_invariants(comp_name: &str, expected_locations: Vec<String>, verdict : bool) {
         let mut context = setup(comp_name, expected_locations);
 
         context.test_comp.populate_usages_with_invariants();
@@ -574,37 +588,73 @@ mod tests {
     }
     // New tests
     #[test]
-    fn test_remove_redundant_clocks(){
+    fn remove_redundant_clocks(){
+        // Last to be tested
+
+    }
+
+    #[test_case("Machine4", HashSet::from(["y".to_string()]))]
+    fn remove_updates(comp_name: &str, clocks: HashSet<String>){
+        // Arrange
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component("Machine4").clone();
+
+        // Act
+        test_comp.remove_updates(&clocks);
+
+        // Assert
+        for edge in test_comp.edges.iter() {
+            if let Some(updates) = &edge.update {
+                for update in updates {
+                    assert!(!clocks.contains(&update.variable), "Update for {} was not removed", update.variable);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn get_unused_clocks(){
+        // no dependencies
+    }
+
+    #[test]
+    fn find_equivalent_clock_groups(){
+        // find_local_equivalences() and update_global_groups() needs testing first
+    }
+
+    #[test]
+    fn find_local_equivalences(){
+        // get_evaluated_int() needs to be tested first, can be found in Arithmetic expressions
 
     }
 
     #[test]
-    fn test_remove_updates(){
+    fn update_global_groups() {
+        // no dependencies
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component("Component7_global_clocks").clone();
+
 
     }
 
-    #[test]
-    fn test_get_unused_clocks(){
+    #[test_case("Component7_global_clocks", vec!["E10".to_string(), "E11".to_string(), "E12".to_string()], true; "Clocks compressed to a single global clock")]
+    fn compress_dcls(comp_name: &str, expected_dcls: Vec<String>, verdict: bool){
+        // no dependencies
+        //Arrange
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut test_comp = project_loader.get_component(comp_name).clone();
 
-    }
-
-    #[test]
-    fn test_find_equivalent_clock_groups(){
-
-    }
-
-    #[test]
-    fn test_find_local_equivalences(){
-
-    }
-
-    #[test]
-    fn test_update_global_groups(){
-
-    }
-
-    #[test]
-    fn test_compress_dcls(){
-
+        //Act
+        test_comp.compress_dcls();
+        let randomlala: Vec<_> = test_comp.declarations.clocks
+            .iter()
+            .filter(|(key,_)| **key == "x".to_string() || **key == "y".to_string() || **key == "z".to_string())
+            .map(|(_,value)| value)
+            .collect();
+        for value in randomlala{
+            println!("{}", value);
+        }
+        //Assert
+        assert_eq!((test_comp.declarations.clocks.len() == 3), verdict);
     }
 }
