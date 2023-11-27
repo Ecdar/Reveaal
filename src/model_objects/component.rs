@@ -209,8 +209,13 @@ impl Component {
     }
     fn find_local_equivalences(&self, edge: &Edge) -> HashMap<String, u32> {
         let mut local_equivalence_map = HashMap::new();
-        for update in &edge.update.clone().unwrap() {
-            local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int().unwrap() as u32);
+        match &edge.update.clone() {
+            Some(updates) => {
+                for update in updates {
+                    local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int().unwrap() as u32);
+                }
+            }
+            None => {}
         }
         local_equivalence_map
     }
