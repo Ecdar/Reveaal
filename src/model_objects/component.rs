@@ -140,7 +140,7 @@ impl Component {
         }
     }
 
-    pub fn remove_redundant_clocks(&mut self) {
+    pub fn remove_redundant_clocks(&mut self) -> Result<(), String>{
         let mut used_clocks: HashSet<String> = HashSet::new();
         let all_clocks = &self.clock_usages;
 
@@ -158,7 +158,7 @@ impl Component {
         self.remove_updates(&unused_clocks);
 
         // Remap the clocks equivalent to each other
-        let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks);
+        let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks)?;
         for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
             for clock in clock_group.iter() {
@@ -168,6 +168,7 @@ impl Component {
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
         }
+        Ok(())
         // TODO Shift quotient?
     }
 
@@ -194,18 +195,18 @@ impl Component {
     // First idea - Port previous logic from TransitionSystem to work on component
 
     // Function which should return a vector with equivalent clock groups
-    pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Vec<HashSet<String>>{
+    pub fn find_equivalent_clock_groups(&self, used_clocks: &HashSet<String>) -> Result<Vec<HashSet<String>>, String>{
         if used_clocks.len() < 2 || self.edges.is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
 
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
 
         for edge in &self.edges {
-            let local_equivalences = self.find_local_equivalences(edge).expect("Could not find local equivalences");
+            let local_equivalences = self.find_local_equivalences(edge)?;
             self.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
         }
-        equivalent_clock_groups
+        Ok(equivalent_clock_groups)
     }
     fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, String> {
         let mut local_equivalence_map = HashMap::new();
