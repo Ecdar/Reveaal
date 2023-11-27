@@ -202,24 +202,23 @@ impl Component {
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
 
         for edge in &self.edges {
-            let local_equivalences = self.find_local_equivalences(edge);
+            let local_equivalences = self.find_local_equivalences(edge).expect("Could not find local equivalences");
             self.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
         }
         equivalent_clock_groups
     }
-    fn find_local_equivalences(&self, edge: &Edge) -> HashMap<String, u32> {
+    fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, String> {
         let mut local_equivalence_map = HashMap::new();
         match &edge.update.clone() {
             Some(updates) => {
                 for update in updates {
-                    local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int().unwrap() as u32);
+                    local_equivalence_map.insert(update.variable.clone(), update.expression.get_evaluated_int()? as u32);
                 }
             }
             None => {}
         }
-        local_equivalence_map
+        Ok(local_equivalence_map)
     }
-    //New Commit
 
     fn update_global_groups(
         &self,
@@ -528,10 +527,7 @@ mod tests{
 
     }
 
-    fn test_get_or_insert<>(){
-
-    }
-
+    #[test]
     fn test_compress_dcls(){
 
     }
