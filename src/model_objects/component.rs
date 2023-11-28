@@ -629,11 +629,28 @@ mod tests {
 
     #[test]
     fn update_global_groups() {
-        // no dependencies
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component("Component7_global_clocks").clone();
+        project_loader.get_settings_mut().disable_clock_reduction = true;
+        let mut test_comp = project_loader.get_component("Component7_global_groups").clone();
 
+        test_comp.initialise_clock_usages();
+        test_comp.populate_usages_with_guards();
+        test_comp.populate_usages_with_updates();
+        test_comp.populate_usages_with_invariants();
 
+        let expected: Vec<HashSet<String>> = vec![vec!["y","z"].into_iter().map(String::from).collect()];
+
+        let used_clocks: HashSet<String> = vec!["x".to_string(),"y".to_string(),"z".to_string()].into_iter().collect();
+        let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
+
+        let local_equivalences: HashMap<String, u32> = HashMap::from([
+            ("y".to_string(), 0),
+            ("z".to_string(), 0),
+        ]);
+
+        test_comp.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
+
+        assert_eq!(equivalent_clock_groups, expected);
     }
 
     #[test_case("Machine", "y", "y", 5, true; "Compressing after one removed clock ")]
