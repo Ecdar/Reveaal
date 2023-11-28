@@ -657,8 +657,14 @@ impl Clock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+    use itertools::Itertools;
     use test_case::test_case;
     use crate::data_reader::parse_edge::parse_guard;
+    use crate::JsonProjectLoader;
+    use crate::model_objects::Edge;
+    use crate::model_objects::expressions::ArithExpression;
+    const PATH: &str = "samples/json/PopulateClocks";
 
     #[test_case("5",        vec![],                                  true  ; "No clocks")]
     #[test_case("5+x",      vec!["x".to_string()],                   true  ; "A single clock with addition")]
@@ -682,5 +688,29 @@ mod tests {
                 panic!("Test failed: {}", err);
             }
         };
+    }
+
+    #[test_case("Updates1", vec![0,0] ; "Two updates set to 0")]
+    #[test_case("Updates2", vec![3,4] ; "Two updates set to none-zero")]
+    #[test_case("Updates3", vec![5,7] ; "Updates with arithmetic expressions")]
+    fn test_get_evaluated_int(comp_name: &str, expected: Vec<i32>) {
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
+        let mut test_comp = project_loader.get_component(comp_name).clone();
+
+        let mut clock_values: Vec<i32> = Vec::new();
+
+        if let Some(edge) = test_comp.edges.iter().find(|edge| edge.id == "E12") {
+            if let Some(updates) = &edge.update {
+                for update in updates {
+                    match update.expression.get_evaluated_int() {
+                        Err(_) => panic!("no value evaluated on update"),
+                        Ok(value) => clock_values.push(value),
+                    };
+                }
+            }
+        }
+
+        assert_eq!(clock_values, expected);
     }
 }
