@@ -498,7 +498,6 @@ mod tests {
     use test_case::test_case;
     use crate::{JsonProjectLoader};
     use std::collections::{HashSet};
-
     struct SetupContext {
         test_comp: Component,
         expected: HashSet<String>,
@@ -654,24 +653,39 @@ mod tests {
         assert_eq!(equivalent_clock_groups, expected);
     }
 
-    #[test_case("Component7_global_clocks", vec!["E10".to_string(), "E11".to_string(), "E12".to_string()], true; "Clocks compressed to a single global clock")]
-    fn compress_dcls(comp_name: &str, expected_dcls: Vec<String>, verdict: bool){
+    #[test_case("Machine", "y", "y", 5, true; "Compressing after one removed clock ")]
+    #[test_case("Machine", "x", "y", 4, true; "Bucket compressed")]
+    #[test_case("Machine", "z", "v", 3, true; "Compressing after two removed clocks")]
+    fn compress_dcls(comp_name: &str, key1: &str, key2: &str, expected: ClockIndex, verdict: bool){
         // no dependencies
         //Arrange
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).clone();
 
+        test_comp.declarations.ints = HashMap::from([
+            ("x".to_string(), 5),
+            ("y".to_string(), 5),
+            ("z".to_string(), 10),
+            ("w".to_string(), 6),
+            ("v".to_string(), 6),
+            ("q".to_string(), 6),
+        ]);
+        test_comp.declarations.clocks = HashMap::from([
+            ("x".to_string(), 1),
+            ("y".to_string(), 1),
+            ("z".to_string(), 2),
+            ("w".to_string(), 3),
+            ("v".to_string(), 4),
+            ("q".to_string(), 5),
+        ]);
+
         //Act
+        test_comp.declarations.clocks.remove(key1);
+        test_comp.declarations.clocks.remove(key2);
         test_comp.compress_dcls();
-        let randomlala: Vec<_> = test_comp.declarations.clocks
-            .iter()
-            .filter(|(key,_)| **key == "x".to_string() || **key == "y".to_string() || **key == "z".to_string())
-            .map(|(_,value)| value)
-            .collect();
-        for value in randomlala{
-            println!("{}", value);
-        }
+
         //Assert
-        assert_eq!((test_comp.declarations.clocks.len() == 3), verdict);
+        assert_eq!((test_comp.declarations.clocks.get("q") == Some(&expected)), verdict);
     }
 }
