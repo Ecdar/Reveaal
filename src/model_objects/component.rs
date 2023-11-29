@@ -696,10 +696,19 @@ mod tests {
     fn find_equivalent_clock_groups() {
         // find_local_equivalences() and update_global_groups() needs testing first
     }
+    #[test_case("Updates3", "E12", HashMap::from([("y".to_string(), 5), ("z".to_string(), 7)]))]
+    fn find_local_equivalences(comp_name: &str, edge_id: &str, result: HashMap<String, u32>){
+        // Arrange
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
+        let mut test_comp = project_loader.get_component(comp_name).clone();
 
-    #[test]
-    fn find_local_equivalences() {
-        // get_evaluated_int() needs to be tested first, can be found in Arithmetic expressions
+        // Act
+        let edge = test_comp.edges.iter().find(|&e| e.id == edge_id).unwrap();
+        let local_equivalence_map = test_comp.find_local_equivalences(edge).unwrap();
+
+        // Assert
+        assert_eq!(local_equivalence_map, result);
     }
 
     #[test]
