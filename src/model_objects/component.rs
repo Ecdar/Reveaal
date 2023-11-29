@@ -514,10 +514,7 @@ mod tests {
         test_comp: Component,
         expected: HashSet<String>,
     }
-    /*struct SetupContextClockRed {
-        test_comp: Component,
-        expected: HashMap<String, ClockIndex>,
-    }*/
+
     ///Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
@@ -532,15 +529,6 @@ mod tests {
         }
     }
 
-    /*fn setup_clock_reduction(comp_name: &str, expected: Vec<String>) -> SetupContextClockRed {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
-        let mut test_comp = project_loader.get_component(comp_name).clone();
-        let expected: HashMap<String, ClockIndex> = expected.into_iter().collect();
-        // Initialise clock usage structs for each clock in component.
-        test_comp.initialise_clock_usages();
-
-        SetupContextClockRed { test_comp, expected }
-    }*/
     // File path to project for project_loader
     // PopulateClocks is designed to test for additional edge cases
     const PATH: &str = "samples/json/PopulateClocks";
@@ -626,7 +614,7 @@ mod tests {
             verdict
         );
     }
-    // New tests
+    // Clock Reduction tests
     #[test]
     fn remove_redundant_clocks() {
         // Last to be tested
@@ -636,6 +624,7 @@ mod tests {
     fn remove_updates(comp_name: &str, clocks: HashSet<String>) {
         // Arrange
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Machine4").clone();
 
         // Act
@@ -695,6 +684,12 @@ mod tests {
     #[test]
     fn find_equivalent_clock_groups() {
         // find_local_equivalences() and update_global_groups() needs testing first
+        //Arrange
+
+        //Act
+
+        //Assert
+
     }
     #[test_case("Updates3", "E12", HashMap::from([("y".to_string(), 5), ("z".to_string(), 7)]))]
     fn find_local_equivalences(comp_name: &str, edge_id: &str, result: HashMap<String, u32>){
