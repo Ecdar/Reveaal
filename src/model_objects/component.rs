@@ -198,8 +198,6 @@ impl Component {
         unused_clocks
     }
 
-    // First idea - Port previous logic from TransitionSystem to work on component
-
     // Function which should return a vector with equivalent clock groups
     pub fn find_equivalent_clock_groups(
         &self,
@@ -209,13 +207,10 @@ impl Component {
             return Ok(vec![HashSet::from(["TEST FAILED MAN".to_string()])])        }
 
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
-        println!("{:?}\n", equivalent_clock_groups);
         for edge in &self.edges {
             let local_equivalences = self.find_local_equivalences(edge)?;
             self.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
-            println!("{:?}\n", equivalent_clock_groups);
         }
-        println!("{:?}\n", equivalent_clock_groups);
         Ok(equivalent_clock_groups)
     }
     fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, String> {
@@ -288,33 +283,12 @@ impl Component {
         }
     }
 
-    // Second idea - Use primarily the clock_usage structs and split the different clocks into their equivalent groups by looking at their update HashSets and seeing the IDs match and the value of the update
     /*
-    pub fn get_global_clock_duplicates(clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
-        // If a clock is never updated it is identical to the global clock with 0 index
-        // Clock groups are relevant to manage this, as all clocks present in the clock group with the global clock is redundant
-        let mut global_clocks: HashSet<String> = HashSet::new();
-        for(clock_name, clock_info) in clock_usages {
-            if clock_info.updates.is_empty() {
-                global_clocks.insert(clock_name.clone());
-            }
-        }
-        global_clocks
-    }
-    pub fn get_clock_duplicates(&self) {
-        // If the clocks in question shares all the same updates(same edges) they are duplicates and can be replaced with one clock representing them
-        // Can be done by running through the different clocks and their clock_usage struct too look for matches. All identical clocks(their updates) fall into the same clock group
-
-    }
-
-    // It could be worth benchmarking to different ideas to see what is most effecient
-
     // overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
     // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
     // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
     // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
     // Opgaven her består i at vi skal filtrere disse "fake" transitions/edges fra inden vi laver reductions baseret på hvad vi ved
-
      */
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
@@ -636,6 +610,7 @@ mod tests {
 
         test_comp.remove_redundant_clocks().expect("Could not remove redundant clocks.");
 
+        // TODO Test for remapped clocks instead of just if they exist in component
         assert_eq!(test_comp.declarations.clocks, expected);
     }
 
@@ -700,7 +675,8 @@ mod tests {
         assert_eq!(unused_clocks.contains("y"), false);
     }
 
-    #[test_case("Component3", vec![HashSet::from(["h".to_string()]), HashSet::from(["j".to_string()]), HashSet::from(["k".to_string()])])]
+    #[test_case("Component1", vec![HashSet::from(["x".to_string(),"y".to_string(),"z".to_string()])])]
+    #[test_case("Component3", vec![])]
     fn find_equivalent_clock_groups(comp_name: &str, result: Vec<HashSet<String>>) {
         // find_local_equivalences() and update_global_groups() needs testing first
         //Arrange
@@ -710,15 +686,13 @@ mod tests {
 
         let mut clocks: HashSet<String> = HashSet::new();
         let all_clocks = &test_comp.declarations.clocks;
-        //println!("{:?}\n", clocks);
         for (clock_name, _) in all_clocks {
             clocks.insert(clock_name.clone());
         }
-        //println!("{:?}\n", clocks);
+
         //Act
         let equivalent_clock_groups=  test_comp.find_equivalent_clock_groups(&clocks).unwrap();
-        //println!("{:?}\n", clocks);
-        println!("{:?}\n", equivalent_clock_groups);
+
         //Assert
         assert_eq!(equivalent_clock_groups, result);
     }
