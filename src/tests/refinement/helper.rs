@@ -67,10 +67,10 @@ pub fn json_run_query(path: &str, query: &str) -> Result<QueryResult, Executable
     // inconsistencies with initial state and global clock. Turn boolean true to ignore inconsistencies
     if let Some(query_type) = q.get_query() {
         match query_type {
-            QueryExpression::Reachability{ .. } => {
+            QueryExpression::Reachability { .. } => {
                 project_loader.get_settings_mut().disable_clock_reduction = true;
             }
-            , QueryExpression::Refinement(_,_)
+            QueryExpression::Refinement(_, _)
             | QueryExpression::Consistency(_)
             | QueryExpression::Implementation(_)
             | QueryExpression::Determinism(_)
@@ -79,7 +79,7 @@ pub fn json_run_query(path: &str, query: &str) -> Result<QueryResult, Executable
             | QueryExpression::GetComponent(_)
             | QueryExpression::Prune(_) => {
                 project_loader.get_settings_mut().disable_clock_reduction = false;
-            },
+            }
         }
     }
 

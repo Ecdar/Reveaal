@@ -422,16 +422,16 @@ impl BoolExpression {
             | BoolExpression::OrOp(ref left, ref right) => {
                 left.get_var_names_rec(result_clocks);
                 right.get_var_names_rec(result_clocks);
-            },
+            }
             BoolExpression::LessEQ(ref left, ref right)
-            | BoolExpression::GreatEQ(ref left,ref right)
-            | BoolExpression::LessT(ref left,ref right)
-            | BoolExpression::GreatT(ref left,ref right)
-            | BoolExpression::EQ(ref left,ref right) => {
+            | BoolExpression::GreatEQ(ref left, ref right)
+            | BoolExpression::LessT(ref left, ref right)
+            | BoolExpression::GreatT(ref left, ref right)
+            | BoolExpression::EQ(ref left, ref right) => {
                 left.get_var_names_rec(result_clocks);
                 right.get_var_names_rec(result_clocks);
-            },
-            BoolExpression::Bool(_) => ()
+            }
+            BoolExpression::Bool(_) => (),
         }
     }
 
@@ -617,8 +617,8 @@ fn get_op(exp: &BoolExpression) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use test_case::test_case;
     use crate::data_reader::parse_edge::parse_guard;
+    use test_case::test_case;
 
     #[test_case("0>4", vec ! [], true; "No clocks")]
     #[test_case("x<=5", vec ! ["x".to_string()], true; "A single clock using leq")]

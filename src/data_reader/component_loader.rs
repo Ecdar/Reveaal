@@ -295,7 +295,9 @@ impl JsonProjectLoader {
 
             // Remove the redundant clocks from component
             // TODO Maybe log removed clocks
-            component.remove_redundant_clocks().expect("Error removing redundant clocks: ");
+            component
+                .remove_redundant_clocks()
+                .expect("Error removing redundant clocks: ");
 
             // compress components declarations
             component.compress_dcls();
@@ -387,13 +389,10 @@ impl XmlProjectLoader {
     }
 }
 
-
 #[cfg(test)]
-mod tests{
+mod tests {
     use test_case::test_case;
 
     #[test]
-    fn test_load_component() {
-
-    }
+    fn test_load_component() {}
 }

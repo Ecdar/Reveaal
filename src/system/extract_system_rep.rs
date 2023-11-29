@@ -6,7 +6,7 @@ use crate::system::executable_query::{
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::system::extract_state::get_state;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 use crate::transition_systems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -18,7 +18,6 @@ use crate::transition_systems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutableQueryError {
@@ -322,8 +321,6 @@ pub fn get_system_recipe(
         }
     }
 }
-
-
 
 /// Module containing a "safer" function for clock reduction, along with some helper functions
 pub(crate) mod clock_reduction {

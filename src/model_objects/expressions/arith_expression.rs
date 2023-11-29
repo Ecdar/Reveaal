@@ -19,10 +19,7 @@ pub enum ArithExpression {
 }
 
 impl ArithExpression {
-
-    pub fn get_evaluated_int(
-        &self,
-    ) -> Result<i32, String> {
+    pub fn get_evaluated_int(&self) -> Result<i32, String> {
         match self {
             ArithExpression::Difference(left, right) => {
                 Ok(left.get_evaluated_int()? - right.get_evaluated_int()?)
@@ -53,9 +50,7 @@ impl ArithExpression {
             ArithExpression::VarName(_) => {
                 Err("This function cant work with clock_names".to_string())
             }
-            ArithExpression::Int(value) => {
-                Ok(*value)
-            }
+            ArithExpression::Int(value) => Ok(*value),
         }
     }
 
@@ -453,19 +448,17 @@ impl ArithExpression {
     /// Finds the clocks used in the expression and put them into result_clocks.
     pub fn get_var_names_rec(&self, result_clocks: &mut Vec<String>) {
         match self {
-            ArithExpression::Difference(ref left,ref right)
+            ArithExpression::Difference(ref left, ref right)
             | ArithExpression::Addition(ref left, ref right)
             | ArithExpression::Multiplication(ref left, ref right)
-            | ArithExpression::Division(ref left,ref right)
-            | ArithExpression::Modulo(ref left, ref right) =>{
+            | ArithExpression::Division(ref left, ref right)
+            | ArithExpression::Modulo(ref left, ref right) => {
                 left.get_var_names_rec(result_clocks);
                 right.get_var_names_rec(result_clocks);
             }
             ArithExpression::Clock(_) => (),
-            ArithExpression::VarName(ref name) => {
-                result_clocks.push(name.clone())
-            }
-            ArithExpression::Int(_) => ()
+            ArithExpression::VarName(ref name) => result_clocks.push(name.clone()),
+            ArithExpression::Int(_) => (),
         }
     }
 
@@ -657,13 +650,13 @@ impl Clock {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-    use itertools::Itertools;
-    use test_case::test_case;
     use crate::data_reader::parse_edge::parse_guard;
-    use crate::JsonProjectLoader;
-    use crate::model_objects::Edge;
     use crate::model_objects::expressions::ArithExpression;
+    use crate::model_objects::Edge;
+    use crate::JsonProjectLoader;
+    use itertools::Itertools;
+    use std::collections::HashSet;
+    use test_case::test_case;
     const PATH: &str = "samples/json/PopulateClocks";
 
     #[test_case("5",        vec![],                                  true  ; "No clocks")]
@@ -675,8 +668,8 @@ mod tests {
     fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
         // We test arith expressions by converting them into boolean expressions and then running the bool test below.
         let mut expression = expression.to_owned();
-        expression.push_str("<0");        // Arrange
-        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
+        expression.push_str("<0"); // Arrange
+                                   // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
         match parse_guard(&expression) {
             Ok(input_expr) => {
                 // Act
