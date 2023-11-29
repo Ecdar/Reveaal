@@ -590,6 +590,31 @@ mod tests {
         );
     }
     // Clock Reduction tests
+
+    #[test]
+    fn clock_reduction() {
+        // Last to be tested
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
+        let mut test_comp = project_loader.get_component("Component1").clone();
+
+        let expected: HashMap<String, ClockIndex> = HashMap::from([
+            ("x".to_string(), 1),
+            ("y".to_string(), 1),
+            ("z".to_string(), 1),
+            ("i".to_string(), 2)]);
+
+        test_comp.initialise_clock_usages();
+        test_comp.populate_usages_with_guards();
+        test_comp.populate_usages_with_updates();
+        test_comp.populate_usages_with_invariants();
+
+        test_comp.remove_redundant_clocks().expect("Could not remove redundant clocks.");
+        test_comp.compress_dcls();
+        // TODO Test for remapped clocks instead of just if they exist in component
+        assert_eq!(test_comp.declarations.clocks, expected);
+    }
+
     #[test]
     fn remove_redundant_clocks() {
         // Last to be tested
