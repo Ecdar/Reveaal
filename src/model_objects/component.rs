@@ -203,7 +203,7 @@ impl Component {
         used_clocks: &HashSet<String>,
     ) -> Result<Vec<HashSet<String>>, String> {
         if used_clocks.len() < 2 || self.edges.is_empty() {
-            return Ok(vec![HashSet::from(["TEST FAILED MAN".to_string()])])        }
+            return Ok(vec![HashSet::new()])        }
 
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
         for edge in &self.edges {
@@ -591,6 +591,7 @@ mod tests {
     }
     // Clock Reduction tests
 
+    /// Test for testing complete clock reduction, by removing redundant clocks and compressing the declarations
     #[test]
     fn clock_reduction() {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
@@ -603,11 +604,13 @@ mod tests {
             ("z".to_string(), 1),
             ("i".to_string(), 2)]);
 
+        // Initializing component clock scopes.
         test_comp.initialise_clock_usages();
         test_comp.populate_usages_with_guards();
         test_comp.populate_usages_with_updates();
         test_comp.populate_usages_with_invariants();
 
+        // Clock reduction.
         test_comp.remove_redundant_clocks().expect("Could not remove redundant clocks.");
         test_comp.compress_dcls();
 
@@ -616,7 +619,6 @@ mod tests {
 
     #[test]
     fn remove_redundant_clocks() {
-        // Last to be tested
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Component1").clone();
@@ -665,6 +667,7 @@ mod tests {
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Update").clone();
 
+        // TODO : create component that reflects the below clock scopes to make test more compact.
         test_comp.clock_usages = HashMap::from([
             (
                 "y".to_string(),
