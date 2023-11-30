@@ -75,7 +75,7 @@ impl Component {
 
     pub fn initialise_clock_usages(&mut self) {
         self.clock_usages = HashMap::default();
-        for (clock, _) in &self.declarations.clocks {
+        for clock in self.declarations.clocks.keys() {
             self.clock_usages
                 .insert(clock.clone(), ClockUsage::default());
         }
@@ -144,7 +144,7 @@ impl Component {
         let mut used_clocks: HashSet<String> = HashSet::new();
         let all_clocks = &self.clock_usages;
 
-        for (clock_name, _) in all_clocks {
+        for clock_name in all_clocks.keys() {
             used_clocks.insert(clock_name.clone());
         }
         let unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
@@ -162,12 +162,8 @@ impl Component {
         for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
             for clock in clock_group.iter() {
-                clock_group_indices.insert(
-                    self.declarations
-                        .get_clock_index_by_name(&clock)
-                        .unwrap()
-                        .clone(),
-                );
+                clock_group_indices
+                    .insert(*self.declarations.get_clock_index_by_name(clock).unwrap());
             }
             let lowest_clock = *clock_group_indices.iter().min().unwrap();
             clock_group_indices.remove(&lowest_clock);
@@ -203,7 +199,8 @@ impl Component {
         used_clocks: &HashSet<String>,
     ) -> Result<Vec<HashSet<String>>, String> {
         if used_clocks.len() < 2 || self.edges.is_empty() {
-            return Ok(vec![HashSet::new()])        }
+            return Ok(vec![HashSet::new()]);
+        }
 
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
         for edge in &self.edges {
@@ -512,10 +509,9 @@ mod tests {
     fn initialise_clock_usages() {
         let context = setup("Update", vec![]);
 
-        assert_eq!(
+        assert!(
             context.test_comp.clock_usages.contains_key("x")
-                && context.test_comp.clock_usages.contains_key("y"),
-            true
+                && context.test_comp.clock_usages.contains_key("y")
         );
     }
 
@@ -602,7 +598,8 @@ mod tests {
             ("x".to_string(), 1),
             ("y".to_string(), 1),
             ("z".to_string(), 1),
-            ("i".to_string(), 2)]);
+            ("i".to_string(), 2),
+        ]);
 
         // Initializing component clock scopes.
         test_comp.initialise_clock_usages();
@@ -611,7 +608,9 @@ mod tests {
         test_comp.populate_usages_with_invariants();
 
         // Clock reduction.
-        test_comp.remove_redundant_clocks().expect("Could not remove redundant clocks.");
+        test_comp
+            .remove_redundant_clocks()
+            .expect("Could not remove redundant clocks.");
         test_comp.compress_dcls();
 
         assert_eq!(test_comp.declarations.clocks, expected);
@@ -627,14 +626,17 @@ mod tests {
             ("x".to_string(), 1),
             ("y".to_string(), 1),
             ("z".to_string(), 1),
-            ("i".to_string(), 4)]);
+            ("i".to_string(), 4),
+        ]);
 
         test_comp.initialise_clock_usages();
         test_comp.populate_usages_with_guards();
         test_comp.populate_usages_with_updates();
         test_comp.populate_usages_with_invariants();
 
-        test_comp.remove_redundant_clocks().expect("Could not remove redundant clocks.");
+        test_comp
+            .remove_redundant_clocks()
+            .expect("Could not remove redundant clocks.");
 
         // TODO Test for remapped clocks instead of just if they exist in component
         assert_eq!(test_comp.declarations.clocks, expected);
@@ -693,8 +695,8 @@ mod tests {
 
         let unused_clocks = test_comp.get_unused_clocks(&test_comp.clock_usages);
 
-        assert_eq!(unused_clocks.contains("x"), true);
-        assert_eq!(unused_clocks.contains("y"), false);
+        assert!(unused_clocks.contains("x"));
+        assert!(!unused_clocks.contains("y"));
     }
 
     #[test_case("Component1", vec![HashSet::from(["x".to_string(),"y".to_string(),"z".to_string()])])]
@@ -706,16 +708,16 @@ mod tests {
 
         let mut clocks: HashSet<String> = HashSet::new();
         let all_clocks = &test_comp.declarations.clocks;
-        for (clock_name, _) in all_clocks {
+        for clock_name in all_clocks.keys() {
             clocks.insert(clock_name.clone());
         }
 
-        let equivalent_clock_groups=  test_comp.find_equivalent_clock_groups(&clocks).unwrap();
+        let equivalent_clock_groups = test_comp.find_equivalent_clock_groups(&clocks).unwrap();
 
         assert_eq!(equivalent_clock_groups, result);
     }
     #[test_case("Updates3", "E12", HashMap::from([("y".to_string(), 5), ("z".to_string(), 7)]))]
-    fn find_local_equivalences(comp_name: &str, edge_id: &str, result: HashMap<String, u32>){
+    fn find_local_equivalences(comp_name: &str, edge_id: &str, result: HashMap<String, u32>) {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).clone();
