@@ -388,11 +388,3 @@ impl XmlProjectLoader {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use test_case::test_case;
-
-    #[test]
-    fn test_load_component() {}
-}
