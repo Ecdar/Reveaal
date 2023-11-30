@@ -6,7 +6,6 @@ use crate::system::executable_query::{
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::system::extract_state::get_state;
-use std::collections::HashMap;
 
 use crate::transition_systems::{
     CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
@@ -14,7 +13,6 @@ use crate::transition_systems::{
 
 use super::query_failures::SystemRecipeFailure;
 use crate::system::pruning;
-use crate::transition_systems::transition_system::ClockReductionInstruction;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
 use simple_error::bail;
@@ -52,7 +50,7 @@ pub fn create_executable_query<'a>(
 
                 let left =
                     get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
-                let mut right =
+                let right =
                     get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
 
                 let mut component_index = 0;
@@ -92,7 +90,7 @@ pub fn create_executable_query<'a>(
             }
             QueryExpression::Consistency(query_expression) => {
                 let mut quotient_index = None;
-                let mut recipe = get_system_recipe(
+                let recipe = get_system_recipe(
                     query_expression,
                     component_loader,
                     &mut dim,
@@ -105,7 +103,7 @@ pub fn create_executable_query<'a>(
             }
             QueryExpression::Determinism(query_expression) => {
                 let mut quotient_index = None;
-                let mut recipe = get_system_recipe(
+                let recipe = get_system_recipe(
                     query_expression,
                     component_loader,
                     &mut dim,
@@ -118,7 +116,7 @@ pub fn create_executable_query<'a>(
             }
             QueryExpression::GetComponent(SaveExpression { system, name }) => {
                 let mut quotient_index = None;
-                let mut recipe =
+                let recipe =
                     get_system_recipe(system, component_loader, &mut dim, &mut quotient_index);
 
                 Ok(Box::new(GetComponentExecutor {
@@ -129,7 +127,7 @@ pub fn create_executable_query<'a>(
             }
             QueryExpression::Prune(SaveExpression { system, name }) => {
                 let mut quotient_index = None;
-                let mut recipe =
+                let recipe =
                     get_system_recipe(system, component_loader, &mut dim, &mut quotient_index);
 
                 Ok(Box::new(GetComponentExecutor {

@@ -3,7 +3,6 @@ use crate::data_reader::serialization::{decode_declarations, DummyComponent};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
 
-use crate::model_objects::expressions::BoolExpression;
 use crate::model_objects::{Edge, Location, SyncType};
 use itertools::Itertools;
 use log::info;
