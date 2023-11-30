@@ -355,50 +355,6 @@ impl Component {
         }
     }
 
-    /// Removes unused clock
-    /// # Arguments
-    /// `index`: The index to be removed
-    pub(crate) fn remove_clock(&mut self, index: ClockIndex) {
-        // Removes from declarations, and updates the other
-        let name = self
-            .declarations
-            .get_clock_name_by_index(index)
-            .expect("Couldn't find clock with index")
-            .to_owned();
-        self.declarations.clocks.remove(&name);
-
-        // Removes from from updates and guards
-        self.edges
-            .iter_mut()
-            .filter(|e| e.update.is_some() || e.guard.is_some())
-            .for_each(|e| {
-                // The guard is overwritten to `false`. This can be done since we assume
-                // that all edges with guards involving the given clock is not reachable
-                // in some composite system.
-                if let Some(guard) = e.guard.as_mut().filter(|g| g.has_var_name(&name)) {
-                    *guard = BoolExpression::Bool(false);
-                }
-                if let Some(inv) = e.update.as_mut() {
-                    inv.retain(|u| u.variable != name);
-                }
-            });
-
-        // Removes from from location invariants
-        // The invariants containing the clock are overwritten to `false`.
-        // This can be done since we assume that all locations with invariants involving
-        // the given clock is not reachable in some composite system.
-        self.locations
-            .iter_mut()
-            .filter_map(|l| l.invariant.as_mut())
-            .filter(|i| i.has_var_name(&name))
-            .for_each(|i| *i = BoolExpression::Bool(false));
-
-        info!(
-            "Removed Clock '{name}' (index {index}) has been removed from component {}",
-            self.name
-        ); // Should be changed in the future to be the information logger
-    }
-
     /// Replaces duplicate clock with a new
     /// # Arguments
     /// `global_index`: The index of the global clock\n
