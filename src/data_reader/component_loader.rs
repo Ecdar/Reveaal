@@ -295,9 +295,12 @@ impl JsonProjectLoader {
 
             // Remove the redundant clocks from component
             // TODO Maybe log removed clocks
-            component
-                .remove_redundant_clocks()
-                .expect("Error removing redundant clocks: ");
+            match component.remove_redundant_clocks() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error removing redundant clocks: {}", err);
+                }
+            }
 
             // compress components declarations
             component.compress_dcls();

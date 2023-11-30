@@ -161,11 +161,12 @@ impl Component {
         for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
             for clock in clock_group.iter() {
-                clock_group_indices
-                    .insert(*self.declarations.get_clock_index_by_name(clock).unwrap());
+                let index = self.declarations.get_clock_index_by_name(clock).ok_or_else(|| {
+                    format!("Clock index not found for clock: {}", clock)
+                })?;
+                clock_group_indices.insert(index.clone());
             }
-            // TODO : figure out why this line fails half the tests
-            let lowest_clock = *clock_group_indices.iter().min().unwrap();
+            let lowest_clock = *clock_group_indices.iter().min().ok_or_else(|| "No clock indices found")?;
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
         }
