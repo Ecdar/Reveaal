@@ -50,7 +50,7 @@ pub fn create_executable_query<'a>(
             QueryExpression::Refinement(left_side, right_side) => {
                 let mut quotient_index = None;
 
-                let mut left =
+                let left =
                     get_system_recipe(left_side, component_loader, &mut dim, &mut quotient_index);
                 let mut right =
                     get_system_recipe(right_side, component_loader, &mut dim, &mut quotient_index);
@@ -440,33 +440,5 @@ pub(crate) mod clock_reduction {
             }),
             get_unique_redundant_clocks(rhs, lhs, quotient_clock, |c| c > split_index),
         )
-    }
-
-    /// Remaps index more compactly, after clock reduction that may leave gaps in the index range
-    fn compress_component_decls(
-        mut comps: Vec<&mut Component>,
-        other: Option<Vec<&mut Component>>,
-    ) {
-        let mut seen: HashMap<ClockIndex, ClockIndex> = HashMap::new();
-        let mut l: Vec<&mut ClockIndex> = comps
-            .iter_mut()
-            .flat_map(|c| c.declarations.clocks.values_mut())
-            .collect();
-        let mut temp = other.unwrap_or_default();
-        l.extend(
-            temp.iter_mut()
-                .flat_map(|c| c.declarations.clocks.values_mut()),
-        );
-        l.sort();
-        let mut index = 1;
-        for clock in l {
-            if let Some(val) = seen.get(clock) {
-                *clock = *val;
-            } else {
-                seen.insert(*clock, index);
-                *clock = index;
-                index += 1;
-            }
-        }
     }
 }

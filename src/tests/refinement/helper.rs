@@ -4,7 +4,6 @@ use crate::extract_system_rep::ExecutableQueryError;
 use crate::logging::setup_logger;
 use crate::model_objects::expressions::QueryExpression;
 use crate::model_objects::Query;
-use crate::parse_queries::Rule::reachability;
 use crate::system::extract_system_rep::create_executable_query;
 use crate::system::query_failures::QueryResult;
 use crate::transition_systems::transition_system::component_loader_to_transition_system;

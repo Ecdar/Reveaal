@@ -651,11 +651,7 @@ impl Clock {
 #[cfg(test)]
 mod tests {
     use crate::data_reader::parse_edge::parse_guard;
-    use crate::model_objects::expressions::ArithExpression;
-    use crate::model_objects::Edge;
     use crate::JsonProjectLoader;
-    use itertools::Itertools;
-    use std::collections::HashSet;
     use test_case::test_case;
     const PATH: &str = "samples/json/PopulateClocks";
 
@@ -689,7 +685,7 @@ mod tests {
     fn test_get_evaluated_int(comp_name: &str, expected: Vec<i32>) {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
-        let mut test_comp = project_loader.get_component(comp_name).clone();
+        let test_comp = project_loader.get_component(comp_name).clone();
 
         let mut clock_values: Vec<i32> = Vec::new();
 
