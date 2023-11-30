@@ -164,6 +164,7 @@ impl Component {
                 clock_group_indices
                     .insert(*self.declarations.get_clock_index_by_name(clock).unwrap());
             }
+            // TODO : figure out why this line fails half the tests
             let lowest_clock = *clock_group_indices.iter().min().unwrap();
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
