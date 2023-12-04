@@ -12,6 +12,33 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::iter::FromIterator;
 
+/// Errors related to reducing clocks
+#[derive(Debug)]
+pub enum ClockReduceError {
+    /// Takes a clock name
+    ClockIndexNotFound(String),
+    /// missing clockIndices without a specific clock in mind
+    NoClockIndices,
+    /// Used for evaluating the expressions in clock_usages
+    EvaluationError(String),
+    /// Error in grouping and updating equivalent clock groups
+    ClockGroupError(String),
+    /// For all errors relating to clockReduction but does not fit in the others
+    Other(String),
+}
+impl std::fmt::Display for ClockReduceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClockReduceError::ClockIndexNotFound(clock) => write!(f, "Clock index not found for clock: {}", clock),
+            ClockReduceError::NoClockIndices => write!(f, "No clock indices found"),
+            ClockReduceError::EvaluationError(msg) => write!(f, "Evaluation error: {}", msg),
+            ClockReduceError::ClockGroupError(msg) => write!(f, "Update error: {}", msg),
+            ClockReduceError::Other(msg) => write!(f, "Other error: {}", msg),
+        }
+    }
+}
+impl std::error::Error for ClockReduceError {}
+
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(into = "DummyComponent")]
@@ -140,21 +167,15 @@ impl Component {
     }
 
     pub fn remove_redundant_clocks(&mut self) -> Result<(), String> {
-        let mut used_clocks: HashSet<String> = HashSet::new();
-        let all_clocks = &self.clock_usages;
+        let mut used_clocks: HashSet<String> = self.clock_usages.keys().cloned().collect();
+        let unused_clocks: HashSet<String> = self.get_unused_clocks(&self.clock_usages);
 
-        for clock_name in all_clocks.keys() {
-            used_clocks.insert(clock_name.clone());
-        }
-        let unused_clocks: HashSet<String> = self.get_unused_clocks(all_clocks);
+        // Remove clocks(and their updates) never read from/used
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);
+            self.declarations.clocks.remove(unused_clocks);
+            self.remove_update(unused_clocks);
         }
-
-        // Remove clocks never read from(useless)
-        self.declarations.remove_clocks_from_dcls(&unused_clocks);
-        // Remove updates related to those clocks
-        self.remove_updates(&unused_clocks);
 
         // Remap the clocks equivalent to each other
         let mut equivalent_clock_groups = self.find_equivalent_clock_groups(&used_clocks)?;
@@ -166,6 +187,14 @@ impl Component {
                 })?;
                 clock_group_indices.insert(index.clone());
             }
+            let mut clock_group_indices: HashSet<ClockIndex> = clock_group.iter()
+                .map(|clock| {
+                    self.declarations.get_clock_index_by_name(clock)
+                        .ok_or(ClockReduceError::ClockIndexNotFound(clock.clone()))
+                })
+                .collect::<Result<_, _>>()?;
+
+
             let lowest_clock = *clock_group_indices.iter().min().ok_or_else(|| "No clock indices found")?;
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
@@ -174,27 +203,23 @@ impl Component {
         // TODO Shift quotient?
     }
 
-    pub fn remove_updates(&mut self, clocks: &HashSet<String>) {
-        for clock in clocks {
-            self.edges
-                .iter_mut()
-                .filter_map(|edge| edge.update.as_mut())
-                .for_each(|var| var.retain(|u| u.variable != *clock));
-        }
+    pub fn remove_update(&mut self, clock: &String) {
+        self.edges
+            .iter_mut()
+            .filter_map(|edge| edge.update.as_mut())
+            .for_each(|var| var.retain(|u| u.variable != *clock));
     }
 
     pub fn get_unused_clocks(&self, clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
-        let mut unused_clocks: HashSet<String> = HashSet::new();
-        for (clock_name, clock_info) in clock_usages {
-            if clock_info.edges.is_empty() && clock_info.locations.is_empty() {
-                unused_clocks.insert(clock_name.clone());
-            }
-        }
+        let unused_clocks: HashSet<String> = clock_usages.iter()
+            .filter(|(_, clock_info)| clock_info.edges.is_empty() && clock_info.locations.is_empty())
+            .map(|(clock_name, _)| clock_name.clone())
+            .collect();
         unused_clocks
     }
 
-    // Function which should return a vector with equivalent clock groups
+    // Function which should return a vector with all the finished equivalent clock groups
     pub fn find_equivalent_clock_groups(
         &self,
         used_clocks: &HashSet<String>,
@@ -210,23 +235,21 @@ impl Component {
         }
         Ok(equivalent_clock_groups)
     }
+    // Find the clocks which diverges from their respective clock groups on one edge
     fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, String> {
         let mut local_equivalence_map = HashMap::new();
-        match &edge.update.clone() {
-            Some(updates) => {
-                for update in updates {
-                    local_equivalence_map.insert(
-                        update.variable.clone(),
-                        update.expression.get_evaluated_int()? as u32,
-                    );
-                }
+        if let Some(updates) = &edge.update {
+            for update in updates {
+                local_equivalence_map.insert(
+                    update.variable.clone(),
+                    update.expression.get_evaluated_int()? as u32,
+                );
             }
-            None => {}
         }
         Ok(local_equivalence_map)
     }
-
-    fn update_global_groups(
+    // Updates the current version of the equivalent clock groups based on the new local equivalences
+    fn update_equivalent_clock_groups(
         &self,
         equivalent_clock_groups: &mut Vec<HashSet<String>>,
         local_equivalences: &HashMap<String, u32>,
@@ -234,16 +257,14 @@ impl Component {
         let mut new_groups: HashMap<usize, HashSet<String>> = HashMap::new();
         let mut group_offset: usize = u32::MAX as usize;
 
-        for (old_group_index, equivalent_clock_group) in
-            equivalent_clock_groups.iter_mut().enumerate()
+        for (old_group_index, equivalent_clock_group) in equivalent_clock_groups.iter_mut().enumerate()
         {
             for clock in equivalent_clock_group.iter() {
                 if let Some(group_id) = local_equivalences.get(clock) {
                     Component::get_or_insert(
                         &mut new_groups,
-                        group_offset + ((*group_id) as usize),
-                    )
-                    .insert(clock.clone());
+                        group_offset + ((*group_id) as usize))
+                        .insert(clock.clone());
                 } else {
                     Component::get_or_insert(&mut new_groups, old_group_index)
                         .insert(clock.clone());
@@ -264,6 +285,7 @@ impl Component {
         }
     }
 
+    // Compresses index of the declaration to move clock_indexes to fill gaps
     pub fn compress_dcls(&mut self) {
         let mut seen: HashMap<ClockIndex, ClockIndex> = HashMap::new();
         let mut clocks: Vec<&mut ClockIndex> = self.declarations.clocks.values_mut().collect();
@@ -279,14 +301,6 @@ impl Component {
             }
         }
     }
-
-    /*
-    // overvej om actions har en indflydelse på component niveau - lige nu umildbart ikke.
-    // Vi kan ikke antage at alle transitions kan tages alle steder da de også har krav om input/output
-    // Hvis vi ikke kan tage en transition pga den pågældende action bliver den edge's clock heller ikke brugt/updated
-    // Dette er vigtigt når vi laver clock_reduction, da en ellers brugbar clock, kan blive redundant
-    // Opgaven her består i at vi skal filtrere disse "fake" transitions/edges fra inden vi laver reductions baseret på hvad vi ved
-     */
 
     pub fn get_location_by_name(&self, name: &str) -> &Location {
         let loc_vec = self
