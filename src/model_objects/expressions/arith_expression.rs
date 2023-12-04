@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use crate::model_objects::ClockReduceError;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum ArithExpression {
@@ -19,7 +20,7 @@ pub enum ArithExpression {
 }
 
 impl ArithExpression {
-    pub fn get_evaluated_int(&self) -> Result<i32, String> {
+    pub fn get_evaluated_int(&self) -> Result<i32, ClockReduceError> {
         match self {
             ArithExpression::Difference(left, right) => {
                 Ok(left.get_evaluated_int()? - right.get_evaluated_int()?)
@@ -33,22 +34,26 @@ impl ArithExpression {
             ArithExpression::Division(left, right) => {
                 let divide_with = right.get_evaluated_int()?;
                 if divide_with == 0 {
-                    return Err("Division with zero".to_string());
+                    Err(ClockReduceError::EvaluationError("Division with zero".to_string()))
                 }
-                Ok(left.get_evaluated_int()? / divide_with)
+                else {
+                    Ok(left.get_evaluated_int()? / divide_with)
+                }
             }
             ArithExpression::Modulo(left, right) => {
                 let modulo_with = right.get_evaluated_int()?;
                 if modulo_with == 0 {
-                    return Err("Modulo with zero".to_string());
+                    Err(ClockReduceError::EvaluationError("Modulo with zero".to_string()))
                 }
-                Ok(left.get_evaluated_int()? % modulo_with)
+                else{
+                    Ok(left.get_evaluated_int()? % modulo_with)
+                }
             }
             ArithExpression::Clock(_) => {
-                Err("This function cant work with clock_index".to_string())
+                Err(ClockReduceError::EvaluationError("This function cant work with clock_index".to_string()))
             }
             ArithExpression::VarName(_) => {
-                Err("This function cant work with clock_names".to_string())
+                Err(ClockReduceError::EvaluationError("This function cant work with clock_names".to_string()))
             }
             ArithExpression::Int(value) => Ok(*value),
         }

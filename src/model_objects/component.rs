@@ -38,6 +38,11 @@ impl std::fmt::Display for ClockReduceError {
     }
 }
 impl std::error::Error for ClockReduceError {}
+impl From<String> for ClockReduceError {
+    fn from(err: String) -> Self {
+        ClockReduceError::Other(err)
+    }
+}
 
 /// The basic struct used to represent components read from either Json or xml
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -166,7 +171,7 @@ impl Component {
         }
     }
 
-    pub fn remove_redundant_clocks(&mut self) -> Result<(), String> {
+    pub fn remove_redundant_clocks(&mut self) -> Result<(), ClockReduceError> {
         let mut used_clocks: HashSet<String> = self.clock_usages.keys().cloned().collect();
         let unused_clocks: HashSet<String> = self.get_unused_clocks(&self.clock_usages);
 
@@ -187,20 +192,11 @@ impl Component {
                 })?;
                 clock_group_indices.insert(index.clone());
             }
-            let mut clock_group_indices: HashSet<ClockIndex> = clock_group.iter()
-                .map(|clock| {
-                    self.declarations.get_clock_index_by_name(clock)
-                        .ok_or(ClockReduceError::ClockIndexNotFound(clock.clone()))
-                })
-                .collect::<Result<_, _>>()?;
-
-
-            let lowest_clock = *clock_group_indices.iter().min().ok_or_else(|| "No clock indices found")?;
+            let lowest_clock = *clock_group_indices.iter().min().ok_or_else(|| ClockReduceError::NoClockIndices)?;
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
         }
         Ok(())
-        // TODO Shift quotient?
     }
 
     pub fn remove_update(&mut self, clock: &String) {
@@ -223,7 +219,7 @@ impl Component {
     pub fn find_equivalent_clock_groups(
         &self,
         used_clocks: &HashSet<String>,
-    ) -> Result<Vec<HashSet<String>>, String> {
+    ) -> Result<Vec<HashSet<String>>, ClockReduceError> {
         if used_clocks.len() < 2 || self.edges.is_empty() {
             return Ok(vec![HashSet::new()]);
         }
@@ -231,12 +227,12 @@ impl Component {
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
         for edge in &self.edges {
             let local_equivalences = self.find_local_equivalences(edge)?;
-            self.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
+            self.update_equivalent_clock_groups(&mut equivalent_clock_groups, &local_equivalences);
         }
         Ok(equivalent_clock_groups)
     }
     // Find the clocks which diverges from their respective clock groups on one edge
-    fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, String> {
+    fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, ClockReduceError> {
         let mut local_equivalence_map = HashMap::new();
         if let Some(updates) = &edge.update {
             for update in updates {
@@ -249,7 +245,7 @@ impl Component {
         Ok(local_equivalence_map)
     }
     // Updates the current version of the equivalent clock groups based on the new local equivalences
-    fn update_equivalent_clock_groups(
+    pub fn update_equivalent_clock_groups(
         &self,
         equivalent_clock_groups: &mut Vec<HashSet<String>>,
         local_equivalences: &HashMap<String, u32>,
@@ -613,19 +609,19 @@ mod tests {
         assert_eq!(test_comp.declarations.clocks, expected);
     }
 
-    #[test_case("Machine4", HashSet::from(["y".to_string()]))]
-    fn remove_updates(comp_name: &str, clocks: HashSet<String>) {
+    #[test_case("Machine4", "y".to_string())]
+    fn remove_update(comp_name: &str, clock: String) {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).clone();
 
-        test_comp.remove_updates(&clocks);
+        test_comp.remove_update(&clock);
 
         for edge in test_comp.edges.iter() {
             if let Some(updates) = &edge.update {
                 for update in updates {
                     assert!(
-                        !clocks.contains(&update.variable),
+                        !clock.contains(&update.variable),
                         "Update for {} was not removed",
                         update.variable
                     );
@@ -700,7 +696,7 @@ mod tests {
     }
 
     #[test]
-    fn update_global_groups() {
+    fn update_equivalent_clock_groups() {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader
@@ -724,7 +720,7 @@ mod tests {
         test_comp.populate_usages_with_updates();
         test_comp.populate_usages_with_invariants();
 
-        test_comp.update_global_groups(&mut equivalent_clock_groups, &local_equivalences);
+        test_comp.update_equivalent_clock_groups(&mut equivalent_clock_groups, &local_equivalences);
 
         assert_eq!(equivalent_clock_groups, expected);
     }
