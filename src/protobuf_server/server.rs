@@ -26,16 +26,15 @@ async fn start_grpc_server(
     cache_size: usize,
     thread_number: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    info!("Starting grpc server on '{}'", ip_endpoint.trim());
-
-    Server::builder()
+    let server = Server::builder()
         .http2_keepalive_interval(Some(Duration::from_secs(120)))
         .add_service(EcdarBackendServer::new(ConcreteEcdarBackend::new(
             thread_number,
             cache_size,
         )))
-        .serve(ip_endpoint.trim().parse()?)
-        .await?;
+        .serve(ip_endpoint.trim().parse()?);
+    println!("Started grpc server on '{}'\r", ip_endpoint.trim());
 
+    server.await?;
     Ok(())
 }
