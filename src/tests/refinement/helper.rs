@@ -74,11 +74,13 @@ pub fn json_run_query(path: &str, query: &str) -> Result<QueryResult, Executable
             | QueryExpression::Implementation(_)
             | QueryExpression::Determinism(_)
             | QueryExpression::Specification(_)
+            | QueryExpression::Syntax(_)
             | QueryExpression::BisimMinim(_)
             | QueryExpression::GetComponent(_)
             | QueryExpression::Prune(_) => {
                 project_loader.get_settings_mut().disable_clock_reduction = false;
             }
+
         }
     }
 
