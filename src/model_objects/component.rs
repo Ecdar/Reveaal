@@ -27,7 +27,9 @@ pub enum ClockReduceError {
 impl std::fmt::Display for ClockReduceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ClockReduceError::ClockIndexNotFound(clock) => write!(f, "Clock index not found for clock: {}", clock),
+            ClockReduceError::ClockIndexNotFound(clock) => {
+                write!(f, "Clock index not found for clock: {}", clock)
+            }
             ClockReduceError::NoClockIndices => write!(f, "No clock indices found"),
             ClockReduceError::EvaluationError(msg) => write!(f, "Evaluation error: {}", msg),
             ClockReduceError::Other(msg) => write!(f, "Other error: {}", msg),
@@ -184,12 +186,16 @@ impl Component {
         for clock_group in &mut equivalent_clock_groups {
             let mut clock_group_indices: HashSet<ClockIndex> = HashSet::new();
             for clock in clock_group.iter() {
-                let index = self.declarations.get_clock_index_by_name(clock).ok_or_else(|| {
-                    format!("Clock index not found for clock: {}", clock)
-                })?;
+                let index = self
+                    .declarations
+                    .get_clock_index_by_name(clock)
+                    .ok_or_else(|| format!("Clock index not found for clock: {}", clock))?;
                 clock_group_indices.insert(index.clone());
             }
-            let lowest_clock = *clock_group_indices.iter().min().ok_or_else(|| ClockReduceError::NoClockIndices)?;
+            let lowest_clock = *clock_group_indices
+                .iter()
+                .min()
+                .ok_or_else(|| ClockReduceError::NoClockIndices)?;
             clock_group_indices.remove(&lowest_clock);
             self.replace_clock(lowest_clock, &clock_group_indices);
         }
@@ -205,8 +211,11 @@ impl Component {
 
     pub fn get_unused_clocks(&self, clock_usages: &HashMap<String, ClockUsage>) -> HashSet<String> {
         // If the clock in question never appears in these it is never used as a Guard/Invariant and it can therefore be removed
-        let unused_clocks: HashSet<String> = clock_usages.iter()
-            .filter(|(_, clock_info)| clock_info.edges.is_empty() && clock_info.locations.is_empty())
+        let unused_clocks: HashSet<String> = clock_usages
+            .iter()
+            .filter(|(_, clock_info)| {
+                clock_info.edges.is_empty() && clock_info.locations.is_empty()
+            })
             .map(|(clock_name, _)| clock_name.clone())
             .collect();
         unused_clocks
@@ -232,7 +241,10 @@ impl Component {
     }
 
     // Find the clocks which diverges from their respective clock groups on a edge/transition
-    fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, ClockReduceError> {
+    fn find_local_equivalences(
+        &self,
+        edge: &Edge,
+    ) -> Result<HashMap<String, u32>, ClockReduceError> {
         let mut local_equivalence_map = HashMap::new();
         if let Some(updates) = &edge.update {
             for update in updates {
@@ -253,14 +265,16 @@ impl Component {
         let mut new_groups: HashMap<usize, HashSet<String>> = HashMap::new();
         let mut group_offset: usize = u32::MAX as usize;
 
-        for (old_group_index, equivalent_clock_group) in equivalent_clock_groups.iter_mut().enumerate()
+        for (old_group_index, equivalent_clock_group) in
+            equivalent_clock_groups.iter_mut().enumerate()
         {
             for clock in equivalent_clock_group.iter() {
                 if let Some(group_id) = local_equivalences.get(clock) {
                     Component::get_or_insert(
                         &mut new_groups,
-                        group_offset + ((*group_id) as usize))
-                        .insert(clock.clone());
+                        group_offset + ((*group_id) as usize),
+                    )
+                    .insert(clock.clone());
                 } else {
                     Component::get_or_insert(&mut new_groups, old_group_index)
                         .insert(clock.clone());
