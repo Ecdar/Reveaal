@@ -80,7 +80,6 @@ pub fn json_run_query(path: &str, query: &str) -> Result<QueryResult, Executable
             | QueryExpression::Prune(_) => {
                 project_loader.get_settings_mut().disable_clock_reduction = false;
             }
-
         }
     }
 

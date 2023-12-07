@@ -715,7 +715,8 @@ mod tests {
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader
             .get_component("Component7_global_groups")
-            .unwrap().clone();
+            .unwrap()
+            .clone();
 
         let expected: Vec<HashSet<String>> =
             vec![vec!["y", "z"].into_iter().map(String::from).collect()];
