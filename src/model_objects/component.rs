@@ -21,8 +21,6 @@ pub enum ClockReduceError {
     NoClockIndices,
     /// Used for evaluating the expressions in clock_usages
     EvaluationError(String),
-    /// Error in grouping and updating equivalent clock groups
-    ClockGroupError(String),
     /// For all errors relating to clockReduction but does not fit in the others
     Other(String),
 }
@@ -32,7 +30,6 @@ impl std::fmt::Display for ClockReduceError {
             ClockReduceError::ClockIndexNotFound(clock) => write!(f, "Clock index not found for clock: {}", clock),
             ClockReduceError::NoClockIndices => write!(f, "No clock indices found"),
             ClockReduceError::EvaluationError(msg) => write!(f, "Evaluation error: {}", msg),
-            ClockReduceError::ClockGroupError(msg) => write!(f, "Update error: {}", msg),
             ClockReduceError::Other(msg) => write!(f, "Other error: {}", msg),
         }
     }
@@ -175,7 +172,7 @@ impl Component {
         let mut used_clocks: HashSet<String> = self.clock_usages.keys().cloned().collect();
         let unused_clocks: HashSet<String> = self.get_unused_clocks(&self.clock_usages);
 
-        // Remove clocks(and their updates) never read from/used
+        // Remove yhe clocks(and their updates) which never gets read from
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);
             self.declarations.clocks.remove(unused_clocks);
@@ -223,15 +220,18 @@ impl Component {
         if used_clocks.len() < 2 || self.edges.is_empty() {
             return Ok(vec![HashSet::new()]);
         }
-
+        // Start with all clocks in the same clock group with the global clock
         let mut equivalent_clock_groups: Vec<HashSet<String>> = vec![used_clocks.clone()];
         for edge in &self.edges {
+            // Find the clocks affected by this edge
             let local_equivalences = self.find_local_equivalences(edge)?;
+            // Update the global clocks variable with the new information and splits the groups
             self.update_equivalent_clock_groups(&mut equivalent_clock_groups, &local_equivalences);
         }
         Ok(equivalent_clock_groups)
     }
-    // Find the clocks which diverges from their respective clock groups on one edge
+
+    // Find the clocks which diverges from their respective clock groups on a edge/transition
     fn find_local_equivalences(&self, edge: &Edge) -> Result<HashMap<String, u32>, ClockReduceError> {
         let mut local_equivalence_map = HashMap::new();
         if let Some(updates) = &edge.update {
