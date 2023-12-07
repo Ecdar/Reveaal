@@ -1,7 +1,6 @@
 use crate::protobuf_server::services::ecdar_backend_server::EcdarBackendServer;
 use crate::protobuf_server::ConcreteEcdarBackend;
 use core::time::Duration;
-use log::info;
 use tokio::runtime;
 use tonic::transport::Server;
 

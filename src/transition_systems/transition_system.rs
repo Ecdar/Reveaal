@@ -258,6 +258,7 @@ pub fn component_loader_to_transition_system(
     let mut dimension = 0;
     let sys_expr = parse_to_system_expr(composition).unwrap();
     get_system_recipe(&sys_expr, loader, &mut dimension, &mut None)
+        .unwrap()
         .compile(dimension)
         .unwrap()
 }
