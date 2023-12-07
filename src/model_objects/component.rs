@@ -190,7 +190,7 @@ impl Component {
                     .declarations
                     .get_clock_index_by_name(clock)
                     .ok_or_else(|| format!("Clock index not found for clock: {}", clock))?;
-                clock_group_indices.insert(index.Copy());
+                clock_group_indices.insert(*index);
             }
             let lowest_clock = *clock_group_indices
                 .iter()
