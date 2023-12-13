@@ -286,7 +286,7 @@ impl JsonProjectLoader {
             input_enabler::make_input_enabled(&mut component, inputs);
         }
 
-        // Will reduce clocks on the component if setting is set to false
+        // Will reduce clocks on the component if not disabled
         if !self.get_settings().disable_clock_reduction {
             // Set up and populate clock usages
             component.initialise_clock_usages();
