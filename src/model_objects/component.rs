@@ -502,7 +502,7 @@ mod tests {
     #[test_case("Machine4", vec!["E1".to_string(),"E5".to_string()],    true;  "Clock with usage in two guards avoiding cherrypicking")]
     #[test_case("Machine4", vec!["E36".to_string(),"E45".to_string()],  false; "Clock with usage in two fake guards avoiding cherrypicking")]
     fn populate_usages_with_guards(comp_name: &str, expected_edges: Vec<String>, verdict: bool) {
-        // Instantiating variables used in all tests using the setup function above.
+        // Instantiating variables used in all tests using the "setup" function above.
         let mut context = setup(comp_name, expected_edges);
 
         context.test_comp.populate_usages_with_guards();
