@@ -619,7 +619,7 @@ mod tests {
             .remove_redundant_clocks()
             .expect("Could not remove redundant clocks.");
 
-        // TODO Test for remapped clocks instead of just if they exist in component
+        // TODO: Test for remapped clocks instead of just if they exist in component
         assert_eq!(test_comp.declarations.clocks, expected);
     }
 
