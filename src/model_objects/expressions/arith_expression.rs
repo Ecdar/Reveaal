@@ -452,7 +452,7 @@ impl ArithExpression {
         vec
     }
 
-    /// Finds the clocks used in the expression and put them into result_clocks.
+    /// Finds the clocks used in the expression and puts them into result_clocks.
     pub fn get_var_names_rec(&self, result_clocks: &mut Vec<String>) {
         match self {
             ArithExpression::Difference(ref left, ref right)
@@ -669,10 +669,11 @@ mod tests {
     #[test_case("5%alpha",  vec!["alpha".to_string()],               true  ; "Longer clock names")]
     #[test_case("5%alpha",  vec!["x".to_string()],                   false ; "One clock, should fail")]
     fn test_get_clocks_arith(expression: &str, expected: Vec<String>, verdict: bool) {
+        // Arrange
         // We test arith expressions by converting them into boolean expressions and then running the bool test below.
         let mut expression = expression.to_owned();
-        expression.push_str("<0"); // Arrange
-                                   // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
+        expression.push_str("<0"); 
+        // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
         match parse_guard(&expression) {
             Ok(input_expr) => {
                 // Act

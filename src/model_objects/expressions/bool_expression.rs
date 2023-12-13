@@ -410,7 +410,7 @@ impl BoolExpression {
         }
     }
 
-    /// Finds the clocks used in the expression and put them into result_clocks.
+    /// Finds the clocks used in the expression and puts them into result_clocks.
     pub fn get_var_names(&self) -> Vec<String> {
         let mut vec = vec![];
         self.get_var_names_rec(&mut vec);
