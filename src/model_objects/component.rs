@@ -650,7 +650,7 @@ mod tests {
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Update").unwrap().clone();
 
-        // TODO : create component that reflects the below clock scopes to make test more compact.
+        // TODO: create component that reflects the below clock scopes to make test more compact.
         test_comp.clock_usages = HashMap::from([
             (
                 "y".to_string(),
