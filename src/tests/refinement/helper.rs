@@ -62,8 +62,7 @@ pub fn json_run_query(path: &str, query: &str) -> Result<QueryResult, Executable
         query: Option::from(query),
         comment: "".to_string(),
     };
-    // After implementing clock reduction on component level, a few tests are failing due to
-    // inconsistencies with initial state and global clock. Turn boolean true to ignore inconsistencies
+    // FIXME: After implementing clock reduction on component level, a few tests are failing due to inconsistencies with initial state and global clock. Turn disabled_clock_reduction boolean to true to ignore inconsistencies
     if let Some(query_type) = q.get_query() {
         match query_type {
             QueryExpression::Reachability { .. } => {
