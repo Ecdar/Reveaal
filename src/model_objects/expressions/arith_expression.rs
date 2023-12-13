@@ -672,7 +672,7 @@ mod tests {
         // Arrange
         // We test arith expressions by converting them into boolean expressions and then running the bool test below.
         let mut expression = expression.to_owned();
-        expression.push_str("<0"); 
+        expression.push_str("<0");
         // parse_guard is used to parse a boolean expression, as guards are just boolean expressions.
         match parse_guard(&expression) {
             Ok(input_expr) => {
