@@ -177,7 +177,7 @@ impl Component {
         // Remove the clocks(and their updates) which never gets read from
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);
-            self.declarations.clocks.remove(unused_clocks);
+            self.declarations.remove_clock_from_dcls(unused_clocks);
             self.remove_update(unused_clocks);
         }
 
@@ -425,11 +425,8 @@ impl Declarations {
         }
     }
 
-    pub fn remove_clocks_from_dcls(&mut self, clocks: &HashSet<String>) {
-        // Remove unused clocks completely from component's declarations
-        for clock in clocks {
-            self.clocks.remove(clock);
-        }
+    pub fn remove_clock_from_dcls(&mut self, clock: &str) {
+        self.clocks.remove(clock);
     }
 
     pub fn get_clock_count(&self) -> usize {
@@ -595,6 +592,37 @@ mod tests {
         test_comp.compress_dcls();
 
         assert_eq!(test_comp.declarations.clocks, expected);
+    }
+
+    #[test]
+    fn find_and_remove_unused_clocks() {
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        project_loader.get_settings_mut().disable_clock_reduction = true;
+        let mut test_comp = project_loader.get_component("Researcher2").unwrap().clone();
+
+        test_comp.initialise_clock_usages();
+        test_comp.populate_usages_with_guards();
+        test_comp.populate_usages_with_updates();
+        test_comp.populate_usages_with_invariants();
+
+        let mut used_clocks: HashSet<String> = test_comp.clock_usages.keys().cloned().collect();
+        let unused_clocks: HashSet<String> = test_comp.get_unused_clocks(&test_comp.clock_usages);
+
+        // Remove the clocks(and their updates) which never gets read from
+        for unused_clocks in &unused_clocks {
+            used_clocks.remove(unused_clocks);
+            test_comp.declarations.remove_clock_from_dcls(unused_clocks);
+            test_comp.remove_update(unused_clocks);
+        }
+
+        assert_eq!(test_comp.declarations.clocks.contains_key("y"), false);
+        assert_eq!(used_clocks.contains("y"), false);
+
+        assert_eq!(test_comp.declarations.clocks.contains_key("z"), false);
+        assert_eq!(used_clocks.contains("z"), false);
+
+        assert_eq!(test_comp.declarations.clocks.contains_key("k"), false);
+        assert_eq!(used_clocks.contains("k"), false);
     }
 
     #[test]
