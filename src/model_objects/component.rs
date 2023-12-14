@@ -615,14 +615,14 @@ mod tests {
             test_comp.remove_update(unused_clocks);
         }
 
-        assert!(test_comp.declarations.clocks.contains_key("y"), false);
-        assert!(used_clocks.contains("y"), false);
+        assert!(!test_comp.declarations.clocks.contains_key("y"));
+        assert!(!used_clocks.contains("y"));
 
-        assert!(test_comp.declarations.clocks.contains_key("z"), false);
-        assert!(used_clocks.contains("z"), false);
+        assert!(!test_comp.declarations.clocks.contains_key("z"));
+        assert!(!used_clocks.contains("z"));
 
-        assert!(test_comp.declarations.clocks.contains_key("k"), false);
-        assert!(used_clocks.contains("k"), false);
+        assert!(!test_comp.declarations.clocks.contains_key("k"));
+        assert!(!used_clocks.contains("k"));
     }
 
     #[test]
