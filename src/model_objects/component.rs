@@ -17,11 +17,11 @@ use std::iter::FromIterator;
 pub enum ClockReduceError {
     /// Takes a clock name
     ClockIndexNotFound(String),
-    /// missing clockIndices without a specific clock in mind
+    /// Missing clockIndices without a specific clock in mind
     NoClockIndices,
     /// Used for evaluating the expressions in clock_usages
     EvaluationError(String),
-    /// For all errors relating to clockReduction but does not fit in the others
+    /// For all errors relating to clockReduction that do not fit in the others
     Other(String),
 }
 impl std::fmt::Display for ClockReduceError {
@@ -61,7 +61,7 @@ pub struct Component {
     pub clock_usages: HashMap<String, ClockUsage>,
 }
 
-///Details to what edges and locations, clocks are used and where there are updates
+/// Details to what edges and locations, clocks are used and where there are updates
 #[derive(Debug, Default, Deserialize, Clone, Eq, PartialEq)]
 pub struct ClockUsage {
     pub edges: HashSet<String>,
@@ -70,7 +70,7 @@ pub struct ClockUsage {
 }
 
 impl ClockUsage {
-    //edge_id is generated in function remake_edge_ids
+    // edge_id is generated in function remake_edge_ids
     pub fn is_in_edge(&self, edge_id: &str) -> bool {
         self.edges.contains(edge_id) || self.updates.contains(edge_id)
     }
@@ -234,13 +234,13 @@ impl Component {
         for edge in &self.edges {
             // Find the clocks affected by this edge
             let local_equivalences = self.find_local_equivalences(edge)?;
-            // Update the global clocks variable with the new information and splits the groups
+            // Update the global clocks variable with the new information and split the groups
             self.update_equivalent_clock_groups(&mut equivalent_clock_groups, &local_equivalences);
         }
         Ok(equivalent_clock_groups)
     }
 
-    // Find the clocks which diverges from their respective clock groups on a edge/transition
+    // Find the clocks that diverge from their respective clock groups on a edge/transition
     fn find_local_equivalences(
         &self,
         edge: &Edge,
@@ -464,7 +464,7 @@ mod tests {
         expected: HashSet<String>,
     }
 
-    ///Simplifying the test process by loading a component in a separate function, instead of in each test
+    /// Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
         let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
@@ -608,7 +608,7 @@ mod tests {
         let mut used_clocks: HashSet<String> = test_comp.clock_usages.keys().cloned().collect();
         let unused_clocks: HashSet<String> = test_comp.get_unused_clocks(&test_comp.clock_usages);
 
-        // Remove the clocks(and their updates) which never gets read from
+        // Remove the clocks(and their updates) which never get read from
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);
             test_comp.declarations.remove_clock_from_dcls(unused_clocks);

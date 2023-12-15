@@ -295,7 +295,7 @@ impl JsonProjectLoader {
             component.populate_usages_with_invariants();
 
             // Remove the redundant clocks from component using the clock_usages
-            // TODO Maybe log removed clocks
+            // TODO: Maybe log removed clocks
             match component.remove_redundant_clocks() {
                 Ok(()) => {}
                 Err(err) => {
