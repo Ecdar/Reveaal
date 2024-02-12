@@ -31,15 +31,7 @@ pub fn read_json_component<P: AsRef<Path>>(
         .join("Components")
         .join(format!("{}.json", component_name));
 
-    let component: Result<Component, SyntaxResult> = match read_json(&component_path) {
-        Ok(json) => Ok(json),
-        Err(error) => Err(SyntaxFailure::unparsable(
-            error.to_string(),
-            component_path.display().to_string(),
-        )),
-    };
-
-    component
+    read_json(&component_path).map_err(|e| SyntaxFailure::unparseable(e, component_path.display()))
 }
 
 /// Opens a file and reads it.

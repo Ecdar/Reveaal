@@ -34,10 +34,8 @@ pub fn parse_system(pair: pest::iterators::Pair<Rule>) -> SystemExpression {
 
                 SystemExpression::Component(comp_name, special_id)
             }
-            Rule::variable_name => {
-                let comp_name = pair.as_str().to_string();
-                SystemExpression::Component(comp_name, None)
-            }
+            Rule::variable_name => SystemExpression::Component(pair.as_str().to_string(), None),
+
             _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
         })
         .map_infix(|left, op, right| {
@@ -201,9 +199,7 @@ fn parse_query(pair: pest::iterators::Pair<Rule>) -> QueryExpression {
                     QueryExpression::BisimMinim(SaveExpression { system, name })
                 }
                 Rule::syntax => {
-                    let mut pairs = pair.into_inner();
-                    let system = parse_system(pairs.next().unwrap());
-                    QueryExpression::Syntax(system)
+                    QueryExpression::Syntax(parse_system(pair.into_inner().next().unwrap()))
                 }
                 _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
             };

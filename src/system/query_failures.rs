@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::{collections::HashSet, fmt};
 
 use crate::model_objects::{Component, State, StatePair};
@@ -527,10 +528,10 @@ pub enum SyntaxFailure {
 }
 
 impl SyntaxFailure {
-    pub fn unparsable(msg: impl Into<String>, path: impl Into<String>) -> SyntaxResult {
+    pub fn unparseable<M: Display, P: Display>(msg: M, path: P) -> SyntaxResult {
         Err(SyntaxFailure::Unparsable {
-            msg: msg.into(),
-            path: path.into(),
+            msg: msg.to_string(),
+            path: path.to_string(),
         })
     }
 }
@@ -539,8 +540,8 @@ impl SyntaxFailure {
 // --- Format Display Impl  --- //
 // ---------------------------- //
 
-impl fmt::Display for DeterminismFailure {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for DeterminismFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "The system '{}' is not deterministic in state {} for {}",
@@ -549,8 +550,8 @@ impl fmt::Display for DeterminismFailure {
     }
 }
 
-impl fmt::Display for RefinementFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for RefinementFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RefinementFailure::CutsDelaySolutions {
                 system,

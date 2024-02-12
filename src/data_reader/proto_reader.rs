@@ -85,7 +85,7 @@ fn proto_location_tree_to_location_tree(
 ) -> Rc<LocationTree> {
     let target: SpecificLocation = location_tree.into();
 
-    system.construct_location_tree(target).unwrap()
+    system.construct_location_tree(target).unwrap() // TODO maybe handle `Err` better
 }
 
 fn proto_constraint_to_constraint(

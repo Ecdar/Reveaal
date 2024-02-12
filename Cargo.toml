@@ -46,6 +46,7 @@ itertools = "0.10.5"
 regex = "1"
 rayon = "1.6.1"
 lazy_static = "1.4.0"
+num = "0.4.1"
 
 # Enable optimizations for EDBM in debug mode, but not for our code:
 [profile.dev.package.edbm]
