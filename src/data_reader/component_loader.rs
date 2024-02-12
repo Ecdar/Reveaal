@@ -4,7 +4,7 @@ use lru::LruCache;
 use crate::data_reader::json_reader;
 use crate::data_reader::json_writer::component_to_json_file;
 use crate::data_reader::xml_parser::parse_xml_from_file;
-use crate::model_objects::{Component, Query, SystemDeclarations};
+use crate::model_objects::{ClockReduce, Component, Query, SystemDeclarations};
 use crate::protobuf_server::services;
 use crate::protobuf_server::services::query_request::Settings;
 use crate::system::input_enabler;

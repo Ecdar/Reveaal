@@ -97,7 +97,7 @@ fn get_project_loader<P: AsRef<Path>>(
 }
 
 pub fn set_working_directory(folder_path: &str) {
-    let mut path = std::path::Path::new(folder_path);
+    let mut path = Path::new(folder_path);
     if path.is_file() {
         path = path
             .parent()

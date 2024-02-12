@@ -35,7 +35,7 @@ impl SystemType {
     }
 }
 
-impl fmt::Display for SystemType {
+impl Display for SystemType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Quotient => write!(f, "Quotient"),
@@ -97,7 +97,7 @@ pub struct ActionSet {
     pub is_input: bool,
 }
 
-impl fmt::Display for ActionSet {
+impl Display for ActionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let action_type = if self.is_input { "Input" } else { "Output" };
 
@@ -119,7 +119,7 @@ pub struct Action {
     pub is_input: bool,
 }
 
-impl fmt::Display for Action {
+impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_input {
             write!(f, "Input \"{}\"", self.name)
@@ -576,8 +576,8 @@ impl Display for RefinementFailure {
     }
 }
 
-impl std::fmt::Display for ConsistencyFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ConsistencyFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ConsistencyFailure::NoInitialState { system } => write!(
                 f,
@@ -595,8 +595,8 @@ impl std::fmt::Display for ConsistencyFailure {
     }
 }
 
-impl std::fmt::Display for SystemRecipeFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for SystemRecipeFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SystemRecipeFailure::Action(action, system) => write!(
                 f,
@@ -614,8 +614,8 @@ impl std::fmt::Display for SystemRecipeFailure {
     }
 }
 
-impl std::fmt::Display for ActionFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ActionFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ActionFailure::NotSubset(a, b) => {
                 write!(f, "{} are not a subset of {}", a, b)
@@ -627,13 +627,13 @@ impl std::fmt::Display for ActionFailure {
     }
 }
 
-impl std::fmt::Display for ClockReductionFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ClockReductionFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Unknown error occured during clock reduction")
     }
 }
 
-impl std::fmt::Display for RefinementPrecondition {
+impl Display for RefinementPrecondition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RefinementPrecondition::EmptyChild { child, system } => write!(
@@ -662,7 +662,7 @@ impl std::fmt::Display for RefinementPrecondition {
     }
 }
 
-impl std::fmt::Display for SyntaxFailure {
+impl Display for SyntaxFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SyntaxFailure::Unparsable { msg, path } => {

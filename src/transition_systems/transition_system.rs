@@ -1,7 +1,7 @@
 use super::ComponentInfo;
 use super::{CompositionType, LocationID, LocationTree};
 use crate::edge_eval::updater::CompiledUpdate;
-use crate::model_objects::{Component, Declarations, State, Transition};
+use crate::model_objects::{Component, Declarations, GetOrInsert, State, Transition};
 use crate::parse_queries::parse_to_system_expr;
 use crate::system::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::system::specifics::SpecificLocation;
@@ -11,10 +11,8 @@ use crate::{
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
-use std::collections::hash_map::Entry;
 use std::collections::vec_deque::VecDeque;
 use std::collections::{hash_set::HashSet, HashMap};
-use std::hash::Hash;
 use std::rc::Rc;
 
 pub type TransitionSystemPtr = Box<dyn TransitionSystem>;
@@ -407,14 +405,11 @@ impl ClockAnalysisGraph {
             {
                 for clock in equivalent_clock_group.iter() {
                     if let Some(group_id) = locally_equivalent_clock_groups.get(clock) {
-                        ClockAnalysisGraph::get_or_insert(
-                            &mut new_groups,
-                            group_offset + *group_id as usize,
-                        )
-                        .insert(*clock);
-                    } else {
-                        ClockAnalysisGraph::get_or_insert(&mut new_groups, old_group_index)
+                        new_groups
+                            .get_or_insert(group_offset + *group_id as usize)
                             .insert(*clock);
+                    } else {
+                        new_groups.get_or_insert(old_group_index).insert(*clock);
                     }
                 }
                 group_offset += (u32::MAX as usize) * 2;
@@ -428,13 +423,6 @@ impl ClockAnalysisGraph {
                 .collect();
         }
         equivalent_clock_groups
-    }
-
-    fn get_or_insert<K: Eq + Hash, V: Default>(map: &'_ mut HashMap<K, V>, key: K) -> &'_ mut V {
-        match map.entry(key) {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => v.insert(V::default()),
-        }
     }
 }
 

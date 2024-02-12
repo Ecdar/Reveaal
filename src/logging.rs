@@ -32,7 +32,7 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
         .try_init()
 }
 
-// TODO: Implement a logging for informations to both the CLI and gRPC
+// TODO: Implement a logging for information's to both the CLI and gRPC
 /// Gets messages saved for other clients (through gRPC)
 pub fn get_messages() -> Vec<Information> {
     unimplemented!()

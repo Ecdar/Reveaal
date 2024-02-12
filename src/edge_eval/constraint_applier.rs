@@ -74,8 +74,8 @@ fn get_indices(
     right: &ArithExpression,
     d: &Declarations,
 ) -> Result<(ClockIndex, ClockIndex, i32), String> {
-    let left = &(replace_vars(left, d)?.simplify())?;
-    let right = &(replace_vars(right, d)?.simplify())?;
+    let left = &replace_vars(left, d)?.simplify()?;
+    let right = &replace_vars(right, d)?.simplify()?;
     let (clocks_left, clocks_right) = (left.clock_var_count(), right.clock_var_count());
 
     if clocks_left + clocks_right == 0 {

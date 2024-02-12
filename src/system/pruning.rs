@@ -4,9 +4,8 @@ use log::{debug, trace};
 
 use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::expressions::BoolExpression;
-use crate::model_objects::{
-    Component, DeclarationProvider, Declarations, Edge, Location, SyncType,
-};
+use crate::model_objects::DeclarationProvider;
+use crate::model_objects::{Component, Declarations, Edge, Location, SyncType};
 use crate::system::save_component::combine_components;
 use crate::transition_systems::TransitionSystemPtr;
 use crate::transition_systems::{CompiledComponent, LocationTree};

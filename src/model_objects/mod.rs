@@ -1,5 +1,7 @@
+mod clock_reduction;
 mod component;
 mod decision;
+mod declarations;
 mod edge;
 pub mod expressions;
 mod location;
@@ -11,6 +13,6 @@ mod system_declarations;
 mod transition;
 
 pub use self::{
-    component::*, decision::*, edge::*, location::*, queries::*, state::*, statepair::*,
-    statepair_list::*, system_declarations::*, transition::*,
+    clock_reduction::*, component::*, decision::*, declarations::*, edge::*, location::*,
+    queries::*, state::*, statepair::*, statepair_list::*, system_declarations::*, transition::*,
 };

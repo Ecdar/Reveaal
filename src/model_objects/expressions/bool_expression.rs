@@ -641,7 +641,7 @@ mod tests {
                 // Act
                 let results = input_expr.get_var_names();
                 // Assert
-                assert_eq!((expected == results), verdict);
+                assert_eq!(expected == results, verdict);
             }
             Err(err) => {
                 panic!("Test failed: {}", err);

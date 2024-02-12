@@ -3,7 +3,7 @@ use edbm::util::constraints::ClockIndex;
 
 use serde::Deserialize;
 
-use crate::model_objects::ClockReduceError;
+use crate::model_objects::ClockError;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -20,7 +20,7 @@ pub enum ArithExpression {
 }
 
 impl ArithExpression {
-    pub fn get_evaluated_int(&self) -> Result<i32, ClockReduceError> {
+    pub fn get_evaluated_int(&self) -> Result<i32, ClockError> {
         match self {
             ArithExpression::Difference(left, right) => {
                 Ok(left.get_evaluated_int()? - right.get_evaluated_int()?)
@@ -34,7 +34,7 @@ impl ArithExpression {
             ArithExpression::Division(left, right) => {
                 let divide_with = right.get_evaluated_int()?;
                 if divide_with == 0 {
-                    Err(ClockReduceError::EvaluationError(
+                    Err(ClockError::EvaluationError(
                         "Division with zero".to_string(),
                     ))
                 } else {
@@ -44,17 +44,15 @@ impl ArithExpression {
             ArithExpression::Modulo(left, right) => {
                 let modulo_with = right.get_evaluated_int()?;
                 if modulo_with == 0 {
-                    Err(ClockReduceError::EvaluationError(
-                        "Modulo with zero".to_string(),
-                    ))
+                    Err(ClockError::EvaluationError("Modulo with zero".to_string()))
                 } else {
                     Ok(left.get_evaluated_int()? % modulo_with)
                 }
             }
-            ArithExpression::Clock(_) => Err(ClockReduceError::EvaluationError(
+            ArithExpression::Clock(_) => Err(ClockError::EvaluationError(
                 "This function cant work with clock_index".to_string(),
             )),
-            ArithExpression::VarName(_) => Err(ClockReduceError::EvaluationError(
+            ArithExpression::VarName(_) => Err(ClockError::EvaluationError(
                 "This function cant work with clock_names".to_string(),
             )),
             ArithExpression::Int(value) => Ok(*value),
@@ -453,7 +451,7 @@ impl ArithExpression {
     }
 
     /// Finds the clocks used in the expression and puts them into result_clocks.
-    pub fn get_var_names_rec(&self, result_clocks: &mut Vec<String>) {
+    pub(super) fn get_var_names_rec(&self, result_clocks: &mut Vec<String>) {
         match self {
             ArithExpression::Difference(ref left, ref right)
             | ArithExpression::Addition(ref left, ref right)
@@ -679,7 +677,7 @@ mod tests {
                 // Act
                 let results: Vec<String> = input_expr.get_var_names();
                 // Assert
-                assert_eq!((expected == results), verdict);
+                assert_eq!(expected == results, verdict);
             }
             Err(err) => {
                 panic!("Test failed: {}", err);
