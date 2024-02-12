@@ -539,8 +539,8 @@ impl SyntaxFailure {
 // --- Format Display Impl  --- //
 // ---------------------------- //
 
-impl std::fmt::Display for DeterminismFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for DeterminismFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "The system '{}' is not deterministic in state {} for {}",
@@ -549,7 +549,7 @@ impl std::fmt::Display for DeterminismFailure {
     }
 }
 
-impl std::fmt::Display for RefinementFailure {
+impl fmt::Display for RefinementFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RefinementFailure::CutsDelaySolutions {

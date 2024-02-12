@@ -174,6 +174,7 @@ impl Component {
         let mut used_clocks: HashSet<String> = self.clock_usages.keys().cloned().collect();
         let unused_clocks: HashSet<String> = self.get_unused_clocks(&self.clock_usages);
 
+        // TODO: Log clocks being yeeted
         // Remove the clocks(and their updates) which never gets read from
         for unused_clocks in &unused_clocks {
             used_clocks.remove(unused_clocks);

@@ -123,12 +123,12 @@ pub struct ComponentContainer {
 
 impl ComponentLoader for ComponentContainer {
     fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.name);
-            Ok(component)
-        } else {
-            panic!("The component '{}' could not be retrieved", component_name);
-        }
+        let c = self
+            .loaded_components
+            .get(component_name)
+            .expect("The component could not be retrieved");
+        assert_eq!(component_name, c.name);
+        Ok(c)
     }
     fn save_component(&mut self, _component: Component) {
         //Intentionally left blank (no-op func)
@@ -217,13 +217,12 @@ impl ComponentLoader for JsonProjectLoader {
         if !self.is_component_loaded(component_name) {
             self.load_component(component_name)?;
         }
-
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.name);
-            Ok(component)
-        } else {
-            panic!("The component '{}' could not be retrieved", component_name);
-        }
+        let c = self
+            .loaded_components
+            .get(component_name)
+            .expect("The component could not be retrieved");
+        assert_eq!(component_name, c.name);
+        Ok(c)
     }
 
     fn save_component(&mut self, component: Component) {
@@ -259,7 +258,6 @@ impl ProjectLoader for JsonProjectLoader {
 }
 
 impl JsonProjectLoader {
-    #[allow(clippy::new_ret_no_self)]
     pub fn new_loader<P: AsRef<Path>>(
         project_path: P,
         settings: Settings,
@@ -295,7 +293,6 @@ impl JsonProjectLoader {
             component.populate_usages_with_invariants();
 
             // Remove the redundant clocks from component using the clock_usages
-            // TODO: Maybe log removed clocks
             match component.remove_redundant_clocks() {
                 Ok(()) => {}
                 Err(err) => {
@@ -327,12 +324,12 @@ pub struct XmlProjectLoader {
 
 impl ComponentLoader for XmlProjectLoader {
     fn get_component(&mut self, component_name: &str) -> Result<&Component, SyntaxResult> {
-        if let Some(component) = self.loaded_components.get(component_name) {
-            assert_eq!(component_name, component.name);
-            Ok(component)
-        } else {
-            panic!("The component '{}' could not be retrieved", component_name);
-        }
+        let c = self
+            .loaded_components
+            .get(component_name)
+            .expect("The component '{}' could not be retrieved");
+        assert_eq!(component_name, c.name);
+        Ok(c)
     }
 
     fn save_component(&mut self, _: Component) {
@@ -366,7 +363,6 @@ impl ProjectLoader for XmlProjectLoader {
 }
 
 impl XmlProjectLoader {
-    #[allow(clippy::new_ret_no_self)]
     pub fn new_loader<P: AsRef<Path>>(
         project_path: P,
         settings: Settings,

@@ -31,9 +31,6 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: reveaal-${{ matrix.os }}
-        #if: runner.os == 'Windows'; then
         path: ${{ runner.os == 'Windows' && 'target/release/reveaal.exe' || 'target/release/reveaal' }}
-        #path: runner.os == 'OS_TYPE' ? then; "target/release/reveaal"; else
         if-no-files-found: error
         retention-days: 7
-
