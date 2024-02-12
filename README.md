@@ -32,6 +32,6 @@ Add the bin folder to your path environment variable (https://www.computerhope.c
 #### Cross compiling
 The project is pure Rust so one should be able to crosscompile to any platform with a rust target.
 
-**Debian -> windows**
+**Debian -> Windows**
 Make sure you have mingw installed ```sudo apt-get install mingw-w64``` and the rustc windows target is installed with ```rustup target add x86_64-pc-windows-gnu``` and build with cargo:
 ```cargo build --target x86_64-pc-windows-gnu```

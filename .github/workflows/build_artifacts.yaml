@@ -4,10 +4,17 @@ on:
   workflow_dispatch:
   push:
 
-jobs:   
-  macos:
-    name: Build MacOS
-    runs-on: macos-latest
+jobs:
+  build:
+    strategy:
+      matrix:
+        #node-version: [16.x, 20.9.0]
+        #node-version: [ 20.9.0 ]
+        #os: [ ubuntu-latest ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
     steps:
     - uses: actions/checkout@v3
       with:
@@ -26,59 +33,8 @@ jobs:
         args: --release
     - uses: actions/upload-artifact@v3
       with:
-        name: reveaal-macos
+        name: reveaal-${{ matrix.os }}
         path: target/release/reveaal
         if-no-files-found: error
         retention-days: 7
   
-  win:
-    name: Build Windows
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-    - uses: arduino/setup-protoc@v2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-    - name: cargo build --release
-      uses: clechasseur/rs-cargo@v1
-      with:
-        command: build
-        args: --release
-    - uses: actions/upload-artifact@v3
-      with:
-        name: reveaal-windows
-        path: target/release/reveaal.exe
-        if-no-files-found: error
-        retention-days: 7
-
-  ubuntu:
-    name: Build Ubuntu
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-    - uses: arduino/setup-protoc@v2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-    - name: cargo build --release
-      uses: clechasseur/rs-cargo@v1
-      with:
-        command: build
-        args: --release
-    - uses: actions/upload-artifact@v3
-      with:
-        name: reveaal-ubuntu
-        path: target/release/reveaal
-        if-no-files-found: error
-        retention-days: 7
