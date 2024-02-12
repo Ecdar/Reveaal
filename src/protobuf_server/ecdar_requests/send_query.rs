@@ -1,9 +1,7 @@
 use crate::data_reader::component_loader::{ComponentContainer, ModelCache};
 use crate::data_reader::json_writer::component_to_json;
-use crate::data_reader::parse_queries;
-use crate::extract_system_rep::ExecutableQueryError;
+use crate::extract_system_rep::{create_executable_query, ExecutableQueryError};
 use crate::model_objects::Query;
-use crate::protobuf_server::ecdar_requests::request_util::insert_model;
 use crate::protobuf_server::services::component::Rep;
 use crate::protobuf_server::services::query_response::{
     Error as InnerError, Result as ProtobufResult, Success,
@@ -17,8 +15,7 @@ use crate::system::query_failures::{
     SyntaxFailure, SystemRecipeFailure,
 };
 
-use crate::system::extract_system_rep;
-
+use crate::parse_queries::parse_to_query;
 use log::trace;
 use tonic::Status;
 
@@ -45,8 +42,7 @@ impl ConcreteEcdarBackend {
         }
         // Model not in cache but included in request
         else if !proto_components.is_empty() {
-            let model = insert_model(
-                &mut model_cache,
+            let model = model_cache.insert_proto_model(
                 query_request.user_id,
                 components_info.components_hash,
                 proto_components,
@@ -74,7 +70,7 @@ fn send_query(
 
     model.set_settings(query_request.settings.unwrap_or(crate::DEFAULT_SETTINGS));
 
-    match extract_system_rep::create_executable_query(&query, &mut model) {
+    match create_executable_query(&query, &mut model) {
         Ok(query) => {
             let result = query.execute();
             Ok(QueryResponse {
@@ -98,7 +94,7 @@ fn send_query(
 }
 
 fn parse_query(query_request: &QueryRequest) -> Result<Query, Status> {
-    let mut queries = parse_queries::parse_to_query(&query_request.query);
+    let mut queries = parse_to_query(&query_request.query);
 
     if queries.len() != 1 {
         Err(Status::invalid_argument(

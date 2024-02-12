@@ -12,42 +12,44 @@ use crate::{
     },
 };
 
-pub fn get_or_insert_model(
-    model_cache: &mut ModelCache,
-    user_id: i32,
-    components_hash: u32,
-    proto_components: &[ProtoComponent],
-) -> ComponentContainer {
-    match model_cache.get_model(user_id, components_hash) {
-        Some(model) => model,
-        None => {
-            let parsed_components: Vec<Component> = proto_components
-                .iter()
-                .flat_map(parse_components_if_some)
-                .flatten()
-                .collect::<Vec<Component>>();
-            let components = constrtuct_componentsmap(parsed_components);
-            model_cache.insert_model(user_id, components_hash, Arc::new(components))
+impl ModelCache {
+    pub fn get_or_insert_model(
+        &mut self,
+        user_id: i32,
+        components_hash: u32,
+        proto_components: &[ProtoComponent],
+    ) -> ComponentContainer {
+        match self.get_model(user_id, components_hash) {
+            Some(model) => model,
+            None => {
+                let parsed_components: Vec<Component> = proto_components
+                    .iter()
+                    .flat_map(parse_components_if_some)
+                    .flatten()
+                    .collect::<Vec<Component>>();
+                let components = construct_components(parsed_components);
+                self.insert_model(user_id, components_hash, Arc::new(components))
+            }
         }
+    }
+
+    pub fn insert_proto_model(
+        &mut self,
+        user_id: i32,
+        components_hash: u32,
+        proto_components: &[ProtoComponent],
+    ) -> ComponentContainer {
+        let parsed_components: Vec<Component> = proto_components
+            .iter()
+            .flat_map(parse_components_if_some)
+            .flatten()
+            .collect::<Vec<Component>>();
+        let components = construct_components(parsed_components);
+        self.insert_model(user_id, components_hash, Arc::new(components))
     }
 }
 
-pub fn insert_model(
-    model_cache: &mut ModelCache,
-    user_id: i32,
-    components_hash: u32,
-    proto_components: &[ProtoComponent],
-) -> ComponentContainer {
-    let parsed_components: Vec<Component> = proto_components
-        .iter()
-        .flat_map(parse_components_if_some)
-        .flatten()
-        .collect::<Vec<Component>>();
-    let components = constrtuct_componentsmap(parsed_components);
-    model_cache.insert_model(user_id, components_hash, Arc::new(components))
-}
-
-fn constrtuct_componentsmap(
+fn construct_components(
     components: Vec<Component>,
 ) -> crate::data_reader::component_loader::ComponentsMap {
     let mut comp_hashmap = HashMap::<String, Component>::new();
@@ -76,7 +78,7 @@ pub fn simulation_info_to_transition_system(
     let user_id = simulation_info.user_id;
 
     let mut component_container =
-        get_or_insert_model(model_cache, user_id, info.components_hash, &info.components);
+        model_cache.get_or_insert_model(user_id, info.components_hash, &info.components);
 
     component_loader_to_transition_system(&mut component_container, &composition)
 }

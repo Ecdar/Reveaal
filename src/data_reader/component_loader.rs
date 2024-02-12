@@ -29,16 +29,6 @@ pub struct ModelCache {
     cache: Arc<Mutex<LruCache<i32, ComponentTuple>>>,
 }
 
-impl Default for ModelCache {
-    fn default() -> Self {
-        Self {
-            cache: Arc::new(Mutex::new(LruCache::<i32, ComponentTuple>::new(
-                NonZeroUsize::new(100).unwrap(),
-            ))),
-        }
-    }
-}
-
 impl ModelCache {
     /// A Method that creates a new cache with a given size limit.
     ///
@@ -105,6 +95,16 @@ impl ModelCache {
         );
 
         ComponentContainer::new(container_components)
+    }
+}
+
+impl Default for ModelCache {
+    fn default() -> Self {
+        Self {
+            cache: Arc::new(Mutex::new(LruCache::<i32, ComponentTuple>::new(
+                NonZeroUsize::new(100).unwrap(),
+            ))),
+        }
     }
 }
 

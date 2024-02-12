@@ -389,7 +389,7 @@ fn build_state_pair(
     let t_invariant = new_sp_zone.clone().down();
 
     // Check if the invariant of T (right) cuts delay solutions from S (left) and if so, report failure
-    if !(s_invariant.subset_eq(&t_invariant)) {
+    if !s_invariant.subset_eq(&t_invariant) {
         return BuildResult::Failure;
     }
 

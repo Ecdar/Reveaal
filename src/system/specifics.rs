@@ -217,7 +217,7 @@ pub struct SpecificState {
     pub constraints: SpecificDisjunction,
 }
 
-/// Intermediate representation of a [LocationID](crate::transition_systems::location_id::LocationID) in a system.
+/// Intermediate representation of a [LocationID](LocationID) in a system.
 /// It is a binary tree with either [component](SpecificComp) locations or [special](SpecialLocation) locations at the leaves.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificLocation {
@@ -269,7 +269,7 @@ impl fmt::Display for SpecificLocation {
     }
 }
 
-/// Intermediate representation of a [special](crate::transition_systems::location_id::LocationID::Special) location. E.g. `Error` or `Universal` from a quotient.
+/// Intermediate representation of a [special](LocationID::Special) location. E.g. `Error` or `Universal` from a quotient.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SpecialLocation {
     Universal,

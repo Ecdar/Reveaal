@@ -2,6 +2,7 @@ use edbm::util::constraints::ClockIndex;
 use edbm::zones::OwnedFederation;
 use log::{debug, trace};
 
+use crate::data_reader::parse_edge::Update;
 use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::expressions::BoolExpression;
 use crate::model_objects::DeclarationProvider;
@@ -223,6 +224,20 @@ fn handle_input(edge: &Edge, context: &mut PruneContext) {
     remove_transition_if_unsat(edge, context);
 }
 
+fn handle_updates(updates: &Vec<Update>, edge_fed: &mut OwnedFederation, decls: &Declarations) {
+    // TODO: this is different from J-ecdar
+    for update in updates {
+        *edge_fed = update.compiled(decls).apply_as_guard(edge_fed.clone());
+    }
+
+    // apply updates as free
+    if !edge_fed.is_empty() {
+        for update in updates {
+            *edge_fed = update.compiled(decls).apply_as_free(edge_fed.clone());
+        }
+    }
+}
+
 fn remove_transition_if_unsat(edge: &Edge, context: &mut PruneContext) {
     let mut edge_fed = OwnedFederation::universe(context.dim);
     // apply target invariant
@@ -238,16 +253,7 @@ fn remove_transition_if_unsat(edge: &Edge, context: &mut PruneContext) {
 
     if let Some(updates) = &edge.update {
         // apply updates as guard
-        for update in updates {
-            edge_fed = update.compiled(context.decl()).apply_as_guard(edge_fed);
-        }
-
-        // apply updates as free
-        if !edge_fed.is_empty() {
-            for update in updates {
-                edge_fed = update.compiled(context.decl()).apply_as_free(edge_fed);
-            }
-        }
+        handle_updates(updates, &mut edge_fed, context.decl());
     }
 
     // Apply guards
@@ -395,22 +401,7 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) {
         // Partially inconsistent target
         let mut incons_after_reset = target_incons.clone();
         if let Some(updates) = &edge.update {
-            // TODO: this is different from J-ecdar
-            // apply updates as guard
-            for update in updates {
-                incons_after_reset = update
-                    .compiled(context.decl())
-                    .apply_as_guard(incons_after_reset);
-            }
-
-            // apply updates as free
-            if !incons_after_reset.is_empty() {
-                for update in updates {
-                    incons_after_reset = update
-                        .compiled(context.decl())
-                        .apply_as_free(incons_after_reset);
-                }
-            }
+            handle_updates(updates, &mut incons_after_reset, context.decl());
         }
         let mut guard_fed = OwnedFederation::universe(context.dim);
         // Apply guards
@@ -456,18 +447,7 @@ fn handle_output(edge: &Edge, context: &mut PruneContext) {
             }
 
             if let Some(updates) = &other_edge.update {
-                // TODO: this is different from J-ecdar
-                // apply updates as guard
-                for update in updates {
-                    good_part = update.compiled(context.decl()).apply_as_guard(good_part);
-                }
-
-                // apply updates as free
-                if !good_part.is_empty() {
-                    for update in updates {
-                        good_part = update.compiled(context.decl()).apply_as_free(good_part);
-                    }
-                }
+                handle_updates(updates, &mut good_part, context.decl());
             }
 
             // Apply guards

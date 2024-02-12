@@ -305,8 +305,8 @@ impl ActionFailure {
     }
 
     /// Creates a new [Result]<T, [ActionFailure]> that failed because the actions in `inputs` are not a disjoint from the actions in `outputs`.
-    pub fn not_disjoint_io(
-        name: impl Into<String>,
+    pub fn not_disjoint_io<T: Into<String>>(
+        name: T,
         inputs: HashSet<String>,
         outputs: HashSet<String>,
     ) -> Result<(), Box<ActionFailure>> {
