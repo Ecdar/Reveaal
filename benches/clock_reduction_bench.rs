@@ -26,14 +26,14 @@ fn bench_clock_reduced_refinement(c: &mut Criterion) {
 
 fn clock_reduced_refinement(loader: &mut Box<dyn ComponentLoader>) {
     let query = parse_to_query(QUERY);
-    create_executable_query(query.get(0).unwrap(), loader.as_mut())
+    create_executable_query(query.first().unwrap(), loader.as_mut())
         .unwrap()
         .execute();
 }
 
 fn normal_refinement(loader: &mut Box<dyn ComponentLoader>) {
     let query = parse_to_query(QUERY);
-    create_executable_query(query.get(0).unwrap(), loader.as_mut())
+    create_executable_query(query.first().unwrap(), loader.as_mut())
         .unwrap()
         .execute();
 }
