@@ -23,7 +23,7 @@ impl TransitionID {
     /// let leaves = id.get_leaves();
     /// assert_eq!(leaves, vec![vec![TransitionID::Simple("a".to_string())], vec![TransitionID::Simple("b".to_string())]])
     /// ```
-    /// Leaves will be {{a}, {b}}, as a is from the first component and b is from the second component
+    /// Leaves will be {{a}, {b}}, as it is from the first component and b is from the second component
     pub fn get_leaves(&self) -> Vec<Vec<TransitionID>> {
         let mut result = Vec::new();
         self.get_leaves_helper(&mut result, 0);
@@ -116,45 +116,38 @@ impl TransitionID {
 
 impl Display for TransitionID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TransitionID::Conjunction(left, right) => {
-                match *(*left) {
-                    TransitionID::Conjunction(_, _) => write!(f, "{}", (*left))?,
-                    TransitionID::Simple(_) => write!(f, "{}", (*left))?,
-                    _ => write!(f, "({})", (*left))?,
-                };
-                write!(f, "&&")?;
-                match *(*right) {
-                    TransitionID::Conjunction(_, _) => write!(f, "{}", (*right))?,
-                    TransitionID::Simple(_) => write!(f, "{}", (*right))?,
-                    _ => write!(f, "({})", (*right))?,
-                };
+        let mut handle = |left: &TransitionID, right: &TransitionID| -> std::fmt::Result {
+            match (left, right) {
+                (
+                    TransitionID::Composition(_, _) | TransitionID::Simple(_),
+                    TransitionID::Composition(_, _) | TransitionID::Simple(_),
+                ) => write!(f, "{} || {}", left, right)?,
+                (TransitionID::Composition(_, _) | TransitionID::Simple(_), _) => {
+                    write!(f, "{} || ({})", left, right)?
+                }
+                (_, TransitionID::Composition(_, _) | TransitionID::Simple(_)) => {
+                    write!(f, "({}) || {}", left, right)?
+                }
+                (_, _) => write!(f, "({}) || ({})", left, right)?,
             }
-            TransitionID::Composition(left, right) => {
-                match *(*left) {
-                    TransitionID::Composition(_, _) => write!(f, "{}", (*left))?,
-                    TransitionID::Simple(_) => write!(f, "{}", (*left))?,
-                    _ => write!(f, "({})", (*left))?,
-                };
-                write!(f, "||")?;
-                match *(*right) {
-                    TransitionID::Composition(_, _) => write!(f, "{}", (*right))?,
-                    TransitionID::Simple(_) => write!(f, "{}", (*right))?,
-                    _ => write!(f, "({})", (*right))?,
-                };
+            Ok(())
+        };
+        match self {
+            TransitionID::Conjunction(left, right) | TransitionID::Composition(left, right) => {
+                handle(left.as_ref(), right.as_ref())?;
             }
             TransitionID::Quotient(left, right) => {
                 for l in left {
                     match *(l) {
-                        TransitionID::Simple(_) => write!(f, "{}", (l))?,
-                        _ => write!(f, "({})", (l))?,
+                        TransitionID::Simple(_) => write!(f, "{}", l)?,
+                        _ => write!(f, "({})", l)?,
                     };
                 }
                 write!(f, "\\\\")?;
                 for r in right {
                     match *(r) {
-                        TransitionID::Simple(_) => write!(f, "{}", (r))?,
-                        _ => write!(f, "({})", (r))?,
+                        TransitionID::Simple(_) => write!(f, "{}", r)?,
+                        _ => write!(f, "({})", r)?,
                     };
                 }
             }

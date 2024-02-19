@@ -8,6 +8,7 @@ use crate::system::specifics::SpecificLocation;
 use crate::transition_systems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use edbm::util::bounds::Bounds;
 use edbm::util::constraints::ClockIndex;
+use log::debug;
 use std::collections::hash_set::HashSet;
 use std::collections::HashMap;
 use std::iter::FromIterator;
@@ -62,12 +63,11 @@ impl CompiledComponent {
         let mut location_edges: HashMap<LocationID, Vec<(Action, Transition)>> =
             locations.keys().map(|k| (k.clone(), vec![])).collect();
 
-        log::debug!(
+        debug!(
             "decl for {:?}: {:?}",
-            component.name,
-            component.declarations
+            component.name, component.declarations
         );
-        log::debug!("Edges: {:?}", component.edges);
+        debug!("Edges: {:?}", component.edges);
         for edge in &component.edges {
             let id = LocationID::Simple(edge.source_location.clone());
             let transition = Transition::from_component_and_edge(&component, edge, dim);

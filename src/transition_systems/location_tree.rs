@@ -4,6 +4,7 @@ use edbm::{util::constraints::ClockIndex, zones::OwnedFederation};
 
 use crate::edge_eval::constraint_applier::apply_constraints_to_state;
 use crate::model_objects::{Declarations, Location, LocationType};
+use crate::system::specifics::SpecialLocation;
 
 use super::LocationID;
 
@@ -34,7 +35,7 @@ impl PartialEq for LocationTree {
 impl LocationTree {
     pub fn universal() -> Rc<Self> {
         Rc::new(LocationTree {
-            id: LocationID::Special(crate::system::specifics::SpecialLocation::Universal),
+            id: LocationID::Special(SpecialLocation::Universal),
             invariant: None,
             loc_type: LocationType::Universal,
             left: None,
@@ -46,7 +47,7 @@ impl LocationTree {
         let inv = OwnedFederation::universe(dim).constrain_eq(quotient_clock_index, 0);
 
         Rc::new(LocationTree {
-            id: LocationID::Special(crate::system::specifics::SpecialLocation::Error),
+            id: LocationID::Special(SpecialLocation::Error),
             invariant: Some(inv),
             loc_type: LocationType::Inconsistent,
             left: None,

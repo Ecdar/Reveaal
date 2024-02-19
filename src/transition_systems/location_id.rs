@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+use crate::parse_queries::parse_to_system_expr;
 use crate::{model_objects::expressions::SystemExpression, system::specifics::SpecialLocation};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -21,7 +22,7 @@ impl LocationID {
         // A bit of a hack but we use the parser get the a query expression from which we can
         // determine to composition types needed to construct the location ID
         // TODO: This is a bit of a hack, but it works for now.
-        let system = crate::data_reader::parse_queries::parse_to_system_expr(string).unwrap();
+        let system = parse_to_system_expr(string).unwrap();
 
         system.into()
     }
@@ -40,7 +41,7 @@ impl LocationID {
         }
     }
 
-    pub(super) fn get_unique_string(&self) -> String {
+    pub fn get_unique_string(&self) -> String {
         match self {
             LocationID::Composition(a, b) => {
                 format!("({}||{})", a.get_unique_string(), b.get_unique_string())

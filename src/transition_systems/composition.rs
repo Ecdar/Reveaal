@@ -1,7 +1,7 @@
 use edbm::util::constraints::ClockIndex;
 
 use crate::model_objects::Transition;
-use crate::system::query_failures::{ActionFailure, SystemRecipeFailure};
+use crate::system::query_failures::{ActionFailure, ConsistencyResult, SystemRecipeFailure};
 use crate::transition_systems::{LocationTree, TransitionSystem, TransitionSystemPtr};
 use std::collections::hash_set::HashSet;
 use std::rc::Rc;
@@ -133,7 +133,7 @@ impl ComposedTransitionSystem for Composition {
         self.outputs.clone()
     }
 
-    fn check_local_consistency(&self) -> crate::system::query_failures::ConsistencyResult {
+    fn check_local_consistency(&self) -> ConsistencyResult {
         self.left.check_local_consistency()?;
         self.right.check_local_consistency()
     }
