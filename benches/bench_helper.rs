@@ -1,4 +1,4 @@
-use reveaal::tests::DEFAULT_SETTINGS;
+use reveaal::DEFAULT_SETTINGS;
 use reveaal::{ComponentLoader, JsonProjectLoader};
 
 const UNI_PATH: &str = "samples/json/EcdarUniversity";
