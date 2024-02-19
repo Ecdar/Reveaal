@@ -155,13 +155,21 @@ fn proto_zone_to_owned_federation(
 
 #[cfg(test)]
 mod tests {
-    use crate::{system::specifics::SpecificState, tests::refinement::helper::json_get_system};
+    use crate::{system::specifics::SpecificState, JsonProjectLoader};
 
     use super::*;
 
+    use crate::transition_systems::transition_system::component_loader_to_transition_system;
     use test_case::test_case;
 
     const PATH: &str = "samples/json/EcdarUniversity";
+
+    pub fn json_get_system(path: &str, comp: &str) -> TransitionSystemPtr {
+        let project_loader =
+            JsonProjectLoader::new_loader(String::from(path), crate::DEFAULT_SETTINGS);
+        let mut loader = project_loader.to_comp_loader();
+        component_loader_to_transition_system(&mut *loader, comp)
+    }
 
     fn assert_state_equals(state1: &State, state2: &State) {
         assert!(

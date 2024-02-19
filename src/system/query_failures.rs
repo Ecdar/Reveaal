@@ -6,6 +6,7 @@ use crate::transition_systems::{CompositionType, TransitionSystem, TransitionSys
 
 use super::specifics::{SpecificPath, SpecificState};
 
+// TODO: Check file for From/Into impls
 /// Represents how a system is composed at the highest level
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SystemType {
@@ -749,5 +750,234 @@ mod conversions {
         fn from(res: RefinementResult) -> Self {
             QueryResult::Refinement(res)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::system::query_failures::{
+        ActionFailure, ConsistencyFailure, DeterminismFailure, QueryResult, RefinementFailure,
+        RefinementPrecondition, SyntaxFailure,
+    };
+    use crate::system::specifics::SpecificLocation;
+    use crate::test_helpers::json_run_query;
+
+    const ACTIONS_PATH: &str = "samples/json/Actions";
+    const CONSISTENCY_PATH: &str = "samples/json/ConsistencyTest";
+    const DETERMINISM_PATH: &str = "samples/json/Determinism";
+    const REFINEMENT_PATH: &str = "samples/json/RefinementTests";
+    const SYNTAX_PATH: &str = "samples/json/SyntaxTest";
+
+    #[test]
+    fn determinism_test() {
+        let expected_action = String::from("1");
+        let expected_location = SpecificLocation::new("NonDeterministic1", "L1", 0); //LocationID::Simple(String::from("L1"));
+        if let QueryResult::Determinism(Err(DeterminismFailure {
+            state: actual_state,
+            action: actual_action,
+            system: actual_system,
+        })) = json_run_query(ACTIONS_PATH, "determinism: NonDeterministic1").unwrap()
+        {
+            let actual_location = actual_state.locations;
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location, actual_action.name)
+            );
+            assert_eq!(actual_system, "NonDeterministic1");
+        } else {
+            panic!("Models in samples/action have been changed, REVERT!");
+        }
+    }
+
+    #[test]
+    fn not_consistent_from_test() {
+        let expected_location = SpecificLocation::new("NonConsistent", "L17", 0);
+        if let QueryResult::Consistency(Err(ConsistencyFailure::InconsistentFrom {
+            state: actual_state,
+            system: actual_system,
+        })) = json_run_query(ACTIONS_PATH, "consistency: NonConsistent").unwrap()
+        {
+            let actual_location = actual_state.locations;
+            assert_eq!(expected_location, actual_location);
+            assert_eq!(actual_system, "NonConsistent");
+        } else {
+            panic!("Models in samples/action have been changed, REVERT!");
+        }
+    }
+
+    #[test]
+    fn refinement_determinism_test() {
+        let expected_action = String::from("1");
+        let expected_location = SpecificLocation::new("NonDeterministic1", "L1", 0);
+        if let QueryResult::Refinement(Err(RefinementFailure::Precondition(
+            RefinementPrecondition::InconsistentChild(
+                ConsistencyFailure::NotDeterministic(DeterminismFailure {
+                    state: actual_state,
+                    action: actual_action,
+                    system: actual_system,
+                }),
+                _,
+            ),
+        ))) = json_run_query(
+            ACTIONS_PATH,
+            "refinement: NonDeterministic1 <= NonDeterministic2",
+        )
+        .unwrap()
+        {
+            let actual_location = actual_state.locations;
+            assert_eq!(
+                (expected_location, expected_action),
+                (actual_location, actual_action.name)
+            );
+            assert_eq!(actual_system, "NonDeterministic1"); // Assuming left child is checked first
+        } else {
+            panic!("Models in samples/action have been changed, REVERT!");
+        }
+    }
+
+    #[test]
+    fn refinement_consistency_test() {
+        let expected_location = SpecificLocation::new("NonConsistent", "L17", 0);
+        if let QueryResult::Refinement(Err(RefinementFailure::Precondition(
+            RefinementPrecondition::InconsistentChild(
+                ConsistencyFailure::InconsistentFrom {
+                    state: actual_state,
+                    system: actual_system,
+                },
+                _,
+            ),
+        ))) = json_run_query(
+            ACTIONS_PATH,
+            "refinement: NonConsistent <= CorrectComponent",
+        )
+        .unwrap()
+        {
+            let actual_location = actual_state.locations;
+            assert_eq!(expected_location, actual_location);
+            assert_eq!(actual_system, "NonConsistent");
+        } else {
+            panic!("Models in samples/action have been changed, REVERT!");
+        }
+    }
+
+    #[test]
+    fn not_consistent_test() {
+        let actual = json_run_query(CONSISTENCY_PATH, "consistency: notConsistent").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Consistency(Err(ConsistencyFailure::InconsistentFrom { .. }))
+        ));
+    }
+
+    #[test]
+    fn determinism_failure_test() {
+        let actual = json_run_query(DETERMINISM_PATH, "determinism: NonDeterminismCom").unwrap();
+
+        assert!(matches!(actual, QueryResult::Determinism(Err(_))));
+    }
+
+    #[test]
+    fn determinism_failure_in_refinement_test() {
+        let actual = json_run_query(
+            DETERMINISM_PATH,
+            "refinement: NonDeterminismCom <= Component2",
+        )
+        .unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::InconsistentChild(
+                    ConsistencyFailure::NotDeterministic(_),
+                    _
+                )
+            )))
+        )); // TODO: check the child name
+    }
+
+    #[test]
+    fn not_empty_result_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: A <= B").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
+        ));
+    }
+
+    #[test]
+    fn empty_transition2s_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: A <= A2").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::CannotMatch { .. }))
+        ));
+    }
+
+    #[test]
+    fn cuts_delay_solutions_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: A2 <= B2").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::CutsDelaySolutions { .. }))
+        ));
+    }
+
+    #[test]
+    fn initial_state_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: C <= D").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::EmptyInitialState { .. },
+            )))
+        ));
+    }
+
+    #[test]
+    fn not_disjoint_and_not_subset_test() {
+        let actual = json_run_query(
+            REFINEMENT_PATH,
+            "refinement: notDisjointAndNotSubset1 <= notDisjointAndNotSubset2",
+        )
+        .unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
+            )))
+        ));
+    }
+
+    #[test]
+    fn not_subset_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: notSubset1 <= notSubset2")
+            .ok()
+            .unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotSubset(_, _), _),
+            )))
+        ));
+    }
+
+    #[test]
+    fn not_disjoint_test() {
+        let actual = json_run_query(REFINEMENT_PATH, "refinement: disJoint2 <= disJoint1").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Refinement(Err(RefinementFailure::Precondition(
+                RefinementPrecondition::ActionMismatch(ActionFailure::NotDisjoint(_, _), _),
+            ))),
+        ));
+    }
+
+    #[test]
+    fn syntax_failure_test() {
+        let actual = json_run_query(SYNTAX_PATH, "syntax: syntaxFailure").unwrap();
+        assert!(matches!(
+            actual,
+            QueryResult::Syntax(Err(SyntaxFailure::Unparsable { .. }))
+        ));
     }
 }

@@ -5,10 +5,8 @@ use crate::model_objects::{Component, Declarations, State, Transition};
 use crate::parse_queries::parse_to_system_expr;
 use crate::system::query_failures::{ConsistencyResult, DeterminismResult};
 use crate::system::specifics::SpecificLocation;
-use crate::{
-    data_reader::component_loader::ComponentContainer, extract_system_rep::get_system_recipe,
-    ComponentLoader,
-};
+use crate::system::system_recipe::get_system_recipe;
+use crate::{data_reader::component_loader::ComponentContainer, ComponentLoader};
 use dyn_clone::{clone_trait_object, DynClone};
 use edbm::util::{bounds::Bounds, constraints::ClockIndex};
 use std::collections::hash_set::HashSet;

@@ -586,8 +586,25 @@ fn get_op(exp: &BoolExpression) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use super::ArithExpression::Int;
+    use super::BoolExpression as BE;
+    use super::BoolExpression::Bool;
     use crate::data_reader::parse_edge::parse_guard;
     use test_case::test_case;
+
+    #[test]
+    fn simplify_test_1() {
+        let mut expr = (Bool(false) & BE::b_less_eq(Int(3), Int(2))) | Bool(true);
+        expr.simplify();
+        assert_eq!(Bool(true), expr);
+    }
+
+    #[test]
+    fn simplify_test_2() {
+        let mut expr = BE::b_less_eq(Int(2), Int(3));
+        expr.simplify();
+        assert_eq!(Bool(true), expr);
+    }
 
     #[test_case("0>4", vec ! [], true; "No clocks")]
     #[test_case("x<=5", vec ! ["x".to_string()], true; "A single clock using leq")]

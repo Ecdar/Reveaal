@@ -357,7 +357,7 @@ mod tests {
 
     /// Simplifying the test process by loading a component in a separate function, instead of in each test
     fn setup(comp_name: &str, expected: Vec<String>) -> SetupContext {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).unwrap().clone();
         let expected: HashSet<String> = expected.into_iter().collect();
@@ -459,7 +459,7 @@ mod tests {
     /// Test for testing complete clock reduction, by removing redundant clocks and compressing the declarations
     #[test]
     fn clock_reduction() {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Component1").unwrap().clone();
 
@@ -487,7 +487,7 @@ mod tests {
 
     #[test]
     fn find_and_remove_unused_clocks() {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Researcher2").unwrap().clone();
 
@@ -518,7 +518,7 @@ mod tests {
 
     #[test]
     fn remove_redundant_clocks() {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Component1").unwrap().clone();
 
@@ -544,7 +544,7 @@ mod tests {
 
     #[test_case("Machine4", "y".to_string())]
     fn remove_update(comp_name: &str, clock: String) {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).unwrap().clone();
 
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn get_unused_clocks() {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component("Update").unwrap().clone();
 
@@ -602,7 +602,7 @@ mod tests {
     #[test_case("Component1", vec![HashSet::from(["x".to_string(),"y".to_string(),"z".to_string()])])]
     #[test_case("Component3", vec![])]
     fn find_equivalent_clock_groups(comp_name: &str, result: Vec<HashSet<String>>) {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let test_comp = project_loader.get_component(comp_name).unwrap().clone();
 
@@ -618,7 +618,7 @@ mod tests {
     }
     #[test_case("Updates3", "E12", HashMap::from([("y".to_string(), 5), ("z".to_string(), 7)]))]
     fn find_local_equivalences(comp_name: &str, edge_id: &str, result: HashMap<String, u32>) {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let test_comp = project_loader.get_component(comp_name).unwrap().clone();
 
@@ -630,7 +630,7 @@ mod tests {
 
     #[test]
     fn update_equivalent_clock_groups() {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader
             .get_component("Component7_global_groups")
@@ -663,7 +663,7 @@ mod tests {
     #[test_case("Machine", "x", "y", 4, true; "Two keys for same value removed and clocks compressed")]
     #[test_case("Machine", "z", "v", 3, true; "Compressing after two removed clocks")]
     fn compress_dcls(comp_name: &str, key1: &str, key2: &str, expected: ClockIndex, verdict: bool) {
-        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::tests::TEST_SETTINGS);
+        let mut project_loader = JsonProjectLoader::new_loader(PATH, crate::DEFAULT_SETTINGS);
         project_loader.get_settings_mut().disable_clock_reduction = true;
         let mut test_comp = project_loader.get_component(comp_name).unwrap().clone();
 

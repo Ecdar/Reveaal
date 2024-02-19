@@ -1,21 +1,17 @@
 use crate::data_reader::component_loader::ComponentLoader;
-use crate::model_objects::expressions::{QueryExpression, SaveExpression, SystemExpression};
-use crate::model_objects::{Component, Query, State};
+use crate::model_objects::expressions::{QueryExpression, SaveExpression};
+use crate::model_objects::{Query, State};
 use crate::system::executable_query::{
     ConsistencyExecutor, DeterminismExecutor, ExecutableQuery, GetComponentExecutor,
     ReachabilityExecutor, RefinementExecutor,
 };
 use crate::system::extract_state::get_state;
 
-use crate::transition_systems::{
-    CompiledComponent, Composition, Conjunction, Quotient, TransitionSystemPtr,
-};
-
 use super::executable_query::SyntaxExecutor;
-use super::query_failures::{SyntaxResult, SystemRecipeFailure};
+use super::query_failures::SystemRecipeFailure;
 use crate::system::pruning;
+use crate::system::system_recipe::get_system_recipe;
 use edbm::util::constraints::ClockIndex;
-use log::debug;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutableQueryError {
@@ -163,123 +159,101 @@ pub fn create_executable_query<'a>(
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum SystemRecipe {
-    Composition(Box<SystemRecipe>, Box<SystemRecipe>),
-    Conjunction(Box<SystemRecipe>, Box<SystemRecipe>),
-    Quotient(Box<SystemRecipe>, Box<SystemRecipe>, ClockIndex),
-    Component(Box<Component>),
-}
+#[cfg(test)]
+mod tests {
+    use crate::logging::setup_logger;
+    use crate::system::query_failures::QueryResult;
+    use crate::test_helpers::xml_run_query;
+    use test_case::test_case;
 
-impl SystemRecipe {
-    pub fn compile(self, dim: ClockIndex) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
-        let mut component_index = 0;
-        self._compile(dim + 1, &mut component_index)
-    }
+    const PATH_XML: &str = "samples/xml/ConsTests.xml";
 
-    pub fn compile_with_index(
-        self,
-        dim: ClockIndex,
-        component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
-        self._compile(dim + 1, component_index)
-    }
+    fn xml_determinism_check(path: &str, query: &str) -> bool {
+        #[cfg(feature = "logging")]
+        let _ = setup_logger();
 
-    fn _compile(
-        self,
-        dim: ClockIndex,
-        component_index: &mut u32,
-    ) -> Result<TransitionSystemPtr, Box<SystemRecipeFailure>> {
-        match self {
-            SystemRecipe::Composition(left, right) => Composition::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
-                dim,
-            ),
-            SystemRecipe::Conjunction(left, right) => Conjunction::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
-                dim,
-            ),
-            SystemRecipe::Quotient(left, right, clock_index) => Quotient::new_ts(
-                left._compile(dim, component_index)?,
-                right._compile(dim, component_index)?,
-                clock_index,
-                dim,
-            ),
-            SystemRecipe::Component(comp) => {
-                CompiledComponent::compile(*comp, dim, component_index)
-                    .map(|comp| comp as TransitionSystemPtr)
-            }
+        let q = format!("determinism: {}", query);
+
+        match xml_run_query(path, q.as_str()) {
+            QueryResult::Determinism(Ok(())) => true,
+            QueryResult::Determinism(Err(_)) => false,
+            QueryResult::CustomError(err) => panic!("{}", err),
+            _ => panic!("Not a refinement check"),
         }
     }
 
-    /// Gets the number of `Components`s in the `SystemRecipe`
-    pub fn get_component_count(&self) -> usize {
-        match self {
-            SystemRecipe::Composition(left, right)
-            | SystemRecipe::Conjunction(left, right)
-            | SystemRecipe::Quotient(left, right, _) => {
-                left.get_component_count() + right.get_component_count()
-            }
-            SystemRecipe::Component(_) => 1,
+    fn xml_consistency_check(path: &str, query: &str) -> bool {
+        #[cfg(feature = "logging")]
+        let _ = setup_logger();
+
+        let q = format!("consistency: {}", query);
+
+        match xml_run_query(path, q.as_str()) {
+            QueryResult::Consistency(Ok(())) => true,
+            QueryResult::Consistency(Err(_)) => false,
+            QueryResult::CustomError(err) => panic!("{}", err),
+            _ => panic!("Not a refinement check"),
         }
     }
 
-    pub fn get_components(&self) -> Vec<&Component> {
-        match self {
-            SystemRecipe::Composition(left, right)
-            | SystemRecipe::Conjunction(left, right)
-            | SystemRecipe::Quotient(left, right, _) => {
-                let mut o = left.get_components();
-                o.extend(right.get_components());
-                o
-            }
-            SystemRecipe::Component(c) => vec![c],
-        }
+    #[test_case(PATH_XML, "G1" ; "G1 consistent")]
+    #[test_case(PATH_XML, "G2" ; "G2 consistent")]
+    #[test_case(PATH_XML, "G6" ; "G6 consistent")]
+    #[test_case(PATH_XML, "G8" ; "G8 consistent")]
+    #[test_case(PATH_XML, "G13" ; "G13 consistent")]
+    #[test_case(PATH_XML, "G15" ; "G15 consistent")]
+    #[test_case(PATH_XML, "G17" ; "G17 consistent")]
+    #[test_case(PATH_XML, "G18" ; "G18 consistent")]
+    #[test_case(PATH_XML, "G20" ; "G20 consistent")]
+    #[test_case(PATH_XML, "G21" ; "G21 consistent")]
+    #[test_case(PATH_XML, "G22" ; "G22 consistent")]
+    fn test_consistency_xml(path: &str, query: &str) {
+        assert!(xml_consistency_check(path, query,));
     }
-}
+    #[test_case(PATH_XML, "G3" ; "G3 consistent")]
+    #[test_case(PATH_XML, "G4" ; "G4 consistent")]
+    #[test_case(PATH_XML, "G5" ; "G5 consistent")]
+    #[test_case(PATH_XML, "G7" ; "G7 consistent")]
+    #[test_case(PATH_XML, "G9" ; "G9 consistent")]
+    #[test_case(PATH_XML, "G10" ; "G10 consistent")]
+    #[test_case(PATH_XML, "G11" ; "G11 consistent")]
+    #[test_case(PATH_XML, "G12" ; "G12 consistent")]
+    #[test_case(PATH_XML, "G14" ; "G14 consistent")]
+    #[test_case(PATH_XML, "G16" ; "G16 consistent")]
+    #[test_case(PATH_XML, "G19" ; "G19 consistent")]
+    #[test_case(PATH_XML, "G23" ; "G23 consistent")]
+    fn test_not_consistency_xml(path: &str, query: &str) {
+        assert!(!xml_consistency_check(path, query,));
+    }
 
-pub fn get_system_recipe(
-    side: &SystemExpression,
-    component_loader: &mut dyn ComponentLoader,
-    clock_index: &mut ClockIndex,
-    quotient_index: &mut Option<ClockIndex>,
-) -> Result<Box<SystemRecipe>, SyntaxResult> {
-    match side {
-        SystemExpression::Composition(left, right) => Ok(Box::new(SystemRecipe::Composition(
-            get_system_recipe(left, component_loader, clock_index, quotient_index)?,
-            get_system_recipe(right, component_loader, clock_index, quotient_index)?,
-        ))),
-        SystemExpression::Conjunction(left, right) => Ok(Box::new(SystemRecipe::Conjunction(
-            get_system_recipe(left, component_loader, clock_index, quotient_index)?,
-            get_system_recipe(right, component_loader, clock_index, quotient_index)?,
-        ))),
-        SystemExpression::Quotient(left, right) => {
-            let left = get_system_recipe(left, component_loader, clock_index, quotient_index)?;
-            let right = get_system_recipe(right, component_loader, clock_index, quotient_index)?;
+    #[test_case(PATH_XML, "G1" ; "G1 deterministic")]
+    #[test_case(PATH_XML, "G2" ; "G2 deterministic")]
+    #[test_case(PATH_XML, "G3" ; "G3 deterministic")]
+    #[test_case(PATH_XML, "G4" ; "G4 deterministic")]
+    #[test_case(PATH_XML, "G5" ; "G5 deterministic")]
+    #[test_case(PATH_XML, "G6" ; "G6 deterministic")]
+    #[test_case(PATH_XML, "G7" ; "G7 deterministic")]
+    #[test_case(PATH_XML, "G8" ; "G8 deterministic")]
+    #[test_case(PATH_XML, "G10" ; "G10 deterministic")]
+    #[test_case(PATH_XML, "G11" ; "G11 deterministic")]
+    #[test_case(PATH_XML, "G12" ; "G12 deterministic")]
+    #[test_case(PATH_XML, "G13" ; "G13 deterministic")]
+    #[test_case(PATH_XML, "G15" ; "G15 deterministic")]
+    #[test_case(PATH_XML, "G17" ; "G17 deterministic")]
+    #[test_case(PATH_XML, "G18" ; "G18 deterministic")]
+    #[test_case(PATH_XML, "G19" ; "G19 deterministic")]
+    #[test_case(PATH_XML, "G20" ; "G20 deterministic")]
+    #[test_case(PATH_XML, "G21" ; "G21 deterministic")]
+    #[test_case(PATH_XML, "G22" ; "G22 deterministic")]
+    fn test_determinism_xml(path: &str, query: &str) {
+        assert!(xml_determinism_check(path, query,));
+    }
 
-            let q_index = match quotient_index {
-                Some(q_i) => *q_i,
-                None => {
-                    *clock_index += 1;
-                    debug!("Quotient clock index: {}", *clock_index);
-
-                    quotient_index.replace(*clock_index);
-                    quotient_index.unwrap()
-                }
-            };
-
-            Ok(Box::new(SystemRecipe::Quotient(left, right, q_index)))
-        }
-        SystemExpression::Component(name, id) => {
-            let mut component = component_loader.get_component(name)?.clone();
-            component.set_clock_indices(clock_index);
-            component.special_id = id.clone();
-            // Logic for locations
-            debug!("{} Clocks: {:?}", name, component.declarations.clocks);
-
-            Ok(Box::new(SystemRecipe::Component(Box::new(component))))
-        }
+    #[test_case(PATH_XML, "G9" ; "G9 not deterministic")]
+    #[test_case(PATH_XML, "G14" ; "G14 not deterministic")]
+    #[test_case(PATH_XML, "G16" ; "G16 not deterministic")]
+    #[test_case(PATH_XML, "G23" ; "G23 not deterministic")]
+    fn test_not_determinism_xml(path: &str, query: &str) {
+        assert!(!xml_determinism_check(path, query,));
     }
 }

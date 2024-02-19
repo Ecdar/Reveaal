@@ -267,3 +267,171 @@ pub fn parse_to_state_expr(input: &str) -> Result<StateExpression, String> {
 
     Ok(result)
 }
+
+// which is the parse_queries::parse_to_expression_tree() function.
+#[cfg(test)]
+pub mod tests {
+    use crate::extract_system_rep::create_executable_query;
+    use crate::model_objects::expressions::{StateExpression, SystemExpression};
+    use crate::parse_queries::parse_to_state_expr;
+    use crate::system::system_recipe::{get_system_recipe, SystemRecipe};
+    use crate::transition_systems::TransitionSystem;
+    use crate::{parse_queries, system, xml_parser, JsonProjectLoader, XmlProjectLoader};
+    use edbm::util::constraints::ClockIndex;
+    use test_case::test_case;
+
+    // These tests ensure the parser/grammar can parse strings of the reachability syntax,
+    // Currently only reachability-focused queries are tested
+
+    const FOLDER_PATH: &str = "samples/json/EcdarUniversity";
+
+    /// Helper function which converts a string to an option<box<BoolExpression>> by replacing ',' with "&&" and using the invariant parser.
+    fn string_to_state_expr(string: &str) -> StateExpression {
+        parse_to_state_expr(string).unwrap()
+    }
+
+    /// Helper function to create a transition system and a machine (system recipe)
+    pub fn create_system_recipe_and_machine(
+        model: SystemExpression,
+        folder_path: &str,
+    ) -> (Box<SystemRecipe>, Box<dyn TransitionSystem>) {
+        let mut comp_loader = if xml_parser::is_xml_project(folder_path) {
+            XmlProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        } else {
+            JsonProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        }
+        .to_comp_loader();
+        let mut dim: ClockIndex = 0;
+        let mut quotient_index = None;
+        let machine =
+            get_system_recipe(&model, &mut (*comp_loader), &mut dim, &mut quotient_index).unwrap();
+        //TODO:: - unwrap might not be the best way to handle this
+        let system = machine.clone().compile(dim).unwrap();
+        (machine, system)
+    }
+
+    #[test_case("reachability: Hi @ Hi.L1 && Hi.y<3 -> Hi.L2 && Hi.y<2"; "only 1 machine, start/end location and clock restriction")]
+    #[test_case("reachability: Hi[1] && Hi[2] @ Hi[1].L1 && Hi[2].L1 && Hi[1].y<3 -> Hi[1].L2 && Hi[1].y<2"; "2 machine, start/end location and clock restriction")]
+    fn query_grammar_test_valid_queries(parser_input: &str) {
+        // This tests that the grammar accepts this string, and does not panic:
+        assert!(super::parse_to_expression_tree(parser_input).is_ok());
+    }
+
+    #[test_case("reachability: Hi @ L1 && Hi.y<3 -> L2 && Hi.y<2"; "No component prefix on location")]
+    #[test_case("reachability: Hi @ Hi.L1 && y<3 -> Hi.L2 && y<2"; "No component prefix on clock")]
+    fn query_grammar_test_invalid_queries(parser_input: &str) {
+        // This tests that the grammar does NOT accept this string and panics:
+        assert!(super::parse_to_expression_tree(parser_input).is_err());
+    }
+
+    // These tests check that the parser only accepts clock variable arguments with existing clock variables.
+    // i.e. check that the variables exist in the model.
+    // The model/sample used is samples/json/EcdarUniversity/adm2.json
+    // This model/sample contains the clock variables "x" and "y".
+    // And locations "L20", "L21" ... "L23".
+    #[test_case("Adm2.L20 && Adm2.u>1";
+    "The clock variable u in the state does not exist in the model")]
+    #[test_case("Adm2.L20 && Adm2.uwu>2";
+    "The clock variable uwu in the state does not exist in the model")]
+    fn query_parser_checks_invalid_clock_variables(clock_str: &str) {
+        let mock_model = SystemExpression::Component("Adm2".to_string(), None);
+
+        let (machine, system) = create_system_recipe_and_machine(mock_model, FOLDER_PATH);
+
+        let mock_state = string_to_state_expr(clock_str);
+
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_err());
+    }
+
+    #[test_case("true";
+    "State gets parsed as partial")]
+    #[test_case("Adm2.L20 && Adm2.x>1";
+    "The clock variable x in state exists in the model")]
+    #[test_case("Adm2.L20 && Adm2.y<1";
+    "The clock variable y in state exists in the model")]
+    fn query_parser_checks_valid_clock_variables(clock_str: &str) {
+        let mock_model = SystemExpression::Component("Adm2".to_string(), None);
+        let (machine, system) = create_system_recipe_and_machine(mock_model, FOLDER_PATH);
+
+        let mock_state = string_to_state_expr(clock_str);
+
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_ok());
+    }
+    #[test_case("Adm2.L19";
+    "The location L19 in the state does not exist in the model")]
+    #[test_case("Adm2.NOTCORRECTNAME";
+    "The location NOTCORRECTNAME in the state does not exist in the model")]
+    fn query_parser_checks_invalid_location(location_str: &str) {
+        let mock_model = SystemExpression::Component("Adm2".to_string(), None);
+        let (machine, system) = create_system_recipe_and_machine(mock_model, FOLDER_PATH);
+
+        let mock_state = string_to_state_expr(location_str);
+
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_err());
+    }
+
+    #[test_case("Adm2.L20";
+    "The location L20 in the state exists in the model")]
+    #[test_case("Adm2.L23";
+    "The location L23 in the state exists in the model")]
+    fn query_parser_checks_valid_locations(location_str: &str) {
+        let mock_model = SystemExpression::Component("Adm2".to_string(), None);
+        let (machine, system) = create_system_recipe_and_machine(mock_model, FOLDER_PATH);
+
+        let mock_state = string_to_state_expr(location_str);
+
+        assert!(system::extract_state::get_state(&mock_state, &machine, &system).is_ok());
+    }
+
+    //These tests check the parsers validity checks, like an equal amount of parameters
+    /*
+     #[test_case("reachability: Adm2 -> [L21, _](); [L20]()";
+     "Amount of machine and amount of location args does not match: 1 machine, 2 start-loc-args")]
+     #[test_case("reachability: Adm2 -> [L21](); [L20, _]()";
+     "Amount of machine and amount of location args does not match: 1 machine, 2 end-loc-args")]
+     #[test_case("reachability: Adm2 || Machine -> [L21](); [L20]()";
+     "Amount of machine and amount of location args does not match: 2 machines, 1 loc-arg")]
+    */
+    #[test_case("reachability: Adm2 @ Adm2.L21 && Adm2.L20 -> Adm2.L20";
+    "Amount of machine and amount of location args does not match: 1 machine, 2 start-loc-args")]
+    #[test_case("reachability: Adm2 @ Adm2.L21 -> Adm2.L20 && Adm2.L21";
+    "Amount of machine and amount of location args does not match: 1 machine, 2 end-loc-args")]
+    #[test_case("reachability: Adm2 || Machine @ Adm2.L21 -> Adm2.L20";
+    "Amount of machine and amount of location args does not match: 2 machines, 1 loc-arg")]
+    // The amount of locations given as parameters must be the same as the amount of machines.
+    fn invalid_amount_of_location_and_machine_args(parser_input: &str) {
+        let folder_path = "samples/json/EcdarUniversity".to_string();
+        let mut comp_loader = if xml_parser::is_xml_project(&folder_path) {
+            XmlProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        } else {
+            JsonProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        }
+        .to_comp_loader();
+        // Make query:
+        let q = parse_queries::parse_to_query(parser_input);
+        let queries = q.first().unwrap();
+
+        // Runs the "validate_reachability" function from extract_system_rep, which we wish to test.
+        assert!(create_executable_query(queries, &mut *comp_loader).is_err());
+    }
+    #[test_case("reachability: Adm2 @ Adm2.L21 -> Adm2.L20";
+    "Matching amount of locations and machines: 1 machine, 1 loc")]
+    #[test_case("reachability: Adm2 || Machine @ Adm2.L21 && Machine.L4 -> Adm2.L20 && Machine.L5";
+    "Matching amount of locations and machines: 2 machines, 2 loc args")]
+    // The amount of locations given as parameters must be the same as the amount of machines.
+    fn valid_amount_of_location_and_machine_args(parser_input: &str) {
+        let folder_path = "samples/json/EcdarUniversity".to_string();
+        let mut comp_loader = if xml_parser::is_xml_project(&folder_path) {
+            XmlProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        } else {
+            JsonProjectLoader::new_loader(folder_path, crate::DEFAULT_SETTINGS)
+        }
+        .to_comp_loader();
+        // Make query:
+        let q = parse_queries::parse_to_query(parser_input);
+        let queries = q.first().unwrap();
+
+        // Runs the "validate_reachability" function from extract_system_rep, which we wish to test.
+        assert!(create_executable_query(queries, &mut *comp_loader).is_ok());
+    }
+}

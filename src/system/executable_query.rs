@@ -1,9 +1,9 @@
 use crate::data_reader::component_loader::ComponentLoader;
-use crate::extract_system_rep::SystemRecipe;
 use crate::model_objects::State;
 use crate::system::reachability;
 use crate::system::refine;
 use crate::system::save_component::combine_components;
+use crate::system::system_recipe::SystemRecipe;
 use crate::transition_systems::TransitionSystemPtr;
 
 use super::query_failures::PathFailure;

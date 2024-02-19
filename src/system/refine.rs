@@ -436,3 +436,226 @@ fn check_preconditions(
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::logging::setup_logger;
+    use crate::system::query_failures::QueryResult;
+    use crate::test_helpers::{json_run_query, xml_run_query};
+    use test_case::test_case;
+
+    const AG_PATH: &str = "samples/json/AG";
+    const BIG_PATH: &str = "samples/json/BigRefinement";
+    const CONJUNCTION_PATH: &str = "samples/json/Conjunction";
+    const DELAY_PATH: &str = "samples/json/DelayAdd";
+    const UNI_PATH: &str = "samples/json/EcdarUniversity";
+    const UNSPEC_PATH: &str = "samples/json/Unspec";
+
+    fn json_refinement_check(path: &str, query: &str) -> bool {
+        #[cfg(feature = "logging")]
+        let _ = setup_logger();
+
+        let q = format!("refinement: {}", query);
+        match json_run_query(path, q.as_str()).unwrap() {
+            QueryResult::Refinement(Ok(())) => true,
+            QueryResult::Refinement(Err(_)) => false,
+            QueryResult::CustomError(err) => panic!("{}", err),
+            _ => panic!("Not a refinement check"),
+        }
+    }
+
+    #[test_case(AG_PATH, "A <= A"; "A refines itself (ag)")]
+    #[test_case(AG_PATH, "G <= G"; "G refines itself")]
+    #[test_case(AG_PATH, "Q <= Q"; "Q refines itself")]
+    #[test_case(AG_PATH, "Imp <= Imp"; "Imp refines itself")]
+    #[test_case(AG_PATH, "AA <= AA"; "AA refines itself (ag)")]
+    #[test_case(AG_PATH, "Imp <= G"; "Imp refines G")]
+    #[test_case(AG_PATH, "G <= Q"; "G refines Q")]
+    #[test_case(AG_PATH, "Q <= G"; "Q refines G")]
+    #[test_case(BIG_PATH, "Ref1 <= Ref1"; "Ref 1 refines itself")]
+    #[test_case(BIG_PATH, "Comp1 <= Comp1"; "Comp 1 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test1 <= Test1"; "Test 1 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test2 <= Test2"; "Test 2 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test3 <= Test3"; "Test 3 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test4 <= Test4"; "Test 4 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test5 <= Test5"; "Test 5 refines itself")]
+    #[test_case(CONJUNCTION_PATH, "Test1 && Test2 <= Test3"; "Test 1 and 2 refines Test 3")]
+    #[test_case(CONJUNCTION_PATH, "Test2 && Test3 <= Test1"; "Test 2 and 3 refines Test 1")]
+    #[test_case(CONJUNCTION_PATH, "Test1 && Test3 <= Test2"; "Test 1 and 3 refines Test 2")]
+    #[test_case(CONJUNCTION_PATH, "Test1 && Test2 && Test4 <= Test5"; "Test 1, 2, and 4 refines Test 5")]
+    #[test_case(CONJUNCTION_PATH, "Test3 && Test4 <= Test5"; "Test 3 and 4 refines Test 5")]
+    #[test_case(CONJUNCTION_PATH, "Test6 && Test7 <= Test8"; "Test 6 and 7 refines Test 8")]
+    #[test_case(CONJUNCTION_PATH, "Test9 && Test10 && Test11 <= Test12"; "Test 9, 10, and 11 refines Test 12")]
+    #[test_case(UNI_PATH, "Adm2 <= Adm2"; "Adm2 refines self")]
+    #[test_case(UNI_PATH, "HalfAdm1 <= HalfAdm1"; "HalfAdm1 refines self")]
+    #[test_case(UNI_PATH, "HalfAdm2 <= HalfAdm2"; "HalfAdm2 refines self")]
+    #[test_case(UNI_PATH, "Administration <= Administration"; "Administration refines self")]
+    #[test_case(UNI_PATH, "Machine <= Machine"; "Machine refines self")]
+    #[test_case(UNI_PATH, "Researcher <= Researcher"; "Researcher refines self")]
+    #[test_case(UNI_PATH, "Spec <= Spec"; "Spec refines self")]
+    #[test_case(UNI_PATH, "Machine3 <= Machine3"; "Machine3 refines self")]
+    #[test_case(UNI_PATH, "Machine3 <= Machine"; "Machine3 refines Machine")]
+    #[test_case(UNI_PATH, "Administration || Researcher || Machine <= Spec"; "Adm || Researcher || Machine refines spec")]
+    #[test_case(UNI_PATH, "Administration <= Spec // Researcher // Machine"; "Adm refines big quotient")]
+    #[test_case(UNI_PATH, "Researcher <= Spec // Administration // Machine"; "Researcher refines big quotient (adm)")]
+    #[test_case(UNI_PATH, "Machine <= Spec // Administration // Researcher"; "Machine refines big quotient (adm)")]
+    #[test_case(UNI_PATH, "Administration || Researcher <= Spec // Machine"; "Adm || researcher refines spec, machine quotient")]
+    #[test_case(UNI_PATH, "Researcher || Machine <= Spec // Administration"; "Researcher || machine refines spec, adm quotient refines both halves")]
+    #[test_case(UNI_PATH, "Machine || Administration <= Spec // Researcher"; "Machine || Adm refines spec, researcher quotient")]
+    #[test_case(UNI_PATH, "Administration || Researcher || Machine <=  Administration || Researcher || Machine"; "Large comp refines self")]
+    #[test_case(UNI_PATH, "HalfAdm1 && HalfAdm2 <= Adm2"; "Both halves refines Adm2")]
+    #[test_case(UNI_PATH, "Adm2 <= HalfAdm1 && HalfAdm2"; "Adm2 refines both halves")]
+    #[test_case(UNSPEC_PATH, "A <= A"; "A refines itself (unspec)")]
+    #[test_case(UNSPEC_PATH, "AA <= AA"; "AA refines itself (unspec)")]
+    #[test_case(UNSPEC_PATH, "B <= B"; "B refines itself")]
+    fn test_refinement(path: &str, query: &str) {
+        assert!(json_refinement_check(path, query));
+    }
+
+    #[test_case(AG_PATH, "A||G <= A||Imp"; "A||G not refines A||Imp")]
+    #[test_case(AG_PATH, "G <= Imp"; "G not refines Imp")]
+    #[test_case(AG_PATH, "Q <= Imp"; "Q not refines Imp")]
+    #[test_case(BIG_PATH, "Ref1 <= Comp1"; "Ref 1 not refine Comp 1")]
+    #[test_case(BIG_PATH, "Comp1 <= Ref1"; "Comp 1 not refine Ref 1")]
+    #[test_case(DELAY_PATH, "A1 || A2 <= B"; "Both A's not refine B")]
+    #[test_case(DELAY_PATH, "C1 <= C2"; "C1 not refine C2")]
+    #[test_case(DELAY_PATH, "D1 <= D2"; "D1 not refine D2")]
+    #[test_case(UNI_PATH, "Spec <= Administration"; "Spec not refine Administration")]
+    #[test_case(UNI_PATH, "Spec <= Machine"; "Spec not refine Machine")]
+    #[test_case(UNI_PATH, "Spec <= Researcher"; "Spec not refine Researcher")]
+    #[test_case(UNI_PATH, "Spec <= Machine3"; "Spec not refine Machine3")]
+    #[test_case(UNI_PATH, "Machine <= Spec // Adm2 // Researcher"; "Machine not refine big quotient (adm2)")]
+    #[test_case(UNI_PATH, "Machine <= Administration"; "Machine not refine Administration")]
+    #[test_case(UNI_PATH, "Machine <= Researcher"; "Machine not refine Researcher")]
+    #[test_case(UNI_PATH, "Machine <= Spec"; "Machine not refine Spec")]
+    #[test_case(UNI_PATH, "Machine <= Machine3"; "Machine not refine Machine3")]
+    #[test_case(UNI_PATH, "Machine || Adm2 <= Spec // Researcher"; "Machine || Adm2 refines spec, researcher quotient not refine quotient")]
+    #[test_case(UNI_PATH, "(HalfAdm1 && HalfAdm2) || Researcher || Machine <= Spec"; "Both halves of adm and other components not refine spec")]
+    #[test_case(UNI_PATH, "Machine3 <= Administration"; "Machine3 not refine Administration")]
+    #[test_case(UNI_PATH, "Machine3 <= Researcher"; "Machine3 not refine researcher")]
+    #[test_case(UNI_PATH, "Machine3 <= Spec"; "Machine3 not refine spec")]
+    #[test_case(UNI_PATH, "Researcher <= Spec"; "Researcher not refines Spec")]
+    #[test_case(UNI_PATH, "Researcher <= Machine"; "Researcher not refines Machine")]
+    #[test_case(UNI_PATH, "Researcher <= Machine3"; "Researcher not refines Machine3")]
+    #[test_case(UNI_PATH, "Researcher <= Spec // Adm2 // Machine"; "Researcher not refines big quotient (adm2)")]
+    #[test_case(UNI_PATH, "Researcher || Machine <= Spec // Adm2"; "Researcher || Machine not refines spec, adm2 quotient")]
+    #[test_case(UNI_PATH, "Administration <= Spec"; "Administration not refines Spec")]
+    #[test_case(UNI_PATH, "Administration <= Machine"; "Administration not refines Machine")]
+    #[test_case(UNI_PATH, "Administration <= Machine3"; "Administration not refines Machine3")]
+    #[test_case(UNI_PATH, "Administration <= Researcher"; "Administration not refines Researcher")]
+    #[test_case(UNI_PATH, "Adm2 || Researcher <= Spec // Machine"; "Adm2 || Researcher not refines spec, machine quotient")]
+    #[test_case(UNI_PATH, "Adm2 <= Spec // Researcher // Machine"; "Adm2 not refines big quotient")]
+    fn test_not_refinement(path: &str, query: &str) {
+        assert!(!json_refinement_check(path, query));
+    }
+
+    const DELAY_PATH_XML: &str = "samples/xml/delayRefinement.xml";
+    const LOOP_PATH_XML: &str = "samples/xml/loop.xml";
+    const CONJUNCTION_PATH_XML: &str = "samples/xml/conjun.xml";
+    const EXTRAPOLATE_PATH_XML: &str = "samples/xml/extrapolation_test.xml";
+    const MISC_PATH_XML: &str = "samples/xml/misc_test.xml";
+
+    fn xml_refinement_check(path: &str, query: &str) -> bool {
+        #[cfg(feature = "logging")]
+        let _ = setup_logger();
+
+        let q = format!("refinement: {}", query);
+
+        match xml_run_query(path, q.as_str()) {
+            QueryResult::Refinement(Ok(())) => true,
+            QueryResult::Refinement(Err(_)) => false,
+            QueryResult::CustomError(err) => panic!("{}", err),
+            _ => panic!("Not a refinement check"),
+        }
+    }
+
+    #[test_case(MISC_PATH_XML, "GuardParan <= GuardParan"; "GuardParan refines itself")]
+    #[test_case(EXTRAPOLATE_PATH_XML, "Inf <= Inf"; "Inf refines itself")]
+    #[test_case(LOOP_PATH_XML, "SelfloopNonZeno <= SelfloopNonZeno"; "SelfLoop refines itself")]
+    #[test_case(DELAY_PATH_XML, "T0 <= T0"; "T0 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T1 <= T1"; "T1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T2 <= T2"; "T2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T3 <= T3"; "T3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T4 <= T4"; "T4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T5 <= T5"; "T5 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T6 <= T6"; "T6 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T7 <= T7"; "T7 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T8 <= T8"; "T8 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T9 <= T9"; "T9 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T10 <= T10"; "T10 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T11 <= T11"; "T11 refines itself")]
+    #[test_case(DELAY_PATH_XML, "C1 <= C1"; "C1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "C2 <= C2"; "C2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "F1 <= F1"; "F1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "F2 <= F2"; "F2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "F3 <= F3"; "F3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "N1 <= N1"; "N1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "N2 <= N2"; "N2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "N3 <= N3"; "N3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "N4 <= N4"; "N4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "D1 <= D1"; "D1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "D2 <= D2"; "D2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K1 <= K1"; "K1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K2 <= K2"; "K2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K3 <= K3"; "K3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K4 <= K4"; "K4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K5 <= K5"; "K5 refines itself")]
+    #[test_case(DELAY_PATH_XML, "K6 <= K6"; "K6 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P0 <= P0"; "P0 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P1 <= P1"; "P1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P2 <= P2"; "P2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P3 <= P3"; "P3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P4 <= P4"; "P4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P5 <= P5"; "P5 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P6 <= P6"; "P6 refines itself")]
+    #[test_case(DELAY_PATH_XML, "P7 <= P7"; "P7 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L1 <= L1"; "L1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L2 <= L2"; "L2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L3 <= L3"; "L3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L4 <= L4"; "L4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L5 <= L5"; "L5 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L6 <= L6"; "L6 refines itself")]
+    #[test_case(DELAY_PATH_XML, "L7 <= L7"; "L7 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z1 <= Z1"; "Z1 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z2 <= Z2"; "Z2 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z3 <= Z3"; "Z3 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z4 <= Z4"; "Z4 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z5 <= Z5"; "Z5 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z6 <= Z6"; "Z6 refines itself")]
+    #[test_case(DELAY_PATH_XML, "Z7 <= Z7"; "Z7 refines itself")]
+    #[test_case(DELAY_PATH_XML, "T0||T1||T2 <= T3"; "T0, 1, and 2 refines T3")]
+    #[test_case(DELAY_PATH_XML, "T1||T2 <= T3"; "T1 and 2 refines T3")]
+    #[test_case(DELAY_PATH_XML, "T4 <= T3"; "T4 refines T3")]
+    #[test_case(DELAY_PATH_XML, "T6 <= T5"; "T6 refines T5")]
+    #[test_case(DELAY_PATH_XML, "C1 <= C2"; "C1 refines C2")]
+    #[test_case(DELAY_PATH_XML, "C2 <= C1"; "C2 refines C1")]
+    #[test_case(DELAY_PATH_XML, "F1||F2 <= F3"; "F1 and 2 refines F3")]
+    #[test_case(DELAY_PATH_XML, "N1 <= N2"; "N1 refines N2")]
+    #[test_case(DELAY_PATH_XML, "D2 <= D1"; "D2 refines D1")]
+    #[test_case(DELAY_PATH_XML, "P0 <= P1"; "P0 refines P1")]
+    #[test_case(DELAY_PATH_XML, "P4 <= P5"; "P4 refines P5")]
+    #[test_case(DELAY_PATH_XML, "P6 <= P7"; "P6 refines P7")]
+    #[test_case(DELAY_PATH_XML, "Z1 <= Z2"; "Z1 refines Z2")]
+    #[test_case(DELAY_PATH_XML, "Z3 <= Z4"; "Z3 refines Z4")]
+    fn test_refinement_xml(path: &str, query: &str) {
+        assert!(xml_refinement_check(path, query,));
+    }
+
+    #[test_case(CONJUNCTION_PATH_XML, "P0 && P1 <= P2"; "P0 and 1 not refine P2")]
+    #[test_case(CONJUNCTION_PATH_XML, "P7 && P8 && P9 <= P10"; "P7, 8, and 9 not refine P10")]
+    #[test_case(CONJUNCTION_PATH_XML, "P11 && P12 <= P13"; "P11 and 12 not refine P13")]
+    #[test_case(DELAY_PATH_XML, "D1 <= D2"; "D1 not refine D2")]
+    #[test_case(DELAY_PATH_XML, "K1 <= K2"; "K1 not refine K2")]
+    #[test_case(DELAY_PATH_XML, "K3 <= K4"; "K3 not refine K4")]
+    #[test_case(DELAY_PATH_XML, "K5 <= K6"; "K5 not refine K6")]
+    #[test_case(DELAY_PATH_XML, "P2 <= P3"; "P2 not refine P3")]
+    #[test_case(DELAY_PATH_XML, "L1||L2 <= L3"; "L1 and 2 not refine L3")]
+    #[test_case(DELAY_PATH_XML, "Q1 <= Q2"; "Q1 not refine Q2")]
+    #[test_case(DELAY_PATH_XML, "Q2 <= Q1"; "Q2 not refine Q1")]
+    #[test_case(DELAY_PATH_XML, "T10 <= T11"; "T10 refines T11")]
+    #[test_case(DELAY_PATH_XML, "T7 <= T8"; "T7 not refine T8")]
+    #[test_case(DELAY_PATH_XML, "T9 <= T8"; "T9 not refine T8")]
+    fn test_not_refinement_xml(path: &str, query: &str) {
+        assert!(!xml_refinement_check(path, query,));
+    }
+}
