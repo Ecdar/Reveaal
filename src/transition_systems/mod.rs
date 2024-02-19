@@ -17,3 +17,7 @@ pub use location_tree::{CompositionType, LocationTree};
 pub use quotient::Quotient;
 pub use transition_id::TransitionID;
 pub use transition_system::{TransitionSystem, TransitionSystemPtr};
+
+pub fn variant_eq<T>(a: &T, b: &T) -> bool {
+    std::mem::discriminant(a) == std::mem::discriminant(b)
+}

@@ -77,7 +77,7 @@ mod reachability_search_algorithm_test {
                     )
                 });
                 let path = actual_path.path;
-                assert!(expected_path.len() == path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(),path.len());
+                assert_eq!(expected_path.len(), path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(), path.len());
                 for i in 0..path.len() {
                     let edges: Vec<_> = path[i].edges.iter().map(|e| e.edge_id.clone()).collect();
                     assert_eq!(
@@ -86,8 +86,8 @@ mod reachability_search_algorithm_test {
                         "Query: {}\nThere should only be one edge in the path \n",
                         query
                     );
-                    assert!(
-                        expected_path[i] == edges[0],
+                    assert_eq!(
+                        expected_path[i], edges[0],
                         "Query: {}\nThe actual and expected is not the same \n",
                         query
                     );
@@ -114,7 +114,7 @@ mod reachability_search_algorithm_test {
                     )
                 });
                 let path = actual_path.path;
-                assert!(expected_path.len() == path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(),path.len());
+                assert_eq!(expected_path.len(), path.len(), "Query: {}\nThe length of the actual and expected are not the same.\nexpected_path.len = {}\nactual_path.len = {} \n", query, expected_path.len(), path.len());
                 for i in 0..path.len() {
                     let edges: Vec<_> = path[i].edges.iter().map(|e| e.edge_id.clone()).collect();
                     assert_eq!(
@@ -123,8 +123,8 @@ mod reachability_search_algorithm_test {
                         "Query: {}\nThere should only be one edge in the path \n",
                         query
                     );
-                    assert!(
-                        expected_path[i] == edges,
+                    assert_eq!(
+                        expected_path[i], edges,
                         "Query: {}\nThe actual and expected is not the same \n",
                         query
                     );

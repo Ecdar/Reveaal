@@ -39,8 +39,7 @@ impl Conjunction {
                 (right.as_ref(), right_out),
             )
             .map_err(|e| e.to_rfconj(left, right));
-        }
-        if !left_out.is_disjoint(&right_in) {
+        } else if !left_out.is_disjoint(&right_in) {
             return ActionFailure::not_disjoint(
                 (left.as_ref(), left_out),
                 (right.as_ref(), right_in),

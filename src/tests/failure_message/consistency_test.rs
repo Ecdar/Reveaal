@@ -2,7 +2,7 @@
 
 mod test {
     use crate::{
-        system::query_failures::{ConsistencyFailure, ConsistencyResult, QueryResult},
+        system::query_failures::{ConsistencyFailure, QueryResult},
         tests::refinement::helper::json_run_query,
     };
 
@@ -13,9 +13,7 @@ mod test {
         let actual = json_run_query(PATH, "consistency: notConsistent").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Consistency(ConsistencyResult::Err(
-                ConsistencyFailure::InconsistentFrom { .. }
-            ))
+            QueryResult::Consistency(Err(ConsistencyFailure::InconsistentFrom { .. }))
         ));
     }
 }

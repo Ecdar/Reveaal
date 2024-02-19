@@ -109,6 +109,11 @@ impl ComposedTransitionSystem for Composition {
         unreachable!()
     }
 
+    fn check_local_consistency(&self) -> ConsistencyResult {
+        self.left.check_local_consistency()?;
+        self.right.check_local_consistency()
+    }
+
     fn get_children(&self) -> (&TransitionSystemPtr, &TransitionSystemPtr) {
         (&self.left, &self.right)
     }
@@ -131,10 +136,5 @@ impl ComposedTransitionSystem for Composition {
 
     fn get_output_actions(&self) -> HashSet<String> {
         self.outputs.clone()
-    }
-
-    fn check_local_consistency(&self) -> ConsistencyResult {
-        self.left.check_local_consistency()?;
-        self.right.check_local_consistency()
     }
 }

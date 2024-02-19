@@ -22,7 +22,7 @@ lazy_static! {
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left)
             | Op::infix(Rule::div, Assoc::Left)
-            | Op::infix(Rule::r#mod, Assoc::Left))
+            | Op::infix(Rule::modulo, Assoc::Left))
         .op(Op::infix(Rule::and, Assoc::Left))
         .op(Op::infix(Rule::or, Assoc::Left));
 }
@@ -180,7 +180,7 @@ fn parse_arith_expr(pair: pest::iterators::Pair<Rule>) -> ArithExpression {
                 Rule::sub => ArithExpression::Difference(left, right),
                 Rule::mul => ArithExpression::Multiplication(left, right),
                 Rule::div => ArithExpression::Division(left, right),
-                Rule::r#mod => ArithExpression::Modulo(left, right),
+                Rule::modulo => ArithExpression::Modulo(left, right),
                 _ => unreachable!("Unable to match: {:?} as rule, arith", op),
             }
         })

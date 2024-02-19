@@ -5,6 +5,7 @@ mod reachability_partial_states_test {
     use crate::model_objects::{Declarations, Location, LocationType};
     use crate::transition_systems::CompositionType;
     use crate::transition_systems::LocationTree;
+
     use test_case::test_case;
 
     fn build_location_tree_helper(id: &str, location_type: LocationType) -> Rc<LocationTree> {

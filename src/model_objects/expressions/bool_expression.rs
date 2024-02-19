@@ -309,81 +309,50 @@ impl BoolExpression {
     fn simplify_helper(&mut self) -> bool {
         let mut changed = false;
         let mut value = None;
+        let mut handle = |l: &mut Box<ArithExpression>,
+                          r: &mut Box<ArithExpression>,
+                          //r: ArithExpression,
+                          cmp: &(dyn Fn(&i32, &i32) -> bool)| {
+            **l = l.simplify().expect("Can't simplify");
+            **r = r.simplify().expect("Can't simplify");
+            if let ArithExpression::Int(x) = **l {
+                if let ArithExpression::Int(y) = **r {
+                    value = Some(BoolExpression::Bool(cmp(&x, &y)))
+                }
+            }
+        };
         match self {
             BoolExpression::AndOp(left, right) => {
                 changed |= left.simplify_helper();
                 changed |= right.simplify_helper();
-                match **left {
-                    BoolExpression::Bool(false) => value = Some(BoolExpression::Bool(false)),
-                    BoolExpression::Bool(true) => value = Some((**right).clone()),
-                    _ => {}
-                }
-                match **right {
-                    BoolExpression::Bool(false) => value = Some(BoolExpression::Bool(false)),
-                    BoolExpression::Bool(true) => value = Some((**left).clone()),
-                    _ => {}
-                }
+
+                value = match (left.as_ref(), right.as_ref()) {
+                    // Short-circuiting
+                    (BoolExpression::Bool(false), _) => Some(BoolExpression::Bool(false)),
+                    (BoolExpression::Bool(true), BoolExpression::Bool(b)) => {
+                        Some(BoolExpression::Bool(*b))
+                    }
+                    (_, _) => None,
+                };
             }
             BoolExpression::OrOp(left, right) => {
                 changed |= left.simplify_helper();
                 changed |= right.simplify_helper();
-                match **left {
-                    BoolExpression::Bool(true) => value = Some(BoolExpression::Bool(true)),
-                    BoolExpression::Bool(false) => value = Some((**right).clone()),
-                    _ => {}
-                }
-                match **right {
-                    BoolExpression::Bool(true) => value = Some(BoolExpression::Bool(true)),
-                    BoolExpression::Bool(false) => value = Some((**left).clone()),
-                    _ => {}
-                }
+                value = match (left.as_ref(), right.as_ref()) {
+                    // Short-circuiting
+                    (BoolExpression::Bool(true), _) => Some(BoolExpression::Bool(true)),
+                    (BoolExpression::Bool(false), BoolExpression::Bool(b)) => {
+                        Some(BoolExpression::Bool(*b))
+                    }
+                    (_, _) => None,
+                };
             }
 
-            BoolExpression::LessEQ(l, r) => {
-                **l = l.simplify().expect("Can't simplify");
-                **r = r.simplify().expect("Can't simplify");
-                if let ArithExpression::Int(x) = **l {
-                    if let ArithExpression::Int(y) = **r {
-                        value = Some(BoolExpression::Bool(x <= y))
-                    }
-                }
-            }
-            BoolExpression::GreatEQ(l, r) => {
-                **l = l.simplify().expect("Can't simplify");
-                **r = r.simplify().expect("Can't simplify");
-                if let ArithExpression::Int(x) = **l {
-                    if let ArithExpression::Int(y) = **r {
-                        value = Some(BoolExpression::Bool(x >= y))
-                    }
-                }
-            }
-            BoolExpression::LessT(l, r) => {
-                **l = l.simplify().expect("Can't simplify");
-                **r = r.simplify().expect("Can't simplify");
-                if let ArithExpression::Int(x) = **l {
-                    if let ArithExpression::Int(y) = **r {
-                        value = Some(BoolExpression::Bool(x < y))
-                    }
-                }
-            }
-            BoolExpression::GreatT(l, r) => {
-                **l = l.simplify().expect("Can't simplify");
-                **r = r.simplify().expect("Can't simplify");
-                if let ArithExpression::Int(x) = **l {
-                    if let ArithExpression::Int(y) = **r {
-                        value = Some(BoolExpression::Bool(x > y))
-                    }
-                }
-            }
-            BoolExpression::EQ(l, r) => {
-                **l = l.simplify().expect("Can't simplify");
-                **r = r.simplify().expect("Can't simplify");
-                if let ArithExpression::Int(x) = **l {
-                    if let ArithExpression::Int(y) = **r {
-                        value = Some(BoolExpression::Bool(x == y))
-                    }
-                }
-            }
+            BoolExpression::LessEQ(l, r) => handle(l, r, &i32::le),
+            BoolExpression::GreatEQ(l, r) => handle(l, r, &i32::ge),
+            BoolExpression::LessT(l, r) => handle(l, r, &i32::lt),
+            BoolExpression::GreatT(l, r) => handle(l, r, &i32::gt),
+            BoolExpression::EQ(l, r) => handle(l, r, &i32::eq),
             BoolExpression::Bool(_) => {}
         }
 

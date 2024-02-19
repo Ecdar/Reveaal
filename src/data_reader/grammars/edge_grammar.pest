@@ -30,12 +30,12 @@ bool_op = _{ and | or }
 and = { "&&" }
 or = { "||" }
 
-arith_op = _{ add | sub | mul | div | mod }
+arith_op = _{ add | sub | mul | div | modulo }
 add = { "+" } // Addition
 sub = { "-" } // Subtraction
 mul = { "*" } // Multiplication
 div = { "/" } // Division
-mod = { "%" } // Modulo
+modulo = { "%" } // Modulo
 
 compare_op = _{ geq | leq | eq | lt | gt }
 geq = { ">=" } // Greater than or equal to

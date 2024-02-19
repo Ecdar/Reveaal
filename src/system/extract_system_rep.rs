@@ -16,7 +16,6 @@ use super::query_failures::{SyntaxResult, SystemRecipeFailure};
 use crate::system::pruning;
 use edbm::util::constraints::ClockIndex;
 use log::debug;
-use simple_error::bail;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutableQueryError {
@@ -157,10 +156,10 @@ pub fn create_executable_query<'a>(
             }
 
             // Should handle consistency, Implementation, determinism and specification here, but we cant deal with it atm anyway
-            _ => bail!("Not yet setup to handle query"),
+            _ => Err("Not yet setup to handle query".into()),
         }
     } else {
-        bail!("No query was supplied for extraction")
+        Err("No query was supplied for extraction".into())
     }
 }
 

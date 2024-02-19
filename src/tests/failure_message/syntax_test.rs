@@ -2,7 +2,7 @@
 
 mod test {
     use crate::{
-        system::query_failures::{QueryResult, SyntaxFailure, SyntaxResult},
+        system::query_failures::{QueryResult, SyntaxFailure},
         tests::refinement::helper::json_run_query,
     };
 
@@ -13,7 +13,7 @@ mod test {
         let actual = json_run_query(PATH, "syntax: syntaxFailure").unwrap();
         assert!(matches!(
             actual,
-            QueryResult::Syntax(SyntaxResult::Err(SyntaxFailure::Unparsable { .. }))
+            QueryResult::Syntax(Err(SyntaxFailure::Unparsable { .. }))
         ));
     }
 }

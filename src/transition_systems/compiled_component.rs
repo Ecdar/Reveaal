@@ -170,6 +170,10 @@ impl TransitionSystem for CompiledComponent {
         self.locations.values().cloned().collect()
     }
 
+    fn get_location(&self, id: &LocationID) -> Option<Rc<LocationTree>> {
+        self.locations.get(id).cloned()
+    }
+
     fn get_decls(&self) -> Vec<&Declarations> {
         vec![&self.comp_info.declarations]
     }
@@ -196,20 +200,16 @@ impl TransitionSystem for CompiledComponent {
         CompositionType::Simple
     }
 
-    fn get_location(&self, id: &LocationID) -> Option<Rc<LocationTree>> {
-        self.locations.get(id).cloned()
-    }
-
-    fn component_names(&self) -> Vec<&str> {
-        vec![&self.comp_info.name]
-    }
-
     fn comp_infos(&'_ self) -> ComponentInfoTree<'_> {
         ComponentInfoTree::Info(&self.comp_info)
     }
 
     fn to_string(&self) -> String {
         self.comp_info.name.clone()
+    }
+
+    fn component_names(&self) -> Vec<&str> {
+        vec![&self.comp_info.name]
     }
 
     fn construct_location_tree(

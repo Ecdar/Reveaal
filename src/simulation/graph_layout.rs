@@ -36,13 +36,10 @@ impl Default for Config {
 }
 
 fn get_config() -> Config {
-    match read_config("config.json") {
-        Ok(config) => config,
-        Err(_) => {
-            info!("Could not find graph layout config, using defaults");
-            Config::default()
-        }
-    }
+    read_config("config.json").unwrap_or_else(|_| {
+        info!("Could not find graph layout config, using defaults");
+        Config::default()
+    })
 }
 
 fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {

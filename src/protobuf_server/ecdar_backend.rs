@@ -61,14 +61,16 @@ where
         }
     }
 
-    match future.catch_unwind().await {
-        Ok(response) => response,
-        Err(e) => Err(Status::internal(format!(
-            "{}, please report this bug to the developers",
-            downcast_to_string(e)
-        ))),
-    }
-    .map(Response::new)
+    future
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|e| {
+            Err(Status::internal(format!(
+                "{}, please report this bug to the developers",
+                downcast_to_string(e)
+            )))
+        })
+        .map(Response::new)
 }
 
 impl ConcreteEcdarBackend {}
@@ -81,7 +83,7 @@ impl EcdarBackend for ConcreteEcdarBackend {
     ) -> Result<Response<UserTokenResponse>, Status> {
         let id = self.num.fetch_add(1, Ordering::SeqCst);
         let token_response = UserTokenResponse { user_id: id };
-        Result::Ok(Response::new(token_response))
+        Ok(Response::new(token_response))
     }
 
     async fn send_query(

@@ -3,7 +3,7 @@
 mod test {
 
     use crate::system::query_failures::{
-        ConsistencyFailure, DeterminismFailure, DeterminismResult, QueryResult, RefinementFailure,
+        ConsistencyFailure, DeterminismFailure, QueryResult, RefinementFailure,
         RefinementPrecondition,
     };
     use crate::system::specifics::SpecificLocation;
@@ -14,7 +14,7 @@ mod test {
     fn determinism_test() {
         let expected_action = String::from("1");
         let expected_location = SpecificLocation::new("NonDeterministic1", "L1", 0); //LocationID::Simple(String::from("L1"));
-        if let QueryResult::Determinism(DeterminismResult::Err(DeterminismFailure {
+        if let QueryResult::Determinism(Err(DeterminismFailure {
             state: actual_state,
             action: actual_action,
             system: actual_system,
@@ -40,7 +40,7 @@ mod test {
         })) = json_run_query(PATH, "consistency: NonConsistent").unwrap()
         {
             let actual_location = actual_state.locations;
-            assert_eq!((expected_location), (actual_location));
+            assert_eq!(expected_location, actual_location);
             assert_eq!(actual_system, "NonConsistent");
         } else {
             panic!("Models in samples/action have been changed, REVERT!");
@@ -87,7 +87,7 @@ mod test {
         ))) = json_run_query(PATH, "refinement: NonConsistent <= CorrectComponent").unwrap()
         {
             let actual_location = actual_state.locations;
-            assert_eq!((expected_location), (actual_location));
+            assert_eq!(expected_location, actual_location);
             assert_eq!(actual_system, "NonConsistent");
         } else {
             panic!("Models in samples/action have been changed, REVERT!");

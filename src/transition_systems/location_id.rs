@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use crate::parse_queries::parse_to_system_expr;
+use crate::transition_systems::variant_eq;
 use crate::{model_objects::expressions::SystemExpression, system::specifics::SpecialLocation};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -78,42 +79,44 @@ impl From<SystemExpression> for LocationID {
 
 impl Display for LocationID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut handle = |left: &LocationID,
+                          right: &LocationID,
+                          eq: &LocationID,
+                          sep: &str|
+         -> std::fmt::Result {
+            match (
+                variant_eq(left, eq) || variant_eq(left, &LocationID::Simple("".to_string())),
+                variant_eq(right, eq) || variant_eq(right, &LocationID::Simple("".to_string())),
+            ) {
+                (true, true) => write!(f, "{} {} {}", left, sep, right)?,
+                (true, false) => write!(f, "{} {} ({})", left, sep, right)?,
+                (false, true) => write!(f, "({}) {} {}", left, sep, right)?,
+                (false, false) => write!(f, "({}) {} ({})", left, sep, right)?,
+            };
+            Ok(())
+        };
         match self {
-            LocationID::Conjunction(left, right) => {
-                match **left {
-                    LocationID::Conjunction(_, _) => write!(f, "{}", (*left))?,
-                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
-                    _ => write!(f, "({})", (*left))?,
-                };
-                write!(f, "&&")?;
-                match **right {
-                    LocationID::Conjunction(_, _) => write!(f, "{}", (*right))?,
-                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
-                    _ => write!(f, "({})", (*right))?,
-                };
-            }
-            LocationID::Composition(left, right) => {
-                match **left {
-                    LocationID::Composition(_, _) => write!(f, "{}", (*left))?,
-                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
-                    _ => write!(f, "({})", (*left))?,
-                };
-                write!(f, "||")?;
-                match **right {
-                    LocationID::Composition(_, _) => write!(f, "{}", (*right))?,
-                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
-                    _ => write!(f, "({})", (*right))?,
-                };
-            }
+            LocationID::Conjunction(left, right) => handle(
+                left.as_ref(),
+                right.as_ref(),
+                &LocationID::Conjunction(left.clone(), right.clone()),
+                "&&",
+            )?,
+            LocationID::Composition(left, right) => handle(
+                left.as_ref(),
+                right.as_ref(),
+                &LocationID::Composition(left.clone(), right.clone()),
+                "||",
+            )?,
             LocationID::Quotient(left, right) => {
                 match **left {
-                    LocationID::Simple(_) => write!(f, "{}", (*left))?,
-                    _ => write!(f, "({})", (*left))?,
+                    LocationID::Simple(_) => write!(f, "{}", *left)?,
+                    _ => write!(f, "({})", *left)?,
                 };
                 write!(f, "\\\\")?;
                 match **right {
-                    LocationID::Simple(_) => write!(f, "{}", (*right))?,
-                    _ => write!(f, "({})", (*right))?,
+                    LocationID::Simple(_) => write!(f, "{}", *right)?,
+                    _ => write!(f, "({})", *right)?,
                 };
             }
             LocationID::Simple(location_id) => {

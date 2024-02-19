@@ -122,7 +122,7 @@ impl ArithExpression {
         let mut new_constraint = 0;
 
         self.iterate_constraints(&mut |left, right| {
-            //Start by matching left and right operands to get constant, this might fail if it does we skip constraint defaulting to 0
+            //Start by matching left and right operands to get constant, this might fail. If it does, we skip constraint defaulting to 0
             let constant = ArithExpression::get_constant(left, right, clock, clock_name);
 
             if new_constraint < constant {

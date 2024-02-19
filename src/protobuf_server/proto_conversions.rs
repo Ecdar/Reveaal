@@ -144,7 +144,6 @@ impl From<SpecificConstraint> for ProtoConstraint {
 
 impl From<SpecificClockVar> for ProtoClock {
     fn from(clock: SpecificClockVar) -> Self {
-        use std::convert::TryFrom;
         match clock {
             SpecificClockVar::Zero => Self {
                 clock: Some(ProtoClockEnum::ZeroClock(Default::default())),

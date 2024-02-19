@@ -1,3 +1,4 @@
+use crate::transition_systems::variant_eq;
 use std::fmt::{Display, Formatter};
 
 /// TransitionID is used to represent which edges a given transition consists of.
@@ -116,26 +117,36 @@ impl TransitionID {
 
 impl Display for TransitionID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut handle = |left: &TransitionID, right: &TransitionID| -> std::fmt::Result {
-            match (left, right) {
-                (
-                    TransitionID::Composition(_, _) | TransitionID::Simple(_),
-                    TransitionID::Composition(_, _) | TransitionID::Simple(_),
-                ) => write!(f, "{} || {}", left, right)?,
-                (TransitionID::Composition(_, _) | TransitionID::Simple(_), _) => {
-                    write!(f, "{} || ({})", left, right)?
-                }
-                (_, TransitionID::Composition(_, _) | TransitionID::Simple(_)) => {
-                    write!(f, "({}) || {}", left, right)?
-                }
-                (_, _) => write!(f, "({}) || ({})", left, right)?,
+        let mut handle = |left: &TransitionID,
+                          right: &TransitionID,
+                          eq: &TransitionID,
+                          sep: &str|
+         -> std::fmt::Result {
+            match (
+                variant_eq(left, eq) || variant_eq(left, &TransitionID::Simple("".to_string())),
+                variant_eq(right, eq) || variant_eq(right, &TransitionID::Simple("".to_string())),
+            ) {
+                (true, true) => write!(f, "{} {} {}", left, sep, right)?,
+                (true, false) => write!(f, "{} {} ({})", left, sep, right)?,
+                (false, true) => write!(f, "({}) {} {}", left, sep, right)?,
+                (false, false) => write!(f, "({}) {} ({})", left, sep, right)?,
             }
             Ok(())
         };
         match self {
-            TransitionID::Conjunction(left, right) | TransitionID::Composition(left, right) => {
-                handle(left.as_ref(), right.as_ref())?;
-            }
+            TransitionID::Conjunction(left, right) => handle(
+                left.as_ref(),
+                right.as_ref(),
+                &TransitionID::Conjunction(left.clone(), right.clone()),
+                "&&",
+            )?,
+            TransitionID::Composition(left, right) => handle(
+                left.as_ref(),
+                right.as_ref(),
+                &TransitionID::Composition(left.clone(), right.clone()),
+                "||",
+            )?,
+
             TransitionID::Quotient(left, right) => {
                 for l in left {
                     match *(l) {
