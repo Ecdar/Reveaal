@@ -6,7 +6,6 @@ use crate::transition_systems::{CompositionType, TransitionSystem, TransitionSys
 
 use super::specifics::{SpecificPath, SpecificState};
 
-// TODO: Check file for From/Into impls
 /// Represents how a system is composed at the highest level
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SystemType {
@@ -60,13 +59,6 @@ impl System {
         Self {
             name: format!("{} <= {}", sys1.to_string(), sys2.to_string()),
             sys_type: SystemType::Refinement,
-        }
-    }
-    /// Creates a new system from a single [TransitionSystem]
-    pub fn from(sys: &dyn TransitionSystem) -> Self {
-        Self {
-            name: sys.to_string(),
-            sys_type: sys.get_composition_type().into(),
         }
     }
     /// Creates a new system from two [TransitionSystem]s, `sys1` and `sys2`, and the type of the composition `sys_type`
@@ -364,12 +356,12 @@ impl ActionFailure {
     }
 
     /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
-    pub fn to_recipe_failure(self, sys: &dyn TransitionSystem) -> SystemRecipeFailure {
+    pub fn to_recipe_failure_<T: TransitionSystem>(self, sys: &T) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(self, System::from(sys))
     }
 
     /// Converts this [ActionFailure] into a [SystemRecipeFailure] given the name of the system `sys` that failed.
-    pub fn to_simple_failure(self, sys: impl Into<String>) -> SystemRecipeFailure {
+    pub fn to_simple_failure<S: Into<String>>(self, sys: S) -> SystemRecipeFailure {
         SystemRecipeFailure::Action(
             self,
             System {
@@ -485,7 +477,7 @@ impl ConsistencyFailure {
     }
 
     /// Converts this [ConsistencyFailure] into a [SystemRecipeFailure] given the [TransitionSystem] that failed.
-    pub fn to_recipe_failure(self, sys: &dyn TransitionSystem) -> SystemRecipeFailure {
+    pub fn to_recipe_failure<T: TransitionSystem>(self, sys: &T) -> SystemRecipeFailure {
         SystemRecipeFailure::Inconsistent(self, System::from(sys))
     }
 
@@ -686,6 +678,16 @@ mod conversions {
     impl Error for ConsistencyFailure {}
     impl Error for DeterminismFailure {}
     impl Error for SyntaxFailure {}
+
+    impl<T: TransitionSystem> From<&T> for System {
+        /// Creates a new system from a single [TransitionSystem]
+        fn from(value: &T) -> Self {
+            Self {
+                name: value.to_string(),
+                sys_type: value.get_composition_type().into(),
+            }
+        }
+    }
 
     impl From<RefinementPrecondition> for RefinementFailure {
         fn from(failure: RefinementPrecondition) -> Self {
