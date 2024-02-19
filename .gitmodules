@@ -1,4 +1,4 @@
 [submodule "Ecdar-ProtoBuf"]
-	path = Ecdar-ProtoBuf
-	url = https://github.com/Ecdar/Ecdar-ProtoBuf.git
-	branch = main
+    path = Ecdar-ProtoBuf
+    url = git@github.com:Ecdar/Ecdar-ProtoBuf.git
+    branch = SW5

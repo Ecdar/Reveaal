@@ -1,95 +1,36 @@
-name: Build artifacts
+name: Build Artifacts
 
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
+  push:
 
-jobs:   
-  build-macos:
-    runs-on: macos-latest
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
+    - uses: arduino/setup-protoc@v2
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
+    - name: cargo build --release
+      uses: clechasseur/rs-cargo@v1
       with:
         command: build
         args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
-        name: reveaal-macos
-        path: target/release/Reveaal
+        name: reveaal-${{ matrix.os }}
+        path: ${{ runner.os == 'Windows' && 'target/release/reveaal.exe' || 'target/release/reveaal' }}
         if-no-files-found: error
-  
-  build-win:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
-      with:
-        name: reveaal-windows
-        path: target/release/Reveaal.exe
-        if-no-files-found: error
-    
-  build-ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-    - uses: arduino/setup-protoc@v1.1.2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
-    - name: Upload artifacts 
-      uses: actions/upload-artifact@v2
-      with:
-        name: reveaal-ubuntu
-        path: target/release/Reveaal
-        if-no-files-found: error
+        retention-days: 7
